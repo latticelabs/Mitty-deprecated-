@@ -2,11 +2,12 @@
 as a script as well. This is useful for creating test data for MGR algorithms/data formats
 
 Usage:
-reads [--ref <REF>] [--fastq <FQ>] [--read_len <LEN>] [--read_count <CNT>] [--comment <CMT>]
+reads [--ref <REF>] [--fastq <FQ>] [--seed=<SEED>] [--read_len <LEN>] [--read_count <CNT>] [--comment <CMT>]
 
 Options:
   --ref=<REF>                Reference chromosome [default: ../../../Data/GRCh38/chr24.fa]
   --fastq=<FQ>               FASTQ output file name [default: simulated_reads.fastq]
+  --seed=<SEED>              Seed for random number generator [default: 0]
   --read_len=<LEN>           Length of reads [default: 10]
   --read_count=<CNT>         Number of reads [default: 10]
   --comment=<CMT>            User comment [default: No comment]
@@ -29,21 +30,21 @@ from Bio import SeqIO #Need for loading reference sequence
 def read_vcf():
   """For future expansion. Currently we will only generate the NULL model"""
 
-
-def generate_null_reads(reference, read_len=500, num_reads=1000):
+def generate_null_reads(reference, read_len=500, num_reads=1000, seed=0):
   """Given a reference sequence generate reads of a given length.
 
   Inputs
     reference  - string(like) containing DNA sequence
     read_len   - the length of the reads
     num_reads  - the number of reads we will generate
+    seed       - the seed for the random number generator
 
   Outputs
     sequences  - a list of sequence strings (or any other indexable dtype) that represent base letters
     indexes    - a list of tuples indicating the start and stop of the reads
     qualities  - a list of lists of integers between 0 and 96 representing base call quality (phred score)
   """
-  read_starts = numpy.random.randint(0, len(reference) - read_len, num_reads)
+  read_starts = numpy.random.RandomState(seed).randint(0, len(reference) - read_len, num_reads)
   sequences = [reference[read_starts[n]:read_starts[n]+read_len] for n in range(num_reads)]
   qualities = [[96]*read_len]*num_reads
   return sequences, [(st, st+read_len) for st in read_starts], qualities
@@ -64,19 +65,27 @@ def write_fastq(sequences, indexes, qualities, file_handle, seq_id_prefix='SBG_s
   for n,(sequence,idx,quality) in enumerate(zip(sequences, indexes, qualities)):
     file_handle.write('@{:s} {:12d} {:s}\n{:s}\n+\n{:s}\n'.format(seq_id_prefix,n, str(idx),sequence,''.join([chr(q) for q in quality])))
 
-def write_sidecar(comment, file_handle):
-  file_handle.write('SBG Read simulator v{:s}\n User comment'.format(__version__, comment))
-
+def write_sidecar(args, file_handle):
+  """
+  Write parameters into a sidecar file
+  Inputs:
+    args        - the program arguments as parsed by docopts
+    file_handle - handle of an opened text file. The output will be appended to this file.
+  """
+  file_handle.write('SBG Read simulator v{:s}\n'.format(__version__))
+  for k,v in args.iteritems():
+    file_handle.write('{:s}: {:s}\n'.format(k,v))
 
 def main(args):
   reference = SeqIO.parse(args['--ref'],'fasta').next().seq #We always have a reference
   sequences, indexes, qualities = generate_null_reads(reference,
-                                             read_len=int(args['--read_len']), num_reads=int(args['--read_count']))
+                                             read_len=int(args['--read_len']), num_reads=int(args['--read_count']),
+                                             seed=int(args['--seed']))
   with open(args['--fastq'],'w') as file_handle:
     write_fastq(sequences, indexes, qualities, file_handle, seq_id_prefix='SBG_READ_SIM {:s} '.format(__version__))
 
   with open(args['--fastq'] + '.info','w') as file_handle:
-    write_sidecar(args['--comment'], file_handle)
+    write_sidecar(args, file_handle)
 
 if __name__ == "__main__":
   arguments = docopt.docopt(__doc__, version=__version__)
