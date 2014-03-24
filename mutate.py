@@ -1,6 +1,6 @@
 """This module contains functions that generate variants with reference to a reference genome. The module can be called
 as a script as well. This is useful for creating test data for MGR algorithms/data formats. The script will output
-fasta file(s) with the mutated chromosome(s) and VFC file(s).
+fasta file(s) with the mutated chromosome(s) and VCF file(s).
 
 Usage:
 mutate [snp] [options] [verbose]
@@ -46,37 +46,39 @@ def polymerize(ref_seq, mutation_program):
 
   Algorithm
 
-  All the mutations we perform on a sequence can be expressed as combinations of SNP, DEL or INS. Given our mutation
+  All the mutations we perform on a sequence can be expressed as combinations of DEL and INS. Given our mutation
   requirements we generate a 'mutation program' which consists of sequentially ordered markers along the reference
   sequence. The markers are used to indicate which parts of the original sequence are copied to generate the
-  new sequence incrementally.
+  new sequence incrementally and what sequences are inserted where.
 
+  Say we have a 500bp sequence and we have the following mutations
 
-  0                50 51        100         200           300              500
-  |-----------------|-|----------|-----------|-------------|----------------|
-  |                 | |          |           |             |                |
- start              SNP              DEL                  INS              end
+  SNP @10
+  Deletion 25-75
+  Insertion @100
+  Tandem repeat of 125-150
+  Interspersed repeat of 175-200 at 225
+  Translocation from 250-275 to 300
 
+  These mutations can be represented as insertions and deletions as follows
 
-  We start by copying over 0->49
-  We insert SNP at 50
-  We skip over to 51 and continue copying 51->99
-  We skip over to 200 and continue copying 200->300
-  At 300 we insert a sequence and then continue copying 300->499 (end)
+                   SNP           deletion       Insertion      Tandem repeat     Interspersed      Translocation ...
 
-  We carry with us a pair of start and stop pointers which tell us what to copy next, while each pointer carries
-  information on what to do inbetween the copying.
+  0              9    11        24      75      100   101      150   151           225   226      249  275      300
+  |--------------|     |--------|       |--------|     |--------|     |-------------|     |--------|    |--------|
+  |    copy      |.....|  copy  |       |  copy  |.....|  copy  |.....|    copy     |.....|  copy  |    |  copy  |....
+                   INS                             INS            INS                 INS                          INS
 
-  SNP - we have a single base that we insert before continuing copying
-  DEL - we just skip over
-  INS - we carry a sequence that we insert here before continuing copying
+  For every mutation event we carry a stop copy and resume copy pointers and a sequence (if an insertion is called for)
+  At the beginning and end we add two dummy events to ensure the beginning and end of the sequence are properly copied.
 
+  We copy from the resume copy of event n to the stop copy of event n+1
+  If there is a insertion sequence we insert that before repeating from n+1 and so on
   """
   mut_seq = bytearray()
-  for n in range(len(mutation_program)-1):
-    mut_seq += ref_seq[mutation_program[n][1]:mutation_program[n+1][0]]
+  for n in range(1,len(mutation_program)):
+    mut_seq += ref_seq[mutation_program[n-1][1]:mutation_program[n][0]]
     if mutation_program[n][2] is not None: mut_seq += mutation_program[n][2]
-
   return mut_seq
 
 
