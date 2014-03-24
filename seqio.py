@@ -31,11 +31,17 @@ def fast_read_fasta(file_handle):
   sequence.
   Inputs:
     file_handle       - an open file handle
+
+  >>> header, seq = fast_read_fasta(open('porcine_circovirus.fa','r'))
+  >>> header
+  '>gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds'
+  >>> seq[-20:]
+  bytearray(b'ACCCCCCACTTAACCCTTAG')
   """
   seq = bytearray()
   header = file_handle.readline()[:-1]
   for line in file_handle.readlines():
-    seq += line[:-1]
+    seq += line.rstrip()
   return header, seq
 
 def fast_write_fasta(file_handle, seq, header=None, width=71):
@@ -55,26 +61,33 @@ def time_test():
   """Runs the fast_read_fasta function to compare it against BioPython."""
   import timeit
 
-  tm = timeit.Timer(stmt="seq = SeqIO.read('../../Data/GRCh38/chr24.fa', 'fasta')", setup='from Bio import SeqIO')
+  tm = timeit.Timer(stmt="seq = SeqIO.read('porcine_circovirus.fa', 'fasta')", setup='from Bio import SeqIO')
   print 'BioPython'
-  print tm.timeit(number=2)
+  print tm.timeit(number=2000)
 
-  tm = timeit.Timer(stmt="header, seq = seqio.fast_read_fasta(open('../../Data/GRCh38/chr24.fa'))", setup='import seqio')
+  tm = timeit.Timer(stmt="header, seq = seqio.fast_read_fasta(open('porcine_circovirus.fa'))", setup='import seqio')
   print 'fast_read_fasta'
-  print tm.timeit(number=2)
+  print tm.timeit(number=2000)
 
 
 def write_test():
   """Reads and then writes out a fasta file and then uses BioPython to spot compare the original and written sequences
-  to test if they are same."""
-  header, seq = fast_read_fasta(open('../../Data/GRCh38/chr24.fa'))
-  fast_write_fasta(open('test.fa','w'), header, seq)
-  seq_orig = SeqIO.read('../../Data/GRCh38/chr24.fa','fasta')
+  to test if they are same.
+
+  >>> write_test()
+  ACCCCCCACTTAACCCTTAG
+
+  """
+  from Bio import SeqIO
+  header, seq = fast_read_fasta(open('porcine_circovirus.fa'))
+  fast_write_fasta(open('test.fa','w'), seq, header, width=70)
+  seq_orig = SeqIO.read('porcine_circovirus.fa','fasta')
   seq_written = SeqIO.read('test.fa','fasta')
-  print seq_orig.seq[40000:40010]
-  print seq_written.seq[40000:40010]
+  #print seq_orig.seq[-20:]
+  print seq_written.seq[-20:]
 
 
 if __name__ == "__main__":
-  #time_test()
-  #write_test()
+  time_test()
+  import doctest
+  doctest.testmod()
