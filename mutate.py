@@ -132,7 +132,7 @@ def create_mutation_program(ref_seq, snp_commands):
   mut_prg.append((len(ref_seq), None, None))  # End command
   return mut_prg
 
-
+# TODO: Move these to seqio.py
 def write_vcf_header(file_handle, sim_date, reference_filename):
   """Given a file handle, write out a suitable header to start the VCF file
   Inputs:
