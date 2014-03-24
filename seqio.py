@@ -25,9 +25,12 @@ def int_read_fasta(file_handle):
     index += seq_len
   return header, seq[:index]
 
+
 def fast_read_fasta(file_handle):
-  """This is a simplified FASTA reader that runs fasta than biopython.
-  This expects the fasta file to carry only one sequence.
+  """This is a simplified FASTA reader that runs fasta than biopython. This expects the fasta file to carry only one
+  sequence.
+  Inputs:
+    file_handle       - an open file handle
   """
   seq = bytearray()
   header = file_handle.readline()[:-1]
@@ -35,11 +38,18 @@ def fast_read_fasta(file_handle):
     seq += line[:-1]
   return header, seq
 
-def fast_write_fasta(file_handle, header, seq, width=71):
-  """Write out single sequence with header with a appropriate line breaks."""
-  file_handle.write(header + '\n')
+def fast_write_fasta(file_handle, seq, header=None, width=71):
+  """Write out single sequence with header with a appropriate line breaks.
+  Inputs:
+    file_handle       - an open file handle
+    seq               - the sequence
+    header            - if None then no header will be written. Good for batch writing long sequences
+    width             - when printing the sequence limit this width
+  """
+  if header is not None: file_handle.write(header + '\n')
   for index in range(0, len(seq), width):
     file_handle.write(seq[index:index+width] + '\n')
+
 
 def time_test():
   """Runs the fast_read_fasta function to compare it against BioPython."""
@@ -53,6 +63,7 @@ def time_test():
   print 'fast_read_fasta'
   print tm.timeit(number=2)
 
+
 def write_test():
   """Reads and then writes out a fasta file and then uses BioPython to spot compare the original and written sequences
   to test if they are same."""
@@ -62,6 +73,7 @@ def write_test():
   seq_written = SeqIO.read('test.fa','fasta')
   print seq_orig.seq[40000:40010]
   print seq_written.seq[40000:40010]
+
 
 if __name__ == "__main__":
   #time_test()
