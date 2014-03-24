@@ -34,12 +34,12 @@ def fast_read_fasta(file_handle):
 
   >>> header, seq = fast_read_fasta(open('porcine_circovirus.fa','r'))
   >>> header
-  '>gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds'
+  'gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds'
   >>> seq[-20:]
   bytearray(b'ACCCCCCACTTAACCCTTAG')
   """
   seq = bytearray()
-  header = file_handle.readline()[:-1]
+  header = file_handle.readline()[1:-1]  # Get rid of > sign
   for line in file_handle.readlines():
     seq += line.rstrip()
   return header, seq
@@ -52,7 +52,7 @@ def fast_write_fasta(file_handle, seq, header=None, width=71):
     header            - if None then no header will be written. Good for batch writing long sequences
     width             - when printing the sequence limit this width
   """
-  if header is not None: file_handle.write(header + '\n')
+  if header is not None: file_handle.write('>' + header + '\n')
   for index in range(0, len(seq), width):
     file_handle.write(seq[index:index+width] + '\n')
 
