@@ -197,7 +197,7 @@ if __name__ == "__main__":
 
   mutation_program = create_mutation_program(ref_seq, snp_commands)
   mutated_seq = polymerize(ref_seq, mutation_program)
-  mutated_header = 'Mutated by mutate {:s}'.format(__version__) + header
+  mutated_header = 'Mutated by mutate {:s} '.format(__version__) + header
 
   with open(args['--out'], 'w') as f:
     seqio.fast_write_fasta(f, mutated_seq, mutated_header, width=70)
