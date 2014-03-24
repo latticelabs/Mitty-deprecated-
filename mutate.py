@@ -12,6 +12,7 @@ Options:
   --stop=<STOP>           Where to end on the sequence (-1 means end of the sequence) [default: -1]
   --out=<OUT>             Output file name [default: mutated.fa]
   --seed=<SEED>           Seed for RNG [default: 1]
+  --block_size=<BS>       Block size for operations. Adjust to match memory/resources of platform [default: 100000]
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
@@ -183,19 +184,20 @@ if __name__ == "__main__":
   args = docopt.docopt(__doc__, version=__version__)
   level = logging.DEBUG if args['verbose'] else logging.WARNING
   logging.basicConfig(level=level)
+  logging.debug(args)
 
   with open(args['--ref'],'r') as f:
     header, ref_seq = seqio.fast_read_fasta(f)
 
   # TODO Push all parameters to config file
   if args['snp']:
-    snp_commands = create_snps(ref_seq, float(args['--psnp']), block_size=100000, seed=int(args['--seed']))
+    snp_commands = create_snps(ref_seq, float(args['--psnp']), block_size=int(args['--block_size']), seed=int(args['--seed']))
   else:
     snp_commands = None
 
   mutation_program = create_mutation_program(ref_seq, snp_commands)
   mutated_seq = polymerize(ref_seq, mutation_program)
-  mutated_header = header + ' Mutated by mutate {:s}'.format(__version__)
+  mutated_header = 'Mutated by mutate {:s}'.format(__version__) + header
 
   with open(args['--out'], 'w') as f:
     seqio.fast_write_fasta(f, mutated_seq, mutated_header, width=70)
