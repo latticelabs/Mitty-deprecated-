@@ -7,7 +7,7 @@ mutate [snp] [options] [verbose]
 
 Options:
   --ref=<REF>             Reference sequence [default: porcine_circovirus.fa]
-  --out=<OUT>             Output file name [default: mutated.fa]
+  --out=<OUT>             Output file name [default: mutated]
   --start=<START>         Where to start on the sequence [default: 0]
   --stop=<STOP>           Where to end on the sequence (-1 means end of the sequence) [default: -1]
   --seed=<SEED>           Seed for RNG [default: 1]
@@ -18,9 +18,13 @@ Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
 __version__ = '0.1.0'
-vcf_columns = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO']
+#vcf_columns = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO']
 
-import seqio, numpy, docopt, logging
+import seqio
+import numpy
+import docopt
+import datetime
+import logging
 logger = logging.getLogger(__name__)
 
 from Bio import SeqIO
@@ -128,20 +132,42 @@ def create_snps(ref_seq, p, block_size=100000, seed=1):
 
 
 def resolve_conflicts_and_create_mutation_program(ref_seq, snp_commands):
-  """See notes from 'polymerize'.
+  """Transcribe the SNP and SV commands into a mutation program and a list of vcf strings.
+  Inputs:
+    ref_seq      - reference sequence
+    snp_commands - list of tuples:
+                   First element is location of SNP
+                   Second element is substituted base
+  Output:
+    mutation_program  - The mutation program is a list of tuples representing commands:
+          The first element is the copy end marker - where should we stop copying at
+          The second element is the jump marker    - where should we carry on copying from
+          The third element is the sequence that should be inserted before we continue copying. This is None for 'dels'
+    vcf_lines     - Lines that correspond to information needed for printing in the VCF format
+
+
+  See notes from 'polymerize'.
   Right now this function simply transcribes SNP commands into mutation program. When we have SVs too we will do
   something slightly more involved where we a) resolve conflicts between mutations and b) make sure the program is
   created in ascending coordinate order.
   """
   mut_prg = [(None, 0, None)]  # Start command
+  vcf_lines = []
   if snp_commands is not None:
     for snp_c in snp_commands:
       mut_prg.append((snp_c[0], snp_c[0]+1, snp_c[1]))
+      vcf_lines.append(['1',           # CHROM We default the chrom no to 1
+                        str(snp_c[0]+1),  # POS The numbering for bases starts at 1
+                        '.',         # No id - this is fake
+                        chr(ref_seq[snp_c[0]]), #REF
+                        snp_c[1],    # ALT
+                        '96',          # Arbitrary, high, Phred score
+                        'PASS',      # Passed the filters - fake mutation
+                        '.'])        # Read depth unknown
   mut_prg.append((len(ref_seq), None, None))  # End command
-  return mut_prg
+  return mut_prg, vcf_lines
 
 
-# TODO: Move these to seqio.py
 def write_vcf_header(file_handle, sim_date, reference_filename):
   """Given a file handle, write out a suitable header to start the VCF file
   Inputs:
@@ -155,13 +181,13 @@ def write_vcf_header(file_handle, sim_date, reference_filename):
   """
   file_handle.write(
     """##fileformat=VCFv4.1
-    ##fileDate={:s}
-    ##source=mutate {:s}
-    ##reference={:s}
-    #CHROM POS     ID        REF    ALT     QUAL FILTER INFO""".format(sim_date, __version__, reference_filename)
+##fileDate={:s}
+##source=mutate {:s}
+##reference={:s}
+#CHROM POS     ID        REF    ALT     QUAL FILTER INFO\n""".format(sim_date, __version__, reference_filename)
   )
 
-def write_vcf_mutations(file_handle, mutations):
+def write_vcf_mutations(file_handle, vcf_lines):
   """Given a mutator format dictionary write the mutations in VCF format into the file
   Inputs:
     file_handle   - handle of an opened text file. The output will be appended to this file.
@@ -173,8 +199,9 @@ def write_vcf_mutations(file_handle, mutations):
   2. The ID is a madeup id that is guaranteed not to clash with any dbSNP id because it is a string unique to the
      mutate program
   """
-  for n in range(len(mutations['CHROM'])):
-    file_handle.write("\t".join([mutations[k] for k in vcf_columns]))
+  for line in vcf_lines:
+    file_handle.write("\t".join(line) + '\n')
+
 
 def main(args):
   reference = SeqIO.parse(args['-r'],'fasta').next() #We always have a reference
@@ -204,12 +231,16 @@ if __name__ == "__main__":
   else:
     snp_commands = None
 
-  mutation_prog = resolve_conflicts_and_create_mutation_program(ref_seq, snp_commands)
+  mutation_prog, vcf_lines = resolve_conflicts_and_create_mutation_program(ref_seq, snp_commands)
   mutated_seq = polymerize(ref_seq, mutation_prog)
   mutated_header = 'Mutated by mutate {:s} '.format(__version__) + header
 
-  with open(args['--out'], 'w') as f:
+  with open(args['--out'] + '.fa', 'w') as f:
     seqio.fast_write_fasta(f, mutated_seq, mutated_header, width=70)
 
   with open(args['--out'] + '_params.txt', 'w') as f:
     f.write('Commandline parameters: \n' + args.__str__() + '\n\nParameter file: \n' + pars.__str__())
+
+  with open(args['--out'] + '_variants.vcf', 'w') as f:
+    write_vcf_header(f, datetime.datetime.now().isoformat(), args['--ref'])
+    write_vcf_mutations(f, vcf_lines)
