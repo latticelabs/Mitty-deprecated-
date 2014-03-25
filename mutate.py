@@ -18,16 +18,14 @@ Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
 __version__ = '0.1.0'
-#vcf_columns = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO']
 
 import seqio
 import numpy
 import docopt
 import datetime
 import logging
-logger = logging.getLogger(__name__)
 
-from Bio import SeqIO
+logger = logging.getLogger(__name__)
 
 
 def polymerize(ref_seq, mutation_program):
@@ -82,8 +80,8 @@ def polymerize(ref_seq, mutation_program):
   If there is a insertion sequence we insert that before repeating from n+1 and so on
   """
   mut_seq = bytearray()
-  for n in range(1,len(mutation_program)):
-    mut_seq += ref_seq[mutation_program[n-1][1]:mutation_program[n][0]]
+  for n in range(1, len(mutation_program)):
+    mut_seq += ref_seq[mutation_program[n - 1][1]:mutation_program[n][0]]
     if mutation_program[n][2] is not None: mut_seq += mutation_program[n][2]
   return mut_seq
 
@@ -117,7 +115,7 @@ def create_snps(ref_seq, p, block_size=100000, seed=1):
     'C': 'GAT'
   }
   rng = numpy.random.RandomState(seed)  # Initialize the numpy RNG
-  lam = 1./p  # The expected interval between SNPs is the inverse of the probability that a SNP is going to occur
+  lam = 1. / p  # The expected interval between SNPs is the inverse of the probability that a SNP is going to occur
   snp_loc = 0
   snp_commands = []
   while snp_loc < len(ref_seq):
@@ -155,15 +153,15 @@ def resolve_conflicts_and_create_mutation_program(ref_seq, snp_commands):
   vcf_lines = []
   if snp_commands is not None:
     for snp_c in snp_commands:
-      mut_prg.append((snp_c[0], snp_c[0]+1, snp_c[1]))
-      vcf_lines.append(['1',           # CHROM We default the chrom no to 1
-                        str(snp_c[0]+1),  # POS The numbering for bases starts at 1
-                        '.',         # No id - this is fake
-                        chr(ref_seq[snp_c[0]]), #REF
-                        snp_c[1],    # ALT
-                        '96',          # Arbitrary, high, Phred score
-                        'PASS',      # Passed the filters - fake mutation
-                        '.'])        # Read depth unknown
+      mut_prg.append((snp_c[0], snp_c[0] + 1, snp_c[1]))
+      vcf_lines.append(['1',  # CHROM We default the chrom no to 1
+                        str(snp_c[0] + 1),  # POS The numbering for bases starts at 1
+                        '.',  # No id - this is fake
+                        chr(ref_seq[snp_c[0]]),  #REF
+                        snp_c[1],  # ALT
+                        '96',  # Arbitrary, high, Phred score
+                        'PASS',  # Passed the filters - fake mutation
+                        '.'])  # Read depth unknown
   mut_prg.append((len(ref_seq), None, None))  # End command
   return mut_prg, vcf_lines
 
@@ -187,6 +185,7 @@ def write_vcf_header(file_handle, sim_date, reference_filename):
 #CHROM POS     ID        REF    ALT     QUAL FILTER INFO\n""".format(sim_date, __version__, reference_filename)
   )
 
+
 def write_vcf_mutations(file_handle, vcf_lines):
   """Given a mutator format dictionary write the mutations in VCF format into the file
   Inputs:
@@ -203,16 +202,6 @@ def write_vcf_mutations(file_handle, vcf_lines):
     file_handle.write("\t".join(line) + '\n')
 
 
-def main(args):
-  reference = SeqIO.parse(args['-r'],'fasta').next() #We always have a reference
-  if args['snp']:
-    parameters = {
-      'p': float(args['-p'])/100,  # Convert from percentage to fraction
-      'sm': None  # TODO
-    }
-    block_size = int(args['--block_size'])
-    snp(reference, parameters, block_size)
-
 if __name__ == "__main__":
   args = docopt.docopt(__doc__, version=__version__)
   level = logging.DEBUG if args['verbose'] else logging.WARNING
@@ -222,12 +211,12 @@ if __name__ == "__main__":
   pars = {}
   execfile(args['--paramfile'], {}, pars)
 
-  with open(args['--ref'],'r') as f:
+  with open(args['--ref'], 'r') as f:
     header, ref_seq = seqio.fast_read_fasta(f)
 
-  # TODO Push all parameters to config file
   if pars.has_key('snp'):
-    snp_commands = create_snps(ref_seq, pars['snp']['p'], block_size=int(args['--block_size']), seed=int(args['--seed']))
+    snp_commands = create_snps(ref_seq, pars['snp']['p'], block_size=int(args['--block_size']),
+                               seed=int(args['--seed']))
   else:
     snp_commands = None
 
