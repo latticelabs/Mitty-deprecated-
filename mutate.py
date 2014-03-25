@@ -41,6 +41,7 @@ def polymerize(ref_seq, mutation_program):
     The third element is the sequence that should be inserted before we continue copying. This is None for 'dels'
 
   Notes:
+  0. The program must be in ascending order
   1. All mark coordinates (copy end and jump) refer to the reference sequence
   2. At the first command (starts the sequence) the copy end marker is ignored and the jump marker is 0
   3. At the last command (ends the sequence) the jump marker is ignored
@@ -126,14 +127,19 @@ def create_snps(ref_seq, p, block_size=100000, seed=1):
   return snp_commands
 
 
-def create_mutation_program(ref_seq, snp_commands):
-  """See notes from 'polymerize'."""
+def resolve_conflicts_and_create_mutation_program(ref_seq, snp_commands):
+  """See notes from 'polymerize'.
+  Right now this function simply transcribes SNP commands into mutation program. When we have SVs too we will do
+  something slightly more involved where we a) resolve conflicts between mutations and b) make sure the program is
+  created in ascending coordinate order.
+  """
   mut_prg = [(None, 0, None)]  # Start command
   if snp_commands is not None:
     for snp_c in snp_commands:
       mut_prg.append((snp_c[0], snp_c[0]+1, snp_c[1]))
   mut_prg.append((len(ref_seq), None, None))  # End command
   return mut_prg
+
 
 # TODO: Move these to seqio.py
 def write_vcf_header(file_handle, sim_date, reference_filename):
@@ -195,8 +201,8 @@ if __name__ == "__main__":
   else:
     snp_commands = None
 
-  mutation_program = create_mutation_program(ref_seq, snp_commands)
-  mutated_seq = polymerize(ref_seq, mutation_program)
+  mutation_prog = resolve_conflicts_and_create_mutation_program(ref_seq, snp_commands)
+  mutated_seq = polymerize(ref_seq, mutation_prog)
   mutated_header = 'Mutated by mutate {:s} '.format(__version__) + header
 
   with open(args['--out'], 'w') as f:
