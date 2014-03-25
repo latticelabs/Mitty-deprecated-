@@ -7,12 +7,12 @@ mutate [snp] [options] [verbose]
 
 Options:
   --ref=<REF>             Reference sequence [default: porcine_circovirus.fa]
-  --psnp=<SNP>            Probability of SNPs [default: 0.01]
+  --out=<OUT>             Output file name [default: mutated.fa]
   --start=<START>         Where to start on the sequence [default: 0]
   --stop=<STOP>           Where to end on the sequence (-1 means end of the sequence) [default: -1]
-  --out=<OUT>             Output file name [default: mutated.fa]
   --seed=<SEED>           Seed for RNG [default: 1]
   --block_size=<BS>       Block size for operations. Adjust to match memory/resources of platform [default: 100000]
+  --paramfile=<PFILE>     Name for parameter file [default: Params/example_mutation_parameter_file.py]
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
@@ -192,12 +192,15 @@ if __name__ == "__main__":
   logging.basicConfig(level=level)
   logging.debug(args)
 
+  pars = {}
+  execfile(args['--paramfile'], {}, pars)
+
   with open(args['--ref'],'r') as f:
     header, ref_seq = seqio.fast_read_fasta(f)
 
   # TODO Push all parameters to config file
-  if args['snp']:
-    snp_commands = create_snps(ref_seq, float(args['--psnp']), block_size=int(args['--block_size']), seed=int(args['--seed']))
+  if pars.has_key('snp'):
+    snp_commands = create_snps(ref_seq, pars['snp']['p'], block_size=int(args['--block_size']), seed=int(args['--seed']))
   else:
     snp_commands = None
 
@@ -207,3 +210,6 @@ if __name__ == "__main__":
 
   with open(args['--out'], 'w') as f:
     seqio.fast_write_fasta(f, mutated_seq, mutated_header, width=70)
+
+  with open(args['--out'] + '_params.txt', 'w') as f:
+    f.write('Commandline parameters: \n' + args.__str__() + '\n\nParameter file: \n' + pars.__str__())
