@@ -2,9 +2,10 @@
 as a script as well. This is useful for creating test data for MGR algorithms/data formats
 
 Usage:
-reads [paired] [options]
+reads [paired] [options] [verbose]
 
 Options:
+  paired                     Generate paired reads
   --ref=REF                  Reference chromosome [default: ../../../Data/GRCh38/chr24.fa]
   --fastq=FASTQ              FASTQ output file name (no extension) [default: simulated_reads]
   --seed=SEED                Seed for random number generator [default: 0]
@@ -12,6 +13,7 @@ Options:
   --paired_len=PAIRLEN       Length of whole segment for paired reads [default: 1000]
   --read_count=READCNT       Number of reads [default: 1000]
   --comment=COMMENT          User comment [default: No comment]
+  verbose                    Dump detailed logger messages
 
 Notes:
 1. The output is a FASTQ file (or two FASTQ files for paired reads).
@@ -134,6 +136,6 @@ def main(args):
     write_sidecar(args, file_handle)
 
 if __name__ == "__main__":
-  logging.basicConfig(level=logging.DEBUG)
   arguments = docopt.docopt(__doc__, version=__version__)
+  logging.basicConfig(level=logging.DEBUG)
   main(arguments)
