@@ -6,6 +6,7 @@ Usage:
 mutate [snp] [options] [verbose]
 
 Options:
+  snp                     Generate SNPs
   --ref=<REF>             Reference sequence [default: porcine_circovirus.fa]
   --out=<OUT>             Output file name [default: mutated]
   --start=<START>         Where to start on the sequence [default: 0]
@@ -13,6 +14,7 @@ Options:
   --seed=<SEED>           Seed for RNG [default: 1]
   --block_size=<BS>       Block size for operations. Adjust to match memory/resources of platform [default: 100000]
   --paramfile=<PFILE>     Name for parameter file [default: Params/example_mutation_parameter_file.py]
+  verbose                 Dump detailed logger messages
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
