@@ -4,18 +4,21 @@ Mitty is a collection of modules and scripts that enable us to generate simulate
 User guide
 ==========
 There are two branches in the repository:
-    **master** - stable working code
-    **dev**    - code could be unstable/unworking but will have the latest experimental stuff going on
+
+    master - stable working code
+    dev    - code could be unstable/unworking but will have the latest experimental stuff going on
 
 The different components of the simulator are
-mutate.py -
+
+    mutate.py - Given a reference sequence and mutation instructions generate a mutated sequence and a VCF file
+    reads.py  - Given input sequence(s) and read instructions generate simulated reads as a FASTQ file(s)
 
 Example workflow
 ----------------
 
-## Test the read generator with ideal reads from a reference genome
+#### Test the read generator with ideal reads from a reference genome
 ```
-python ~/Code/Mitty/reads.py --ref=porcine_circovirus.fa --read_len=50 --read_count=100  #Generate the reads
+python reads.py --ref=porcine_circovirus.fa --read_len=50 --read_count=100  #Generate the reads
 bwa index porcine_circovirus.fa
 bwa mem porcine_circovirus.fa simulated_reads.fastq > aligned.sam
 samtools view -Sb aligned.sam > aligned.bam
@@ -24,10 +27,10 @@ samtools index aligned_sorted.bam
 samtools tview aligned_sorted.bam porcine_circovirus.fa
 ```
 
-## Test the SNP generator with ideal reads from a mutated genome
+#### Test the SNP generator with ideal reads from a mutated genome
 ```
-python ~/Code/Mitty/mutate.py --ref=porcine_circovirus.fa --out=mutated --paramfile=params.py  #Generate SNPs
-python ~/Code/Mitty/reads.py --ref=mutated.fa --read_len=50 --read_count=100  #Generate the reads
+python mutate.py --ref=porcine_circovirus.fa --out=mutated --paramfile=params.py  #Generate SNPs
+python reads.py --ref=mutated.fa --read_len=50 --read_count=100  #Generate the reads
 bwa index porcine_circovirus.fa
 bwa mem porcine_circovirus.fa simulated_reads.fastq > aligned.sam
 samtools view -Sb aligned.sam > aligned.bam
