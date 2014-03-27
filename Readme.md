@@ -2,6 +2,20 @@ Mitty is a collection of modules and scripts that enable us to generate simulate
 The scripts allow us to simulate mutations on a reference sequence/genome and then simulate reads from that mutated
 sequence/genome.
 
+           mutation                                        read
+           parameters                                    parameters
+               |                                             |
+               |                                             |
+            --------                                     ---------
+           |        |------>  VCF                       |         |
+           | mutate |                                   |  reads  |------> reads
+           |        |------> mutated                    |         |
+            --------           seq                       ---------
+               |                                             |
+               |                                             |
+            ref seq                                         seq
+
+
 The main modules are:
 
     mutate.py - Given a reference sequence and mutation instructions generate a mutated sequence and a VCF file
@@ -21,12 +35,14 @@ Cookbook
 ----------------
 
 #### Generate reads given a reference sequence and a VCF file
+
 ```
 cat ref.fa | vcf-consensus file.vcf.gz > out.fa #Use VCF tools to create consensus sequence
 python reads.py --ref=out.fa --read_len=50 --read_count=100  #Generate the reads
 ```
 
 #### Test the read generator with ideal reads from a reference genome
+
 ```
 python reads.py --ref=porcine_circovirus.fa --read_len=50 --read_count=100  #Generate the reads
 bwa index porcine_circovirus.fa
