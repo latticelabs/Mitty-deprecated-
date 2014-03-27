@@ -1,20 +1,30 @@
 Mitty is a collection of modules and scripts that enable us to generate simulated genomic data to test our algorithms.
+The scripts allow us to simulate mutations on a reference sequence/genome and then simulate reads from that mutated
+sequence/genome.
 
+The main modules are:
 
-User guide
-==========
+    mutate.py - Given a reference sequence and mutation instructions generate a mutated sequence and a VCF file
+    reads.py  - Given input sequence(s) and read instructions generate simulated reads as a FASTQ file(s)
+
+Each module is designed to run as a script. Typing `python mutate.py -h` or `python reads.py -h` will list usage and
+input requirements including parameter file formats. The cookbook below should also help with typical use cases.
+
 There are two branches in the repository:
 
     master - stable working code
     dev    - code could be unstable/unworking but will have the latest experimental stuff going on
 
-The different components of the simulator are
 
-    mutate.py - Given a reference sequence and mutation instructions generate a mutated sequence and a VCF file
-    reads.py  - Given input sequence(s) and read instructions generate simulated reads as a FASTQ file(s)
 
-Example workflow
+Cookbook
 ----------------
+
+#### Generate reads given a reference sequence and a VCF file
+```
+cat ref.fa | vcf-consensus file.vcf.gz > out.fa #Use VCF tools to create consensus sequence
+python reads.py --ref=out.fa --read_len=50 --read_count=100  #Generate the reads
+```
 
 #### Test the read generator with ideal reads from a reference genome
 ```
@@ -55,6 +65,7 @@ snp = {
 }
 ```
 
+####
 
 Dev notes
 =========
