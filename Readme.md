@@ -2,18 +2,32 @@ Mitty is a collection of modules and scripts that enable us to generate simulate
 The scripts allow us to simulate mutations on a reference sequence/genome and then simulate reads from that mutated
 sequence/genome.
 
-           mutation                                        read
-           parameters                                    parameters
-               |                                             |
-               |                                             |
-            --------                                     ---------
-           |        |------>  VCF                       |         |
-           | mutate |                                   |  reads  |------> reads
-           |        |------> mutated                    |         |
-            --------           seq                       ---------
-               |                                             |
-               |                                             |
-            ref seq                                         seq
+                    mutation
+                   parameters
+                       |
+                       V
+                    --------
+                   |        |
+       ref seq --->| mutate |----> VCF file
+                   |        |----> side car file with sim params
+                    --------
+
+
+                     read
+                   parameters
+                       |
+                       V
+                    --------
+       ref seq --->|        |
+                   |        |----> reads (FASTQ)
+         VCF 1 --->|        |
+         VCF 2 --->| reads  |----> ideal reads (FASTQ)
+             .     |        |
+             .     |        |----> side car file with sim params
+                    --------
+
+       This generates simulated non-ideal reads as well as ideal reads. You can pass more than one VCF file to simulate
+       reads from a heterozygous or otherwise mixed sample (e.g. from tumor samples)
 
 
 The main modules are:
@@ -28,7 +42,6 @@ There are two branches in the repository:
 
     master - stable working code
     dev    - code could be unstable/unworking but will have the latest experimental stuff going on
-
 
 
 Cookbook
@@ -81,21 +94,33 @@ snp = {
 }
 ```
 
-####
-
 Dev notes
 =========
+
+Design choices
+--------------
+### Choice to output just VCF rather than a mutated sequence
+The first version of the code actually output a mutated sequence AND a VCF file. `reads` then used the mutated sequence
+to generate reads. This posed a scaling problem where we would end up with many GB of mutated sequences and would be an
+especial problem when we do heterozygous reads (we would need to load and store in memory multiple giant sequences). The
+decision was made, therefore, to simple output VCF files - the deltas as it were.
+
 ### Parameter files for mutate
 1. I chose to use parameter files because we often want to rerun experiments and it became clear early on that there would
 be a lot of parameters.
 1. I chose to use python for the parameter file for parsimony and flexibility
 1. The parameter distribution between file and command line was based on predictions of which parameters we could
 experiment with most during testing
+1. At this time I do not know whether having everything on the commandline would be better for PIPITOR or if param files
+are preferred for Platform integration, but either way is a short code reorganization that can be done quickly at the
+time of integration.
 
-(Since you were dying to know: Mitty comes from James Thurber's "The Secret Life of Walter Mitty" one of my favourite
+Trivia
+======
+Since you were dying to know: Mitty comes from James Thurber's "The Secret Life of Walter Mitty" one of my favourite
 pieces from one of my favourite authors. Though [Wikipedia][wiki] has a less favourable interpretation of what Walter Mitty
 stands for I follow the interpretation found in the 2013 movie of the same name. Life is difficult and full of
 insurmountable obstacles. If you do not even dream that you have surmounted these obstacles how are you going to even
-start?)
+start?
 
 [wiki]: http://en.wikipedia.org/wiki/The_Secret_Life_of_Walter_Mitty
