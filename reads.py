@@ -2,113 +2,201 @@
 as a script as well. This is useful for creating test data for MGR algorithms/data formats
 
 Usage:
-reads [paired] [options] [verbose]
+reads [options] [verbose]
+reads formats
 
 Options:
-  paired                     Generate paired reads
-  --ref=REF                  Reference chromosome [default: ../../../Data/GRCh38/chr24.fa]
-  --fastq=FASTQ              FASTQ output file name (no extension) [default: simulated_reads]
+  --ref=REF                  Reference sequence [default: porcine_circovirus.fa]
+  --vcf=VCF                  VCF file (If none, null model is generated)
+  --bam=BAM                  Output BAM file [default: test.bam]
   --seed=SEED                Seed for random number generator [default: 0]
-  --read_len=READLEN         Length of reads [default: 100]
-  --paired_len=PAIRLEN       Length of whole segment for paired reads [default: 1000]
-  --read_count=READCNT       Number of reads [default: 1000]
-  --comment=COMMENT          User comment [default: No comment]
+  --read_profile=RP          A profile file that describes characteristics for our reads
+  --block_len=BL             Block length (adjust according to compute resources) [default: 1000000]
+  --comments=COM             User comments to be saved in side car file
   verbose                    Dump detailed logger messages
+  format                     Print the example read_profile file with explanation of the format
 
 Notes:
-1. The output is a FASTQ file (or two FASTQ files for paired reads).
-2. The quality scores are in Sanger/Phred format
-3. The seq id contains a special prefix for this tool, a sequential read number and coordinates for the read
-4. Any annotations the user wishes to make (plus some tool info) are stored in a sidecar file with the same name as
-   the FASTQ file with .info added to the end
-5. For paired reads two FASTQ files are created, numbered _1.fastq and _2.fastq
-6. From informal testing the major time bottle neck is in writing out the fastq file(s)
-"""
-#__version__ = '0.1.0' #Fixed read lengths. Uniform coverage
-__version__ = '0.2.0'  #Paired end. Fixed read lengths. Uniform coverage
+1. The quality scores are in Phred scale (as specified in the SAM spec)
+2. Any annotations the user wishes to make (plus the command line arguments and all other parameters used to run the
+   sim) are stored in a sidecar file with the same name as the bam file with .info added to the end
 
+#Example running script
+
+python reads.py --read_profile=Params/example_read_profile.py
+samtools sort test.bam test_sorted
+samtools index test_sorted.bam
+samtools bam2fq test.bam > test.fq
+bwa mem -p porcine_circovirus.fa test.fq > aligned.sam
+bwa mem porcine_circovirus.fa test.fq > aligned.sam
+samtools view -Sb aligned.sam > aligned.bam
+samtools sort aligned.bam aligned_sorted
+samtools index aligned_sorted.bam
+
+samtools tview aligned_sorted.bam porcine_circovirus.fa
+
+"""
+#__version__ = '0.1.0'  # Fixed read lengths. Uniform coverage
+#__version__ = '0.2.0'  # Paired end. Fixed read lengths. Uniform coverage
+__version__ = '0.2.1'  # Paired end. Fixed read lengths. Uniform coverage. Handles VCF files, does not regenerate whole
+# sequences
+
+import imp
 import docopt
 import numpy
-from Bio import SeqIO  # Need for loading reference sequence
+from Bio import SeqIO  # Needed for loading reference sequence
+import vcf  # Needed for handling VCF files
+import pysam  # Needed to write BAM files
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def generate_reads(reference, read_len=100, paired_len=1000, num_reads=1000, paired=False, seed=0):
-  """Given a reference sequence generate reads of a given length.
+def main(args):
+  """
+  1. Prepare the files for access
+  2. Load parameters
+  3. For each block
+     a) Load the sequence
+     b) Load the relevant variants
+     c) Generate the reads and write to BAM file
+  4. Write the sidecar file
+  5. Cleanup and exist
+  """
+  rng = numpy.random.RandomState(int(args['--seed']))
 
-  Inputs
-    reference  - string(like) containing DNA sequence
-    read_len   - the length of the reads
-    num_reads  - the number of reads we will generate
-    seed       - the seed for the random number generator
+  # Load the read profile as a module
+  mod = imp.load_source('params', args['--read_profile'], open(args['--read_profile'], 'r'))
+
+  ref = SeqIO.read(args['--ref'], 'fasta')
+  ref_description = ref.description
+  ref_seq = ref.seq.tostring()
+  # Load the sequence
+  # TODO: Load in blocks? Needed?
+  # TODO: Error checking?
+
+  vcf_reader = vcf.Reader(filename=args['--vcf']) if args['--vcf'] is not None else None
+
+  bam_hdr = {'HD': {'VN': '1.4'},
+             'SQ': [{'LN': 300000000, 'SN': ref.description, 'SP': 'simulated human'}]}
+  bam_file = pysam.Samfile(args['--bam'], 'wb', header=bam_hdr)  # Write binary BAM with header
+  ref_len = len(ref_seq)
+  blk_start = 0
+  blk_len = int(args['--block_len'])
+  while blk_start < ref_len:
+    blk_stop = min(ref_len, blk_start + blk_len)
+    variants = {rec.POS: rec for rec in
+                vcf_reader.fetch(chrom, blk_start, blk_stop)} if vcf_reader is not None else None
+    # Fetch variants in this block and structure as a dictionary keyed by coordinate
+
+    seqs = polymerize(ref_seq[blk_start:blk_stop], blk_start, variants)  # Generate the sequences for this block
+    reads = generate_reads(
+      seqs=seqs,
+      read_len=mod.read_len,
+      template_len=mod.template_len,
+      coverage=mod.coverage,
+      paired=mod.paired,
+      rng=rng)  # Generate the reads from this block
+    # List of tuples. Paired reads will have two reads per tuple, otherwise only one
+    save_reads_to_bam(bam_file, reads, mod.template_len)
+    blk_start += blk_len
+  bam_file.close()
+
+  with open(args['--bam'] + '.info', 'w') as file_handle:
+    write_sidecar(args, mod, file_handle)
+
+
+def polymerize(ref_seq_block, start_coord, variant_dict):
+  """Given a part of the reference sequence and variants, generate as many variant sequences as called for
+  """
+  # Place holder - simply return a single sequence with no variants
+  return [ref_seq_block]
+
+
+def generate_reads(seqs=[],
+                   read_len=None,
+                   template_len=None,
+                   coverage=5,
+                   paired=False,
+                   rng=None):
+  """Given a list of sequences generate reads with the given characteristics
+
+  Inputs:
+    seqs             - list of string(like)s containing the variant DNA sequences
+    read_len         - Fixed read length
+    template_len     - Template length. Only needed if paired is True
+    coverage         - the coverage that we want
+    paired           - paired reads or not
+    rng              - numpy.random.RandomState(seed)
 
   Outputs
-    A list of one or two dictionaries with keys
-      'sequences'  - a list of sequence strings (or any other indexable dtype) that represent base letters
-      'indexes'    - a list of tuples indicating the start and stop of the reads
-      'qualities'  - a list of lists of integers between 0 and 96 representing base call quality (phred score)
-    If we have single reads there is only one dictionary in the list, if we have paired reads then there are two
-    dictionaries in the list
+                                 _________ ( seq_str, quality_str, coordinate)
+    reads     -  [              /
+                  [( ... ), ( ...)],
+                  [( ... ), ( ...)], -> inner list = 2 elements if paired reads, 1 otherwise
+                       .
+                       .
+                       .
+                 ] -> outer list = number of reads
+
+  Quality: Sanger scale 33-126
   """
-  rng = numpy.random.RandomState(seed)  # Initialize the numpy RNG
   logger.debug('Starting to generate reads')
+  # Placeholder, generate reads from first sequence only
+  seq = seqs[0]  #Sequence being considered
+  num_reads = int(coverage * (float(len(seq)) / float(read_len)))
+  rl = read_len
+  tl = template_len
   if paired:
-    read_starts = rng.randint(0, len(reference) - paired_len, num_reads)
-    read1 = {
-      'sequences': [reference[read_starts[n]:read_starts[n] + read_len] for n in range(num_reads)],
-      'indexes': [(st, st + read_len) for st in read_starts],
-      'qualities': [[96] * read_len] * num_reads
-    }
-    read2 = {
-      'sequences': [reference[read_starts[n] + paired_len - read_len:read_starts[n] + paired_len] for n in
-                    range(num_reads)],
-      'indexes': [(st + paired_len - read_len, st + paired_len) for st in read_starts],
-      'qualities': [[96] * read_len] * num_reads
-    }
-    reads = [read1, read2]
+    rd_st = rng.randint(0, len(seq) - template_len, num_reads)  #Read starts
+    reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]),
+              (seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl)] for n in range(num_reads)]
   else:
-    read_starts = rng.randint(0, len(reference) - read_len, num_reads)
-    read1 = {
-      'sequences': [reference[read_starts[n]:read_starts[n] + read_len] for n in range(num_reads)],
-      'indexes': [(st, st + read_len) for st in read_starts],
-      'qualities': [[96] * read_len] * num_reads
-    }
-    reads = [read1]
+    rd_st = rng.randint(0, len(seq) - read_len, num_reads)  #Read starts
+    reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n])] for n in range(num_reads)]
   logger.debug('Finished generating reads')
   return reads
 
 
-def write_fastq(reads, file_handles, seq_id_prefix='SBG_sim'):
-  """
-  Given a list of sequences and their quality write the read data to an already opened text file.
+def corrupt_reads(reads):
+  """Placeholder, does not damage reads yet. Should corrupt reads and update the quality string. Should get the
+  corruption program externally"""
+  return reads
 
+
+def save_reads_to_bam(bam_file, reads, template_len):
+  """
   Inputs:
-    reads        -  A list of one or two dictionaries with keys
-                  'sequences'  - a list of sequence strings (or any other indexable dtype) that represent base letters
-                  'indexes'    - a list of tuples indicating the start and stop of the reads
-                  'qualities'  - a list of lists of integers between 0 and 96 representing base call phred score
-                  If we have single reads there is only one dictionary in the list, if we have paired reads then there
-                  are two dictionaries in the list
-    file_handles - a list of file handles. The output will be appended to this file.
-                   If we have paired reads there will be two handles, otherwise there will be one
-    seq_id_prefix - a string that we attach to the read id
-
-  Notes:
-  1. The seq id string contains the coordinates of the bases so we can debug alignment programs
-  2. The quality is written out using the sanger format (Phred+33)
+                                 _________ ( seq_str, quality_str, coordinate)
+    reads     -  [              /
+                  [( ... ), ( ...)],
+                  [( ... ), ( ...)], -> inner list = 2 elements if paired reads, 1 otherwise
+                       .
+                       .
+                       .
+                 ] -> outer list = number of reads
   """
-  for these_reads, file_handle in zip(reads, file_handles):
-    logger.debug('Starting to write fastq')
-    for n, (sequence, idx, quality) in enumerate(
-        zip(these_reads['sequences'], these_reads['indexes'], these_reads['qualities'])):
-      file_handle.write('@{:s} {:12d} {:s}\n{:s}\n+\n{:s}\n'.format(seq_id_prefix, n, str(idx),
-                                                                    sequence, ''.join([chr(q) for q in quality])))
-    logger.debug('Finished writing fastq')
+  if len(reads) == 0: return
+  paired = True if len(reads[0]) == 2 else False
+  for n in range(len(reads)):
+    ar = pysam.AlignedRead()
+    ar.qname = "r{:d}".format(n)  # Figure out how to store coordinate
+    ar.seq = reads[n][0][0]
+    ar.qual = reads[n][0][1]
+    if paired:
+      ar.flag = 0x41  # end1 0x01 flag has to be set to indicate multiple segments
+      ar.tlen = template_len
+    bam_file.write(ar)
+
+    if paired:
+      ar.seq = reads[n][1][0]
+      ar.qual = reads[n][1][1]
+      ar.flag = 0x81  # end2 0x01 flag has to be set to indicate multiple segments
+      ar.tlen = template_len
+      bam_file.write(ar)
 
 
-def write_sidecar(args, file_handle):
+def write_sidecar(args, mod, file_handle):
   """
   Write parameters into a sidecar file
   Inputs:
@@ -116,24 +204,13 @@ def write_sidecar(args, file_handle):
     file_handle - handle of an opened text file. The output will be appended to this file.
   """
   file_handle.write('SBG Read simulator v{:s}\n'.format(__version__))
+  file_handle.write('Commandline:\n')
   for k,v in args.iteritems():
     file_handle.write('{:s}: {:s}\n'.format(k, str(v)))
+  file_handle.write('Parameters:\n')
+  # for k,v in args.iteritems():
+  #   file_handle.write('{:s}: {:s}\n'.format(k, str(v)))
 
-
-def main(args):
-  reference = SeqIO.parse(args['--ref'],'fasta').next().seq #We always have a reference
-  reads = generate_reads(reference, read_len=int(args['--read_len']), paired_len=int(args['--paired_len']),
-                         num_reads=int(args['--read_count']), paired=args['paired'], seed=int(args['--seed']))
-  if len(reads) == 2:
-    f1 = open(args['--fastq'] + '_1.fastq', 'w')
-    f2 = open(args['--fastq'] + '_2.fastq', 'w')
-    file_handles = [f1, f2]
-  else:
-    file_handles = [open(args['--fastq'] + '.fastq', 'w')]
-  write_fastq(reads, file_handles, seq_id_prefix='SBG_READ_SIM {:s} '.format(__version__))
-
-  with open(args['--fastq'] + '.info','w') as file_handle:
-    write_sidecar(args, file_handle)
 
 if __name__ == "__main__":
   arguments = docopt.docopt(__doc__, version=__version__)
