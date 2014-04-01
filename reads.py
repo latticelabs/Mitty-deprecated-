@@ -21,20 +21,6 @@ Notes:
 2. Any annotations the user wishes to make (plus the command line arguments and all other parameters used to run the
    sim) are stored in a sidecar file with the same name as the bam file with .info added to the end
 
-#Example running script
-
-python reads.py --read_profile=Params/example_read_profile.py
-samtools sort test.bam test_sorted
-samtools index test_sorted.bam
-samtools bam2fq test.bam > test.fq
-bwa mem -p porcine_circovirus.fa test.fq > aligned.sam
-bwa mem porcine_circovirus.fa test.fq > aligned.sam
-samtools view -Sb aligned.sam > aligned.bam
-samtools sort aligned.bam aligned_sorted
-samtools index aligned_sorted.bam
-
-samtools tview aligned_sorted.bam porcine_circovirus.fa
-
 """
 #__version__ = '0.1.0'  # Fixed read lengths. Uniform coverage
 #__version__ = '0.2.0'  # Paired end. Fixed read lengths. Uniform coverage
@@ -76,6 +62,7 @@ def main(args):
   # TODO: Error checking?
 
   vcf_reader = vcf.Reader(filename=args['--vcf']) if args['--vcf'] is not None else None
+  chrom = 1
 
   bam_hdr = {'HD': {'VN': '1.4'},
              'SQ': [{'LN': 300000000, 'SN': ref.description, 'SP': 'simulated human'}]}
@@ -109,8 +96,17 @@ def main(args):
 def polymerize(ref_seq_block, start_coord, variant_dict):
   """Given a part of the reference sequence and variants, generate as many variant sequences as called for
   """
-  # Place holder - simply return a single sequence with no variants
-  return [ref_seq_block]
+  # Place holder: copy the sequence element by element testing if a variant exists there and then implementing it
+  # Only does SNPs
+  mutated_seq_block = bytearray()
+  for n in range(len(ref_seq_block)):
+    if variant_dict.has_key(start_coord + n):
+      mutated_seq_block += variant_dict[start_coord + n].ALT[0].sequence
+      logger.debug('SNP!')
+    else:
+      mutated_seq_block += ref_seq_block[n]
+
+  return [mutated_seq_block.__str__()]
 
 
 def generate_reads(seqs=[],
