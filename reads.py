@@ -8,7 +8,7 @@ reads formats
 Options:
   --ref=REF                  Reference sequence [default: Data/porcine_circovirus.fa]
   --vcf=VCF                  VCF file (If none, null model is generated)
-  --bam=BAM                  Output BAM file [default: Data/test.bam]
+  --bam=BAM                  Output BAM file [default: Data/raw_reads.bam]
   --seed=SEED                Seed for random number generator [default: 0]
   --read_profile=RP          A profile file that describes characteristics for our reads
   --block_len=BL             Block length (adjust according to compute resources) [default: 1000000]

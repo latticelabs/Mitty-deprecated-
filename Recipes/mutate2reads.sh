@@ -1,9 +1,17 @@
-#Example running script to go from VCF file to reads and then align the reads and show alignment using samtools
+#Example running script to go from mutation parameters to VCF to reads and then align the reads and show alignment using samtools
 
 FASTA="porcine_circovirus.fa"
 
 pushd ../
-python reads.py --ref=Data/$FASTA  --read_profile=Params/example_read_profile.py --block_len=3000 --vcf=Data/onesnp.vcf.gz
+python mutate.py
+pushd Data
+bgzip mutated_variants.vcf
+tabix -p vcf mutated_variants.vcf.gz
+popd
+popd
+
+pushd ../
+python reads.py --ref=Data/$FASTA  --read_profile=Params/example_read_profile.py --block_len=3000 --vcf=Data/mutated_variants.vcf.gz
 #python reads.py --ref=Data/$FASTA  --read_profile=Params/example_read_profile.py --block_len=3000
 pushd Data
 #bwa index $FASTA

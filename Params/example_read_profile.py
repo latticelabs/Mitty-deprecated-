@@ -5,10 +5,10 @@ TODO: Potential problem - too much computation offloaded here?
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
-paired = False  #True
+paired = True
 read_len = 100  # Shorter than this samtools can't align properly
 template_len = 250
-coverage = 1
+coverage = 5
 
 #
 # def read_params(n=1000, paired=False, rng=None):

@@ -1,14 +1,14 @@
 """This module contains functions that generate variants with reference to a reference genome. The module can be called
 as a script as well. This is useful for creating test data for MGR algorithms/data formats. The script will output
-fasta file(s) with the mutated chromosome(s) and VCF file(s).
+VCF file(s).
 
 Usage:
 mutate [snp] [options] [verbose]
 
 Options:
   snp                     Generate SNPs
-  --ref=REF               Reference sequence [default: porcine_circovirus.fa]
-  --out=OUT               Output file name [default: mutated]
+  --ref=REF               Reference sequence [default: Data/porcine_circovirus.fa]
+  --out=OUT               Output file name [default: Data/mutated]
   --start=START           Where to start on the sequence [default: 0]
   --stop=STOP             Where to end on the sequence (-1 means end of the sequence) [default: -1]
   --seed=SEED             Seed for RNG [default: 1]
@@ -16,9 +16,13 @@ Options:
   --paramfile=PFILE       Name for parameter file [default: Params/example_mutation_parameter_file.py]
   verbose                 Dump detailed logger messages
 
+The parameter file is a simple python script that should contain a set of dictionaries with the following names and
+keys. Missing data will cause the program to fail loudly.
+
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
+
 __version__ = '0.1.0'
 
 import seqio
@@ -223,11 +227,11 @@ if __name__ == "__main__":
     snp_commands = None
 
   mutation_prog, vcf_lines = resolve_conflicts_and_create_mutation_program(ref_seq, snp_commands)
-  mutated_seq = polymerize(ref_seq, mutation_prog)
+  #mutated_seq = polymerize(ref_seq, mutation_prog)
   mutated_header = 'Mutated by mutate {:s} '.format(__version__) + header
 
-  with open(args['--out'] + '.fa', 'w') as f:
-    seqio.fast_write_fasta(f, mutated_seq, mutated_header, width=70)
+  #with open(args['--out'] + '.fa', 'w') as f:
+  #  seqio.fast_write_fasta(f, mutated_seq, mutated_header, width=70)
 
   with open(args['--out'] + '_params.txt', 'w') as f:
     f.write('Commandline parameters: \n' + args.__str__() + '\n\nParameter file: \n' + pars.__str__())
