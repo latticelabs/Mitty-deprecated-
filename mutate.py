@@ -34,7 +34,109 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def create_snps(ref_seq, p, block_size=100000, seed=1):
+# TODO: Use vcf tools for this?
+def write_vcf_header(file_handle, sim_date, reference_filename):
+  """Given a file handle, write out a suitable header to start the VCF file
+  Inputs:
+    file_handle       - an open file handle
+
+  Notes:
+  1. 'filedate' is the date of the simulation
+  2. 'source' contains the version of the mutate program used to generate the data
+  3. 'reference' contains the name of the file entered as the reference file
+
+  """
+  file_handle.write(
+    """##fileformat=VCFv4.1
+##fileDate={:s}
+##source=mutate {:s}
+##reference={:s}
+#CHROM POS     ID        REF    ALT     QUAL FILTER INFO\n""".format(sim_date, __version__, reference_filename)
+  )
+
+
+def write_vcf_mutations(file_handle, vcf_lines):
+  """Given a mutator format dictionary write the mutations in VCF format into the file
+  Inputs:
+    file_handle   - handle of an opened text file. The output will be appended to this file.
+    mutations     - dictionary of lists in mutator format
+  Notes:
+  1. The mutator format is a dictionary of lists which makes it easy to drop the information into the VCF file.
+     The dictionary keys correspond to the VCF columns. Each value is a list with however many elements we want the
+     VCF file to have
+  2. The ID is a madeup id that is guaranteed not to clash with any dbSNP id because it is a string unique to the
+     mutate program
+  """
+  for line in vcf_lines:
+    file_handle.write("\t".join(line) + '\n')
+
+
+#TODO Disk mapped read of ref seq
+#TODO make this a generator so we can write the VCF file in batches
+def create_variants(ref_seq, mutation_parameters, rng, block_size=100000):
+  """Given mutation parameters generate a mutation program
+
+  Inputs:
+    ref_seq             - Reference sequence
+    mutation_parameters - Dictionary of dictionaries. Upper level corresponds to the different types of mutations
+                          The lower level has one required key:
+                          'get loci' : a function that spits out a list of variants within the given limits. The list
+                          can be empty.
+                          And the remaining keys differ depending on what kind of mutation it is.
+  Output:
+    variants            - List of tuples (CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO)
+
+  Algorithm:
+  1. Create k counters for the k types of mutations
+  2. Generate mutation for the current smallest counter
+  3. If the mutation interferes with an existing one, discard it
+  4. Increment the counter go to 2
+  """
+
+  def keep_looping():
+    """Convenience function to see if there are any remaining candidate loci."""
+    flag = False
+    for k in keys:
+      if counters[k] < len(cvl[k]):
+        flag = True  # At least one mutation type has more loci to be computed
+        break
+    return flag
+
+  def smallest_counter():
+    """Convenience function to find the counter furthest behind."""
+    smallest = keys[0]
+    for k in keys[1:]:
+      if cvl[k][counters[k]] < cvl[smallest][counters[smallest]]:
+
+    variants = []
+    mp = mutation_parameters  # Convenient abbr.
+    keys = mp.keys()
+    seq_len = len(ref_seq)
+    blk_start = 0
+    while blk_start < seq_len:
+      blk_stop = min(blk_start + block_size, seq_len)
+      counters = {k: 0 for k in keys}  # Our k counters
+      cvl = candidate_variant_loci = {k: mp[k]['get loci'](rng, blk_start, blk_stop) for k in keys}
+      while keep_looping():
+
+      mut_prg = [(None, 0, None)]  # Start command
+      vcf_lines = []
+      if snp_commands is not None:
+        for snp_c in snp_commands:
+          mut_prg.append((snp_c[0], snp_c[0] + 1, snp_c[1]))
+          vcf_lines.append(['1',  # CHROM We default the chrom no to 1
+                            str(snp_c[0] + 1),  # POS The numbering for bases starts at 1
+                            '.',  # No id - this is fake
+                            chr(ref_seq[snp_c[0]]),  #REF
+                            snp_c[1],  # ALT
+                            '96',  # Arbitrary, high, Phred score
+                            'PASS',  # Passed the filters - fake mutation
+                            '.'])  # Read depth unknown
+      mut_prg.append((len(ref_seq), None, None))  # End command
+      return mut_prg, vcf_lines
+
+
+    def create_snps(ref_seq, p, block_size=100000, seed=1):
   """Given a reference sequence and a snp probability generate snp commands.
   Inputs:
     ref_seq      - reference sequence
@@ -77,77 +179,8 @@ def create_snps(ref_seq, p, block_size=100000, seed=1):
   return snp_commands
 
 
-def resolve_conflicts_and_create_mutation_program(ref_seq, snp_commands):
-  """Transcribe the SNP and SV commands into a mutation program and a list of vcf strings.
-  Inputs:
-    ref_seq      - reference sequence
-    snp_commands - list of tuples:
-                   First element is location of SNP
-                   Second element is substituted base
-  Output:
-    mutation_program  - The mutation program is a list of tuples representing commands:
-          The first element is the copy end marker - where should we stop copying at
-          The second element is the jump marker    - where should we carry on copying from
-          The third element is the sequence that should be inserted before we continue copying. This is None for 'dels'
-    vcf_lines     - Lines that correspond to information needed for printing in the VCF format
 
 
-  See notes from 'polymerize'.
-  Right now this function simply transcribes SNP commands into mutation program. When we have SVs too we will do
-  something slightly more involved where we a) resolve conflicts between mutations and b) make sure the program is
-  created in ascending coordinate order.
-  """
-  mut_prg = [(None, 0, None)]  # Start command
-  vcf_lines = []
-  if snp_commands is not None:
-    for snp_c in snp_commands:
-      mut_prg.append((snp_c[0], snp_c[0] + 1, snp_c[1]))
-      vcf_lines.append(['1',  # CHROM We default the chrom no to 1
-                        str(snp_c[0] + 1),  # POS The numbering for bases starts at 1
-                        '.',  # No id - this is fake
-                        chr(ref_seq[snp_c[0]]),  #REF
-                        snp_c[1],  # ALT
-                        '96',  # Arbitrary, high, Phred score
-                        'PASS',  # Passed the filters - fake mutation
-                        '.'])  # Read depth unknown
-  mut_prg.append((len(ref_seq), None, None))  # End command
-  return mut_prg, vcf_lines
-
-
-def write_vcf_header(file_handle, sim_date, reference_filename):
-  """Given a file handle, write out a suitable header to start the VCF file
-  Inputs:
-    file_handle       - an open file handle
-
-  Notes:
-  1. 'filedate' is the date of the simulation
-  2. 'source' contains the version of the mutate program used to generate the data
-  3. 'reference' contains the name of the file entered as the reference file
-
-  """
-  file_handle.write(
-    """##fileformat=VCFv4.1
-##fileDate={:s}
-##source=mutate {:s}
-##reference={:s}
-#CHROM POS     ID        REF    ALT     QUAL FILTER INFO\n""".format(sim_date, __version__, reference_filename)
-  )
-
-
-def write_vcf_mutations(file_handle, vcf_lines):
-  """Given a mutator format dictionary write the mutations in VCF format into the file
-  Inputs:
-    file_handle   - handle of an opened text file. The output will be appended to this file.
-    mutations     - dictionary of lists in mutator format
-  Notes:
-  1. The mutator format is a dictionary of lists which makes it easy to drop the information into the VCF file.
-     The dictionary keys correspond to the VCF columns. Each value is a list with however many elements we want the
-     VCF file to have
-  2. The ID is a madeup id that is guaranteed not to clash with any dbSNP id because it is a string unique to the
-     mutate program
-  """
-  for line in vcf_lines:
-    file_handle.write("\t".join(line) + '\n')
 
 
 if __name__ == "__main__":
@@ -157,7 +190,7 @@ if __name__ == "__main__":
   logging.debug(args)
 
   pars = {}
-  execfile(args['--paramfile'], {}, pars)
+  execfile(args['--paramfile'], {}, pars)  # TODO: move to imp.load_source
 
   with open(args['--ref'], 'r') as f:
     header, ref_seq = seqio.fast_read_fasta(f)

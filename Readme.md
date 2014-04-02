@@ -20,7 +20,7 @@ sequence/genome.
                     --------
        ref seq --->|        |
                    |        |----> reads (BAM)
-       VCF1.gz --->|        |
+       VCF.gz  --->|        |
                    | reads  |----> ideal reads (BAM)
                    |        |
                    |        |----> side car file with sim params
@@ -28,6 +28,17 @@ sequence/genome.
 
        This generates simulated non-ideal reads as well as ideal reads. The VCF files are compressed by
        `bgzip` and indexed by `tabix` to allow us to load variants based on positional index.
+
+
+       reads.py can also be used to recreate the entire mutated sequence(s)
+
+
+                    --------
+       ref seq --->|        |
+                   | reads  |----> mutated sequence(s) (FASTA)
+       VCF.gz  --->|        |
+                    --------
+
 
 
 The main modules are:
@@ -61,15 +72,14 @@ Subdirectories
 
 Data
 ----
-porcine_circovirus.fa - 702bp (http://www.ncbi.nlm.nih.gov/nuccore/AY735451.1)
-adenovirus.fa   -  34094bp  (http://www.ncbi.nlm.nih.gov/nuccore/AB026117.1)
+ - porcine_circovirus.fa - 702bp (http://www.ncbi.nlm.nih.gov/nuccore/AY735451.1)
+ - adenovirus.fa   -  34094bp  (http://www.ncbi.nlm.nih.gov/nuccore/AB026117.1)
 
 
 
-Cookbook
-----------------
-
-#### Compress a VCF file with tabix
+Manual
+------
+(Please see the `Recipes` directory for more examples, including complete workflows)
 
 
 
