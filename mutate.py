@@ -23,7 +23,7 @@ Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 import seqio
 import numpy
@@ -32,64 +32,6 @@ import datetime
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-def polymerize(ref_seq, mutation_program):
-  """This function takes in a sequence and a mutation program and generates a mutated sequence
-  Inputs:
-    ref_seq           - reference sequence
-    mutation_program  - (see below)
-
-  Output:
-    mut_seq           - mutated sequence
-
-  The mutation program is a list of tuples representing commands:
-    The first element is the copy end marker - where should we stop copying at
-    The second element is the jump marker    - where should we carry on copying from
-    The third element is the sequence that should be inserted before we continue copying. This is None for 'dels'
-
-  Notes:
-  0. The program must be in ascending order
-  1. All mark coordinates (copy end and jump) refer to the reference sequence
-  2. At the first command (starts the sequence) the copy end marker is ignored and the jump marker is 0
-  3. At the last command (ends the sequence) the jump marker is ignored
-
-  Algorithm
-
-  All the mutations we perform on a sequence can be expressed as combinations of DEL and INS. Given our mutation
-  requirements we generate a 'mutation program' which consists of sequentially ordered markers along the reference
-  sequence. The markers are used to indicate which parts of the original sequence are copied to generate the
-  new sequence incrementally and what sequences are inserted where.
-
-  Say we have a 500bp sequence and we have the following mutations
-
-  SNP @10
-  Deletion 25-75
-  Insertion @100
-  Tandem repeat of 125-150
-  Interspersed repeat of 175-200 at 225
-  Translocation from 250-275 to 300
-
-  These mutations can be represented as insertions and deletions as follows
-
-                   SNP           deletion       Insertion      Tandem repeat     Interspersed      Translocation ...
-
-  0              9    11        24      75      100   101      150   151           225   226      249  275      300
-  |--------------|     |--------|       |--------|     |--------|     |-------------|     |--------|    |--------|
-  |    copy      |.....|  copy  |       |  copy  |.....|  copy  |.....|    copy     |.....|  copy  |    |  copy  |....
-                   INS                             INS            INS                 INS                          INS
-
-  For every mutation event we carry a stop copy and resume copy pointers and a sequence (if an insertion is called for)
-  At the beginning and end we add two dummy events to ensure the beginning and end of the sequence are properly copied.
-
-  We copy from the resume copy of event n to the stop copy of event n+1
-  If there is a insertion sequence we insert that before repeating from n+1 and so on
-  """
-  mut_seq = bytearray()
-  for n in range(1, len(mutation_program)):
-    mut_seq += ref_seq[mutation_program[n - 1][1]:mutation_program[n][0]]
-    if mutation_program[n][2] is not None: mut_seq += mutation_program[n][2]
-  return mut_seq
 
 
 def create_snps(ref_seq, p, block_size=100000, seed=1):
@@ -227,11 +169,7 @@ if __name__ == "__main__":
     snp_commands = None
 
   mutation_prog, vcf_lines = resolve_conflicts_and_create_mutation_program(ref_seq, snp_commands)
-  #mutated_seq = polymerize(ref_seq, mutation_prog)
   mutated_header = 'Mutated by mutate {:s} '.format(__version__) + header
-
-  #with open(args['--out'] + '.fa', 'w') as f:
-  #  seqio.fast_write_fasta(f, mutated_seq, mutated_header, width=70)
 
   with open(args['--out'] + '_params.txt', 'w') as f:
     f.write('Commandline parameters: \n' + args.__str__() + '\n\nParameter file: \n' + pars.__str__())
