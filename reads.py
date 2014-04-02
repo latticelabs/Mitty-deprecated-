@@ -6,15 +6,14 @@ reads [options] [verbose]
 reads formats
 
 Options:
-  --ref=REF                  Reference sequence [default: porcine_circovirus.fa]
+  --ref=REF                  Reference sequence [default: Data/porcine_circovirus.fa]
   --vcf=VCF                  VCF file (If none, null model is generated)
-  --bam=BAM                  Output BAM file [default: test.bam]
+  --bam=BAM                  Output BAM file [default: Data/test.bam]
   --seed=SEED                Seed for random number generator [default: 0]
   --read_profile=RP          A profile file that describes characteristics for our reads
   --block_len=BL             Block length (adjust according to compute resources) [default: 1000000]
   --comments=COM             User comments to be saved in side car file
   verbose                    Dump detailed logger messages
-  format                     Print the example read_profile file with explanation of the format
 
 Notes:
 1. The quality scores are in Phred scale (as specified in the SAM spec)
@@ -25,7 +24,7 @@ Notes:
 #__version__ = '0.1.0'  # Fixed read lengths. Uniform coverage
 #__version__ = '0.2.0'  # Paired end. Fixed read lengths. Uniform coverage
 __version__ = '0.2.1'  # Paired end. Fixed read lengths. Uniform coverage. Handles VCF files, does not regenerate whole
-# sequences
+# sequences. Ignores multiple variants
 
 import imp
 import docopt
@@ -52,7 +51,7 @@ def main(args):
   rng = numpy.random.RandomState(int(args['--seed']))
 
   # Load the read profile as a module
-  mod = imp.load_source('params', args['--read_profile'], open(args['--read_profile'], 'r'))
+  params = imp.load_source('params', args['--read_profile'], open(args['--read_profile'], 'r'))
 
   ref = SeqIO.read(args['--ref'], 'fasta')
   ref_description = ref.description
@@ -73,24 +72,23 @@ def main(args):
   while blk_start < ref_len:
     blk_stop = min(ref_len, blk_start + blk_len)
     variants = {rec.POS: rec for rec in
-                vcf_reader.fetch(chrom, blk_start, blk_stop)} if vcf_reader is not None else None
-    # Fetch variants in this block and structure as a dictionary keyed by coordinate
-
+                vcf_reader.fetch(chrom, blk_start, blk_stop)} if vcf_reader is not None else {}
+    # Fetch all variants in this block and structure as a dictionary keyed by coordinate
     seqs = polymerize(ref_seq[blk_start:blk_stop], blk_start, variants)  # Generate the sequences for this block
     reads = generate_reads(
       seqs=seqs,
-      read_len=mod.read_len,
-      template_len=mod.template_len,
-      coverage=mod.coverage,
-      paired=mod.paired,
+      read_len=params.read_len,
+      template_len=params.template_len,
+      coverage=params.coverage,
+      paired=params.paired,
       rng=rng)  # Generate the reads from this block
     # List of tuples. Paired reads will have two reads per tuple, otherwise only one
-    save_reads_to_bam(bam_file, reads, mod.template_len)
+    save_reads_to_bam(bam_file, reads, params.template_len)
     blk_start += blk_len
   bam_file.close()
 
   with open(args['--bam'] + '.info', 'w') as file_handle:
-    write_sidecar(args, mod, file_handle)
+    write_sidecar(args, args['--read_profile'], file_handle)
 
 
 def polymerize(ref_seq_block, start_coord, variant_dict):
@@ -99,10 +97,12 @@ def polymerize(ref_seq_block, start_coord, variant_dict):
   # Place holder: copy the sequence element by element testing if a variant exists there and then implementing it
   # Only does SNPs
   mutated_seq_block = bytearray()
+  # TODO: Make this calculation more efficient
   for n in range(len(ref_seq_block)):
-    if variant_dict.has_key(start_coord + n):
+    if start_coord + n in variant_dict:
       mutated_seq_block += variant_dict[start_coord + n].ALT[0].sequence
-      logger.debug('SNP!')
+      if len(variant_dict[start_coord + n].ALT) > 1:
+        logger.debug('reads.py does not currently handle multiple variants. Only the first variant is processed.')
     else:
       mutated_seq_block += ref_seq_block[n]
 
@@ -144,11 +144,11 @@ def generate_reads(seqs=[],
   rl = read_len
   tl = template_len
   if paired:
-    rd_st = rng.randint(0, len(seq) - template_len, num_reads)  #Read starts
+    rd_st = rng.randint(0, len(seq) - template_len, num_reads)  # Reads are uniformly distributed
     reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]),
               (seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl)] for n in range(num_reads)]
   else:
-    rd_st = rng.randint(0, len(seq) - read_len, num_reads)  #Read starts
+    rd_st = rng.randint(0, len(seq) - read_len, num_reads)
     reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n])] for n in range(num_reads)]
   logger.debug('Finished generating reads')
   return reads
@@ -192,7 +192,7 @@ def save_reads_to_bam(bam_file, reads, template_len):
       bam_file.write(ar)
 
 
-def write_sidecar(args, mod, file_handle):
+def write_sidecar(args, params_file, file_handle):
   """
   Write parameters into a sidecar file
   Inputs:
@@ -204,8 +204,9 @@ def write_sidecar(args, mod, file_handle):
   for k,v in args.iteritems():
     file_handle.write('{:s}: {:s}\n'.format(k, str(v)))
   file_handle.write('Parameters:\n')
-  # for k,v in args.iteritems():
-  #   file_handle.write('{:s}: {:s}\n'.format(k, str(v)))
+  with open(params_file, 'r') as f:
+    for line in f.readlines():
+      file_handle.write(line)
 
 
 if __name__ == "__main__":
