@@ -3,21 +3,16 @@ as a script as well. This is useful for creating test data for MGR algorithms/da
 VCF file(s).
 
 Usage:
-mutate [snp] [options] [verbose]
+mutate [snp] [options]
 
 Options:
-  snp                     Generate SNPs
-  --ref=REF               Reference sequence [default: Data/porcine_circovirus.fa]
-  --out=OUT               Output file name [default: Data/mutated]
-  --start=START           Where to start on the sequence [default: 0]
-  --stop=STOP             Where to end on the sequence (-1 means end of the sequence) [default: -1]
-  --seed=SEED             Seed for RNG [default: 1]
-  --block_size=BS         Block size for operations. Adjust to match memory/resources of platform [default: 100000]
   --paramfile=PFILE       Name for parameter file [default: Params/example_mutation_parameter_file.py]
-  verbose                 Dump detailed logger messages
+  --block_size=BS         Block size for operations. Adjust to match memory/resources of platform [default: 100000]
+  -v                      Dump detailed logger messages
 
-The parameter file is a simple python script that should contain a set of dictionaries with the following names and
-keys. Missing data will cause the program to fail loudly.
+Note:
+1. Running the code without any arguments will print this help string and exit
+2. Running the code as `python mutate.py test` will run doctests on the code and exit
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
@@ -25,8 +20,8 @@ Current contact: kaushik.ghose@sbgenomics.com
 
 __version__ = '0.2.0'
 
-import seqio
-import numpy
+import imp
+import mmap  # To memory map our smalla files
 import docopt
 import datetime
 import logging
@@ -35,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 # TODO: Use vcf tools for this?
-def write_vcf_header(file_handle, sim_date, reference_filename):
+def write_vcf_header(file_handle, sim_date, argv, reference_filename):
   """Given a file handle, write out a suitable header to start the VCF file
   Inputs:
     file_handle       - an open file handle
@@ -49,13 +44,14 @@ def write_vcf_header(file_handle, sim_date, reference_filename):
   file_handle.write(
     """##fileformat=VCFv4.1
 ##fileDate={:s}
-##source=mutate {:s}
+##source=mutate.py {:s} ({:s})
 ##reference={:s}
-#CHROM POS     ID        REF    ALT     QUAL FILTER INFO\n""".format(sim_date, __version__, reference_filename)
+#CHROM POS     ID        REF    ALT     QUAL FILTER INFO\n""".format(sim_date, __version__, argv, reference_filename)
   )
 
 
-def write_vcf_mutations(file_handle, vcf_lines):
+# TODO Update docs
+def write_vcf_mutations(file_handle, chrom, variants):
   """Given a mutator format dictionary write the mutations in VCF format into the file
   Inputs:
     file_handle   - handle of an opened text file. The output will be appended to this file.
@@ -67,146 +63,56 @@ def write_vcf_mutations(file_handle, vcf_lines):
   2. The ID is a madeup id that is guaranteed not to clash with any dbSNP id because it is a string unique to the
      mutate program
   """
-  for line in vcf_lines:
-    file_handle.write("\t".join(line) + '\n')
-
-
-#TODO Disk mapped read of ref seq
-#TODO make this a generator so we can write the VCF file in batches
-def create_variants(ref_seq, mutation_parameters, rng, block_size=100000):
-  """Given mutation parameters generate a mutation program
-
-  Inputs:
-    ref_seq             - Reference sequence
-    mutation_parameters - Dictionary of dictionaries. Upper level corresponds to the different types of mutations
-                          The lower level has one required key:
-                          'get loci' : a function that spits out a list of variants within the given limits. The list
-                          can be empty.
-                          And the remaining keys differ depending on what kind of mutation it is.
-  Output:
-    variants            - List of tuples (CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO)
-
-  Algorithm:
-  1. Create k counters for the k types of mutations
-  2. Generate mutation for the current smallest counter
-  3. If the mutation interferes with an existing one, discard it
-  4. Increment the counter go to 2
-  """
-
-  def keep_looping():
-    """Convenience function to see if there are any remaining candidate loci."""
-    flag = False
-    for k in keys:
-      if counters[k] < len(cvl[k]):
-        flag = True  # At least one mutation type has more loci to be computed
-        break
-    return flag
-
-  def smallest_counter():
-    """Convenience function to find the counter furthest behind."""
-    smallest = keys[0]
-    for k in keys[1:]:
-      if cvl[k][counters[k]] < cvl[smallest][counters[smallest]]:
-
-    variants = []
-    mp = mutation_parameters  # Convenient abbr.
-    keys = mp.keys()
-    seq_len = len(ref_seq)
-    blk_start = 0
-    while blk_start < seq_len:
-      blk_stop = min(blk_start + block_size, seq_len)
-      counters = {k: 0 for k in keys}  # Our k counters
-      cvl = candidate_variant_loci = {k: mp[k]['get loci'](rng, blk_start, blk_stop) for k in keys}
-      while keep_looping():
-
-      mut_prg = [(None, 0, None)]  # Start command
-      vcf_lines = []
-      if snp_commands is not None:
-        for snp_c in snp_commands:
-          mut_prg.append((snp_c[0], snp_c[0] + 1, snp_c[1]))
-          vcf_lines.append(['1',  # CHROM We default the chrom no to 1
-                            str(snp_c[0] + 1),  # POS The numbering for bases starts at 1
-                            '.',  # No id - this is fake
-                            chr(ref_seq[snp_c[0]]),  #REF
-                            snp_c[1],  # ALT
-                            '96',  # Arbitrary, high, Phred score
-                            'PASS',  # Passed the filters - fake mutation
-                            '.'])  # Read depth unknown
-      mut_prg.append((len(ref_seq), None, None))  # End command
-      return mut_prg, vcf_lines
-
-
-    def create_snps(ref_seq, p, block_size=100000, seed=1):
-  """Given a reference sequence and a snp probability generate snp commands.
-  Inputs:
-    ref_seq      - reference sequence
-    p            - probability of any one base becoming mutated
-    block_size   - we generate these many SNPs at a time until we are done with the sequence
-    seed         - seed for RNG
-
-  Output:
-    snp_commands - list of tuples:
-                   First element is location of SNP
-                   Second element is substituted base
-
-  Algorithm:
-    The base rate of mutations is p. We could go through each base position, toss a biased coin to decide if that
-    position should be mutated. It is more efficient to note that this is a poisson point process and to simply draw
-    numbers from a canned poisson generator in blocks to determine which positions are to be mutated.
-
-  Future expansion:
-  1. Non uniform SNPs
-  2. Non uniform substitution matrix
-  """
-  base_sub_mat = {
-    'G': 'ATC',
-    'A': 'TCG',
-    'T': 'CGA',
-    'C': 'GAT'
-  }
-  rng = numpy.random.RandomState(seed)  # Initialize the numpy RNG
-  lam = 1. / p  # The expected interval between SNPs is the inverse of the probability that a SNP is going to occur
-  snp_loc = 0
-  snp_commands = []
-  while snp_loc < len(ref_seq):
-    snp_intervals = rng.poisson(lam=lam, size=block_size)
-    base_subs = rng.randint(3, size=block_size)
-    for snpi, bsub in zip(snp_intervals, base_subs):
-      snp_loc += snpi
-      if snp_loc >= len(ref_seq): break
-      snp_commands.append((snp_loc, base_sub_mat[chr(ref_seq[snp_loc])][bsub]))
-  logger.debug('{:d} SNPs'.format(len(snp_commands)))
-  return snp_commands
-
-
-
-
+  for var in variants:
+    # Need to add +1 because first base is 1 while we are using 0 indexing internally
+    file_handle.write("{:d}\t{:d}\t.\t{:s}\t{:s}\t96\tPASS\n".format(chrom, var[0] + 1, var[1], var[2]))
 
 
 if __name__ == "__main__":
-  args = docopt.docopt(__doc__, version=__version__)
-  level = logging.DEBUG if args['verbose'] else logging.WARNING
+  if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
+    docopt.docopt(__doc__, ['-h'])
+  elif docopt.sys.argv[1] == 'test':
+    import doctest
+
+    doctest.testmod()
+    exit()
+  else:
+    args = docopt.docopt(__doc__, version=__version__)
+
+  level = logging.DEBUG if args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
   logging.debug(args)
 
-  pars = {}
-  execfile(args['--paramfile'], {}, pars)  # TODO: move to imp.load_source
+  params = imp.load_source('params', args['--paramfile'], open(args['--paramfile'], 'r'))
 
-  with open(args['--ref'], 'r') as f:
-    header, ref_seq = seqio.fast_read_fasta(f)
+  #Load the ref-seq smalla file
+  f = open(params.ref_file, 'r+b')
+  ref_seq = mmap.mmap(f.fileno(), 0)
+  ref_seq_len = len(ref_seq)
 
-  if pars.has_key('snp'):
-    snp_commands = create_snps(ref_seq, pars['snp']['p'], block_size=int(args['--block_size']),
-                               seed=int(args['--seed']))
-  else:
-    snp_commands = None
+  model_fname = 'Plugins/Mutation/' + params.models['snp']['model'] + '_plugin.py'  # TODO: join paths properly
+  snp_model = imp.load_source('snps', model_fname, open(model_fname, 'r'))
 
-  mutation_prog, vcf_lines = resolve_conflicts_and_create_mutation_program(ref_seq, snp_commands)
-  mutated_header = 'Mutated by mutate {:s} '.format(__version__) + header
+  #TODO: restrict to region of interest ()
+  prev_state = None
+  logger.debug('Input sequence has {:d} bases'.format(ref_seq_len))
+  block_size = int(args['--block_size'])
+  with open(params.out_file, 'w') as f:
+    block_start = run_start = params.models['snp']['start']
+    run_stop = params.models['snp']['stop']
+    if run_stop == -1: run_stop = ref_seq_len
+    write_vcf_header(f, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(), params.ref_file)
+    while block_start < run_stop:
+      logger.debug('{:d}% done'.format(int(100 * (block_start - run_start) / float(run_stop - run_start))))
+      this_ref_seq_block = ref_seq[block_start:block_start + block_size]
+      snp_variants, prev_state = \
+        snp_model.candidate_variants(chrom=params.chrom,
+                                     start_loc=block_start,
+                                     ref_seq=this_ref_seq_block,
+                                     prev_state=prev_state,
+                                     **params.models['snp']['args'])
+      #Need to resolve variants here
+      write_vcf_mutations(f, params.chrom, snp_variants)
+      block_start += block_size
 
-  with open(args['--out'] + '_params.txt', 'w') as f:
-    f.write('Commandline parameters: \n' + args.__str__() + '\n\nParameter file: \n' + pars.__str__())
-
-  with open(args['--out'] + '_variants.vcf', 'w') as f:
-    write_vcf_header(f, datetime.datetime.now().isoformat(), args['--ref'])
-    write_vcf_mutations(f, vcf_lines)
+  f.close()
