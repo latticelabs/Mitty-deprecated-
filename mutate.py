@@ -65,7 +65,7 @@ def write_vcf_mutations(file_handle, chrom, variants):
   """
   for var in variants:
     # Need to add +1 because first base is 1 while we are using 0 indexing internally
-    file_handle.write("{:d}\t{:d}\t.\t{:s}\t{:s}\t96\tPASS\n".format(chrom, var[0] + 1, var[1], var[2]))
+    file_handle.write("{:d}\t{:d}\t.\t{:s}\t{:s}\t96\tPASS\t.\n".format(chrom, var[0] + 1, var[1], var[2]))
 
 
 if __name__ == "__main__":
