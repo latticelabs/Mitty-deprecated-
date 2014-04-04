@@ -1,4 +1,4 @@
-"""test out algorithm for variant conflict resolution."""
+"""TODO: Write docs"""
 import numpy
 import logging
 
