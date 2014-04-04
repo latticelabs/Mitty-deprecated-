@@ -8,88 +8,34 @@ Current contact: kaushik.ghose@sbgenomics.com
 """
 
 
-def int_read_fasta(file_handle):
-  """This is a simplified FASTA reader that runs slowa than biopython but converts sequences into ints.
-  This expects the fasta file to carry only one sequence.
+def block_read_fasta(fname, block_size=1000):
+  """Read FASTA file in blocks. For now this simply discards any lines begining with '>'
+
+  >>> print ''.join([s for s in block_read_fasta(fname='Data/porcine_circovirus.fa', block_size=1)])
+  ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGCCACCGTTACCGCTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCAAAACGCCCTCCTGGGCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCTTTGAATACTACAGAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAGTGCTGTTATTCTAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTACCACTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCTGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTACAATTCAGAGAATTTAATCTTAAAGACCCCCCACTTAACCCTTAG
+  >>> print ''.join([s for s in block_read_fasta(fname='Data/porcine_circovirus.fa', block_size=13)])
+  ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGCCACCGTTACCGCTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCAAAACGCCCTCCTGGGCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCTTTGAATACTACAGAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAGTGCTGTTATTCTAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTACCACTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCTGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTACAATTCAGAGAATTTAATCTTAAAGACCCCCCACTTAACCCTTAG
+  >>> print ''.join([s for s in block_read_fasta(fname='Data/porcine_circovirus.fa', block_size=1000)])
+  ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGCCACCGTTACCGCTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCAAAACGCCCTCCTGGGCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCTTTGAATACTACAGAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAGTGCTGTTATTCTAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTACCACTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCTGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTACAATTCAGAGAATTTAATCTTAAAGACCCCCCACTTAACCCTTAG
   """
-  import numpy
-  file_handle.seek(0,2)
-  file_size = file_handle.tell()
-  file_handle.seek(0)
-  seq = numpy.empty(file_size, dtype='int8')
-  header = file_handle.readline()[:-1]
-  index = 0
-  for line in file_handle.readlines():
-    seq_len = len(line) - 1
-    seq[index:index+seq_len] = numpy.frombuffer(line[:-1],dtype='int8')
-    index += seq_len
-  return header, seq[:index]
+  seq_buff = ''
+  seq_buff_len = 0
+  with open(fname, 'r') as f:
+    for line in f.readlines():
+      if line[0] == '>': continue  # A seq id line
+      line = line.strip()
+      seq_buff_len += len(line)
+      seq_buff += line
+      while seq_buff_len > block_size:  # Time to spit it out
+        seq = seq_buff[:block_size]
+        seq_buff = seq_buff[block_size:]
+        seq_buff_len -= block_size
+        yield seq
 
-
-def fast_read_fasta(file_handle):
-  """This is a simplified FASTA reader that runs fasta than biopython. This expects the fasta file to carry only one
-  sequence.
-  Inputs:
-    file_handle       - an open file handle
-
-  >>> header, seq = fast_read_fasta(open('Data/porcine_circovirus.fa','r'))
-  >>> header
-  'gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds'
-  >>> seq[-20:]
-  bytearray(b'ACCCCCCACTTAACCCTTAG')
-  """
-  seq = bytearray()
-  header = file_handle.readline()[1:-1]  # Get rid of > sign
-  for line in file_handle.readlines():
-    seq += line.rstrip()
-  return header, seq
-
-def fast_write_fasta(file_handle, seq, header=None, width=71):
-  """Write out single sequence with header with a appropriate line breaks.
-  Inputs:
-    file_handle       - an open file handle
-    seq               - the sequence
-    header            - if None then no header will be written. Good for batch writing long sequences
-    width             - when printing the sequence limit this width
-  """
-  if header is not None: file_handle.write('>' + header + '\n')
-  for index in range(0, len(seq), width):
-    file_handle.write(seq[index:index+width] + '\n')
-
-
-def time_test():
-  """Runs the fast_read_fasta function to compare it against BioPython."""
-  import timeit
-
-  tm = timeit.Timer(stmt="seq = SeqIO.read('Data/porcine_circovirus.fa', 'fasta')", setup='from Bio import SeqIO')
-  print 'BioPython'
-  print tm.timeit(number=2000)
-
-  tm = timeit.Timer(stmt="header, seq = seqio.fast_read_fasta(open('Data/porcine_circovirus.fa'))",
-                    setup='import seqio')
-  print 'fast_read_fasta'
-  print tm.timeit(number=2000)
-
-
-def write_test():
-  """Reads and then writes out a fasta file and then uses BioPython to spot compare the original and written sequences
-  to test if they are same.
-
-  >>> write_test()
-  ACCCCCCACTTAACCCTTAG
-
-  """
-  from Bio import SeqIO
-
-  header, seq = fast_read_fasta(open('Data/porcine_circovirus.fa'))
-  fast_write_fasta(open('test.fa','w'), seq, header, width=70)
-  seq_orig = SeqIO.read('Data/porcine_circovirus.fa', 'fasta')
-  seq_written = SeqIO.read('test.fa','fasta')
-  #print seq_orig.seq[-20:]
-  print seq_written.seq[-20:]
+    if seq_buff_len:
+      yield seq_buff  # The last tail after the file ends
 
 
 if __name__ == "__main__":
-  time_test()
   import doctest
   doctest.testmod()
