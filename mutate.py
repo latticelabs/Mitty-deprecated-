@@ -3,10 +3,10 @@ as a script as well. This is useful for creating test data for MGR algorithms/da
 VCF file(s).
 
 Usage:
-mutate [snp] [options]
+mutate --paramfile=PFILE [--block_size=BS] [-v]
 
 Options:
-  --paramfile=PFILE       Name for parameter file [default: Params/example_mutation_parameter_file.py]
+  --paramfile=PFILE       Name for parameter file
   --block_size=BS         Block size for operations. Adjust to match memory/resources of platform [default: 100000]
   -v                      Dump detailed logger messages
 
