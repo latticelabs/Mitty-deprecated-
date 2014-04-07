@@ -6,9 +6,9 @@ Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
 paired = True
-read_len = 100  # Shorter than this samtools can't align properly
+read_len = 30  # Shorter than this samtools can't align properly
 template_len = 250
-coverage = 5
+coverage = 50
 
 #
 # def read_params(n=1000, paired=False, rng=None):
