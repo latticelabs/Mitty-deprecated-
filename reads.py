@@ -10,9 +10,9 @@ Options:
   -v                      Dump detailed logger messages
 
 Notes:
-1. The quality scores are in Phred scale (as specified in the SAM spec)
-2. Any annotations the user wishes to make (plus the command line arguments and all other parameters used to run the
-   sim) are stored in a sidecar file with the same name as the bam file with .info added to the end
+1. The seq id of each read is the string 'rN:S1:S2' where N is the number of the read,
+   S1 the start of the first read and S2 the start of the mate pair. Unpaired reads have no S2
+2. The quality scores are in Phred scale (as specified in the SAM spec)
 
 """
 #__version__ = '0.1.0'  # Fixed read lengths. Uniform coverage
@@ -20,6 +20,7 @@ Notes:
 __version__ = '0.2.1'  # Plugin system implemented
 
 import imp
+import json
 import mmap
 import docopt
 import pysam  # Needed to write BAM files
@@ -28,7 +29,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def save_reads_to_bam(bam_file, reads):
+def save_reads_to_bam(bam_file, reads, first_read_count):
   """
   Inputs:
                                  _________ ( seq_str, quality_str, coordinate)
@@ -44,10 +45,11 @@ def save_reads_to_bam(bam_file, reads):
   paired = True if len(reads[0]) == 2 else False
   for n in range(len(reads)):
     ar = pysam.AlignedRead()
-    ar.qname = "r{:d}".format(n)  # Figure out how to store coordinate
+    ar.qname = 'r{:d}:{:d}'.format(first_read_count+n, reads[n][0][2])  # Figure out how to store coordinate
     ar.seq = reads[n][0][0]
     ar.qual = reads[n][0][1]
     if paired:
+      ar.qname = ar.qname + ':{:d}'.format(reads[n][1][2])
       ar.flag = 0x41  # end1 0x01 flag has to be set to indicate multiple segments
     bam_file.write(ar)
 
@@ -83,43 +85,44 @@ if __name__ == "__main__":
   level = logging.DEBUG if args['-v'] else logging.WARNING
   logging.basicConfig(level=logging.DEBUG)
 
-  params = imp.load_source('params', args['--paramfile'], open(args['--paramfile'], 'r'))
+  params = json.load(open(args['--paramfile'], 'r'))  #imp.load_source('params', args['--paramfile'], open(args['--paramfile'], 'r'))
 
   #Load the ref-seq smalla file
-  f = open(params.seq_file, 'r+b')
+  f = open(params['seq_file'], 'r+b')
   ref_seq = mmap.mmap(f.fileno(), 0)
   ref_seq_len = len(ref_seq)
 
-  model_fname = 'Plugins/Reads/' + params.model_name + '_plugin.py'  # TODO: join paths properly
+  model_fname = 'Plugins/Reads/' + params['model_name'] + '_plugin.py'  # TODO: join paths properly
   read_model = imp.load_source('readmodel', model_fname, open(model_fname, 'r'))
 
-  if params.stop == -1: params.stop = ref_seq_len
-  subsequence_len = params.stop - params.start
-  total_reads = int(params.coverage * subsequence_len / float(params.average_read_len))
+  start_reads = params['start']
+  stop_reads = ref_seq_len if params['stop']==-1 else params['stop']
+  subsequence_len = stop_reads - start_reads
+  total_reads = int(float(params['coverage']) * subsequence_len / float(params['average_read_len']))
   reads_per_block = int(args['--reads_per_block'])
 
   # TODO: drop fastq file as needed
   bam_hdr = {'HD': {'VN': '1.4'},
-             'SQ': [{'LN': ref_seq_len, 'SN': params.seq_header,
+             'SQ': [{'LN': ref_seq_len, 'SN': params['seq_header'],
                      'SP': 'Simulated human, perfect reads, by reads.py {:s}'.format(__version__)}]}
-  perfect_bam_file = pysam.Samfile(params.perfect_reads_file, 'wb', header=bam_hdr)  # Write binary BAM with header
+  perfect_bam_file = pysam.Samfile(params['perfect_reads_file'], 'wb', header=bam_hdr)  # Write binary BAM with header
 
   bam_hdr = {'HD': {'VN': '1.4'},
-             'SQ': [{'LN': ref_seq_len, 'SN': params.seq_header,
+             'SQ': [{'LN': ref_seq_len, 'SN': params['seq_header'],
                      'SP': 'Simulated human, corrupted reads, by reads.py {:s}'.format(__version__)}]}
-  corrupted_bam_file = pysam.Samfile(params.corrupted_reads_file, 'wb', header=bam_hdr)  # Write binary BAM with header
+  corrupted_bam_file = pysam.Samfile(params['corrupted_reads_file'], 'wb', header=bam_hdr)  # Write binary BAM with header
 
 
   prev_state = None
   read_count = 0
   while read_count < total_reads:
     corrupted_reads, perfect_reads, prev_state = \
-      read_model.generate_reads(ref_seq, start=params.start, stop=params.stop,
+      read_model.generate_reads(ref_seq, start=start_reads, stop=stop_reads,
                                 num_reads=min(reads_per_block, total_reads - read_count),
-                                prev_state=None, **params.args)
+                                prev_state=prev_state, **params['args'])
 
-    save_reads_to_bam(corrupted_bam_file, corrupted_reads)
-    save_reads_to_bam(perfect_bam_file, perfect_reads)
+    save_reads_to_bam(corrupted_bam_file, corrupted_reads, read_count)
+    save_reads_to_bam(perfect_bam_file, perfect_reads, read_count)
     read_count += len(corrupted_reads)   # corrupted_reads and perfect_reads should match exactly
     logger.debug('Write {:d} reads ({:d}%)'.format(read_count, int(100 * read_count / float(total_reads))))
 
