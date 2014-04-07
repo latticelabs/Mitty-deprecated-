@@ -1,12 +1,12 @@
 """Script to convert from fasta to smalla files
 
 Usage:
-converta <fasta> <smalla> [options]
+converta <fasta> <smalla> [--block_size=BS]
 
 Options:
-  fasta            Input file name
-  smalla           Output file name
-  --block_size=BS    Block size [default:1000000]
+  fasta              Input file name
+  smalla             Output file name
+  --block_size=BS    Block size [default: 1000000]
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
