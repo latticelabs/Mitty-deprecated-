@@ -5,8 +5,21 @@ sequence/genome.
 Quickstart
 ----------
 
-Please read and run `complete_example.sh` under the `Recipes` to see how to generate variants
-and reads from variants. Complete documentation will follow in a little while.
+The process for running Mitty components to create reads from a mutated genome starting from only a reference
+sequence is illustrated schematically below. Please see `complete_example.sh` under the `Recipes` directory
+(and the relevant parameter files under the `Params` directory) to understand the details of the command line
+invocations and parameter files. For advanced users please see the rest of the docs and the `Plugins` directory
+to understand how to write python code to simulate different kinds of mutations and reads.
+
+                    ----------
+         fasta     |          |
+          file --->| converta |---> smalla file
+                   |          |
+                    ----------
+
+       For efficiency purposes we strip the original fasta file of the header and all new lines. The
+       resulting file is called a smalla file and is what the rest of the tools use. This conversion
+       can be done easily using the converta.py script
 
 
                     mutation
@@ -19,40 +32,38 @@ and reads from variants. Complete documentation will follow in a little while.
                    |        |----> side car file with sim params
                     --------
 
+       Given a set of mutation instructions we can use mutate.py to generate a VCF file. For further
+       processing the vcf file should be compressed using `bgzip` and indexed by `tabix`.
+
+
+
+                    ---------
+       ref seq --->|         |
+                   | vcf2seq | ---> mutated seq
+       VCF     --->|         |
+                    ---------
+
+       Using the vcf2seq tool we can write out the mutations indicated by VCF into a complete mutated
+       sequence saved as a smalla file.
+
 
                      read
                    parameters
                        |
                        V
                     --------
-       ref seq --->|        |
-                   |        |----> reads (BAM/FASTQ)
-       VCF.gz  --->|        |
-                   | reads  |----> ideal reads (BAM/FASTQ)
+                   |        |----> corrupted ("real") reads (BAM/FASTQ)
+                   |        |
+           seq --->| reads  |----> ideal reads (BAM/FASTQ)
                    |        |
                    |        |----> side car file with sim params
                     --------
 
-       This generates simulated non-ideal reads as well as ideal reads. The VCF files are compressed by
-       `bgzip` and indexed by `tabix` to allow us to load variants based on positional index.
+       The reads tool enables us to take a sequence and generate simulated reads from it. The reads can
+       simulate various error and property profiles of different sequencers
 
-
-       reads.py can also be used to recreate the entire mutated sequence(s)
-
-
-                    --------
-       ref seq --->|        |
-                   | reads  |----> mutated sequence(s) (FASTA)
-       VCF.gz  --->|        |
-                    --------
-
-The main modules are:
-
-    mutate.py - Given a reference sequence and mutation instructions generate a mutated sequence and a VCF file
-    reads.py  - Given input sequence(s) and read instructions generate simulated reads as a FASTQ file(s)
-
-Each module is designed to run as a script. Typing `python mutate.py -h` or `python reads.py -h` will list usage and
-input requirements including parameter file formats. The cookbook below should also help with typical use cases.
+Each module is designed to run as a script. Typing `python mutate.py -h` or simply `python mutate.py` etc. will list
+usage and input requirements.
 
 There are two branches in the repository:
 
@@ -65,34 +76,6 @@ The code requires the following non-standard modules
     PyVCF       - pip install pyvcf --user
     pysam       - pip install pysam -- user
 
-Parameter files
-===============
-
-`mutate.py`
-----------
-An example parameter file is
-
-    seed = 1       # Seed to pass to the random number generator. The output for the same seed will be identical.
-    model = 'snp'  # The stock SNP generator (snp_plugin.py)
-    args = {       # A dictionary with parameters required by the model. The keys depend on the model
-      'p': 0.01    # The stock SNP model only requires one parameter - SNP probability
-    }
-
-
-`reads.py`
-----------
-An example parameter file is
-
-    seed = 1           # Seed to pass to the random number generator. The output for the same seed will be identical.
-    model = 'reads'    # The stock read generator (reads_plugin.py)
-    args = {           # A dictionary with parameters required by the model. The keys depend on the model
-      'paired': True,  # Paired reads?
-      'coverage': 5,
-      'read_len': 100,
-      'template_len': 300  # The length of template if simulating paired reads
-    }
-
-
 
 Subdirectories
 --------------
@@ -100,68 +83,12 @@ Subdirectories
     Recipes     - snippets of code (shell scripts and python scripts) to do/show particular tasks. useful for devs and
                   users alike
     Data        - test data for the programs
-
+    Plugins     - directory where simulation models are stored
 
 Data
 ----
  - porcine_circovirus.fa - 702bp (http://www.ncbi.nlm.nih.gov/nuccore/AY735451.1)
  - adenovirus.fa   -  34094bp  (http://www.ncbi.nlm.nih.gov/nuccore/AB026117.1)
-
-
-
-
-
-
-#### Generate reads given a reference sequence and a VCF file
-
-```
-cat ref.fa | vcf-consensus file.vcf.gz > out.fa #Use VCF tools to create consensus sequence
-python reads.py --ref=out.fa --read_len=50 --read_count=100  #Generate the reads
-```
-
-#### Test the read generator with ideal reads from a reference genome
-
-```
-python reads.py --ref=porcine_circovirus.fa --read_len=50 --read_count=100  #Generate the reads
-bwa index porcine_circovirus.fa
-bwa mem porcine_circovirus.fa simulated_reads.fastq > aligned.sam
-samtools view -Sb aligned.sam > aligned.bam
-samtools sort aligned.bam aligned_sorted
-samtools index aligned_sorted.bam
-samtools tview aligned_sorted.bam porcine_circovirus.fa
-```
-
-#### Test the SNP generator with ideal reads from a mutated genome
-```
-python mutate.py --ref=porcine_circovirus.fa --out=mutated --paramfile=params.py  #Generate SNPs
-python reads.py --ref=mutated.fa --read_len=50 --read_count=100  #Generate the reads
-bwa index porcine_circovirus.fa
-bwa mem porcine_circovirus.fa simulated_reads.fastq > aligned.sam
-samtools view -Sb aligned.sam > aligned.bam
-samtools sort aligned.bam aligned_sorted
-samtools index aligned_sorted.bam
-samtools tview aligned_sorted.bam porcine_circovirus.fa   # You should see the SNPs marked out
-samtools mpileup -uf porcine_circovirus.fa aligned_sorted.bam | bcftools view -bvcg - > var.raw.bcf
-bcftools view var.raw.bcf | vcfutils.pl varFilter -D100 > var.flt.vcf
-# You should be able to compare var.filt.vcf and mutated_variants.vcf and verify they are the same
-```
-
-Where `params.py` is the same as the example parameter file in the repository
-
-```
-"""Example parameter file for mutate program
-
-Seven Bridges Genomics
-Current contact: kaushik.ghose@sbgenomics.com
-"""
-snp = {
-  'p': 0.01
-}
-```
-
-
-    bgzip test.vcf
-    tabix -p vcf test.vcf.gz
 
 
 Dev notes
