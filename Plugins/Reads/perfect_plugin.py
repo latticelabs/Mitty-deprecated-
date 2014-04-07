@@ -52,10 +52,10 @@ def generate_reads(seq,
 
   if paired:
     rd_st = rng.randint(low=start, high=stop - tl, size=num_reads)  # Reads are uniformly distributed
-    reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]),
-              (seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl)] for n in range(num_reads)]
+    reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1),
+              (seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl+1)] for n in range(num_reads)]
   else:
     rd_st = rng.randint(low=start, high=stop - rl, size=num_reads)
-    reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n])] for n in range(num_reads)]
+    reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1)] for n in range(num_reads)]
   logger.debug('Finished generating reads')
   return reads, reads, rng
