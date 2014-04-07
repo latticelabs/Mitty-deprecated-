@@ -20,6 +20,7 @@ __version__ = '0.2.0'
 
 import sys
 import imp
+import json
 import mmap  # To memory map our smalla files
 import docopt
 import datetime
@@ -67,10 +68,6 @@ def write_vcf_mutations(file_handle, chrom, variants):
     file_handle.write("{:s}\t{:d}\t.\t{:s}\t{:s}\t96\tPASS\t.\n".format(chrom, var[0] + 1, var[1], var[2]))
 
 
-def write_sidecar_file(file_handle, args, params):
-  file_handle.write(args.__str__())
-
-
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
@@ -81,39 +78,42 @@ if __name__ == "__main__":
   logging.basicConfig(level=level)
   logging.debug(args)
 
-  params = imp.load_source('params', args['--paramfile'], open(args['--paramfile'], 'r'))
+  params = json.load(open(args['--paramfile'], 'r')) #imp.load_source('params', args['--paramfile'], open(args['--paramfile'], 'r'))
 
   #Load the ref-seq smalla file
-  fin = open(params.ref, 'r+b')
+  fin = open(params['ref'], 'r+b')
   ref_seq = mmap.mmap(fin.fileno(), 0)
   ref_seq_len = len(ref_seq)
 
-  fout = sys.stdout if params.vcf is None else open(params.vcf, 'w')
+  fout = sys.stdout if params['vcf'] is u'' else open(params['vcf'], 'w')
 
-  model_fname = 'Plugins/Mutation/' + params.models['snp']['model'] + '_plugin.py'  # TODO: join paths properly
+  model_fname = 'Plugins/Mutation/' + params['models']['snp']['model'] + '_plugin.py'  # TODO: join paths properly
   snp_model = imp.load_source('snps', model_fname, open(model_fname, 'r'))
 
   prev_state = None
   logger.debug('Input sequence has {:d} bases'.format(ref_seq_len))
   block_size = int(args['--block_size'])
-  block_start = run_start = params.models['snp']['start']
-  run_stop = params.models['snp']['stop']
+  block_start = run_start = params['models']['snp']['start']
+  run_stop = params['models']['snp']['stop']
   if run_stop == -1: run_stop = ref_seq_len
-  write_vcf_header(fout, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(), params.ref)
+  write_vcf_header(fout, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(), params['ref'])
   while block_start < run_stop:
     logger.debug('{:d}% done'.format(int(100 * (block_start - run_start) / float(run_stop - run_start))))
     this_ref_seq_block = ref_seq[block_start:block_start + block_size]
     snp_variants, prev_state = \
-      snp_model.candidate_variants(chrom=params.chrom,
+      snp_model.candidate_variants(chrom=params['chrom'],
                                    start_loc=block_start,
                                    ref_seq=this_ref_seq_block,
                                    prev_state=prev_state,
-                                   **params.models['snp']['args'])
+                                   **params['models']['snp']['args'])
     #Need to resolve variants here
-    write_vcf_mutations(fout, params.chrom, snp_variants)
+    write_vcf_mutations(fout, params['chrom'], snp_variants)
     block_start += block_size
 
   fin.close()
   fout.close()
-  with open(params.vcf + '.info','w') as f:  # TODO: Use os.join
-    write_sidecar_file(f, args, params)
+  with open(params['vcf'] + '.info','w') as f:  # TODO: Use os.join
+    f.write('Command line\n-------------\n')
+    f.write(json.dumps(args, indent=4))
+    f.write('\n\nParameters\n------------\n')
+    f.write(json.dumps(params, indent=4))

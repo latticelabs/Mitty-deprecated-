@@ -14,11 +14,11 @@ perfect_reads_file = 'Data/perfect_reads.bam'
 output_type = 'bam'
 start = 0  # We can restrict the region the reads are taken from
 stop = -1
-coverage = 5
+coverage = 1
 average_read_len = 100  # This is used by reads.py to figure out how many reads to generate for given coverage
 args = {
-  'paired': False, #True,
+  'paired': True,
   'read_len': 100,
-  'template_len': 1000,
+  'template_len': 250,
   'rng_seed': 1            # Only one RNG
 }
