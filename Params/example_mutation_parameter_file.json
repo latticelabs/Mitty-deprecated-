@@ -1,0 +1,18 @@
+{
+  "__comment__": "Example parameter file for mutate program. Seven Bridges Genomics Current contact: kaushik.ghose@sbgenomics.com",
+  "chrom": "1",
+  "ref":  "Data/porcine_circovirus.smalla",
+  "vcf": "Data/variants.vcf",
+  "models" : {
+    "snp": {
+      "model": "snp",
+      "start": 0,
+      "stop": -1,
+      "args": {
+        "p": 0.01,
+        "poisson_rng_seed": 1,
+        "base_sub_rng_seed": 1
+      }
+    }
+  }
+}
