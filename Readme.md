@@ -17,7 +17,7 @@ to understand how to write python code to simulate different kinds of mutations 
                    |          |
                     ----------
 
-       For efficiency purposes we strip the original fasta file of the header and all new lines. The
+For efficiency purposes we strip the original fasta file of the header and all new lines. The
        resulting file is called a smalla file and is what the rest of the tools use. This conversion
        can be done easily using the converta.py script
 
@@ -32,7 +32,7 @@ to understand how to write python code to simulate different kinds of mutations 
                    |        |----> side car file with sim params
                     --------
 
-       Given a set of mutation instructions we can use mutate.py to generate a VCF file. For further
+Given a set of mutation instructions we can use mutate.py to generate a VCF file. For further
        processing the vcf file should be compressed using `bgzip` and indexed by `tabix`.
 
 
@@ -43,7 +43,7 @@ to understand how to write python code to simulate different kinds of mutations 
        VCF     --->|         |
                     ---------
 
-       Using the vcf2seq tool we can write out the mutations indicated by VCF into a complete mutated
+Using the vcf2seq tool we can write out the mutations indicated by VCF into a complete mutated
        sequence saved as a smalla file.
 
 
@@ -59,7 +59,7 @@ to understand how to write python code to simulate different kinds of mutations 
                    |        |----> side car file with sim params
                     --------
 
-       The reads tool enables us to take a sequence and generate simulated reads from it. The reads can
+The reads tool enables us to take a sequence and generate simulated reads from it. The reads can
        simulate various error and property profiles of different sequencers
 
 Each module is designed to run as a script. Typing `python mutate.py -h` or simply `python mutate.py` etc. will list
