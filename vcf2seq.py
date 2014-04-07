@@ -1,7 +1,7 @@
 """Given a ref_seq (smalla format) and a VCF file (indexed with tabix) construct the mutated genome as a smalla file
 
 Usage:
-varseq <ref_seq>  <var_seq> <chrom> <vcf_file> [--block_size=BS] [-v]
+vcf2seq <ref_seq>  <var_seq> <chrom> <vcf_file> [--block_size=BS] [-v]
 
 Options:
   ref_seq            reference sequence in smalla format
