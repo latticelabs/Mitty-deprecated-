@@ -1,97 +1,24 @@
-"""Example read profile file for reads program
-
-TODO: Potential problem - too much computation offloaded here?
+"""Example parameter file for reads program
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
-paired = True
-read_len = 30  # Shorter than this samtools can't align properly
-template_len = 250
-coverage = 50
 
-#
-# def read_params(n=1000, paired=False, rng=None):
-#   """Example read_params function for reads.py. This function should return read lengths and template lengths
-#   Inputs:
-#     n        - how many reads to generate
-#     paired   - are we returning paired reads. If not the template len is None
-#     rng      - random number generator from reads.py (rng = numpy.random.RandomState(seed))
-#   Output:
-#     read_len - read lengths. list of tuples. If paired reads then tuples have two elements, otherwise one
-#     template_len - length of template. List. None if not paired
-#
-#   Notes:
-#   1. Using the passed random number generator will ensure repeatability wrt the original seed passed to reads.py
-#   """
-#   mean_rl = 100
-#   max_rl = 150
-#   rl = rng.poisson(lam=mean_rl, size=n)
-#   idx = pylab.find(rl > max_rl)
-#   while idx.size > 0:
-#     rl2 = rng.poisson(lam=mean_rl, size=idx.size)
-#     rl[idx] = rl2
-#     idx = pylab.find(rl > max_rl)
-#   return rl
-#
-#
-#
-#
-#
-# def read_len(n=1000, rng=None):
-#   """Example read length function for reads.py
-#   Inputs:
-#     n    - how many reads to generate
-#     rng  - random number generator from reads.py (rng = numpy.random.RandomState(seed))
-#   Output:
-#     numpy array of ints.
-#     (Any list like element (that can be indexed) is fine)
-#
-#   Notes:
-#   1. Using the passed random number generator will ensure repeatability wrt the original seed passed to reads.py
-#   """
-#   mean_rl = 100
-#   max_rl = 150
-#   rl = rng.poisson(lam=mean_rl, size=n)
-#   idx = pylab.find(rl > max_rl)
-#   while idx.size > 0:
-#     rl2 = rng.poisson(lam=mean_rl, size=idx.size)
-#     rl[idx] = rl2
-#     idx = pylab.find(rl > max_rl)
-#   return rl
-#
-#
-# def template_len(n=1000, rng=None):
-#   """Example template length function for reads.py
-#   Inputs:
-#     n    - how many reads to generate
-#     rng  - random number generator from reads.py (rng = numpy.random.RandomState(seed))
-#   Output:
-#     numpy array of ints.
-#     (Any list like element (that can be indexed) is fine)
-#
-#   Notes:
-#   1. Using the passed random number generator will ensure repeatability wrt the original seed passed to reads.py
-#   """
-#   mean_tl = 1000
-#   max_tl = 2000
-#   tl = rng.poisson(lam=mean_tl, size=n)
-#   idx = pylab.find(tl > max_tl)
-#   while idx.size > 0:
-#     tl2 = rng.poisson(lam=mean_tl, size=idx.size)
-#     tl[idx] = tl2
-#     idx = pylab.find(tl > max_tl)
-#   return tl
-#
-#
-# def read_errors(ideal_read, rng=None):
-#   """Example function to generate read errors for reads.py
-#   Inputs:
-#     ideal_read      - ideal read (stringlike)
-#     rng             - random number generator from reads.py (rng = numpy.random.RandomState(seed))
-#   Outputs:
-#     corrupted_read  - ideal read with read errors inserted
-#     phred           - corresponding Phred scores
-#   For now, this is just the null model. Will replace this with useful code soon.
-#   """
-#   return ideal_read, [50] * len(ideal_read)
+model_name = 'perfect'  # Refers to the stock reads model Plugins/Reads/perfect_plugin.py
+#seq_header = '11 dna:chromosome chromosome:GRCh37:11:1:135006516:1'
+#seq_file = 'Data/mutated_human_chrom_11.smalla'
+seq_header = 'gi|4630864|dbj|AB026117.1| Porcine adenovirus 3 DNA, complete genome'
+seq_file = 'Data/porcine_circovirus.smalla'
+corrupted_reads_file = 'Data/corrupted_reads.bam'
+perfect_reads_file = 'Data/perfect_reads.bam'
+output_type = 'bam'
+start = 0  # We can restrict the region the reads are taken from
+stop = -1
+coverage = 5
+average_read_len = 100  # This is used by reads.py to figure out how many reads to generate for given coverage
+args = {
+  'paired': False, #True,
+  'read_len': 100,
+  'template_len': 1000,
+  'rng_seed': 1            # Only one RNG
+}
