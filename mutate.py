@@ -10,9 +10,7 @@ Options:
   --block_size=BS         Block size for operations. Adjust to match memory/resources of platform [default: 100000]
   -v                      Dump detailed logger messages
 
-Note:
-1. Running the code without any arguments will print this help string and exit
-2. Running the code as `python mutate.py test` will run doctests on the code and exit
+Note: Running the code without any arguments will print this help string and exit
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
@@ -20,6 +18,7 @@ Current contact: kaushik.ghose@sbgenomics.com
 
 __version__ = '0.2.0'
 
+import sys
 import imp
 import mmap  # To memory map our smalla files
 import docopt
@@ -65,17 +64,16 @@ def write_vcf_mutations(file_handle, chrom, variants):
   """
   for var in variants:
     # Need to add +1 because first base is 1 while we are using 0 indexing internally
-    file_handle.write("{:d}\t{:d}\t.\t{:s}\t{:s}\t96\tPASS\t.\n".format(chrom, var[0] + 1, var[1], var[2]))
+    file_handle.write("{:s}\t{:d}\t.\t{:s}\t{:s}\t96\tPASS\t.\n".format(chrom, var[0] + 1, var[1], var[2]))
+
+
+def write_sidecar_file(file_handle, args, params):
+  file_handle.write(args.__str__())
 
 
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
-  elif docopt.sys.argv[1] == 'test':
-    import doctest
-
-    doctest.testmod()
-    exit()
   else:
     args = docopt.docopt(__doc__, version=__version__)
 
@@ -86,33 +84,36 @@ if __name__ == "__main__":
   params = imp.load_source('params', args['--paramfile'], open(args['--paramfile'], 'r'))
 
   #Load the ref-seq smalla file
-  f = open(params.ref_file, 'r+b')
-  ref_seq = mmap.mmap(f.fileno(), 0)
+  fin = open(params.ref, 'r+b')
+  ref_seq = mmap.mmap(fin.fileno(), 0)
   ref_seq_len = len(ref_seq)
+
+  fout = sys.stdout if params.vcf is None else open(params.vcf, 'w')
 
   model_fname = 'Plugins/Mutation/' + params.models['snp']['model'] + '_plugin.py'  # TODO: join paths properly
   snp_model = imp.load_source('snps', model_fname, open(model_fname, 'r'))
 
-  #TODO: restrict to region of interest ()
   prev_state = None
   logger.debug('Input sequence has {:d} bases'.format(ref_seq_len))
   block_size = int(args['--block_size'])
-  with open(params.out_file, 'w') as f:
-    block_start = run_start = params.models['snp']['start']
-    run_stop = params.models['snp']['stop']
-    if run_stop == -1: run_stop = ref_seq_len
-    write_vcf_header(f, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(), params.ref_file)
-    while block_start < run_stop:
-      logger.debug('{:d}% done'.format(int(100 * (block_start - run_start) / float(run_stop - run_start))))
-      this_ref_seq_block = ref_seq[block_start:block_start + block_size]
-      snp_variants, prev_state = \
-        snp_model.candidate_variants(chrom=params.chrom,
-                                     start_loc=block_start,
-                                     ref_seq=this_ref_seq_block,
-                                     prev_state=prev_state,
-                                     **params.models['snp']['args'])
-      #Need to resolve variants here
-      write_vcf_mutations(f, params.chrom, snp_variants)
-      block_start += block_size
+  block_start = run_start = params.models['snp']['start']
+  run_stop = params.models['snp']['stop']
+  if run_stop == -1: run_stop = ref_seq_len
+  write_vcf_header(fout, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(), params.ref)
+  while block_start < run_stop:
+    logger.debug('{:d}% done'.format(int(100 * (block_start - run_start) / float(run_stop - run_start))))
+    this_ref_seq_block = ref_seq[block_start:block_start + block_size]
+    snp_variants, prev_state = \
+      snp_model.candidate_variants(chrom=params.chrom,
+                                   start_loc=block_start,
+                                   ref_seq=this_ref_seq_block,
+                                   prev_state=prev_state,
+                                   **params.models['snp']['args'])
+    #Need to resolve variants here
+    write_vcf_mutations(fout, params.chrom, snp_variants)
+    block_start += block_size
 
-  f.close()
+  fin.close()
+  fout.close()
+  with open(params.vcf + '.info','w') as f:  # TODO: Use os.join
+    write_sidecar_file(f, args, params)
