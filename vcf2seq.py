@@ -8,7 +8,7 @@ Options:
   var_seq            output (variant) sequence
   chrom              Chromosome
   vcf_file           index VCF file
-  --block_size=BS    Block size [default:1000000]
+  --block_size=BS    Block size [default: 1000000]
   -v                 Verbose (print debugging messages)
 
 Currently only handles SNPs
