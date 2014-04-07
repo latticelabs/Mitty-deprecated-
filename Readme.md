@@ -2,6 +2,13 @@ Mitty is a collection of modules and scripts that enable us to generate simulate
 The scripts allow us to simulate mutations on a reference sequence/genome and then simulate reads from that mutated
 sequence/genome.
 
+Quickstart
+----------
+
+Please read and run `complete_example.sh` under the `Recipes` to see how to generate variants
+and reads from variants. Complete documentation will follow in a little while.
+
+
                     mutation
                    parameters
                        |
@@ -19,9 +26,9 @@ sequence/genome.
                        V
                     --------
        ref seq --->|        |
-                   |        |----> reads (BAM)
+                   |        |----> reads (BAM/FASTQ)
        VCF.gz  --->|        |
-                   | reads  |----> ideal reads (BAM)
+                   | reads  |----> ideal reads (BAM/FASTQ)
                    |        |
                    |        |----> side car file with sim params
                     --------
@@ -38,8 +45,6 @@ sequence/genome.
                    | reads  |----> mutated sequence(s) (FASTA)
        VCF.gz  --->|        |
                     --------
-
-
 
 The main modules are:
 
@@ -60,6 +65,34 @@ The code requires the following non-standard modules
     PyVCF       - pip install pyvcf --user
     pysam       - pip install pysam -- user
 
+Parameter files
+===============
+
+`mutate.py`
+----------
+An example parameter file is
+
+    seed = 1       # Seed to pass to the random number generator. The output for the same seed will be identical.
+    model = 'snp'  # The stock SNP generator (snp_plugin.py)
+    args = {       # A dictionary with parameters required by the model. The keys depend on the model
+      'p': 0.01    # The stock SNP model only requires one parameter - SNP probability
+    }
+
+
+`reads.py`
+----------
+An example parameter file is
+
+    seed = 1           # Seed to pass to the random number generator. The output for the same seed will be identical.
+    model = 'reads'    # The stock read generator (reads_plugin.py)
+    args = {           # A dictionary with parameters required by the model. The keys depend on the model
+      'paired': True,  # Paired reads?
+      'coverage': 5,
+      'read_len': 100,
+      'template_len': 300  # The length of template if simulating paired reads
+    }
+
+
 
 Subdirectories
 --------------
@@ -69,17 +102,12 @@ Subdirectories
     Data        - test data for the programs
 
 
-
 Data
 ----
  - porcine_circovirus.fa - 702bp (http://www.ncbi.nlm.nih.gov/nuccore/AY735451.1)
  - adenovirus.fa   -  34094bp  (http://www.ncbi.nlm.nih.gov/nuccore/AB026117.1)
 
 
-
-Manual
-------
-(Please see the `Recipes` directory for more examples, including complete workflows)
 
 
 
@@ -138,6 +166,18 @@ snp = {
 
 Dev notes
 =========
+
+Plugin system for simulation models
+-----------------------------------
+
+Mitty comes with some prebuilt models for variant and read simulation. These models are simply Python modules that
+expose a few key functions that `mutate.py` and `reads.py` use to determine variant and read characteristics. Mitty can
+be extended by writing Python modules exposing these key functions and placing them in the Plugins directory.
+Mitty knows to load the proper plugins simply from their names, which are mentioned in the parameters files required
+for each simulation. For details please see the Readme file in the Plugins directory.
+
+* You should use the rng passed by Mitty to ensure reproducability
+
 
 Design choices
 --------------
