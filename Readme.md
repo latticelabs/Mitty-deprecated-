@@ -62,6 +62,10 @@ Using the vcf2seq tool we can write out the mutations indicated by VCF into a co
 The reads tool enables us to take a sequence and generate simulated reads from it. The reads can
        simulate various error and property profiles of different sequencers
 
+
+
+
+
 Each module is designed to run as a script. Typing `python mutate.py -h` or simply `python mutate.py` etc. will list
 usage and input requirements.
 
@@ -75,6 +79,14 @@ The code requires the following non-standard modules
     BioPython   - pip install biopython --user
     PyVCF       - pip install pyvcf --user
     pysam       - pip install pysam -- user
+
+The code requires the following external tools to run the examples
+
+    bgzip       - to compress VCF file
+    tabix       - to index VCF file
+    samtools    - indexing fasta and converting between bam and sam etc
+    bwa         - alignments etc.
+
 
 
 Subdirectories
