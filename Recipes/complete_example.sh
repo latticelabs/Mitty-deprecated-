@@ -53,3 +53,15 @@ samtools sort aligned.bam aligned_sorted
 samtools index aligned_sorted.bam
 popd
 
+echo 'Use samtools to generate a VCF file of the variants'
+pushd Data
+samtools mpileup -uf porcine_circovirus.fa aligned_sorted.bam | bcftools view -bvcg - > var.raw.bcf
+bcftools view var.raw.bcf | vcfutils.pl varFilter -D100 > mpileup.vcf
+
+echo 'Now compare the original VCF file with the detected one'
+echo 'Original'
+tail -n -8 variants.vcf
+echo 'Computed by mpileup from the alignment'
+tail -n -8 mpileup.vcf
+popd
+
