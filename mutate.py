@@ -112,7 +112,8 @@ if __name__ == "__main__":
 
   fin.close()
   fout.close()
-  with open(params['vcf'] + '.info','w') as f:  # TODO: Use os.join
+  sidecar_fname = params['vcf'] if len(params['vcf']) else 'temporary.vcf'  # Use this name when we pipe to stdout
+  with open(sidecar_fname + '.info','w') as f:  # TODO: Use os.join
     f.write('Command line\n-------------\n')
     f.write(json.dumps(args, indent=4))
     f.write('\n\nParameters\n------------\n')
