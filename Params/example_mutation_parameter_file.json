@@ -1,13 +1,25 @@
 {
-  "__comment__": "Example parameter file for mutate program. Seven Bridges Genomics Current contact: kaushik.ghose@sbgenomics.com",
+  "_c_": "Example parameter file for mutate program.",
+  "_c_": "Seven Bridges Genomics. Current contact: kaushik.ghose@sbgenomics.com",
+  "_c_": "Comments in this file assume that the parser accepts multiple identical keys and only",
+  "_c_": "keeps the last one.",
+  "_c_": "The VCF file needs chromosome info. This is also available to the simulation if it needs it.",
   "chrom": "1",
-  "ref":  "Data/porcine_circovirus.smalla",
+  "_c_": "The reference sequence in smalla format",
+  "ref": "Data/porcine_circovirus.smalla",
+  "_c_": "The output VCF file",
   "vcf": "Data/variants.vcf",
+  "_c_": "This is a dictionary with keys corresponding to the different kinds of variants we wish to introduce",
+  "_c_": "Each value is a dictionary with the name of the model and the parameters it needs.",
   "models" : {
+    "_c_": "SNP model definition",
     "snp": {
+      "_c_": "The plugin is Plugins/Mutation/snp_plugin.py so the model name is 'snp'",
       "model": "snp",
+      "_c_": "These parameters are consumed by mutate.py",
       "start": 0,
       "stop": -1,
+      "_c_": "These parameters are passed as is to the model",
       "args": {
         "p": 0.01,
         "poisson_rng_seed": 1,
