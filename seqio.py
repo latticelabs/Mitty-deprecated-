@@ -6,6 +6,23 @@ the code - download small genome fasta file from NCBI
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
+import logging
+
+
+logger = logging.getLogger(__name__)
+
+__version__ = '0.1.0'
+
+
+def get_fasta_header(fname):
+  """Read FASTA header
+
+  >>> print get_fasta_header(fname='Data/porcine_circovirus.fa')
+  gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds
+  """
+  line = open(fname, 'r').readline().strip()
+  if len(line): line = line[1:]  # get rid of the leading >
+  return line
 
 
 def block_read_fasta(fname, block_size=1000):
@@ -22,7 +39,9 @@ def block_read_fasta(fname, block_size=1000):
   seq_buff_len = 0
   with open(fname, 'r') as f:
     for line in f.readlines():
-      if line[0] == '>': continue  # A seq id line
+      if line[0] == '>':
+
+        continue  # A seq id line
       line = line.strip()
       seq_buff_len += len(line)
       seq_buff += line
