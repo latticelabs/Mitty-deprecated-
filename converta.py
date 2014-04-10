@@ -18,6 +18,9 @@ __version__ = '0.1.0'
 
 
 def fasta_to_smalla(fasta_fname, smalla_fname, block_size=1000):
+  with open(smalla_fname + '.heada', 'w') as f:
+    f.write(seqio.get_fasta_header(args['<fasta>']))
+
   with open(smalla_fname, 'w') as f:
     for s in seqio.block_read_fasta(fname=fasta_fname, block_size=block_size):
       f.write(s)
