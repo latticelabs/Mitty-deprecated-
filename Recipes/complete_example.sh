@@ -3,29 +3,35 @@
 
 set -x
 
+DATADIR="Data"
+CHROM=1
+SEQFILE="porcine_circovirus"
+MUTPARFILE="Params/example_mutation_parameter_file.json"
+VCFFILE="variants.vcf"
+
+READPARFILE="Params/example_reads_parameter_file.json"
+
+
 : Convert fasta to smalla format using converta.py
-python converta.py Data/porcine_circovirus.fa Data/porcine_circovirus.smalla
+python converta.py $DATADIR/$SEQFILE.fa $DATADIR/$SEQFILE.smalla
 
 : Generate mutations in a VCF file
-python mutate.py --paramfile=Params/example_mutation_parameter_file.json
-pushd Data
-cat variants.vcf
-cat variants.vcf.info
-popd
+python mutate.py --chrom=$CHROM  --ref=$DATADIR/$SEQFILE.smalla  --vcf=$DATADIR/$VCFFILE  --paramfile=$MUTPARFILE  -v
+cat $DATADIR/$VCFFILE
+cat $DATADIR/$VCFFILE.info
 
-pushd Data
+pushd $DATADIR
 : Use samtools to compress and index the variant file
-bgzip -c variants.vcf > variants.vcf.gz
-tabix -p vcf variants.vcf.gz
+bgzip -c $VCFFILE > $VCFFILE.gz
+tabix -p vcf $VCFFILE.gz
 popd
 
 
 : Use vcf2seq to generate mutated sequence from VCF and reference sequence
-python vcf2seq.py Data/porcine_circovirus.smalla Data/mutated.smalla 1 Data/variants.vcf.gz
-
+python vcf2seq.py $DATADIR/$SEQFILE.smalla $DATADIR/mutated.smalla 1 $DATADIR/$VCFFILE.gz
 
 : Use reads to generate a bam file full of reads
-python reads.py  --paramfile=Params/example_reads_parameter_file.json
+python reads.py  --paramfile=$READPARFILE
 
 
 : Use cheata to fake align the reads according to the coordinates we store in the seq id
