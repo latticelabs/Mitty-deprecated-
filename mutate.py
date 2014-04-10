@@ -3,9 +3,13 @@ as a script as well. This is useful for creating test data for MGR algorithms/da
 VCF file(s).
 
 Usage:
-mutate --paramfile=PFILE [--block_size=BS] [-v]
+mutate [--chrom=CHR]  --ref=REF  [--vcf=VCF]  --paramfile=PFILE [--block_size=BS] [-v]
 
 Options:
+  --chrom=CHROM           The VCF file needs chromosome info.
+                          This is also available to the simulation if it needs it [default: 1]
+  --ref=REF               The reference sequence in smalla format
+  --vcf=VCF               The output VCF file. If not specified, the vcf file goes to stdout
   --paramfile=PFILE       Name for parameter file
   --block_size=BS         Block size for operations. Adjust to match memory/resources of platform [default: 100000]
   -v                      Dump detailed logger messages
@@ -19,6 +23,7 @@ Current contact: kaushik.ghose@sbgenomics.com
 __version__ = '0.2.0'
 
 import sys
+import os
 import imp
 import json
 import mmap  # To memory map our smalla files
@@ -81,40 +86,54 @@ if __name__ == "__main__":
   params = json.load(open(args['--paramfile'], 'r')) #imp.load_source('params', args['--paramfile'], open(args['--paramfile'], 'r'))
 
   #Load the ref-seq smalla file
-  fin = open(params['ref'], 'r+b')
+  fin = open(args['--ref'], 'r+b')
   ref_seq = mmap.mmap(fin.fileno(), 0)
   ref_seq_len = len(ref_seq)
 
-  fout = sys.stdout if params['vcf'] is u'' else open(params['vcf'], 'w')
+  fout = sys.stdout if args['--vcf'] is None else open(args['--vcf'], 'w')
 
-  model_fname = 'Plugins/Mutation/' + params['models']['snp']['model'] + '_plugin.py'  # TODO: join paths properly
-  snp_model = imp.load_source('snps', model_fname, open(model_fname, 'r'))
+  plugin_dir = os.path.join(os.path.dirname(__file__), 'Plugins', 'Mutation')  # Thanks Nebojsa Tijanic!
+  model = {}
+  for k in params.keys():
+    model_fname = os.path.join(plugin_dir, params[k]['model'] + '_plugin.py')
+    model[k] = imp.load_source(k, model_fname, open(model_fname, 'r'))
 
   prev_state = None
   logger.debug('Input sequence has {:d} bases'.format(ref_seq_len))
   block_size = int(args['--block_size'])
-  block_start = run_start = params['models']['snp']['start']
-  run_stop = params['models']['snp']['stop']
-  if run_stop == -1: run_stop = ref_seq_len
-  write_vcf_header(fout, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(), params['ref'])
-  while block_start < run_stop:
-    logger.debug('{:d}% done'.format(int(100 * (block_start - run_start) / float(run_stop - run_start))))
+  block_start = 0
+  variant_count_snp = 0
+  write_vcf_header(fout, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(), args['--ref'])
+  prev_state = {k: None for k in params.keys()}
+  while block_start < ref_seq_len:
     this_ref_seq_block = ref_seq[block_start:block_start + block_size]
-    snp_variants, prev_state = \
-      snp_model.candidate_variants(chrom=params['chrom'],
-                                   start_loc=block_start,
-                                   ref_seq=this_ref_seq_block,
-                                   prev_state=prev_state,
-                                   **params['models']['snp']['args'])
+    these_variants = {}
+    for k in params.keys():
+      these_variants[k], prev_state[k] = \
+        model[k].candidate_variants(chrom=args['--chrom'],
+                                    ref_seq_len=ref_seq_len,
+                                    ref_seq_block_start=block_start,
+                                    ref_seq_block=this_ref_seq_block,
+                                    prev_state=prev_state[k],
+                                    **params[k])
+
+      variant_count_snp += len(these_variants[k])  # FIXME
+
     #Need to resolve variants here
-    write_vcf_mutations(fout, params['chrom'], snp_variants)
+
+    for k in params.keys():
+      write_vcf_mutations(fout, args['--chrom'], these_variants[k])
+
     block_start += block_size
+    logger.debug('{:d}% done'.format(int(100.0 * min(block_start, ref_seq_len) / float(ref_seq_len))))
 
   fin.close()
   fout.close()
-  sidecar_fname = params['vcf'] if len(params['vcf']) else 'temporary.vcf'  # Use this name when we pipe to stdout
-  with open(sidecar_fname + '.info','w') as f:  # TODO: Use os.join
-    f.write('Command line\n-------------\n')
-    f.write(json.dumps(args, indent=4))
-    f.write('\n\nParameters\n------------\n')
-    f.write(json.dumps(params, indent=4))
+  logger.debug('Generated {:d} SNPs'.format(variant_count_snp))
+
+  if args['--vcf'] is not None:
+    with open(args['--vcf'] + '.info','w') as f:
+      f.write('Command line\n-------------\n')
+      f.write(json.dumps(args, indent=4))
+      f.write('\n\nParameters\n------------\n')
+      f.write(json.dumps(params, indent=4))
