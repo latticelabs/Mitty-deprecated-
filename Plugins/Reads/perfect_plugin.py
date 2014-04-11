@@ -32,8 +32,8 @@ def generate_reads(seq,
 
   Inputs:
     seq              - string(like)s containing the DNA sequence to generate reads from
-    start            - 0-indexed coordinate of start of section reads will be generated from
-    stop             - 0-indexed coordinate of end of section reads will be generated from (-1 means till end)
+    start_reads      - 0-indexed coordinate of start of section reads will be generated from
+    stop_reads       - 0-indexed coordinate of end of section reads will be generated from (-1 means till end)
     num_reads        - reads to generate this call to the function
     paired           - paired reads or not
     read_len         - Fixed read length
@@ -41,6 +41,9 @@ def generate_reads(seq,
     read_loc_rng_seed- Seed for rng that drives the read location picker
     error_rng_seed   - Seed for rng that determines if there is a read error or not on the base
     base_chose_rng_seed - Seed for rng that determines which base is erroneously read
+    max_p_error      - error probability for last base of read
+                        (0.0 is perfect reads, 1.0 -> every base is guaranteed to be wrong)
+    k                - exponential factor. 0 < k < 1 The closer this is to 0 the quicker the base error rate drops
     prev_state       - previous state carried over from call to call.
                        In this case it stores the three rngs
     kwargs           - to swallow any other arguments
@@ -74,7 +77,7 @@ def generate_reads(seq,
     logger.error('Template len too large for given sequence.')
 
   if paired:
-    rd_st = read_loc_rng.randint(low=start_reads, high=stop_reads - tl, size=num_reads)  # Reads are uniformly distributed
+    rd_st = read_loc_rng.randint(low=start_reads, high=stop_reads - tl, size=num_reads)
     reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1),
               (seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl+1)] for n in range(num_reads)]
   else:
