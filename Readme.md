@@ -12,14 +12,14 @@ invocations and parameter files. For advanced users please see the rest of the d
 to understand how to write python code to simulate different kinds of mutations and reads.
 
                     ----------
-         fasta     |          |
-          file --->| converta |---> smalla file
-                   |          |
+         fasta     |          |---> smalla file
+          file --->| converta |
+                   |          |---> heada file
                     ----------
 
 For efficiency purposes we strip the original fasta file of the header and all new lines. The
        resulting file is called a smalla file and is what the rest of the tools use. This conversion
-       can be done easily using the converta.py script
+       can be done easily using the converta.py script. The header is saved into a .smalla.heada file
 
 
                     mutation
