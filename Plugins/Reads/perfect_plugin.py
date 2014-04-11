@@ -62,7 +62,6 @@ def generate_reads(seq,
     base_chose_rng = prev_state['base_chose_rng']
 
   if stop==-1: stop=len(seq)
-  logger.debug('Starting to generate reads')
   rl = read_len
   tl = template_len
   if (stop - tl < read_len) and paired:
@@ -75,7 +74,6 @@ def generate_reads(seq,
   else:
     rd_st = read_loc_rng.randint(low=start, high=stop - rl, size=num_reads)
     reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1)] for n in range(num_reads)]
-  logger.debug('Finished generating reads')
 
   corr_reads = corrupt_reads_expon(reads, read_len, max_p_error, k, error_loc_rng, base_chose_rng)
 
