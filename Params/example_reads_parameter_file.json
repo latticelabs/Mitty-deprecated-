@@ -1,5 +1,5 @@
 {
-    "model": "perfect",
+    "model": "simple_reads",
     "args": {
         "paired": false,
         "read_len": 100,
