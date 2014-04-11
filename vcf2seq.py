@@ -5,7 +5,7 @@ vcf2seq <ref_seq>  <var_seq> <chrom> <vcf_file> [--block_size=BS] [-v]
 
 Options:
   ref_seq            reference sequence in smalla format
-  var_seq            output (variant) sequence
+  var_seq            output (variant) sequence (.smalla)
   chrom              Chromosome
   vcf_file           index VCF file
   --block_size=BS    Block size [default: 1000000]
@@ -51,6 +51,9 @@ if __name__ == "__main__":
   ref_seq_len = len(ref_seq)
   block_size = int(args['--block_size'])
   with open(args['<var_seq>'], 'w') as fout:
+    with open(args['<var_seq>'] + '.heada', 'w') as fheada:  # Write the header over
+      fheada.write(open(args['<ref_seq>'] + '.heada', 'r').readline() + '(Mutated)')
+
     block_start = 0
     while block_start < ref_seq_len:
       logger.debug('{:d}% done'.format(int(100 * block_start / float(ref_seq_len))))
