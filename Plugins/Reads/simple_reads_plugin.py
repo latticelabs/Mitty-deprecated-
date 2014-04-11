@@ -5,7 +5,7 @@ base_sub_mat = {  # GATC
                   'G': 'ATC',
                   'A': 'TCG',
                   'T': 'CGA',
-                  'C': 'GAT'
+                  'C': 'GAT',
 }
 
 
@@ -126,7 +126,8 @@ def corrupt_reads_expon(reads, read_len=100, max_p_error=.8, k=.1, error_loc_rng
       for m in range(read_len):
         if base_errors[0, n, m] < error_profile[p][m]:
           ref = reads[n][p][0][m]
-          this_read[m] = base_sub_mat[ref][base_subs[0, n, m]]
+          this_read[m] = base_sub_mat.get(ref,'NNN')[base_subs[0, n, m]]  # The 'NNN' ensures we return an N for
+                                                                          # any ambiguous bases
       these_reads[p] = [this_read.__str__(), qual[p], reads[n][p][2]]
     corrupted_reads.append(these_reads)
 
