@@ -31,29 +31,28 @@ popd
 python vcf2seq.py $DATADIR/$SEQFILE.smalla $DATADIR/mutated.smalla 1 $DATADIR/$VCFFILE.gz
 
 : Use reads to generate a bam file full of reads
-python reads.py  --paramfile=$READPARFILE
+python reads.py  --ref=$DATADIR/mutated.smalla --paramfile=$READPARFILE --coverage=10
 
 
-: Use cheata to fake align the reads according to the coordinates we store in the seq id
-pushd Data
-samtools sort corrupted_reads.bam sorted_corrupted_reads
-samtools index sorted_corrupted_reads.bam
-popd
+#: Use cheata to fake align the reads according to the coordinates we store in the seq id
+#pushd Data
+#samtools sort simulated_reads.bam sorted_simulated_reads
+#samtools index sorted_simulated_reads.bam
+#popd
+#python cheata.py --inbam=Data/sorted_corrupted_reads.bam  --outbam=Data/cheat_alignment.bam
 
-python cheata.py --inbam=Data/sorted_corrupted_reads.bam  --outbam=Data/cheat_alignment.bam
-
-: Use samtools to index this fake alignment
-pushd Data
-samtools sort cheat_alignment.bam sorted_cheat_alignment
-samtools index sorted_cheat_alignment.bam
-popd
+#: Use samtools to index this fake alignment
+#pushd Data
+#samtools sort cheat_alignment.bam sorted_cheat_alignment
+#samtools index sorted_cheat_alignment.bam
+#popd
 
 
-: Use samtools to create a real alignment
-pushd Data
-bwa index porcine_circovirus.fa
-samtools bam2fq corrupted_reads.bam > raw_reads.fq
-bwa mem porcine_circovirus.fa raw_reads.fq > aligned.sam
+: Use samtools to create a real alignment of the corrupted reads
+pushd $DATADIR
+bwa index $SEQFILE.fa
+samtools bam2fq simulated_reads.bam > raw_reads.fq
+bwa mem $SEQFILE.fa raw_reads.fq > aligned.sam
 samtools view -Sb aligned.sam > aligned.bam
 samtools sort aligned.bam aligned_sorted
 samtools index aligned_sorted.bam
@@ -70,4 +69,3 @@ tail -n -8 variants.vcf
 : Computed by mpileup from the alignment
 tail -n -8 mpileup.vcf
 popd
-
