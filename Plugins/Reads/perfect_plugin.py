@@ -70,11 +70,11 @@ def generate_reads(seq,
 
   if paired:
     rd_st = read_loc_rng.randint(low=start, high=stop - tl, size=num_reads)  # Reads are uniformly distributed
-    reads = [[[seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1],
-              [seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl+1]] for n in range(num_reads)]
+    reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1),
+              (seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl+1)] for n in range(num_reads)]
   else:
     rd_st = read_loc_rng.randint(low=start, high=stop - rl, size=num_reads)
-    reads = [[[seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1]] for n in range(num_reads)]
+    reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1)] for n in range(num_reads)]
   logger.debug('Finished generating reads')
 
   corr_reads = corrupt_reads_expon(reads, read_len, max_p_error, k, error_loc_rng, base_chose_rng)
@@ -105,26 +105,24 @@ def corrupt_reads_expon(reads, read_len=100, max_p_error=.8, k=.1, error_loc_rng
   """
   if len(reads) == 0: return reads  # We return `reads` so we match the shape (paired or not paired)
   rev_error_profile = [max_p_error * k ** n for n in range(read_len)]  # For the second of the pair
-  error_profile = rev_error_profile[::-1]  # For the first of the pair
-  if len(reads[0]) == 2:
-    paired = True
-  else:
-    paired = False
-
-  corrupted_reads = list(reads)
+  error_profile = [rev_error_profile[::-1], rev_error_profile]
+  # error_profile[0] -> base call error curve for forward read (5' end more error prone)
+  # error_profile[1] -> base call error curve for backward read (3' end more error prone)
+  qual = [''.join([chr(int(126-(126-33)*ep)) for ep in error_profile[n]]) for n in [0,1]]
+  corrupted_reads = []
   base_errors = error_loc_rng.rand(len(reads[0]), len(reads), read_len)  # Coin toss to see if we error the base call
   base_subs = base_chose_rng.randint(3, size=(len(reads[0]), len(reads), read_len))  # If so, what base will be call it
   # TODO: Slow code. Make more elegant and fast
   for n in range(len(reads)):
-    for m in range(read_len):
-      if base_errors[0, n, m] < error_profile[m]:
-        ref = corrupted_reads[0][n][0][m]
-        corrupted_reads[0][n][0][m] = base_sub_mat[ref][base_subs[0, n, m]]
-    if paired:
+    these_reads = [[None]]*len(reads[0])
+    for p in range(len(reads[0])):
+      this_read = bytearray(reads[n][p][0])
       for m in range(read_len):
-        if base_errors[1, n, m] < rev_error_profile[m]:
-          ref = corrupted_reads[1][n][0][m]
-          corrupted_reads[1][n][0][m] = base_sub_mat[ref][base_subs[1, n, m]]
+        if base_errors[0, n, m] < error_profile[p][m]:
+          ref = reads[n][p][0][m]
+          this_read[m] = base_sub_mat[ref][base_subs[0, n, m]]
+      these_reads[p] = [this_read.__str__(), qual[p], reads[n][p][2]]
+    corrupted_reads.append(these_reads)
 
   return corrupted_reads
 
