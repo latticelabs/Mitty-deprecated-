@@ -9,9 +9,14 @@ base_sub_mat = {  # GATC
 }
 
 
+def average_read_len(read_len, **kwargs):
+  """Given the same parameters passed to generate_reads tell us what the average read len is going to be"""
+  return read_len
+
+
 def generate_reads(seq,
-                   start=0,
-                   stop=-1,
+                   start_reads=0,
+                   stop_reads=0,
                    num_reads=1000,
                    paired=False,
                    read_len=None,
@@ -21,7 +26,8 @@ def generate_reads(seq,
                    base_chose_rng_seed=2,
                    max_p_error=.8,
                    k=.1,
-                   prev_state=None):
+                   prev_state=None,
+                   **kwargs):
   """Given a list of sequences generate reads with the given characteristics
 
   Inputs:
@@ -37,6 +43,7 @@ def generate_reads(seq,
     base_chose_rng_seed - Seed for rng that determines which base is erroneously read
     prev_state       - previous state carried over from call to call.
                        In this case it stores the three rngs
+    kwargs           - to swallow any other arguments
 
   Outputs
                                  _________ ( seq_str, quality_str, coordinate)
@@ -61,18 +68,17 @@ def generate_reads(seq,
     error_loc_rng = prev_state['error_loc_rng']
     base_chose_rng = prev_state['base_chose_rng']
 
-  if stop==-1: stop=len(seq)
   rl = read_len
   tl = template_len
-  if (stop - tl < read_len) and paired:
+  if (stop_reads - tl < read_len) and paired:
     logger.error('Template len too large for given sequence.')
 
   if paired:
-    rd_st = read_loc_rng.randint(low=start, high=stop - tl, size=num_reads)  # Reads are uniformly distributed
+    rd_st = read_loc_rng.randint(low=start_reads, high=stop_reads - tl, size=num_reads)  # Reads are uniformly distributed
     reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1),
               (seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl+1)] for n in range(num_reads)]
   else:
-    rd_st = read_loc_rng.randint(low=start, high=stop - rl, size=num_reads)
+    rd_st = read_loc_rng.randint(low=start_reads, high=stop_reads - rl, size=num_reads)
     reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1)] for n in range(num_reads)]
 
   corr_reads = corrupt_reads_expon(reads, read_len, max_p_error, k, error_loc_rng, base_chose_rng)
@@ -110,7 +116,6 @@ def corrupt_reads_expon(reads, read_len=100, max_p_error=.8, k=.1, error_loc_rng
   corrupted_reads = []
   base_errors = error_loc_rng.rand(len(reads[0]), len(reads), read_len)  # Coin toss to see if we error the base call
   base_subs = base_chose_rng.randint(3, size=(len(reads[0]), len(reads), read_len))  # If so, what base will be call it
-  # TODO: Slow code. Make more elegant and fast
   for n in range(len(reads)):
     these_reads = [[None]]*len(reads[0])
     for p in range(len(reads[0])):
@@ -123,23 +128,3 @@ def corrupt_reads_expon(reads, read_len=100, max_p_error=.8, k=.1, error_loc_rng
     corrupted_reads.append(these_reads)
 
   return corrupted_reads
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

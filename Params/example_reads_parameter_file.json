@@ -1,15 +1,5 @@
 {
-    "__comment__": "Example parameter file for reads program. Seven Bridges Genomics Current contact: kaushik.ghose@sbgenomics.com",
-    "model_name": "perfect",
-    "seq_header": "gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds",
-    "seq_file": "Data/porcine_circovirus.smalla",
-    "corrupted_reads_file": "Data/corrupted_reads.bam",
-    "perfect_reads_file": "Data/perfect_reads.bam",
-    "output_type": "bam",
-    "start": 0,
-    "stop": -1,
-    "coverage": 5,
-    "average_read_len": 100,
+    "model": "perfect",
     "args": {
         "paired": false,
         "read_len": 100,
