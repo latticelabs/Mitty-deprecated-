@@ -12,6 +12,7 @@ Options:
   --vcf=VCF               The output VCF file. If not specified, the vcf file goes to stdout
   --paramfile=PFILE       Name for parameter file
   --block_size=BS         Block size for operations. Adjust to match memory/resources of platform [default: 100000]
+                          This governs how many variants are generated at a time before being dumped to disk.
   -v                      Dump detailed logger messages
 
 Note: Running the code without any arguments will print this help string and exit
@@ -34,11 +35,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# TODO: Use vcf tools for this?
 def write_vcf_header(file_handle, sim_date, argv, reference_filename):
   """Given a file handle, write out a suitable header to start the VCF file
   Inputs:
     file_handle       - an open file handle
+    sim_date          - date in string format. Get's dumped into 'fileDate'
+    argv              - get's dumped into the 'source' string of the vcf file
+    reference_filename  - name of the reference, dumped into the 'reference' string
 
   Notes:
   1. 'filedate' is the date of the simulation
@@ -55,23 +58,33 @@ def write_vcf_header(file_handle, sim_date, argv, reference_filename):
   )
 
 
-# TODO Update docs
 def write_vcf_mutations(file_handle, chrom, variants):
   """Given a mutator format dictionary write the mutations in VCF format into the file
   Inputs:
     file_handle   - handle of an opened text file. The output will be appended to this file.
-    mutations     - dictionary of lists in mutator format
-  Notes:
-  1. The mutator format is a dictionary of lists which makes it easy to drop the information into the VCF file.
-     The dictionary keys correspond to the VCF columns. Each value is a list with however many elements we want the
-     VCF file to have
-  2. The ID is a madeup id that is guaranteed not to clash with any dbSNP id because it is a string unique to the
-     mutate program
+    chrom         - chromosome number
+    variants      - list of tuples (POS, REF, ALT) : standard format as returned by the variant plugins
   """
   for var in variants:
     # Need to add +1 because first base is 1 while we are using 0 indexing internally
     file_handle.write("{:s}\t{:d}\t.\t{:s}\t{:s}\t96\tPASS\t.\n".format(chrom, var[0] + 1, var[1], var[2]))
 
+
+'''
+Variant location and conflict resolution:
+
+Say we have v variant types that we are trying to generate.
+
+Independently generate v lists of candidate positions cp
+Create an empty 'footprint' list
+
+Start with the earliest cp and generate a corresponding variant. Does the variant's footprint conflict with a footprint
+already in the 'footprint' list? If so, discard this variant.
+
+Move on to the next closest variant position and continue
+
+
+'''
 
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
@@ -84,6 +97,7 @@ if __name__ == "__main__":
   logging.debug(args)
 
   params = json.load(open(args['--paramfile'], 'r')) #imp.load_source('params', args['--paramfile'], open(args['--paramfile'], 'r'))
+  block_size = int(args['--block_size'])
 
   #Load the ref-seq smalla file
   fin = open(args['--ref'], 'r+b')
@@ -93,43 +107,60 @@ if __name__ == "__main__":
   fout = sys.stdout if args['--vcf'] is None else open(args['--vcf'], 'w')
 
   plugin_dir = os.path.join(os.path.dirname(__file__), 'Plugins', 'Mutation')  # Thanks Nebojsa Tijanic!
-  model = {}
+  variant_generator = {}
+  next_variant = {}
+  misc = {}  # For now, holds a count of how many variants of each type
   for k in params.keys():
     model_fname = os.path.join(plugin_dir, params[k]['model'] + '_plugin.py')
-    model[k] = imp.load_source(k, model_fname, open(model_fname, 'r'))
+    model = imp.load_source(k, model_fname, open(model_fname, 'r'))
+    variant_generator[k] = model.variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=block_size, **params[k])
+    next_variant[k] = next(variant_generator[k], None)  # Will return None if we have no more of these variants
+    misc[k] = 0
 
-  prev_state = None
   logger.debug('Input sequence has {:d} bases'.format(ref_seq_len))
-  block_size = int(args['--block_size'])
-  block_start = 0
-  variant_count_snp = 0
+
+  current_pos = 0  # Current position on sequence
+
   write_vcf_header(fout, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(), args['--ref'])
-  prev_state = {k: None for k in params.keys()}
-  while block_start < ref_seq_len:
-    this_ref_seq_block = ref_seq[block_start:block_start + block_size]
-    these_variants = {}
+
+  #For now, ignoring footprint (only needed for distal variants)
+  these_variants = []
+  while current_pos < ref_seq_len:
+    next_variant_pos = ref_seq_len
+    next_variant_type = None
+    # Find the earliest variant
     for k in params.keys():
-      these_variants[k], prev_state[k] = \
-        model[k].candidate_variants(chrom=args['--chrom'],
-                                    ref_seq_len=ref_seq_len,
-                                    ref_seq_block_start=block_start,
-                                    ref_seq_block=this_ref_seq_block,
-                                    prev_state=prev_state[k],
-                                    **params[k])
+      if next_variant[k] is not None:
+        if next_variant[k][0] < next_variant_pos:
+          next_variant_pos = next_variant[k][0]
+          next_variant_type = k
 
-      variant_count_snp += len(these_variants[k])  # FIXME
+    if next_variant_type is not None:  # We are still in business
+      these_variants.append(next_variant[next_variant_type])  # Queue this variant
+      misc[next_variant_type] += 1
+      skip_to = next_variant[next_variant_type][3]  # The next variant has to come at or after this to avoid conflicts
+      # Move all variant counters forward as needed
+      for k in params.keys():
+        while next_variant[k] is not None:
+          if next_variant[k][0] < skip_to:
+            next_variant[k] = next(variant_generator[k], None)
+          else:
+            break
 
-    #Need to resolve variants here
+    # Flush variants to disk
+    if len(these_variants) == block_size:
+      write_vcf_mutations(fout, args['--chrom'], these_variants)
+      logger.debug('{:d}% done'.format(int(100.0 * current_pos / ref_seq_len)))
 
-    for k in params.keys():
-      write_vcf_mutations(fout, args['--chrom'], these_variants[k])
+    current_pos = next_variant_pos
 
-    block_start += block_size
-    logger.debug('{:d}% done'.format(int(100.0 * min(block_start, ref_seq_len) / float(ref_seq_len))))
+  # Flush any remaining variants to disk
+  write_vcf_mutations(fout, args['--chrom'], these_variants)
 
   fin.close()
   fout.close()
-  logger.debug('Generated {:d} SNPs'.format(variant_count_snp))
+  for k in params.keys():
+    logger.debug('Generated {:d} {:s}s'.format(misc[k], k))
 
   if args['--vcf'] is not None:
     with open(args['--vcf'] + '.info','w') as f:
