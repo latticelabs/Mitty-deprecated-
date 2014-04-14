@@ -151,6 +151,7 @@ if __name__ == "__main__":
     if len(these_variants) == block_size:
       write_vcf_mutations(fout, args['--chrom'], these_variants)
       logger.debug('{:d}% done'.format(int(100.0 * current_pos / ref_seq_len)))
+      these_variants = []
 
     current_pos = next_variant_pos
 
