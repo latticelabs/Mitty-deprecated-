@@ -10,14 +10,16 @@ base_sub_mat = {  # GATC
 
 
 def average_read_len(read_len, **kwargs):
-  """Given the same parameters passed to generate_reads tell us what the average read len is going to be"""
+  """Given the same parameters passed to generate_reads tell us what the average read len is going to be. reads.py
+  uses this in combination with coverage and seq_len to figure out how many reads we need."""
   return read_len
 
 
-def generate_reads(seq,
-                   start_reads=0,
-                   stop_reads=0,
-                   num_reads=1000,
+def read_generator(seq,
+                   read_start=0,
+                   read_stop=0,
+                   reads_per_call=1000,
+                   num_reads=10000,
                    paired=False,
                    read_len=None,
                    template_len=None,
@@ -26,31 +28,31 @@ def generate_reads(seq,
                    base_chose_rng_seed=2,
                    max_p_error=.8,
                    k=.1,
-                   prev_state=None,
                    **kwargs):
-  """Given a list of sequences generate reads with the given characteristics
+  """Given a sequence generate reads with the given characteristics
 
   Inputs:
     seq              - string(like)s containing the DNA sequence to generate reads from
-    start_reads      - 0-indexed coordinate of start of section reads will be generated from
-    stop_reads       - 0-indexed coordinate of end of section reads will be generated from (-1 means till end)
-    num_reads        - reads to generate this call to the function
+    seq_len          - length of the sequence
+    read_start       - start generating reads from here (0.0, 1.0)
+    read_stop        - stop generating reads from here (0.0, 1.0)
+    reads_per_call   - each call to next will generate these many reads
+    num_reads        - how many reads do we want in total
     paired           - paired reads or not
-    read_len         - Fixed read length
-    template_len     - Template length. Only needed if paired is True
+    read_len         - Fixed read length (for this model)
+    template_len     - Fixed template length (for this model). Only needed if paired is True
     read_loc_rng_seed- Seed for rng that drives the read location picker
     error_rng_seed   - Seed for rng that determines if there is a read error or not on the base
     base_chose_rng_seed - Seed for rng that determines which base is erroneously read
     max_p_error      - error probability for last base of read
                         (0.0 is perfect reads, 1.0 -> every base is guaranteed to be wrong)
     k                - exponential factor. 0 < k < 1 The closer this is to 0 the quicker the base error rate drops
-    prev_state       - previous state carried over from call to call.
-                       In this case it stores the three rngs
     kwargs           - to swallow any other arguments
 
   Outputs
                                  _________ ( seq_str, quality_str, coordinate)
-    reads     -  [              /
+    corrupted_reads  -
+                 [
                   [( ... ), ( ...)],
                   [( ... ), ( ...)], -> inner list = 2 elements if paired reads, 1 otherwise
                        .
@@ -59,40 +61,34 @@ def generate_reads(seq,
                  ] -> outer list = number of reads
 
     perfect_reads - same format as reads, same size, but with no read errors
+    read_count
+
 
   Quality: Sanger scale 33-126
   """
-  if prev_state is None:  # If we are running this for the first time, we need to initialize the rngs
-    read_loc_rng = numpy.random.RandomState(seed=read_loc_rng_seed)
-    error_loc_rng = numpy.random.RandomState(seed=error_rng_seed)
-    base_chose_rng = numpy.random.RandomState(base_chose_rng_seed)
-  else:
-    read_loc_rng = prev_state['read_loc_rng']
-    error_loc_rng = prev_state['error_loc_rng']
-    base_chose_rng = prev_state['base_chose_rng']
+  # We need to initialize the rngs and a bunch of other stuff
+  read_loc_rng = numpy.random.RandomState(seed=read_loc_rng_seed)
+  error_loc_rng = numpy.random.RandomState(seed=error_rng_seed)
+  base_chose_rng = numpy.random.RandomState(base_chose_rng_seed)
 
   rl = read_len
-  tl = template_len
-  if (stop_reads - tl < read_len) and paired:
+  tl = template_len if paired else rl
+  read_count = 0
+  if read_start + tl >= read_stop:
     logger.error('Template len too large for given sequence.')
+    read_count = num_reads
 
-  if paired:
-    rd_st = read_loc_rng.randint(low=start_reads, high=stop_reads - tl, size=num_reads)
-    reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1),
-              (seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl+1)] for n in range(num_reads)]
-  else:
-    rd_st = read_loc_rng.randint(low=start_reads, high=stop_reads - rl, size=num_reads)
-    reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1)] for n in range(num_reads)]
+  while read_count < num_reads:
+    rd_st = read_loc_rng.randint(low=read_start, high=read_stop - tl, size=min(reads_per_call, num_reads-read_count))
+    if paired:
+      reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1),
+                (seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl+1)] for n in range(rd_st.size)]
+    else:
+      reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1)] for n in range(rd_st.size)]
 
-  corr_reads = corrupt_reads_expon(reads, read_len, max_p_error, k, error_loc_rng, base_chose_rng)
-
-  prev_state = {
-    'read_loc_rng': read_loc_rng,
-    'error_loc_rng': error_loc_rng,
-    'base_chose_rng': base_chose_rng
-  }
-
-  return corr_reads, reads, prev_state
+    corr_reads = corrupt_reads_expon(reads, read_len, max_p_error, k, error_loc_rng, base_chose_rng)
+    read_count += rd_st.size
+    yield corr_reads, reads, read_count
 
 
 def corrupt_reads_expon(reads, read_len=100, max_p_error=.8, k=.1, error_loc_rng=None, base_chose_rng=None):

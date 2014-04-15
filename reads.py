@@ -109,47 +109,44 @@ if __name__ == "__main__":
 
   #Load the ref-seq smalla file
   f = open(args['--ref'], 'r+b')
-  ref_seq = mmap.mmap(f.fileno(), 0)
-  ref_seq_len = len(ref_seq)
-
-  ref_seq_header = open(args['--ref'] + '.heada', 'r').readline()
+  seq = mmap.mmap(f.fileno(), 0)
+  seq_len = len(seq)
+  seq_header = open(args['--ref'] + '.heada', 'r').readline()
 
   plugin_dir = os.path.join(os.path.dirname(__file__), 'Plugins', 'Reads')
   model_fname = os.path.join(plugin_dir, params['model'] + '_plugin.py')
   read_model = imp.load_source('readmodel', model_fname, open(model_fname, 'r'))
 
-  start_reads = int(float(args['--start']) * ref_seq_len)
-  stop_reads = int(float(args['--stop']) * ref_seq_len)
+  start_reads = int(float(args['--start']) * seq_len)
+  stop_reads = int(float(args['--stop']) * seq_len)
   subsequence_len = stop_reads - start_reads
   total_reads = int(float(args['--coverage']) * subsequence_len / float(read_model.average_read_len(**params['args'])))
-  reads_per_block = int(args['--reads_per_block'])
 
   corrupted_out_fname = args['--out'] + '.bam'
   perfect_out_fname = args['--out'] + '_perfect.bam'
   side_car_fname = args['--out'] + '.info'
 
   bam_hdr = {'HD': {'VN': '1.4'},
-             'SQ': [{'LN': ref_seq_len, 'SN': ref_seq_header,
+             'SQ': [{'LN': seq_len, 'SN': seq_header,
                      'SP': 'Simulated perfect reads, by reads.py {:s}'.format(__version__)}]}
   perfect_bam_file = pysam.Samfile(perfect_out_fname, 'wb', header=bam_hdr)  # Write binary BAM with header
 
   bam_hdr = {'HD': {'VN': '1.4'},
-             'SQ': [{'LN': ref_seq_len, 'SN': ref_seq_header,
+             'SQ': [{'LN': seq_len, 'SN': seq_header,
                      'SP': 'Simulated corrupted reads, by reads.py {:s}'.format(__version__)}]}
   corrupted_bam_file = pysam.Samfile(corrupted_out_fname, 'wb', header=bam_hdr)  # Write binary BAM with header
 
-  prev_state = None
-  read_count = 0
-  while read_count < total_reads:
-    corrupted_reads, perfect_reads, prev_state = \
-      read_model.generate_reads(ref_seq, start_reads=start_reads, stop_reads=stop_reads,
-                                num_reads=min(reads_per_block, total_reads - read_count),
-                                prev_state=prev_state, **params['args'])
+  reads = read_model.read_generator(seq=seq,
+                                    read_start=start_reads,
+                                    read_stop=stop_reads,
+                                    reads_per_call=int(args['--reads_per_block']),
+                                    num_reads=total_reads,
+                                    **params['args'])
 
-    save_reads_to_bam(corrupted_bam_file, corrupted_reads, read_count)
-    save_reads_to_bam(perfect_bam_file, perfect_reads, read_count)
-    read_count += len(corrupted_reads)   # corrupted_reads and perfect_reads should match exactly
-    logger.debug('{:d} reads ({:d}%)'.format(read_count, int(100 * read_count / float(total_reads))))
+  for corrupted_reads, perfect_reads, read_count in reads:
+    save_reads_to_bam(corrupted_bam_file, corrupted_reads, read_count - len(corrupted_reads))
+    save_reads_to_bam(perfect_bam_file, perfect_reads, read_count - len(corrupted_reads))
+    logger.debug('Generated {:d} reads ({:d}%)'.format(read_count, int(100 * read_count / float(total_reads))))
 
   corrupted_bam_file.close()
   perfect_bam_file.close()
