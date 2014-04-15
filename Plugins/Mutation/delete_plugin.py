@@ -32,13 +32,13 @@ def variant(p_del=0.01, lam_del=5,
   ref_seq='ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT'; ref_seq_len = len(ref_seq); \
   gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=100, **args);
   >>> for n in range(10): print next(gen,None)
-  (9, 'C', 'G', 10, None)
-  (15, 'T', 'G', 16, None)
-  (22, 'G', 'A', 23, None)
-  (31, 'T', 'A', 32, None)
-  (40, 'A', 'G', 41, None)
-  (49, 'C', 'G', 50, None)
-  (55, 'T', 'A', 56, None)
+  (9, 'CG', 'C', 11, None)
+  (15, 'TACG', 'T', 19, None)
+  (22, 'GTA', 'G', 25, None)
+  (31, 'TACG', 'T', 35, None)
+  (40, 'ACGTA', 'A', 45, None)
+  (49, 'CGT', 'C', 52, None)
+  (55, 'TA', 'T', 57, None)
   None
   None
   None
@@ -46,33 +46,16 @@ def variant(p_del=0.01, lam_del=5,
   Test with multiple blocks - should be same answer even though we have changed the block size
   >>> gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=1, **args);
   >>> for n in range(10): print next(gen,None)
-  (9, 'C', 'G', 10, None)
-  (15, 'T', 'G', 16, None)
-  (22, 'G', 'A', 23, None)
-  (31, 'T', 'A', 32, None)
-  (40, 'A', 'G', 41, None)
-  (49, 'C', 'G', 50, None)
-  (55, 'T', 'A', 56, None)
+  (9, 'CG', 'C', 11, None)
+  (15, 'TACG', 'T', 19, None)
+  (22, 'GTA', 'G', 25, None)
+  (31, 'TACG', 'T', 35, None)
+  (40, 'ACGTA', 'A', 45, None)
+  (49, 'CGT', 'C', 52, None)
+  (55, 'TA', 'T', 57, None)
   None
   None
   None
-
-  Test with large del size - should not have any conflicts
-  >>> args = {'p_del': .1, 'lam_del': 10, 'del_loc_rng_seed': 1, 'del_len_rng_seed': 2};
-  >>> gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=1, **args);
-  >>> for n in range(10): print next(gen,None)
-  (9, 'C', 'G', 10, None)
-  (15, 'T', 'G', 16, None)
-  (22, 'G', 'A', 23, None)
-  (31, 'T', 'A', 32, None)
-  (40, 'A', 'G', 41, None)
-  (49, 'C', 'G', 50, None)
-  (55, 'T', 'A', 56, None)
-  None
-  None
-  None
-
-
   """
   def get_locs_and_lens():  # Simply a convenience.
     loc_diff = numpy.maximum(del_loc_rng.poisson(lam=1.0 / p_del, size=block_size), 1)  # Please sir, can I have some more?
