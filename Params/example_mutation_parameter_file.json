@@ -1,10 +1,19 @@
 {
-    "snps": {
+    "snp": {
         "model": "snp",
-        "start_snps_frac": 0.33,
+        "start_snps_frac": 0.4,
         "stop_snps_frac":  0.5,
         "p": 0.1,
-        "poisson_rng_seed": 10,
+        "poisson_rng_seed": 1,
         "base_sub_rng_seed": 1
+    },
+    "delete": {
+        "model": "delete",
+        "start_dels_frac": 0.4,
+        "stop_dels_frac":  0.5,
+        "p_del": 0.1,
+        "lam_del": 10,
+        "del_loc_rng_seed": 10,
+        "del_len_rng_seed": 1
     }
 }
