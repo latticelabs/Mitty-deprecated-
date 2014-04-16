@@ -1,62 +1,51 @@
 """This reads.py plugin generates tiled reads with a guaranteed coverage for every base. The reads are taken
-deterministically, starting at the beginning of the sequence and then taking reads with the requested overlap.
-At the end of the sequence the overlap is adjusted to make sure every base is covered.
-
-Example parameter file
-{
-    "__comment__": "Example parameter file for reads program. Seven Bridges Genomics Current contact: kaushik.ghose@sbgenomics.com",
-    "model_name": "tiled_reads",
-    "seq_header": "gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds",
-    "seq_file": "Data/porcine_circovirus.smalla",
-    "corrupted_reads_file": "Data/corrupted_reads.bam",
-    "perfect_reads_file": "Data/perfect_reads.bam",
-    "output_type": "bam",
-    "start": 0,
-    "stop": -1,
-    "coverage": 2,
-    "average_read_len": 100,
-    "args": {
-        "paired": true,
-        "read_len": 100,
-        "template_len": 250,
-        "overlap": 0.5
-    }
-}
+deterministically, starting at the beginning of the sequence and then taking reads with the requested overlap. The
+overlap of the last read is adjusted so we cover every base. When we get to the end of the sequence we wrap around and
+start with a shifted offset.
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
+import numpy
 import logging
-
 logger = logging.getLogger(__name__)
 
+def average_read_len(read_len, **kwargs):
+  """Given the same parameters passed to generate_reads tell us what the average read len is going to be. reads.py
+  uses this in combination with coverage and seq_len to figure out how many reads we need."""
+  return read_len
 
-def generate_reads(seq,
-                   start=0,
-                   stop=-1,
-                   num_reads=1000,
+
+def read_generator(seq,
+                   read_start=0,
+                   read_stop=0,
+                   reads_per_call=1000,
+                   num_reads=10000,
                    paired=False,
-                   read_len=100,
-                   template_len=250,
-                   overlap=0.5,
-                   prev_state=None):
-  """Given a list of sequences generate reads with the given characteristics
+                   read_len=None,
+                   template_len=None,
+                   read_advance=None,
+                   **kwargs):
+  """Given a sequence generate reads with the given characteristics
 
   Inputs:
     seq              - string(like)s containing the DNA sequence to generate reads from
-    start            - 0-indexed coordinate of start of section reads will be generated from
-    stop             - 0-indexed coordinate of end of section reads will be generated from (-1 means till end)
-    num_reads        - reads to generate this call to the function
+    read_start       - start generating reads from here
+    read_stop        - stop generating reads from here
+    reads_per_call   - each call to next will generate these many reads
+    num_reads        - how many reads do we want in total
     paired           - paired reads or not
-    read_len         - Fixed read length
-    template_len     - Template length. Only needed if paired is True
-    overlap          - what fraction of the previous read should this read cover
-    prev_state       - previous state carried over from call to call.
-                       In this case it is simply start position of the next read we should generate
+    read_len         - Fixed read length (for this model)
+    template_len     - Fixed template length (for this model). Only needed if paired is True
+    read_advance     - Advance these many bases to take the next read
+    kwargs           - to swallow any other arguments
 
   Outputs
+    corrupted_reads  -
+
                                  _________ ( seq_str, quality_str, coordinate)
-    reads     -  [              /
+                                /
+                 [
                   [( ... ), ( ...)],
                   [( ... ), ( ...)], -> inner list = 2 elements if paired reads, 1 otherwise
                        .
@@ -65,39 +54,37 @@ def generate_reads(seq,
                  ] -> outer list = number of reads
 
     perfect_reads - same format as reads, same size, but with no read errors
+    read_count
+
 
   Quality: Sanger scale 33-126
   """
-  if prev_state is None:  # If we are running this for the first time, we need to initialize the rng
-    next_read_start = start
-  else:
-    next_read_start = prev_state
-  if stop==-1: stop=len(seq)
-  if (stop - template_len < read_len) and paired:
-    logger.error('Template len too large for given sequence.')
-
-  logger.debug('Starting to generate reads')
-  nrs = next_read_start
   rl = read_len
   tl = template_len if paired else rl
-  ra = int((1. - overlap) * read_len)
-  # TODO: Write this more Pythonically?
-  rd_st = nrs
-  reads = []
-  for n in range(num_reads):
-    rd_e = rd_st + tl
-    if rd_e > stop:  # We need to slide back to make sure we cover the end of the sequence
-      rd_e = stop
-      rd_st = rd_e - tl
-    this_read = [(seq[rd_st:rd_st+rl], '~' * rl, rd_st + 1)] # Coordinates are 1 indexed so we need +1
-    if paired:
-      this_read += [(seq[rd_e-rl:rd_e], '~' * rl, rd_e - rl + 1)]
-    reads += [this_read]
+  read_count = 0
+  if read_start + tl >= read_stop:
+    logger.error('Template len too large for given sequence.')
+    read_count = num_reads
 
-    if rd_e == stop:  # We just covered the sequence once, we need to reset
-      rd_st = 0
-    else:  # Advance as usual
-      rd_st += ra
+  read_offset = 0
+  nominal_read_start = read_start
+  while read_count < num_reads:
+    reads = []
+    for n in range(min(reads_per_call, num_reads-read_count)):
+      if nominal_read_start + tl > read_stop:
+        this_read_start = read_stop - tl
+        read_offset += 1
+        if read_offset > rl:
+          read_offset = 0
+        nominal_read_start = read_start + read_offset
+      else:
+        this_read_start = nominal_read_start
+        nominal_read_start += read_advance
 
-  logger.debug('Finished generating reads')
-  return reads, reads, rd_st
+      these_reads = [(seq[this_read_start:this_read_start+rl], '~' * rl, this_read_start+1)]
+      if paired:
+        these_reads += [(seq[this_read_start+tl-rl:this_read_start+tl], '~' * rl, this_read_start+tl-rl+1)]
+      reads.append(these_reads)
+
+    read_count += len(reads)
+    yield reads, reads, read_count
