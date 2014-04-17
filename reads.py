@@ -2,7 +2,7 @@
 useful for creating test data for MGR algorithms/data formats
 
 Usage:
-reads --ref=REF  [--start=START]  [--stop=STOP] [--coverage=COV] [--out=OUT]  --paramfile=PFILE [--reads_per_block=BL] [-v]
+reads --ref=REF  [--start=START]  [--stop=STOP] [--coverage=COV] [--out=OUT] [-f] --paramfile=PFILE [--reads_per_block=BL] [-v]
 
 Options:
   --ref=REF               The reference sequence in smalla format
@@ -13,6 +13,7 @@ Options:
                           The corrupted reads will be saved to simulated_reads.bam
                           The perfect reads will be saved to simulated_reads_perfect.bam
                           A text sidecar file simulated_reads.info will be saved with simulation parameters
+  -f                      Write as FASTQ instead of BAM
   --paramfile=PFILE       Name for parameter file
   --reads_per_block=BL    Generate these many reads at a time (Adjust to machine resources). [default: 10000]
   -v                      Dump detailed logger messages
@@ -36,6 +37,38 @@ import pysam  # Needed to write BAM files
 import logging
 
 logger = logging.getLogger(__name__)
+
+# TODO: do we need seq_len?
+def open_reads_files(out_prefix, seq_len, seq_header, bam=True):
+  """Open output files (fastq or bam) and write headers as needed."""
+  if bam:
+    corrupted_out_fname = out_prefix + '.bam'
+    perfect_out_fname = out_prefix + '_perfect.bam'
+    bam_hdr = {'HD': {'VN': '1.4'},
+               'SQ': [{'LN': seq_len, 'SN': seq_header,
+                       'SP': 'Simulated perfect reads, by reads.py {:s}'.format(__version__)}]}
+    perfect_fh = pysam.Samfile(perfect_out_fname, 'wb', header=bam_hdr)  # Write binary BAM with header
+    bam_hdr['SQ'] = [{'LN': seq_len, 'SN': seq_header,
+                     'SP': 'Simulated corrupted reads, by reads.py {:s}'.format(__version__)}]
+    corrupted_fh = pysam.Samfile(corrupted_out_fname, 'wb', header=bam_hdr)  # Write binary BAM with header
+  else:
+    corrupted_out_fname = out_prefix + '.fastq'
+    perfect_out_fname = out_prefix + '_perfect.fastq'
+    #TODO: is there a fastq header?
+    perfect_fh = open(perfect_out_fname, 'w')  # Write binary BAM with header
+    corrupted_fh = open(corrupted_out_fname, 'w')  # Write binary BAM with header
+  return perfect_fh, corrupted_fh
+
+
+def save_reads(perfect_fh, corrupted_fh, perfect_reads, corrupted_reads, first_read_count, bam=True):
+  """Wrapper around the functions that save the reads - calls appropriate functions depending on whether we want bam
+   of fastq."""
+  if bam:
+    save_reads_to_bam(perfect_fh, perfect_reads, first_read_count)
+    save_reads_to_bam(corrupted_fh, corrupted_reads, first_read_count)
+  else:
+    save_reads_to_fastq(perfect_fh, perfect_reads, first_read_count)
+    save_reads_to_fastq(corrupted_fh, corrupted_reads, first_read_count)
 
 
 def save_reads_to_bam(bam_file, reads, first_read_count):
@@ -68,34 +101,36 @@ def save_reads_to_bam(bam_file, reads, first_read_count):
       ar.flag = 0x81  # end2 0x01 flag has to be set to indicate multiple segments
       bam_file.write(ar)
 
-# def write_fastq(fastq_file_handle_tuple, reads, first_read_count):
-#   """Given a list of sequences and their quality write the read data to an already opened text file.
-#   Inputs:
-#     fastq_file_handle_tuple - will be two file handles if paired reads
-#
-#                                  _________ ( seq_str, quality_str, coordinate)
-#     reads     -  [              /
-#                   [( ... ), ( ...)],
-#                   [( ... ), ( ...)], -> inner list = 2 elements if paired reads, 1 otherwise
-#                        .
-#                        .
-#                        .
-#                  ] -> outer list = number of reads
-#
-#   """
-#   if len(reads) == 0: return
-#   paired = True if len(reads[0]) == 2 else False
-#   for n in range(len(reads)):
-#     qname = 'r{:d}:{:d}'.format(first_read_count+n, reads[n][0][2])
-#     seq = reads[n][0][0]
-#     qual = reads[n][0][1]
-#     if paired:
-#       qname += ':{:d}'.format(reads[n][1][2])
-#     fastq_file_handle_tuple[0].write('@{:s}\n{:s}\n+\n{:s}\n'.format(qname, seq, qual))
-#     if paired:
-#       seq = reads[n][1][0]
-#       qual = reads[n][1][1]
-#       fastq_file_handle_tuple[1].write('@{:s}\n{:s}\n+\n{:s}\n'.format(qname, seq, qual))
+def save_reads_to_fastq(fastq_file_handle, reads, first_read_count):
+  """Given a list of sequences and their quality write the read data to an already opened text file. This saves data
+  in interleaved form if paired reads are present
+
+  Inputs:
+    fastq_file_handle - file handles read for writing
+
+                                 _________ ( seq_str, quality_str, coordinate)
+    reads     -  [              /
+                  [( ... ), ( ...)],
+                  [( ... ), ( ...)], -> inner list = 2 elements if paired reads, 1 otherwise
+                       .
+                       .
+                       .
+                 ] -> outer list = number of reads
+
+  """
+  if len(reads) == 0: return
+  paired = True if len(reads[0]) == 2 else False
+  for n in range(len(reads)):
+    qname = 'r{:d}:{:d}'.format(first_read_count+n, reads[n][0][2])
+    seq = reads[n][0][0]
+    qual = reads[n][0][1]
+    if paired:
+      qname += ':{:d}'.format(reads[n][1][2])
+    fastq_file_handle.write('@{:s}\n{:s}\n+\n{:s}\n'.format(qname, seq, qual))
+    if paired:
+      seq = reads[n][1][0]
+      qual = reads[n][1][1]
+      fastq_file_handle.write('@{:s}\n{:s}\n+\n{:s}\n'.format(qname, seq, qual))
 
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
@@ -122,19 +157,9 @@ if __name__ == "__main__":
   subsequence_len = stop_reads - start_reads
   total_reads = int(float(args['--coverage']) * subsequence_len / float(read_model.average_read_len(**params['args'])))
 
-  corrupted_out_fname = args['--out'] + '.bam'
-  perfect_out_fname = args['--out'] + '_perfect.bam'
+  bam = not args['-f']  # bam is True if args['-f] is False
+  perfect_fh, corrupted_fh = open_reads_files(args['--out'], seq_len, seq_header, bam)
   side_car_fname = args['--out'] + '.info'
-
-  bam_hdr = {'HD': {'VN': '1.4'},
-             'SQ': [{'LN': seq_len, 'SN': seq_header,
-                     'SP': 'Simulated perfect reads, by reads.py {:s}'.format(__version__)}]}
-  perfect_bam_file = pysam.Samfile(perfect_out_fname, 'wb', header=bam_hdr)  # Write binary BAM with header
-
-  bam_hdr = {'HD': {'VN': '1.4'},
-             'SQ': [{'LN': seq_len, 'SN': seq_header,
-                     'SP': 'Simulated corrupted reads, by reads.py {:s}'.format(__version__)}]}
-  corrupted_bam_file = pysam.Samfile(corrupted_out_fname, 'wb', header=bam_hdr)  # Write binary BAM with header
 
   reads = read_model.read_generator(seq=seq,
                                     read_start=start_reads,
@@ -144,12 +169,9 @@ if __name__ == "__main__":
                                     **params['args'])
 
   for corrupted_reads, perfect_reads, read_count in reads:
-    save_reads_to_bam(corrupted_bam_file, corrupted_reads, read_count - len(corrupted_reads))
-    save_reads_to_bam(perfect_bam_file, perfect_reads, read_count - len(corrupted_reads))
+    save_reads(perfect_fh, corrupted_fh, perfect_reads, corrupted_reads, read_count - len(corrupted_reads), bam)
     logger.debug('Generated {:d} reads ({:d}%)'.format(read_count, int(100 * read_count / float(total_reads))))
 
-  corrupted_bam_file.close()
-  perfect_bam_file.close()
   f.close()
 
   with open(side_car_fname,'w') as f:
