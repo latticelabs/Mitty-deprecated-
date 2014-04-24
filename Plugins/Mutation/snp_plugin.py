@@ -31,6 +31,21 @@ def variant(p=0.01,
   Outputs:
     variant              - (POS, REF, ALT, skip, list(footprints))
 
+  Any section with anything other than GATC should be skipped
+  >>> args = {'p': .1, 'poisson_rng_seed': 1, 'base_sub_rng_seed': 2}; \
+  ref_seq='ACGTACGTAcGTACGNACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT'; ref_seq_len = len(ref_seq); \
+  gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=100, **args);
+  >>> for n in range(10): print next(gen,None)
+  (22, 'G', 'A', 23, None)
+  (31, 'T', 'A', 32, None)
+  (40, 'A', 'G', 41, None)
+  (49, 'C', 'G', 50, None)
+  (55, 'T', 'A', 56, None)
+  None
+  None
+  None
+  None
+  None
 
   Test with one block
   >>> args = {'p': .1, 'poisson_rng_seed': 1, 'base_sub_rng_seed': 2}; \
