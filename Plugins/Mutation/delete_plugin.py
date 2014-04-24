@@ -27,6 +27,23 @@ def variant(p_del=0.01, lam_del=5,
     variant              - (POS, REF, ALT, skip, list(footprints))
 
 
+  Test with 'N's. No deletions should straddle a region with N
+  >>> args = {'p_del': .1, 'lam_del': 3, 'del_loc_rng_seed': 1, 'del_len_rng_seed': 2}; \
+  ref_seq='ACGTACGTANGTACGTACGTACGTACGTACGTACGTACGTACNTACGTACGTACGTACGT'; ref_seq_len = len(ref_seq); \
+  gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=100, **args);
+  >>> for n in range(10): print next(gen,None)
+  (15, 'TACG', 'T', 19, None)
+  (22, 'GTA', 'G', 25, None)
+  (31, 'TACG', 'T', 35, None)
+  (49, 'CGT', 'C', 52, None)
+  (55, 'TA', 'T', 57, None)
+  None
+  None
+  None
+  None
+  None
+
+
   Test with one block
   >>> args = {'p_del': .1, 'lam_del': 3, 'del_loc_rng_seed': 1, 'del_len_rng_seed': 2}; \
   ref_seq='ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT'; ref_seq_len = len(ref_seq); \
