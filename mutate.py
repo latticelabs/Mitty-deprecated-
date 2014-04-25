@@ -30,6 +30,7 @@ import json
 import mmap  # To memory map our smalla files
 import docopt
 import datetime
+import pysam  # For the tabix functions
 import logging
 
 logger = logging.getLogger(__name__)
@@ -162,6 +163,10 @@ if __name__ == "__main__":
   fout.close()
   for k in params.keys():
     logger.debug('Generated {:d} {:s}s'.format(misc[k], k))
+
+  logger.debug('Compressing and indexing VCF file')
+  pysam.tabix_compress(args['--vcf'], args['--vcf'] + '.gz', force=True)
+  pysam.tabix_index(args['--vcf'] + '.gz', force=True, preset='vcf')
 
   if args['--vcf'] is not None:
     with open(args['--vcf'] + '.info','w') as f:
