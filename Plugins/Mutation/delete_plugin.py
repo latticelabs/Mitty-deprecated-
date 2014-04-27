@@ -1,4 +1,12 @@
-"""TODO: Write docs"""
+"""This is the stock deletion generator. Please see Readme for details on how to write variant generator plugins for
+mutate.py.
+
+The plugin uses two random number generators. The first creates poisson distributed numbers to locate the deletions.
+The other creates poisson distributed numbers to determine deletion lengths. This is equivalent to modeling deletion
+termination as a bernoulli process.
+
+Note: This never generates a deletion at the first base of a sequence.
+"""
 import numpy
 import logging
 
@@ -19,7 +27,7 @@ def variant(p_del=0.01, lam_del=5,
     lam_del              - mean length of poisson distributed delete lengths
     start_dels_frac      - start generating dels from here (0.0, 1.0)
     stop_dels_frac       - stop generating dels after this (0.0, 1.0) stop_snps_frac > start_snps_frac
-    poisson_rng_seed     - SNP locator rng numpy.random.RandomState(seed)
+    del_loc_rng_seed     - SNP locator rng numpy.random.RandomState(seed)
     del_len_rng_seed     - rng used to determine length of delete
     kwargs               - absorbs any other parameters it does not use
 
