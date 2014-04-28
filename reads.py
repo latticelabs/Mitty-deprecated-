@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 # TODO: do we need seq_len?
 def open_reads_files(out_prefix, seq_len, seq_header, bam=True):
   """Open output files (fastq or bam) and write headers as needed."""
-  if bam:
+  if bam:  # BAM
     corrupted_out_fname = out_prefix + '.bam'
     perfect_out_fname = out_prefix + '_perfect.bam'
     bam_hdr = {'HD': {'VN': '1.4'},
@@ -51,12 +51,12 @@ def open_reads_files(out_prefix, seq_len, seq_header, bam=True):
     bam_hdr['SQ'] = [{'LN': seq_len, 'SN': seq_header,
                      'SP': 'Simulated corrupted reads, by reads.py {:s}'.format(__version__)}]
     corrupted_fh = pysam.Samfile(corrupted_out_fname, 'wb', header=bam_hdr)  # Write binary BAM with header
-  else:
+  else:  # FASTQ
     corrupted_out_fname = out_prefix + '.fastq'
     perfect_out_fname = out_prefix + '_perfect.fastq'
     #TODO: is there a fastq header?
-    perfect_fh = open(perfect_out_fname, 'w')  # Write binary BAM with header
-    corrupted_fh = open(corrupted_out_fname, 'w')  # Write binary BAM with header
+    perfect_fh = open(perfect_out_fname, 'w')  # File handles for FASTQ
+    corrupted_fh = open(corrupted_out_fname, 'w')
   return perfect_fh, corrupted_fh
 
 
