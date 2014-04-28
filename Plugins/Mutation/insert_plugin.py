@@ -1,4 +1,12 @@
-"""TODO: Write docs"""
+"""This is the stock insertion generator. Please see Readme for details on how to write variant generator plugins for
+mutate.py.
+
+The plugin uses three random number generators. The first creates poisson distributed numbers to locate the deletions.
+The second creates poisson distributed numbers to determine deletion lengths. This is equivalent to modeling deletion
+termination as a bernoulli process. The third is a uniform random number generator that is used to generate bases for
+the insertions. The plugin generates all bases at the same rate.
+
+Note: This never generates a deletion at the first base of a sequence."""
 import numpy
 import logging
 
