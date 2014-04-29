@@ -424,6 +424,7 @@ Computing POS: Step through the `dpos` array corresponding to the read and set P
 value. If all values of `dpos` are zero, it is an unmapped read and POS and CIGAR strings are undefined
 
 Computing the CIGAR: Only do this for mapped reads.
+
 1. Setup three counters, I,D,M and initialize to zero.
 2. Step through the relevant part of the `dpos` array.
 3. If the value is 1 increment the M counter, flush other counters
