@@ -124,8 +124,9 @@ def variant(p_ins=0.01, lam_ins=5,
       internal_cntr = 0
 
     if alt is not None:
-      yield (vl, ref, alt, vl+1, None)  # POS, REF, ALT, skipto, list(footprints)
+      yield (vl, ref, alt, vl+2, None)  # POS, REF, ALT, skipto, list(footprints)
                                          # footprints, in this case, is None, since we simply skip forward
+      # We have vl + 2 because we want 1 base buffer between variants (see Readme)
 
 
 if __name__ == "__main__":

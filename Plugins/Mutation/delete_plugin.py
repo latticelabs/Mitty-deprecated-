@@ -111,9 +111,9 @@ def variant(p_del=0.01, lam_del=5,
       internal_cntr = 0
 
     if alt is not None:
-      yield (vl, ref, alt, vl + dl+1, None)  # POS, REF, ALT, skipto, list(footprints)
-                                           # footprints, in this case, is None, since we simply skip forward
-
+      yield (vl, ref, alt, vl + dl + 2, None)  # POS, REF, ALT, skipto, list(footprints)
+                                               # footprints, in this case, is None, since we simply skip forward
+      # We have vl dl + 2 because we want 1 base buffer between variants, even SNPs (see Readme)
 
 if __name__ == "__main__":
   import doctest
