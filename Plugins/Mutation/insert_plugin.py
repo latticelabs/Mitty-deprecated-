@@ -50,12 +50,12 @@ def variant(p_ins=0.01, lam_ins=5,
   ref_seq='ACGTACGTANGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT'; ref_seq_len = len(ref_seq); \
   gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=100, **args);
   >>> for n in range(10): print next(gen,None)
-  (15, 'T', 'TGAC', 16, None)
-  (22, 'G', 'GGG', 23, None)
-  (31, 'T', 'TGAA', 32, None)
-  (40, 'A', 'ACTCA', 41, None)
-  (49, 'C', 'CAT', 50, None)
-  (55, 'T', 'TA', 56, None)
+  (15, 'T', 'TGAC', 17, None)
+  (22, 'G', 'GGG', 24, None)
+  (31, 'T', 'TGAA', 33, None)
+  (40, 'A', 'ACTCA', 42, None)
+  (49, 'C', 'CAT', 51, None)
+  (55, 'T', 'TA', 57, None)
   None
   None
   None
@@ -67,13 +67,13 @@ def variant(p_ins=0.01, lam_ins=5,
   ref_seq='ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT'; ref_seq_len = len(ref_seq); \
   gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=100, **args);
   >>> for n in range(10): print next(gen,None)
-  (9, 'C', 'CT', 10, None)
-  (15, 'T', 'TGAC', 16, None)
-  (22, 'G', 'GGG', 23, None)
-  (31, 'T', 'TGAA', 32, None)
-  (40, 'A', 'ACTCA', 41, None)
-  (49, 'C', 'CAT', 50, None)
-  (55, 'T', 'TA', 56, None)
+  (9, 'C', 'CT', 11, None)
+  (15, 'T', 'TGAC', 17, None)
+  (22, 'G', 'GGG', 24, None)
+  (31, 'T', 'TGAA', 33, None)
+  (40, 'A', 'ACTCA', 42, None)
+  (49, 'C', 'CAT', 51, None)
+  (55, 'T', 'TA', 57, None)
   None
   None
   None
@@ -81,13 +81,13 @@ def variant(p_ins=0.01, lam_ins=5,
   Test with multiple blocks - should be same answer even though we have changed the block size
   >>> gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=1, **args);
   >>> for n in range(10): print next(gen,None)
-  (9, 'C', 'CT', 10, None)
-  (15, 'T', 'TGAC', 16, None)
-  (22, 'G', 'GGG', 23, None)
-  (31, 'T', 'TGAA', 32, None)
-  (40, 'A', 'ACTCA', 41, None)
-  (49, 'C', 'CAT', 50, None)
-  (55, 'T', 'TA', 56, None)
+  (9, 'C', 'CT', 11, None)
+  (15, 'T', 'TGAC', 17, None)
+  (22, 'G', 'GGG', 24, None)
+  (31, 'T', 'TGAA', 33, None)
+  (40, 'A', 'ACTCA', 42, None)
+  (49, 'C', 'CAT', 51, None)
+  (55, 'T', 'TA', 57, None)
   None
   None
   None

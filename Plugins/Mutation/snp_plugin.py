@@ -36,11 +36,11 @@ def variant(p=0.01,
   ref_seq='ACGTACGTAcGTACGNACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT'; ref_seq_len = len(ref_seq); \
   gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=100, **args);
   >>> for n in range(10): print next(gen,None)
-  (22, 'G', 'A', 23, None)
-  (31, 'T', 'A', 32, None)
-  (40, 'A', 'G', 41, None)
-  (49, 'C', 'G', 50, None)
-  (55, 'T', 'A', 56, None)
+  (22, 'G', 'A', 24, None)
+  (31, 'T', 'A', 33, None)
+  (40, 'A', 'G', 42, None)
+  (49, 'C', 'G', 51, None)
+  (55, 'T', 'A', 57, None)
   None
   None
   None
@@ -52,13 +52,13 @@ def variant(p=0.01,
   ref_seq='ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT'; ref_seq_len = len(ref_seq); \
   gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=100, **args);
   >>> for n in range(10): print next(gen,None)
-  (9, 'C', 'G', 10, None)
-  (15, 'T', 'G', 16, None)
-  (22, 'G', 'A', 23, None)
-  (31, 'T', 'A', 32, None)
-  (40, 'A', 'G', 41, None)
-  (49, 'C', 'G', 50, None)
-  (55, 'T', 'A', 56, None)
+  (9, 'C', 'G', 11, None)
+  (15, 'T', 'G', 17, None)
+  (22, 'G', 'A', 24, None)
+  (31, 'T', 'A', 33, None)
+  (40, 'A', 'G', 42, None)
+  (49, 'C', 'G', 51, None)
+  (55, 'T', 'A', 57, None)
   None
   None
   None
@@ -66,13 +66,13 @@ def variant(p=0.01,
   Test with multiple blocks - should be same answer even though we have changed the block size
   >>> gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=1, **args);
   >>> for n in range(10): print next(gen,None)
-  (9, 'C', 'G', 10, None)
-  (15, 'T', 'G', 16, None)
-  (22, 'G', 'A', 23, None)
-  (31, 'T', 'A', 32, None)
-  (40, 'A', 'G', 41, None)
-  (49, 'C', 'G', 50, None)
-  (55, 'T', 'A', 56, None)
+  (9, 'C', 'G', 11, None)
+  (15, 'T', 'G', 17, None)
+  (22, 'G', 'A', 24, None)
+  (31, 'T', 'A', 33, None)
+  (40, 'A', 'G', 42, None)
+  (49, 'C', 'G', 51, None)
+  (55, 'T', 'A', 57, None)
   None
   None
   None
