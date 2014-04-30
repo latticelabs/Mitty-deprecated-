@@ -125,6 +125,37 @@ Say our original sequence is `ATCGGATC`
     Insertion     1    A      AGGG   -> AGGGTCGGATC
     SNP           1    A       G     -> GTCGATC
 
+## "Buffer bases" between simulated variants
+
+If we have variants adjacent to each other the most parsimonious description of the resulting variation can be different
+from the original variants.
+
+For example, considering `M=ATCGATCG` and an insertion and deletion as follows
+
+    POS REF ALT
+    1   A   ACC
+    1   AT  A
+
+We get
+
+         1  2345678
+    R    A  TCGATCG
+    M    ACC CGATCG
+
+This can, actually, be most parsimoniously expressed as
+
+         1 2345678
+    R    A TCGATCG
+    M    ACCCGATCG
+
+Which is a single base insertion followed by a SNP
+
+    POS REF ALT
+    1   A  AC
+    2   T  C
+
+For reasons of such ambiguity Mitty places a minimum 1 base "buffer" between variants, making the generated variant
+identical to the most parsimonious description.
 
 
 Dev notes
@@ -165,275 +196,162 @@ each base in the `mut_seq` and corresponding positions on the `ref_seq`. We then
 the sidecar information to compute the correct POS values and CIGAR strings for the reads.
 
 The algorithm is best introduced through a series of examples. In the examples the reference sequence is labelled `R` and
-the mutated sequence is labeled `M`. The position information for the read is taken from an array `pos` that accompanies
-`M` and the CIGAR is written from information carried by another array `dpos` accompanying `M`.
+the mutated sequence is labeled `M`. The information for setting the POS and CIGAR for the read is taken from an
+array `pos` that accompanies `M`
 
-#### Generating `M`, `pos` and `dpos` arrays from VCF entries
+#### Generating `pos`
 
-Taking our original example sequence `ATCGGATC` we show examples of SNPs, deletions and insertions as well as
-combinations of these variants
+Let `R = ACTGACTG`
 
-SNP at start
-
-    POS REF ALT
-    1   A   T
-
-    ref  12345678
-         ATCGGATC
-    mut  TTCGGATC
-    pos  12345678     (Position values correspond to those of the original bases that survive in the mutation)
-    dpos 11111111     (Simply, the point by point diff of the pos array. We imagine there to be an imaginary base
-                       at the end - with pos 9 - which gives us dpos=1 for the last base)
-
-
-SNP in middle
+Consider a single base insertion at position 1
 
     POS REF ALT
-    4   G   A
-
-    ref  12345678
-         ATCGGATC
-    mut  ATCAGATC
-    pos  12345678
-    dpos 11111111
-
-
-Insertion at the very beginning of the sequence
-
-    POS REF ALT
-    0   .   TC
-
-    ref    12345678
-           ATCGGATC
-    mut  TCATCGGATC
-    pos  1112345678    (For each inserted base, the pos value is copied from the next conserved base)
-    dpos 0011111111
-
-
-Insertion after the first base
-
-    POS REF ALT
-    1   A   AA
-
-    ref  1 2345678
-         A TCGGATC
-    mut  AATCGGATC
-    pos  122345678
-    dpos 101111111
-
-
-Insertion at end
-
-    POS REF ALT
-    8   C   CTT
-
-    ref  12345678
-         ATCGGATC
-    mut  ATCGGATCTT
-    pos  1234567899   (Note that pos of inserted base is pos of the imaginary last base)
-    dpos 1111111100    (Note that the last dpos is 0. Recall, we have a last imaginary base with pos 9)
-
-    * Even though the imaginary base position actually appears in the pos string, no read POS ever sees this - a read will
-      either have at least one earlier base matching the reference (which will form the read POS) or there will be no
-      matching bases, in which case the read will be unmapped.
-
-
-Deletion of the first base
-
-    POS REF ALT
-    1   A   .
-
-    ref  12345678
-         ATCGGATC
-    mut   TCGGATC
-    pos   2345678
-    dpos  1111111
-
-
-Deletion in the middle
-
-    POS REF ALT
-    2   TCG  T
-
-    ref  12345678
-         ATCGGATC
-    mut  AT  GATC
-    pos  12  5678
-    dpos 13  1111
-
-
-Adjacent SNPs
-
-    POS REF ALT
-    1   A   T
-    2   T   C
-
-    ref  12345678
-         ATCGGATC
-    mut  TCCGGATC
-    pos  12345678
-    dpos 11111111
-
-
-Adjacent Insertions
-
-    POS REF ALT
-    0   .   T
     1   A   AT
 
-    ref   1 2345678
-          A TCGGATC
-    mut  TATTCGGATC
-    pos  1122345678
-    dpos 0101111111
+         1 2345678
+    R    A CTGACTG
+    M    ATCTGACTG
+    pos  1223456789
 
 
-Insertions and deletion adjacent to each other
-
-    POS REF ALT
-    0   .   T
-    1   A   .
-
-    ref   12345678
-          ATCGGATC
-    mut  T TCGGATC
-    pos  1 2345678
-    dpos 1 1111111
-
-This is a kind of gotcha! It's actually a SNP (A -> T @ pos 1) and as we will find out below our POS and CIGAR computations
-will be correct but it raises the point that there is more than one way to describe some mutations. In this case a
-SNP is the least complex (and therefore correct) way.
-
-`vcf2seq.py` takes in a VCF file and a reference sequence and generates three files
-
-    mut_seq - the complete, literal, mutated sequence
-    pos     - a uint16 array the same size as mut_seq, containing coordinate information that can be used to
-              generate the POS value for a correctly aligned read
-    dpos    - a uint16 array which is the diff of the pos array and that can be used to generate correct CIGAR
-              strings for reads.
-
-`vcf2seq.py` iterates over the `ref_seq` copying over each base into `mut_seq` and copying the base's position in
-the reference position into `pos`. `dpos` is set to 1 for such runs of regular copying. When we arrive at the
-location of a variant (say it is at `k`), we copy over the ALT, then we advance along `ref_seq` as many bases as there
-was in REF (this can be zero if REF='.'). Say this brings us to location `m`. We fill `pos` with [`k`, `m`, `m` ...]
-based on the length of ALT. We fill `dpos` with [`m-k`, 0, 0, 0 ... ] based on the length of ALT
-
-#### Generating reads with proper `POS` and `CIGAR`s
-
-Consider some of the examples from above:
-
-SNP at start
+Consider a multiple base insertion at position 1
 
     POS REF ALT
-    1   A   T
+    1   A   ATT
 
-    ref  12345678
-         ATCGGATC
-    mut  TTCGGATC
-    pos  12345678
-    dpos 11111111     example reads
-          TCGG      POS = 2 CIGAR = '4M'
-             GATC   POS = 5 CIGAR = '4M'
+         1  2345678
+    R    A  CTGACTG
+    M    ATTCTGACTG
+    pos  12223456789
 
 
-
-Insertion at the very beginning of the sequence
+Consider a multiple base insertion at last position
 
     POS REF ALT
-    0   .   TC
+    8   G   GTT
 
-    ref    12345678
-           ATCGGATC
-    mut  TCATCGGATC
-    pos  1112345678
-    dpos 0011111111   example reads
-         TCAT        POS = 1 CIGAR = '2I2M' -> POS is the position of the first matching base
-                                               2M comes from counting up the consecutive 1s
-                                               2I comes from counting up the consecutive 0s
-          CATC       POS = 1 CIGAR = '1I3M'
+         12345678
+    R    ACTGACTG
+    M    ACTGACTGTT
+    pos  12345678999
 
-
-Adjacent Insertions
+Consider a multiple base deletion
 
     POS REF ALT
-    0   .   T
-    1   A   AT
+    2   CTG  C
 
-    ref   1 2345678
-          A TCGGATC
-    mut  TATTCGGATC
-    pos  1122345678
-    dpos 0101111111   example reads
-         TATT         POS = 1 CIGAR = '1I1M1I1M' pos is the value corresponding to the first
+         12345678
+    R    ACTGACTG
+    M    AC  ACTG
+    pos  12  56789
 
-
-Insertions equal to or longer than read
+Consider a SNP, an insertion and a deletion
 
     POS REF ALT
-    3   C   CATAT
+    2   C   T
+    4   G   GTT
+    6   CTG C
 
-    ref  123    45678
-         ATC    GGATC
-    mut  ATCATATGGATC
-    pos  123444445678
-    dpos 111000011111 example reads
-            ATAT      Unmapped -> if all dpos values are 0, this is an unmapped read
-         ATCA         POS = 1 CIGAR = '3M1I'
-               TGGA   POS = 4 CIGAR = '1I3M'
+         1234  5678
+    R    ACTG  ACTG
+    M    ATTGTTAC
+    pos  123455569
 
 
-Deletion in the middle
+`pos` is generated by copying over the index from `R`. When we encounter an insertion we copy over the index of the next
+reference base as many times as there is an insertion. Deletions are simply skipped. For the purposes of computing `pos`
+we also add an imaginary base position at the end of the reference sequence (9 in this case)
+
+#### Generating CIGARS and POS for reads from `pos`
+Consider our last example and some reads from `M`
+
+         1234  5678
+    R    ACTG  ACTG
+    M    ATTGTTAC
+    pos  123455569
+         ++++---------> POS = 1 (The first pos value we encounter)
+                        CIGAR = 4M  (2-1=1 -> 1M
+                                     3-2=1 -> 1M
+                                     4-3=1 -> 1M
+                                     5-4=1 -> 1M)
+
+    M    ATTGTTAC
+    pos  123455569
+          ++++--------> POS = 2 (The first pos value we encounter)
+                        CIGAR = 3M1I  (3-2=1 -> 1M
+                                       4-3=1 -> 1M
+                                       5-4=1 -> 1M
+                                       5-5=0 -> 1I)
+
+    M    ATTGTTAC
+    pos  123455569
+           ++++-------> POS = 3
+                        CIGAR = 2M2I  (4-3=1 -> 1M
+                                       5-4=1 -> 1M
+                                       5-5=0 -> 1I
+                                       5-5=0 -> 1I)
+
+    M    ATTGTTAC
+    pos  123455569
+             ++++-----> POS = 5
+                        CIGAR = 2I2M  (5-5=0 -> 1I
+                                       5-5=0 -> 1I
+                                       6-5=1 -> 1M
+                                       9-6=3 -> 1M + 2D) The D only comes into play if our read crosses the deletion
+
+To see how a deletion affects our POS and CIGAR consider another previous example
 
     POS REF ALT
-    2   TCG  T
+    2   CTG  C
 
-    ref  12345678
-         ATCGGATC
-    mut  AT  GATC
-    pos  12  5678
-    dpos 13  1111   example reads
-         AT  GA     POS = 1 CIGAR = '2M2D2M' - the 2D comes from 3 - 1. The 1 goes into the Ms (so we get 2M before that)
-          T  GAT    POS = 2 CIGAR = '1M2D3M'
+         12345678
+    R    ACTGACTG
+    M    AC  ACTG
+    pos  12  56789
+         ++  ++-------> POS = 1
+                        CIGAR = 2M2D2M  (2-1=0 -> 1I
+                                         5-2=3 -> 1I + 2D The 2D comes into play because the read crosses the boundary
+                                         6-5=1 -> 1M
+                                         7-6=1 -> 1M)
 
-
-
-Insertions and deletion adjacent to each other (the gotcha)
+Example of an unmapped read
 
     POS REF ALT
-    0   .   T
-    1   A   .
+    2   C  CAATTGG
 
-    ref   12345678
-          ATCGGATC
-    mut  T TCGGATC
-    pos  1 2345678
-    dpos 1 1111111  example reads
-         T TCG      POS = 1 (The first position with dpos > 0) CIGAR = '4M'
-                    Note how the CIGAR is correct.
+         12      345678
+    R    AC      TGACTG
+    M    ACAATTGGTGACTG
+    pos  123333333456789
+           ++++-------> POS = 3
+                        CIGAR = 4I  (3-3=0 -> 1I
+                                     3-3=0 -> 1I
+                                     3-3=0 -> 1I
+                                     3-3=0 -> 1I)
+    For a read to be mapped, there has to be at least one M. Since there are no Ms we discard the POS and CIGAR as this
+    is an unmapped read
 
-
-`reads.py` generates simulated reads from `mut_seq` based on the read model. Using the `pos` and `dpos` arrays it
-also generates appropriate alignment information that is stored in the qname string as a POS value and a CIGAR string.
+`reads.py` generates simulated reads from `mut_seq` based on the read model. Using the `pos` arrays it
+also generates appropriate alignment information (POS and CIGAR) that is stored in the qname string.
 (Note that while the BAM specs do not place a limit on the length of the qname string both Tablet and IGV expect a
 string with length < 255 characters. It is possible that the qname will exceed this and you won't be able to open a
-set of simulated reads using tools that arbitrarily limit the qname). If no `pos` and `dpos` files are supplied
-`reads.py` assumes we are taking reads from a reference sequence and the POS values are actual positions of the reads
-and all the cigars are of the form `100M` (For e.g. 100 base reads).
+set of simulated reads using tools that arbitrarily limit the qname). If no `pos` file is supplied `reads.py` assumes
+we are taking reads from a reference sequence and the POS values are actual positions of the reads and all the cigars
+are of the form `100M` (For e.g. 100 base reads).
 
-Computing POS: Step through the `dpos` array corresponding to the read and set POS corresponding to the first non-zero
-value. If all values of `dpos` are zero, it is an unmapped read and POS and CIGAR strings are undefined
+Computing POS: For every read, the POS value is simply the index from `pos` corresponding to the first base of the read
+EXCEPT for unmapped reads.
 
-Computing the CIGAR: Only do this for mapped reads.
+Computing the CIGAR:
 
-1. Setup three counters, I,D,M and initialize to zero.
-2. Step through the relevant part of the `dpos` array.
-3. If the value is 1 increment the M counter, flush other counters
-4. If the value is 0 increment the I counter and flush other counters
-5. If the value is > 0 then increment the M counter, flush it and then increment the D counter by 1 less than the value
-6. Continue (2) until we are at the end of the read.
-7. At the end, flush the counter that remains.
-
-Flushing a counter involves writing out xM or xD or xI into the cigar string, where `x` is the (non-zero) counter value.
+1. Initialize the base counter to `None`, set mapped flag to `False`
+2. Step through the each base of the read and look at the difference in `pos` values `dp`
+3. If `dp==1`, if the counter is any thing other than `M`, flush it. Set or increment counter as `M`. Set mapped flag to `True`
+4. If `dp==0`, if the counter is other than `I`, flush it. Set or increment counter as `I`
+5. If `dp>1`, if the counter is other than `M`, flush it. Set and flush counter as `M`, set counter as `D` to be dp-1
+6. Continue from 2 until done.
+7. Flush any counter other than `D`
+8. If the mapped flag is `False` reset POS and CIGAR - this is an unmapped read.
 
 
 Misc design choices
