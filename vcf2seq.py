@@ -31,8 +31,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# TODO: blockify this - if stop-start gets too large this will overrun memory
-def block_copy_seq(ref_seq, start, stop, f_vseq, f_vseq_pos):
+def block_copy_seq(ref_seq, start, stop, f_vseq, f_vseq_pos, block_size=1000):
   """This is a straight copy. It starts and ends at conserved sections.
 
   Try a complete copy
@@ -54,12 +53,27 @@ def block_copy_seq(ref_seq, start, stop, f_vseq, f_vseq_pos):
   GAC
   >>> _ = f_vseq_pos.seek(0); print struct.unpack('3I',f_vseq_pos.read(4*3))
   (4, 5, 6)
+
+
+  Copy just a section with smallest block size possible
+  >>> f_vseq = io.BytesIO(); \
+  f_vseq_pos = io.BytesIO(); \
+  block_copy_seq(ref_seq, 3, 6, f_vseq, f_vseq_pos, block_size=1)
+  >>> _ = f_vseq.seek(0); print f_vseq.read()
+  GAC
+  >>> _ = f_vseq_pos.seek(0); print struct.unpack('3I',f_vseq_pos.read(4*3))
+  (4, 5, 6)
+
+
   """
-  if stop == start: return  # Save us some time
-  f_vseq.write(ref_seq[start:stop])
-  f_vseq_pos.write(struct.pack('{:d}I'.format(stop-start), *[n+1 for n in range(start, stop)]))  # +1 because of
+  this_start = start
+  while this_start < stop:
+    this_stop = min(this_start + block_size, stop)
+    f_vseq.write(ref_seq[this_start:this_stop])
+    f_vseq_pos.write(struct.pack('{:d}I'.format(stop-start), *[n+1 for n in range(start, stop)]))  # +1 because of
                                                                                                  # 1-indexing
-  logger.debug('{:d}% done'.format(int(100.0 * stop / len(ref_seq))))
+    logger.debug('{:d}% done'.format(int(100.0 * this_stop / len(ref_seq))))
+    this_start = this_stop
 
 
 def handle_variant(variant, f_vseq, f_vseq_pos):
@@ -211,15 +225,25 @@ def assemble_sequence(ref_seq, variants, f_vseq, f_vseq_pos, block_size=1000):
   ATTGTA
   >>> _ = f_vseq_pos.seek(0); print struct.unpack('6I',f_vseq_pos.read(4*6))
   (1, 2, 3, 4, 5, 5)
+
+  Now test the same thing, but with the smallest blocks possible. The answer should not change
+  >>> f_vseq = io.BytesIO(); \
+  f_vseq_pos = io.BytesIO(); \
+  assemble_sequence(ref_seq, variants, f_vseq, f_vseq_pos, block_size=1);
+  >>> _ = f_vseq.seek(0); print f_vseq.read()
+  ATTGTA
+  >>> _ = f_vseq_pos.seek(0); print struct.unpack('6I',f_vseq_pos.read(4*6))
+  (1, 2, 3, 4, 5, 5)
   """
   copy_start = 0  # Start at the beginning
   for variant in variants:
     # Copy up to this variant
-    block_copy_seq(ref_seq, copy_start, variant.POS - 1, f_vseq, f_vseq_pos)  # -1 because we are zero indexed
+    block_copy_seq(ref_seq, copy_start, variant.POS - 1, f_vseq, f_vseq_pos, block_size)
+    # -1 because we are zero indexed
     copy_start = handle_variant(variant, f_vseq, f_vseq_pos)
 
   # Now copy over any residual
-  block_copy_seq(ref_seq, copy_start, len(ref_seq), f_vseq, f_vseq_pos)
+  block_copy_seq(ref_seq, copy_start, len(ref_seq), f_vseq, f_vseq_pos, block_size)
 
 
 if __name__ == "__main__":
@@ -241,11 +265,9 @@ if __name__ == "__main__":
   ref_seq_fname = args['<ref_seq>']
   var_seq_fname = args['<var_seq>']
   var_seq_pos_fname = args['<var_seq>'] + '.pos'
-  var_seq_dpos_fname = args['<var_seq>'] + '.dpos'
 
-  snp_count = 0
   with open(ref_seq_fname, 'r+b') as f_rseq, open(var_seq_fname, 'w') as f_vseq,\
-       open(var_seq_pos_fname, 'w') as f_vseq_pos, open(var_seq_dpos_fname, 'w') as f_vseq_dpos:
+       open(var_seq_pos_fname, 'w') as f_vseq_pos:
     with open(var_seq_fname + '.heada', 'w') as fheada:  # Copy the header over
       fheada.write(open(ref_seq_fname + '.heada', 'r').readline() + ' (Mutated)')
 
