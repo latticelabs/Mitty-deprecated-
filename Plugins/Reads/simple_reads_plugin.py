@@ -50,18 +50,15 @@ def read_generator(seq,
     kwargs           - to swallow any other arguments
 
   Outputs
-                                 _________ ( seq_str, quality_str, coordinate)
-    corrupted_reads  -
+                                  _________ ( seq_str, quality_str, coordinate)
+    perfect_reads  -             /
                  [
-                  [( ... ), ( ...)],
-                  [( ... ), ( ...)], -> inner list = 2 elements if paired reads, 1 otherwise
+                  [[ ... ], [ ... ]],
+                  [[ ... ], [ ... ]], -> inner list = 2 elements if paired reads, 1 otherwise
                        .
                        .
                        .
                  ] -> outer list = number of reads
-
-    perfect_reads - same format as reads, same size, but with no read errors
-    read_count
 
 
   Quality: Sanger scale 33-126
@@ -81,17 +78,17 @@ def read_generator(seq,
   while read_count < num_reads:
     rd_st = read_loc_rng.randint(low=read_start, high=read_stop - tl, size=min(reads_per_call, num_reads-read_count))
     if paired:
-      reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1),
-                (seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl+1)] for n in range(rd_st.size)]
+      reads = [[[seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1],
+                [seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl+1]] for n in range(rd_st.size)]
     else:
-      reads = [[(seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1)] for n in range(rd_st.size)]
+      reads = [[[seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1]] for n in range(rd_st.size)]
 
-    corr_reads = corrupt_reads_expon(reads, read_len, max_p_error, k, error_loc_rng, base_chose_rng)
+    #corr_reads = corrupt_reads_expon(reads, read_len, max_p_error, k, error_loc_rng, base_chose_rng)
     read_count += rd_st.size
-    yield corr_reads, reads, read_count
+    yield reads
 
 
-def corrupt_reads_expon(reads, read_len=100, max_p_error=.8, k=.1, error_loc_rng=None, base_chose_rng=None):
+def corrupt_reads(reads, read_len=100, max_p_error=.8, k=.1, error_loc_rng=None, base_chose_rng=None):
   """Simple exponential error model for reads.
   Inputs:
     reads        - perfect reads as produced by the read_generator

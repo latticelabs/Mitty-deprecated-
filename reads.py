@@ -2,7 +2,7 @@
 useful for creating test data for MGR algorithms/data formats
 
 Usage:
-reads --ref=REF  [--start=START]  [--stop=STOP] [--coverage=COV] [--out=OUT] [-f] --paramfile=PFILE [--reads_per_block=BL] [-v]
+reads --ref=REF --paramfile=PFILE [--start=START]  [--stop=STOP] [--coverage=COV] [--out=OUT] [-c] [-f] [--shortqname] [--reads_per_block=BL] [-v]
 
 Options:
   --ref=REF               The reference sequence in smalla format
@@ -10,10 +10,12 @@ Options:
   --stop=STOP             Where to stop taking reads (0,1) [default: 1.0]
   --coverage=COV          Coverage [default: 5]
   --out=OUT               Prefix of output file. [default: Data/simulated_reads]
-                          The corrupted reads will be saved to simulated_reads.bam
-                          The perfect reads will be saved to simulated_reads_perfect.bam
+                          The perfect reads will be saved to simulated_reads.bam
                           A text sidecar file simulated_reads.info will be saved with simulation parameters
-  -f                      Write as FASTQ instead of BAM
+  -c                      Write corrupted reads (simulated_reads_c.bam)
+  -f                      Write as FASTQ instead of BAM (simulated_reads.fastq)
+  --shortqname            Instead of writing the POS and CIGAR into the qname, reads.py will only write the read serial
+                          number. Some tools, such as Tablet and IGV can be crashed if len(qname) > 254
   --paramfile=PFILE       Name for parameter file
   --reads_per_block=BL    Generate these many reads at a time (Adjust to machine resources). [default: 10000]
   -v                      Dump detailed logger messages
@@ -24,9 +26,7 @@ Notes:
 2. The quality scores are in Phred scale (as specified in the SAM spec)
 
 """
-#__version__ = '0.1.0'  # Fixed read lengths. Uniform coverage
-#__version__ = '0.2.0'  # Paired end. Fixed read lengths. Uniform coverage
-__version__ = '0.2.1'  # Plugin system implemented
+__version__ = '0.3.0'
 
 import os
 import imp
@@ -38,43 +38,91 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# TODO: do we need seq_len?
-def open_reads_files(out_prefix, seq_len, seq_header, bam=True):
+
+def open_reads_files(out_prefix, seq_len, seq_header, corrupted_reads=False, save_as_bam=True):
   """Open output files (fastq or bam) and write headers as needed."""
-  if bam:  # BAM
-    corrupted_out_fname = out_prefix + '.bam'
-    perfect_out_fname = out_prefix + '_perfect.bam'
+  file_handles = {}
+  if save_as_bam:  # BAM
+    perfect_reads_fname = out_prefix + '.bam'
     bam_hdr = {'HD': {'VN': '1.4'},
                'SQ': [{'LN': seq_len, 'SN': seq_header,
                        'SP': 'Simulated perfect reads, by reads.py {:s}'.format(__version__)}]}
-    perfect_fh = pysam.Samfile(perfect_out_fname, 'wb', header=bam_hdr)  # Write binary BAM with header
-    bam_hdr['SQ'] = [{'LN': seq_len, 'SN': seq_header,
-                     'SP': 'Simulated corrupted reads, by reads.py {:s}'.format(__version__)}]
-    corrupted_fh = pysam.Samfile(corrupted_out_fname, 'wb', header=bam_hdr)  # Write binary BAM with header
+    file_handles['perfect'] = pysam.Samfile(perfect_reads_fname, 'wb', header=bam_hdr)  # Write binary BAM with header
+    if corrupted_reads:
+      corrupted_reads_fname = out_prefix + '_c.bam'
+      bam_hdr['SQ'] = [{'LN': seq_len, 'SN': seq_header,
+                        'SP': 'Simulated corrupted reads, by reads.py {:s}'.format(__version__)}]
+      file_handles['corrupted'] = \
+        pysam.Samfile(corrupted_reads_fname, 'wb', header=bam_hdr)  # Write binary BAM with header
   else:  # FASTQ
-    corrupted_out_fname = out_prefix + '.fastq'
-    perfect_out_fname = out_prefix + '_perfect.fastq'
-    #TODO: is there a fastq header?
-    perfect_fh = open(perfect_out_fname, 'w')  # File handles for FASTQ
-    corrupted_fh = open(corrupted_out_fname, 'w')
-  return perfect_fh, corrupted_fh
+    perfect_reads_fname = out_prefix + '.fastq'
+    file_handles['perfect'] = open(perfect_reads_fname, 'w')  # File handles for FASTQ
+    if corrupted_reads:
+      corrupted_reads_fname = out_prefix + '_c.fastq'
+      file_handles['corrupted'] = open(corrupted_reads_fname, 'w')
+  return file_handles
 
 
-def save_reads(perfect_fh, corrupted_fh, perfect_reads, corrupted_reads, first_read_count, bam=True):
-  """Wrapper around the functions that save the reads - calls appropriate functions depending on whether we want bam
-   of fastq."""
-  if bam:
-    save_reads_to_bam(perfect_fh, perfect_reads, first_read_count)
-    save_reads_to_bam(corrupted_fh, corrupted_reads, first_read_count)
-  else:
-    save_reads_to_fastq(perfect_fh, perfect_reads, first_read_count)
-    save_reads_to_fastq(corrupted_fh, corrupted_reads, first_read_count)
-
-
-def save_reads_to_bam(bam_file, reads, first_read_count):
-  """
+# The qname of an unpaired read is written as
+# rN:POS:CIGAR
+# while that of paired reads are written as
+# rN:POS1:CIGAR1:POS2:CIGAR2
+# This function fills out the POS and CIGAR in the qname
+def roll(these_reads, pos):
+  """Given a list of reads return us the reads with the coordinate replaced by a (POS,CIGAR) tuple. CIGAR, create the
+  CIGAR, roll, get it? Oh, alright, I tried.
   Inputs:
                                  _________ ( seq_str, quality_str, coordinate)
+    reads     -  [              /
+                  [[ ... ], [ ... ]],
+                  [[ ... ], [ ... ]], -> inner list = 2 elements if paired reads, 1 otherwise
+                       .
+                       .
+                       .
+                 ] -> outer list = number of reads
+
+    pos       -  1 d array
+
+  Output:
+
+    reads    -  [
+                  [(pos, cigar), (pos, cigar)], -> inner list = 2 elements if paired reads, 1 otherwise
+                       .
+                       .
+                       .
+                 ] -> outer list = number of reads
+
+  """
+  if len(these_reads) == 0: return
+  paired = True if len(these_reads[0]) == 2 else False
+  ref_seq_reads = True if pos is None else False
+  for this_read in these_reads:
+    if ref_seq_reads:
+      qname = '{:d}:{:d}M'.format(this_read[0][2], len(this_read[0][0]))
+    else:
+      qname = 'Not implemented!'
+    if paired:
+      if ref_seq_reads:
+        qname += ':{:d}:{:d}M'.format(this_read[1][2], len(this_read[1][0]))
+      else:
+        qname = 'Not implemented'
+      this_read[1][2] = qname
+    this_read[0][2] = qname
+
+def save_reads(fh, these_reads, offset, save_as_bam=True):
+  if save_as_bam:
+    save_reads_to_bam(fh, these_reads, offset)
+  else:
+    save_reads_to_fastq(fh, these_reads, offset)
+
+
+
+# Didn't refactor these functions as that would involve another function call within a loop
+#TODO: Implement option to write short qname
+def save_reads_to_bam(bam_file, these_reads, first_read_serial):
+  """
+  Inputs:
+                                 _________ ( seq_str, quality_str, qname)
     reads     -  [              /
                   [( ... ), ( ...)],
                   [( ... ), ( ...)], -> inner list = 2 elements if paired reads, 1 otherwise
@@ -83,32 +131,32 @@ def save_reads_to_bam(bam_file, reads, first_read_count):
                        .
                  ] -> outer list = number of reads
   """
-  if len(reads) == 0: return
-  paired = True if len(reads[0]) == 2 else False
-  for n in range(len(reads)):
+  if len(these_reads) == 0: return
+  paired = True if len(these_reads[0]) == 2 else False
+  for ser_no, this_read in enumerate(these_reads):
     ar = pysam.AlignedRead()
-    ar.qname = 'r{:d}:{:d}'.format(first_read_count+n, reads[n][0][2])
-    ar.seq = reads[n][0][0]
-    ar.qual = reads[n][0][1]
+    ar.qname = 'r{:d}:'.format(first_read_serial + ser_no) + this_read[0][2]
+    ar.seq = this_read[0][0]
+    ar.qual = this_read[0][1]
     if paired:
-      ar.qname = ar.qname + ':{:d}'.format(reads[n][1][2])
       ar.flag = 0x41  # end1 0x01 flag has to be set to indicate multiple segments
     bam_file.write(ar)
 
     if paired:
-      ar.seq = reads[n][1][0]
-      ar.qual = reads[n][1][1]
+      ar.seq = this_read[1][0]
+      ar.qual = this_read[1][1]
       ar.flag = 0x81  # end2 0x01 flag has to be set to indicate multiple segments
       bam_file.write(ar)
 
-def save_reads_to_fastq(fastq_file_handle, reads, first_read_count):
+
+def save_reads_to_fastq(fastq_file_handle, these_reads, first_read_serial):
   """Given a list of sequences and their quality write the read data to an already opened text file. This saves data
   in interleaved form if paired reads are present
 
   Inputs:
     fastq_file_handle - file handles read for writing
 
-                                 _________ ( seq_str, quality_str, coordinate)
+                                 _________ ( seq_str, quality_str, qname)
     reads     -  [              /
                   [( ... ), ( ...)],
                   [( ... ), ( ...)], -> inner list = 2 elements if paired reads, 1 otherwise
@@ -118,19 +166,18 @@ def save_reads_to_fastq(fastq_file_handle, reads, first_read_count):
                  ] -> outer list = number of reads
 
   """
-  if len(reads) == 0: return
-  paired = True if len(reads[0]) == 2 else False
-  for n in range(len(reads)):
-    qname = 'r{:d}:{:d}'.format(first_read_count+n, reads[n][0][2])
-    seq = reads[n][0][0]
-    qual = reads[n][0][1]
-    if paired:
-      qname += ':{:d}'.format(reads[n][1][2])
+  if len(these_reads) == 0: return
+  paired = True if len(these_reads[0]) == 2 else False
+  for ser_no, read in enumerate(these_reads):
+    qname = 'r{:d}:'.format(first_read_serial + ser_no) + read[0][2]
+    seq = read[0][0]
+    qual = read[0][1]
     fastq_file_handle.write('@{:s}\n{:s}\n+\n{:s}\n'.format(qname, seq, qual))
     if paired:
-      seq = reads[n][1][0]
-      qual = reads[n][1][1]
+      seq = read[1][0]
+      qual = read[1][1]
       fastq_file_handle.write('@{:s}\n{:s}\n+\n{:s}\n'.format(qname, seq, qual))
+
 
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
@@ -138,43 +185,57 @@ if __name__ == "__main__":
   else:
     args = docopt.docopt(__doc__, version=__version__)
   level = logging.DEBUG if args['-v'] else logging.WARNING
-  logging.basicConfig(level=logging.DEBUG)
+  logging.basicConfig(level=level)
 
-  params = json.load(open(args['--paramfile'], 'r'))  #imp.load_source('params', args['--paramfile'], open(args['--paramfile'], 'r'))
+  params = json.load(open(args['--paramfile'], 'r'))  # The parameter file in json format
 
-  #Load the ref-seq smalla file
-  f = open(args['--ref'], 'r+b')
-  seq = mmap.mmap(f.fileno(), 0)
-  seq_len = len(seq)
-  seq_header = open(args['--ref'] + '.heada', 'r').readline()
-
+  # Load the read model from the plugins directory
   plugin_dir = os.path.join(os.path.dirname(__file__), 'Plugins', 'Reads')
   model_fname = os.path.join(plugin_dir, params['model'] + '_plugin.py')
   read_model = imp.load_source('readmodel', model_fname, open(model_fname, 'r'))
 
-  start_reads = int(float(args['--start']) * seq_len)
-  stop_reads = int(float(args['--stop']) * seq_len)
-  subsequence_len = stop_reads - start_reads
-  total_reads = int(float(args['--coverage']) * subsequence_len / float(read_model.average_read_len(**params['args'])))
+  #Load the ref-seq smalla file and read the header side car
+  with open(args['--ref'], 'r+b') as f_ref:
+    seq = mmap.mmap(f_ref.fileno(), 0)  # Our reference sequence
+    seq_len = len(seq)
+    seq_header = open(args['--ref'] + '.heada', 'r').readline()
 
-  bam = not args['-f']  # bam is True if args['-f] is False
-  perfect_fh, corrupted_fh = open_reads_files(args['--out'], seq_len, seq_header, bam)
-  side_car_fname = args['--out'] + '.info'
+    ref_pos_fname = args['--ref'] + '.pos'
+    if os.path.exists(ref_pos_fname):
+      f_ref_pos = open(ref_pos_fname, 'r+b')
+      seq_pos = mmap.mmap(f_ref_pos.fileno(), 0)  # Our relevant pos file
+    else:
+      seq_pos = None  # Only roll uses this and will assume reads from ref_seq if this is None
 
-  reads = read_model.read_generator(seq=seq,
-                                    read_start=start_reads,
-                                    read_stop=stop_reads,
-                                    reads_per_call=int(args['--reads_per_block']),
-                                    num_reads=total_reads,
-                                    **params['args'])
+    start_reads = int(float(args['--start']) * seq_len)
+    stop_reads = int(float(args['--stop']) * seq_len)
+    total_reads_required = int(float(args['--coverage']) * (stop_reads - start_reads) /
+                               float(read_model.average_read_len(**params['args'])))
 
-  for corrupted_reads, perfect_reads, read_count in reads:
-    save_reads(perfect_fh, corrupted_fh, perfect_reads, corrupted_reads, read_count - len(corrupted_reads), bam)
-    logger.debug('Generated {:d} reads ({:d}%)'.format(read_count, int(100 * read_count / float(total_reads))))
+    # Generate a dictionary of file handles for perfect and corrupted reads (if needed)
+    bam = not args['-f']  # bam is True if args['-f] is False
+    write_corrupted = args['-c']  # If True, corrupted reads will be written out
+    read_file_handles = open_reads_files(args['--out'], seq_len, seq_header, write_corrupted, bam)
 
-  f.close()
+    reads = read_model.read_generator(seq=seq,
+                                      read_start=start_reads,
+                                      read_stop=stop_reads,
+                                      reads_per_call=int(args['--reads_per_block']),
+                                      num_reads=total_reads_required,
+                                      **params['args'])
+    current_read_count = 0
+    for perfect_reads in reads:
+      roll(perfect_reads, seq_pos)  # The function modifies perfect_reads in place to fill out the POS and CIGAR
+      save_reads(read_file_handles['perfect'], perfect_reads, current_read_count, bam)
+      #save_reads needs current_read_count because we put in a read serial number in the qname
+      if write_corrupted:
+        save_reads(read_file_handles['corrupted'], read_model.corrupt_reads(perfect_reads, **params['args']),
+                   current_read_count, bam)
+      current_read_count += len(perfect_reads)
+      logger.debug('Generated {:d} reads ({:d}%)'.
+                   format(current_read_count, int(100 * current_read_count / float(total_reads_required))))
 
-  with open(side_car_fname,'w') as f:
+  with open(args['--out'] + '.info','w') as f:
     f.write('Command line\n-------------\n')
     f.write(json.dumps(args, indent=4))
     f.write('\n\nParameters\n------------\n')

@@ -81,10 +81,10 @@ def read_generator(seq,
         this_read_start = nominal_read_start
         nominal_read_start += read_advance
 
-      these_reads = [(seq[this_read_start:this_read_start+rl], '~' * rl, this_read_start+1)]
+      these_reads = [[seq[this_read_start:this_read_start+rl], '~' * rl, this_read_start+1]]
       if paired:
-        these_reads += [(seq[this_read_start+tl-rl:this_read_start+tl], '~' * rl, this_read_start+tl-rl+1)]
+        these_reads += [[seq[this_read_start+tl-rl:this_read_start+tl], '~' * rl, this_read_start+tl-rl+1]]
       reads.append(these_reads)
 
     read_count += len(reads)
-    yield reads, reads, read_count
+    yield reads
