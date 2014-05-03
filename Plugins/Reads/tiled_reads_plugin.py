@@ -41,7 +41,7 @@ def read_generator(seq,
     kwargs           - to swallow any other arguments
 
   Outputs
-    corrupted_reads  -
+    perfect_reads    -
 
                                  _________ ( seq_str, quality_str, coordinate)
                                 /
@@ -53,9 +53,7 @@ def read_generator(seq,
                        .
                  ] -> outer list = number of reads
 
-    perfect_reads - same format as reads, same size, but with no read errors
-    read_count
-
+  Note: coordinate is 0-indexed
 
   Quality: Sanger scale 33-126
   """
@@ -81,9 +79,9 @@ def read_generator(seq,
         this_read_start = nominal_read_start
         nominal_read_start += read_advance
 
-      these_reads = [[seq[this_read_start:this_read_start+rl], '~' * rl, this_read_start+1]]
+      these_reads = [[seq[this_read_start:this_read_start + rl], '~' * rl, this_read_start]]
       if paired:
-        these_reads += [[seq[this_read_start+tl-rl:this_read_start+tl], '~' * rl, this_read_start+tl-rl+1]]
+        these_reads += [[seq[this_read_start + tl - rl:this_read_start + tl], '~' * rl, this_read_start + tl - rl]]
       reads.append(these_reads)
 
     read_count += len(reads)

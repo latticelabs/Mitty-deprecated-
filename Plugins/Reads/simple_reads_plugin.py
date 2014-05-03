@@ -61,6 +61,7 @@ def read_generator(seq,
                  ] -> outer list = number of reads
 
 
+  Note: coordinate is 0-indexed
   Quality: Sanger scale 33-126
   """
   # We need to initialize the rngs and a bunch of other stuff
@@ -78,10 +79,10 @@ def read_generator(seq,
   while read_count < num_reads:
     rd_st = read_loc_rng.randint(low=read_start, high=read_stop - tl, size=min(reads_per_call, num_reads-read_count))
     if paired:
-      reads = [[[seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1],
-                [seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl+1]] for n in range(rd_st.size)]
+      reads = [[[seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]],
+                [seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl]] for n in range(rd_st.size)]
     else:
-      reads = [[[seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]+1]] for n in range(rd_st.size)]
+      reads = [[[seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]]] for n in range(rd_st.size)]
 
     #corr_reads = corrupt_reads_expon(reads, read_len, max_p_error, k, error_loc_rng, base_chose_rng)
     read_count += rd_st.size
