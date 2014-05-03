@@ -33,6 +33,7 @@ import imp
 import json
 import mmap
 import docopt
+import numpy  # Needed for mmap of pos file
 import pysam  # Needed to write BAM files
 import logging
 
@@ -300,8 +301,7 @@ if __name__ == "__main__":
 
     ref_pos_fname = args['--ref'] + '.pos'
     if os.path.exists(ref_pos_fname):
-      f_ref_pos = open(ref_pos_fname, 'r+b')
-      seq_pos = mmap.mmap(f_ref_pos.fileno(), 0)  # Our relevant pos file
+      seq_pos = numpy.memmap(ref_pos_fname, dtype='int32', mode='r', shape=(seq_len + 1,))  # Our relevant pos file
     else:
       seq_pos = None  # Only roll uses this and will assume reads from ref_seq if this is None
 
