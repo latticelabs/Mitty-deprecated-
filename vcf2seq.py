@@ -223,8 +223,8 @@ def assemble_sequence(ref_seq, variants, f_vseq, f_vseq_pos, block_size=1000):
   assemble_sequence(ref_seq, variants, f_vseq, f_vseq_pos);
   >>> _ = f_vseq.seek(0); print f_vseq.read()
   ATTGTA
-  >>> _ = f_vseq_pos.seek(0); print struct.unpack('6I',f_vseq_pos.read(4*6))
-  (1, 2, 3, 4, 5, 5)
+  >>> _ = f_vseq_pos.seek(0); print struct.unpack('7I',f_vseq_pos.read(4*7))
+  (1, 2, 3, 4, 5, 5, 9)
 
   Now test the same thing, but with the smallest blocks possible. The answer should not change
   >>> f_vseq = io.BytesIO(); \
@@ -232,8 +232,8 @@ def assemble_sequence(ref_seq, variants, f_vseq, f_vseq_pos, block_size=1000):
   assemble_sequence(ref_seq, variants, f_vseq, f_vseq_pos, block_size=1);
   >>> _ = f_vseq.seek(0); print f_vseq.read()
   ATTGTA
-  >>> _ = f_vseq_pos.seek(0); print struct.unpack('6I',f_vseq_pos.read(4*6))
-  (1, 2, 3, 4, 5, 5)
+  >>> _ = f_vseq_pos.seek(0); print struct.unpack('7I',f_vseq_pos.read(4*7))
+  (1, 2, 3, 4, 5, 5, 9)
   """
   copy_start = 0  # Start at the beginning
   for variant in variants:
@@ -244,6 +244,9 @@ def assemble_sequence(ref_seq, variants, f_vseq, f_vseq_pos, block_size=1000):
 
   # Now copy over any residual
   block_copy_seq(ref_seq, copy_start, len(ref_seq), f_vseq, f_vseq_pos, block_size)
+
+  # Don't forget to add the 'tail': simply an additional, imaginary, base for housekeeping
+  f_vseq_pos.write(struct.pack('I', len(ref_seq) + 1))
 
 
 if __name__ == "__main__":
