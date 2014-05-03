@@ -309,8 +309,8 @@ To see how a deletion affects our POS and CIGAR consider another previous exampl
     M    AC  ACTG
     pos  12  56789
          ++  ++-------> POS = 1
-                        CIGAR = 2M2D2M  (2-1=0 -> 1I
-                                         5-2=3 -> 1I + 2D The 2D comes into play because the read crosses the boundary
+                        CIGAR = 2M2D2M  (2-1=1 -> 1M
+                                         5-2=3 -> 1M + 2D The 2D comes into play because the read crosses the boundary
                                          6-5=1 -> 1M
                                          7-6=1 -> 1M)
 

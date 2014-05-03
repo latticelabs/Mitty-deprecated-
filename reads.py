@@ -63,12 +63,95 @@ def open_reads_files(out_prefix, seq_len, seq_header, corrupted_reads=False, sav
   return file_handles
 
 
+def roll_cigar(this_read, p_arr):
+  """
+  You can 'read along' with this tests from the Readme
+
+  Test a fully matching read
+  >>> t_read = ['ATTG','~~~~', 0]; \
+  p_arr = [1, 2, 3, 4, 5, 5, 5, 6, 9]; \
+  roll_cigar(t_read, p_arr)
+  (1, '4M')
+
+  Test for read with insert
+  >>> t_read = ['TTGT', '~~~~', 1]; \
+  roll_cigar(t_read, p_arr)
+  (2, '3M1I')
+
+  Another test for read with insert
+  >>> t_read = ['TGTT', '~~~~', 2]; \
+  roll_cigar(t_read, p_arr)
+  (3, '2M2I')
+
+  Test for read with delete at end - should not show up in CIGAR
+  >>> t_read = ['TTAC', '~~~~', 4]; \
+  roll_cigar(t_read, p_arr)
+  (5, '2I2M')
+
+  Test for read spanning a deletion - should get a delete
+  >>> t_read = ['ACAC', '~~~~', 0]; \
+  p_arr = [1, 2, 5, 6, 7, 8, 9]; \
+  roll_cigar(t_read, p_arr)
+  (1, '2M2D2M')
+
+  Test for an unmapped read: pos and cigars should be None
+  >>> t_read = ['AATT', '~~~~', 2]; \
+  p_arr = [1, 2, 3, 3, 3, 3, 3, 3, 3, 4, 5, 6, 7, 8, 9]; \
+  roll_cigar(t_read, p_arr)
+  (0, '')
+
+  """
+  mapped = False
+  cigar = ''
+  coord = this_read[2]
+  counter = 0
+  type = None
+  for n in range(coord, coord + len(this_read[0])):
+    dp = p_arr[n+1] - p_arr[n]
+    if dp == 1:
+      mapped = True  # As long as we have one I we are a mapped read
+      if type != 'M':
+        if counter > 0:  # Flush
+          cigar += '{:d}{:s}'.format(counter, type)
+          counter = 0
+      type = 'M'
+      counter += 1
+    elif dp == 0:
+      if type != 'I':
+        if counter > 0:  # Flush
+          cigar += '{:d}{:s}'.format(counter, type)
+          counter = 0
+      type = 'I'
+      counter += 1
+    elif dp > 1:
+      mapped = True  # As long as we have one I we are a mapped read
+      if type != 'M':
+        if counter > 0:  # Flush
+          cigar += '{:d}{:s}'.format(counter, type)
+          counter = 0
+      counter += 1
+      cigar += '{:d}{:s}'.format(counter, type)
+      type = 'D'
+      counter = dp - 1
+
+  if type != 'D':  # Flush all but 'D'. We only write D if we cross a D boundary
+    cigar += '{:d}{:s}'.format(counter, type)
+
+  if mapped:
+    align_pos = p_arr[coord]
+  else:
+    align_pos = 0
+    cigar = ''
+
+  return align_pos, cigar
+
+
 # The qname of an unpaired read is written as
 # rN:POS:CIGAR
 # while that of paired reads are written as
 # rN:POS1:CIGAR1:POS2:CIGAR2
 # This function fills out the POS and CIGAR in the qname
-def roll(these_reads, pos):
+def roll(these_reads, pos_array):
   """Given a list of reads return us the reads with the coordinate replaced by a (POS,CIGAR) tuple. CIGAR, create the
   CIGAR, roll, get it? Oh, alright, I tried.
   Inputs:
@@ -81,7 +164,7 @@ def roll(these_reads, pos):
                        .
                  ] -> outer list = number of reads
 
-    pos       -  1 d array
+    pos_array -  1 d array
 
   Output:
 
@@ -93,28 +176,38 @@ def roll(these_reads, pos):
                  ] -> outer list = number of reads
 
   """
+  def roll_null(these_reads):
+    """Simple convenience function - for if we have null reads ."""
+    paired = True if len(these_reads[0]) == 2 else False
+    for this_read in these_reads:
+      qname = '{:d}:{:d}M'.format(this_read[0][2], len(this_read[0][0]))
+      if paired:
+        qname += ':{:d}:{:d}M'.format(this_read[1][2], len(this_read[1][0]))
+        this_read[1][2] = qname
+      this_read[0][2] = qname
+
+
   if len(these_reads) == 0: return
   paired = True if len(these_reads[0]) == 2 else False
-  ref_seq_reads = True if pos is None else False
+  # If these reads are from the reference sequence, then return CIGARs from the null read
+  if pos_array is None:
+    return roll_null(these_reads)
+
   for this_read in these_reads:
-    if ref_seq_reads:
-      qname = '{:d}:{:d}M'.format(this_read[0][2], len(this_read[0][0]))
-    else:
-      qname = 'Not implemented!'
+    pos, cigar = roll_cigar(this_read[0], pos_array)
+    qname = '{:d}:{:s}'.format(pos, cigar)
     if paired:
-      if ref_seq_reads:
-        qname += ':{:d}:{:d}M'.format(this_read[1][2], len(this_read[1][0]))
-      else:
-        qname = 'Not implemented'
+      pos, cigar = roll_cigar(this_read[1], pos_array)
+      qname += ':{:d}:{:s}'.format(pos, cigar)
       this_read[1][2] = qname
     this_read[0][2] = qname
+
 
 def save_reads(fh, these_reads, offset, save_as_bam=True):
   if save_as_bam:
     save_reads_to_bam(fh, these_reads, offset)
   else:
     save_reads_to_fastq(fh, these_reads, offset)
-
 
 
 # Didn't refactor these functions as that would involve another function call within a loop
@@ -182,6 +275,11 @@ def save_reads_to_fastq(fastq_file_handle, these_reads, first_read_serial):
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
+  elif docopt.sys.argv[1] == 'test':
+    import sys
+    import doctest
+    doctest.testmod()
+    sys.exit()
   else:
     args = docopt.docopt(__doc__, version=__version__)
   level = logging.DEBUG if args['-v'] else logging.WARNING

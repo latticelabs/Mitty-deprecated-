@@ -12,8 +12,10 @@ Options:
 Notes:
 1. Recall that the seq id of each read is the string 'rN:S1:S2' where N is the number of the read,
    S1 the start of the first read and S2 the start of the mate pair. Unpaired reads have no S2
+2. As of v 0.2.0 there is a quirk with pysam writing BAM files where alignments have some hidded problem when written as
+BAM from cheatah. My wor around is to save as SAM and then convert to BAM which seems to not create any problems.
 """
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 import tempfile  # Needed because we sort the original alignment and then index it
 import os  # Needed for removing the extra .bam samtools sort adds to the name
@@ -36,18 +38,28 @@ if __name__ == "__main__":
   tf_h, tf_name = tempfile.mkstemp()
   os.close(tf_h)
   out_bamfile = pysam.Samfile(tf_name, 'wb', header=out_hdr)
+  #out_bamfile = pysam.Samfile(tf_name, 'wh', header=out_hdr)
 
   cnt = 0
   blk = 0
   for read in in_bamfile:
     parts = read.qname.split(':')
-    read.mapq = 100  # It's better to set this
-    read.cigar = [(7, 100)]  # TODO: think hard about how to generate proper CIGARS for different variants
-    read.pos = int(parts[1])-1
+    aligned_read = pysam.AlignedRead()
+    aligned_read.qname = read.qname
+    aligned_read.seq = read.seq
+    aligned_read.qual = read.qual
+    aligned_read.mapq = 100  # It's better to set this
+    #aligned_read.cigarstring = '100X'
+    #aligned_read.cigar = [(7,100)]
+    #read.cigar = [(0, 100)]  # TODO: think hard about how to generate proper CIGARS for different variants
+    aligned_read.pos = int(parts[1])-1  # 0-indexed
+    aligned_read.cigarstring = parts[2]
+    aligned_read.flag = read.flag
     if read.flag & 0x01:  # Paired reads
       if read.flag & 0x80:  # Second end (mate)
-        read.pos = int(parts[2])-1
-    out_bamfile.write(read)
+        aligned_read.pos = int(parts[3])-1
+        aligned_read.cigarstring = parts[4]
+    out_bamfile.write(aligned_read)
 
     cnt += 1
     blk += 1
@@ -58,12 +70,13 @@ if __name__ == "__main__":
   print '{:d} reads done'.format(cnt)
   out_bamfile.close()
 
+  #os.rename(tf_name, args['--outbam'])  # Take thsi out
+
   pysam.sort(tf_name, args['--outbam'])
   os.rename(args['--outbam'] + '.bam', args['--outbam'])
   # samtools sort adds a '.bam' to the end of the file name. This rename reverses that. We chose to rename because we
   # like not to make any assumptions about what extension the user wants for their file. For example, we do not assume
   # that the user's file will end in .bam and simply try and strip that.
   pysam.index(args['--outbam'])
-
   os.remove(tf_name)  # Clean up after ourselves
 
