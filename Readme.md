@@ -83,8 +83,8 @@ see here and make sure Mitty is doing what it is supposed to be.**
 In order to run the command line code within the examples, without getting messy, we define a function `shell` that
 gets python to properly call the shell command we would have used. It is a bit like IPython's %run magic command.
 
->>> import shlex, subprocess
->>> def shell(command): subprocess.call(shlex.split(command))
+    >>> import shlex, subprocess
+    >>> def shell(command): subprocess.call(shlex.split(command))
 
 Converta
 --------
@@ -92,18 +92,18 @@ We use converta to reorganize sequence data in .fasta files so that Mitty's rout
 by stripping out the header and newlines from the .fasta file the .smalla file can be easily used as a disk mapped
 array - via mmap - so we can handle large sequences without load it all into memory at once)
 
->>> shell('python converta.py Data/porcine_circovirus.fa Data/porcine_cricovirus.smalla')
->>> with open('Data/porcine_circovirus.smalla','r') as f: print f.read()
-ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGCCACCGTTACCGCTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCAAAACGCCCTCCTGGGCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCTTTGAATACTACAGAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAGTGCTGTTATTCTAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTACCACTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCTGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTACAATTCAGAGAATTTAATCTTAAAGACCCCCCACTTAACCCTTAG
->>> with open('Data/porcine_circovirus.smalla.heada','r') as f: print f.read()
-gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds
+    >>> shell('python converta.py Data/porcine_circovirus.fa Data/porcine_cricovirus.smalla')
+    >>> with open('Data/porcine_circovirus.smalla','r') as f: print f.read()
+    ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGCCACCGTTACCGCTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCAAAACGCCCTCCTGGGCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCTTTGAATACTACAGAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAGTGCTGTTATTCTAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTACCACTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCTGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTACAATTCAGAGAATTTAATCTTAAAGACCCCCCACTTAACCCTTAG
+    >>> with open('Data/porcine_circovirus.smalla.heada','r') as f: print f.read()
+    gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds
 
 Mutate
 ------
 We use mutate, in combination with a mutation parameter file to generate a VCF file. The `-v` flag causes `mutate.py` to
 give a running commentary as it works, which is useful to see if everything is going well.
 
->>> shell('python mutate.py --chrom=1  --ref=Data/porcine_circovirus.smalla  --vcf=Data/variant.vcf  --paramfile=Examples/mutation_par.json  -v')
+    >>> shell('python mutate.py --chrom=1  --ref=Data/porcine_circovirus.smalla  --vcf=Data/variant.vcf  --paramfile=Examples/mutation_par.json  -v')
 
 You should see something like:
 
@@ -121,16 +121,16 @@ You should see something like:
 
 You can take a look at the generate VCF file which should look like:
 
->>> with open('Data/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
-##fileformat=VCFv4.1
-##fileDate=...
-##source=mutate.py 0.2.0 (['mutate.py', '--chrom=1', '--ref=Data/porcine_circovirus.smalla', '--vcf=Data/variant.vcf', '--paramfile=Examples/mutation_par.json', '-v'])
-##reference=Data/porcine_circovirus.smalla
-#CHROM POS     ID        REF    ALT     QUAL FILTER INFO
-1	169	.	A	T	96	PASS	.
-1	389	.	TAACAAAGGC	T	96	PASS	.
-1	593	.	T	TGCAGTCTCG	96	PASS	.
-<BLANKLINE>
+    >>> with open('Data/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    ##fileformat=VCFv4.1
+    ##fileDate=...
+    ##source=mutate.py 0.2.0 (['mutate.py', '--chrom=1', '--ref=Data/porcine_circovirus.smalla', '--vcf=Data/variant.vcf', '--paramfile=Examples/mutation_par.json', '-v'])
+    ##reference=Data/porcine_circovirus.smalla
+    #CHROM POS     ID        REF    ALT     QUAL FILTER INFO
+    1	169	.	A	T	96	PASS	.
+    1	389	.	TAACAAAGGC	T	96	PASS	.
+    1	593	.	T	TGCAGTCTCG	96	PASS	.
+    <BLANKLINE>
 
 
 
