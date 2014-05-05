@@ -6,10 +6,7 @@ Quickstart
 ----------
 
 The process for running Mitty components to create reads from a mutated genome starting from only a reference
-sequence is illustrated schematically below. Please see `complete_example.sh` under the `Recipes` directory
-(and the relevant parameter files under the `Params` directory) to understand the details of the command line
-invocations and parameter files. For advanced users please see the rest of the docs and the `Plugins` directory
-to understand how to write python code to simulate different kinds of mutations and reads.
+sequence is illustrated schematically below.
 
                     ----------
          fasta     |          |---> smalla file
@@ -63,11 +60,15 @@ The reads tool enables us to take a sequence and generate simulated reads from i
        simulate various error and property profiles of different sequencers
 
 
-
-
-
 Each module is designed to run as a script. Typing `python mutate.py -h` or simply `python mutate.py` etc. will list
-usage and input requirements.
+usage and input requirements. Most scripts have built in tests which can be run by typing `test` or `test -v` after
+command invocation, like `python mutate.py test -v`
+
+In order to get a quick idea of what Mitty can do for you, please refer to the `Examples` directory and the `Readme.md`
+file there to read along
+
+Installation and use
+--------------------
 
 There are two branches in the repository:
 
@@ -262,6 +263,9 @@ Consider a SNP, an insertion and a deletion
 reference base as many times as there is an insertion. Deletions are simply skipped. For the purposes of computing `pos`
 we also add an imaginary base position at the end of the reference sequence (9 in this case)
 
+You can "read along" to these examples by running `python vcf2seq.py test -v` and seeing how different functions in
+`vcf2seq.py` implement these algorithms
+
 #### Generating CIGARS and POS for reads from `pos`
 Consider our last example and some reads from `M`
 
@@ -353,6 +357,9 @@ Computing the CIGAR:
 7. Flush any counter other than `D`
 8. If the mapped flag is `False` reset POS and CIGAR - this is an unmapped read.
 
+You can "read along" to these examples by running `python reads.py test -v` and seeing how different functions in
+`reads.py` implement these algorithms
+
 
 Misc design choices
 --------------
@@ -371,67 +378,10 @@ experiment with most during testing
 are preferred for Platform integration, but either way is a short code reorganization that can be done quickly at the
 time of integration.
 
-### POS and DIFFPOS files
+### POS files
 These are simple binary files carrying unsigned 4 byte int information. This is enough to handle index/index diff sizes
 for human genome sizes, though if we ever work on heavily mutated specimens of the loblolly pine, perhaps we have to
-go to 8 byte ints.
-
-
-
-Disorganized - don't read below this
-====================================
-
-
-
-### Generating reads from a ref seq and VCF(s)
-We want to be mindful that genomic sequences can be quite large and we might not want to carry multiple copies of such
-sequences around, especially when we are simulating reads from heterogenous sequences. For this reason we choose to
-avoid generating the complete sequences or ever loading the whole ref seq into memory at once.
-
-The conceptual way to generate reads is as follows:
-
-1. Generate the variant sequences as a whole -> there may be more than one variant sequence depending on whether there
-are multiple variants at the same locus. The number of variant sequences depends on the combinatorials of all the
-multiple variants
-2. Take sections from each sequence at random locations, according to a predetermined distribution
-
-If we want to avoid physically generating all combinations of variant sequences we do the following.
-
-1. We move along the ref-seq in blocks
-2. We consider only the variants within that block
-3. We generate all variant sequences for that block and then generate reads randomly within that block
-
-Notes:
-1. How to handle non-local mutations? (translocation etc.)
-2. How to handle multiple variants - how to link variants in one mutation with variants in another? - will currently do
-a simple combinatorial with equal weights
-3. How to handle the seams between blocks?
-4. The number of reads from each var seq block should be adjusted to maintain coverage
-
-
-V 0.2.1 (This will leave seams)
--------------------------------
-
-                  block 0                      block 1
-    Ref seq |---------------------------|----------------------------|----------------- .....
-
-
-    Var seqs
-            |------------------|
-            |------------------------|                 --> generate reads to give required coverage
-            |------------------------------|
-            |--------------|
-
-
-                                        |------------------|
-                                        |----------------------------------|
-                                        |----------------------------|
-                                        |-------------------------------------|
-                                        |--------------|
-
-
-Notes:
-1. Depending on how annoying seams are they will be fixed in V 0.2.2
+go to 8 byte ints ...
 
 
 Trivia

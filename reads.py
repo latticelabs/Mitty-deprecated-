@@ -168,14 +168,7 @@ def roll(these_reads, pos_array):
     pos_array -  1 d array
 
   Output:
-
-    reads    -  [
-                  [(pos, cigar), (pos, cigar)], -> inner list = 2 elements if paired reads, 1 otherwise
-                       .
-                       .
-                       .
-                 ] -> outer list = number of reads
-
+    No output - changes reads in place
   """
   def roll_null(these_reads):
     """Simple convenience function - for if we have null reads ."""
