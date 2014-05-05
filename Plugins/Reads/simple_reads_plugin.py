@@ -1,3 +1,27 @@
+"""This reads.py plugin generates uniformly sampled reads. It also contains the exponential read corruption model
+used by other models (e.g. tiles_reads)
+
+Seven Bridges Genomics
+Current contact: kaushik.ghose@sbgenomics.com
+
+
+Example parameter file
+
+{
+    "model": "simple_reads",
+    "args": {
+        "paired": false,
+        "read_len": 100,
+        "template_len": 250,
+        "read_loc_rng_seed": 0,
+        "error_rng_seed": 1,
+        "base_chose_rng_seed": 2,
+        "max_p_error": 0.8,
+        "k": 0.1
+    }
+}
+"""
+
 import numpy
 import logging
 logger = logging.getLogger(__name__)
@@ -24,10 +48,6 @@ def read_generator(seq,
                    read_len=None,
                    template_len=None,
                    read_loc_rng_seed=0,
-                   error_rng_seed=1,
-                   base_chose_rng_seed=2,
-                   max_p_error=.8,
-                   k=.1,
                    **kwargs):
   """Given a sequence generate reads with the given characteristics
 
@@ -60,14 +80,11 @@ def read_generator(seq,
                        .
                  ] -> outer list = number of reads
 
-
   Note: coordinate is 0-indexed
   Quality: Sanger scale 33-126
   """
   # We need to initialize the rngs and a bunch of other stuff
   read_loc_rng = numpy.random.RandomState(seed=read_loc_rng_seed)
-  error_loc_rng = numpy.random.RandomState(seed=error_rng_seed)
-  base_chose_rng = numpy.random.RandomState(base_chose_rng_seed)
 
   rl = read_len
   tl = template_len if paired else rl
@@ -84,12 +101,16 @@ def read_generator(seq,
     else:
       reads = [[[seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]]] for n in range(rd_st.size)]
 
-    #corr_reads = corrupt_reads_expon(reads, read_len, max_p_error, k, error_loc_rng, base_chose_rng)
     read_count += rd_st.size
     yield reads
 
 
-def corrupt_reads(reads, read_len=100, max_p_error=.8, k=.1, error_loc_rng=None, base_chose_rng=None):
+def corrupt_reads(reads, read_len=100,
+                  error_rng_seed=1,
+                  base_chose_rng_seed=2,
+                  max_p_error=.8,
+                  k=.1,
+                  **kwargs):
   """Simple exponential error model for reads.
   Inputs:
     reads        - perfect reads as produced by the read_generator
@@ -102,7 +123,21 @@ def corrupt_reads(reads, read_len=100, max_p_error=.8, k=.1, error_loc_rng=None,
                      back up to caller.
 
   Outputs:
-    reads        - corrupted reads
+                                  _________ ( seq_str, quality_str, coordinate)
+    corrupt_reads  -             /
+                 [
+                  [[ ... ], [ ... ]],
+                  [[ ... ], [ ... ]], -> inner list = 2 elements if paired reads, 1 otherwise
+                       .
+                       .
+                       .
+                 ] -> outer list = number of reads
+
+  Note:
+  The only tricky thing about this function is that it has a state (stored as an attribute): We need to carry the
+  state of the random number generators from call to call. We use try: except: for the initialization of the generators
+  as this is slightly faster than if hasattr ... You will note that read_generator also stores the state of its rngs,
+  but because it is structured as a generator, we don't think twice about this.
   """
   if len(reads) == 0: return reads  # We return `reads` so we match the shape (paired or not paired)
   rev_error_profile = [max_p_error * k ** n for n in range(read_len)]  # For the second of the pair
@@ -111,8 +146,19 @@ def corrupt_reads(reads, read_len=100, max_p_error=.8, k=.1, error_loc_rng=None,
   # error_profile[1] -> base call error curve for backward read (3' end more error prone)
   qual = [''.join([chr(int(126-(126-33)*ep)) for ep in error_profile[n]]) for n in [0,1]]
   corrupted_reads = []
-  base_errors = error_loc_rng.rand(len(reads[0]), len(reads), read_len)  # Coin toss to see if we error the base call
-  base_subs = base_chose_rng.randint(3, size=(len(reads[0]), len(reads), read_len))  # If so, what base will be call it
+  # A little sleight of hand here. We store state in a function attribute. The only caveat here is that we can't use
+  # reuse this function expecting to be able to store separate states.
+  try:
+    base_errors = corrupt_reads.error_loc_rng.rand(len(reads[0]), len(reads), read_len)  # Coin toss to see if we error the base call
+    base_subs = corrupt_reads.base_chose_rng.randint(3, size=(len(reads[0]), len(reads), read_len))  # If so, what base will be call it
+  # It is faster to ask for forgiveness, than permission
+  # (http://assorted-experience.blogspot.com/2014/05/storing-state-in-python-function.html)
+  except AttributeError:
+    corrupt_reads.error_loc_rng = numpy.random.RandomState(seed=error_rng_seed)
+    corrupt_reads.base_chose_rng = numpy.random.RandomState(base_chose_rng_seed)
+    base_errors = corrupt_reads.error_loc_rng.rand(len(reads[0]), len(reads), read_len)  # Coin toss to see if we error the base call
+    base_subs = corrupt_reads.base_chose_rng.randint(3, size=(len(reads[0]), len(reads), read_len))  # If so, what base will be call it
+
   for n in range(len(reads)):
     these_reads = [[None]]*len(reads[0])
     for p in range(len(reads[0])):

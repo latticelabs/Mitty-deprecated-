@@ -5,8 +5,26 @@ start with a shifted offset.
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
+
+
+Example parameter file
+
+{
+    "model": "tiled_reads",
+    "args": {
+        "paired": false,
+        "read_len": 100,
+        "template_len": 250,
+        "read_advance": 50,
+        "error_rng_seed": 1,
+        "base_chose_rng_seed": 2,
+        "max_p_error": 0.8,
+        "k": 0.1
+    }
+}
 """
-import numpy
+import numpy  # For the read corruption
+from Plugins.Reads.simple_reads_plugin import corrupt_reads  # An example of how we can reuse components
 import logging
 logger = logging.getLogger(__name__)
 
@@ -25,6 +43,10 @@ def read_generator(seq,
                    read_len=None,
                    template_len=None,
                    read_advance=None,
+                   error_rng_seed=1,
+                   base_chose_rng_seed=2,
+                   max_p_error=.8,
+                   k=.1,
                    **kwargs):
   """Given a sequence generate reads with the given characteristics
 
@@ -54,7 +76,6 @@ def read_generator(seq,
                  ] -> outer list = number of reads
 
   Note: coordinate is 0-indexed
-
   Quality: Sanger scale 33-126
   """
   rl = read_len
@@ -63,6 +84,10 @@ def read_generator(seq,
   if read_start + tl >= read_stop:
     logger.error('Template len too large for given sequence.')
     read_count = num_reads
+
+  # We need to initialize the rngs
+  error_loc_rng = numpy.random.RandomState(seed=error_rng_seed)
+  base_chose_rng = numpy.random.RandomState(base_chose_rng_seed)
 
   read_offset = 0
   nominal_read_start = read_start
@@ -86,3 +111,7 @@ def read_generator(seq,
 
     read_count += len(reads)
     yield reads
+
+
+# We would have defined our corrupt_reads function here, but we've already imported this from the stock simple_reads
+# plugin, so we don't need to do anything
