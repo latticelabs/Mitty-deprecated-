@@ -2,7 +2,7 @@ List of Mitty tasks in order of priority
 ----------------------------------------
 Definitely email kaushik.ghose@sbgenomics.com if you have a suggestion/feature request to be added
 
-1. Handle the CIGAR business
+1. Handle the CIGAR business (DONE: 5/2/2014)
 
 1. Have a document catchup marathon
 
@@ -16,3 +16,4 @@ Definitely email kaushik.ghose@sbgenomics.com if you have a suggestion/feature r
   filter through to the BAM files we produce so that cheata produces a perfectly aligned BAM file (minus long inserts)
   for the whole genome (or as much of it as we care to do)
 
+1. Heterozygous reads
