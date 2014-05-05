@@ -1,0 +1,9 @@
+{
+    "model": "tiled_reads",
+    "args": {
+        "paired": false,
+        "read_len": 100,
+        "template_len": 250,
+        "read_advance": 50
+    }
+}

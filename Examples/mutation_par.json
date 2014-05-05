@@ -1,0 +1,29 @@
+{
+    "snp": {
+        "model": "snp",
+        "start_snps_frac": 0.1,
+        "stop_snps_frac":  0.3,
+        "p": 0.01,
+        "poisson_rng_seed": 1,
+        "base_sub_rng_seed": 2
+    },
+    "delete": {
+        "model": "delete",
+        "start_dels_frac": 0.4,
+        "stop_dels_frac":  0.6,
+        "p_del": 0.01,
+        "lam_del": 10,
+        "del_loc_rng_seed": 10,
+        "del_len_rng_seed": 1
+    },
+    "insert": {
+        "model": "insert",
+        "start_ins_frac": 0.7,
+        "stop_ins_frac":  0.9,
+        "p_ins": 0.01,
+        "lam_ins": 10,
+        "ins_loc_rng_seed": 0,
+        "ins_len_rng_seed": 1,
+        "base_sel_rng_seed": 2
+    }
+}
