@@ -57,8 +57,9 @@ Using the `vcf2seq` tool we can write out the mutations indicated by VCF into a 
 
 The `reads` tool enables us to take a sequence and generate simulated reads from it. The reads can
        simulate various error and property profiles of different sequencers. Each read carries, in its qname field,
-       a read serial number and POS and CIGAR strings that can be used to
-
+       a read serial number and POS and CIGAR strings that can be used to recreate perfect alignments of the reads to
+       the original reference. This information is useful for diagnosing the performance of aligners and variant
+       callers.
 
                     ----------
                    |          |
@@ -81,37 +82,47 @@ Test as you read
 see here and make sure Mitty is doing what it is supposed to be.**
 
 In order to run the command line code within the examples, without getting messy, we define a function `shell` that
-gets python to properly call the shell command we would have used. It is a bit like IPython's %run magic command.
+gets python to properly call the shell command we would have used. It is a bit like IPython's `%run` magic command.
 
     >>> import shlex, subprocess
     >>> def shell(command): subprocess.call(shlex.split(command))
 
+We also don't want to clutter up our workspace with a plethora of generated files, so we create a temporary directory to
+store created data files in. We don't delete this directory at the end, in case you want to take a look at the files at
+your leisure. We do clear out this directory every time we run.
+
+    >>> shell('mkdir -p TEST-DATA')
+    >>> shell('rm TEST-DATA/*')
+
+Generating simulated variations
+===============================
+
 Converta
 --------
-We use converta to reorganize sequence data in .fasta files so that Mitty's routines can use them. (Dev note: basically
+We use converta to reorganize sequence data in .fasta files so that Mitty's routines can use them. (Dev note: basically,
 by stripping out the header and newlines from the .fasta file the .smalla file can be easily used as a disk mapped
-array - via mmap - so we can handle large sequences without load it all into memory at once)
+array - via mmap - so we can handle large sequences without loading it into memory all at once)
 
-    >>> shell('python converta.py Data/porcine_circovirus.fa Data/porcine_cricovirus.smalla')
-    >>> with open('Data/porcine_circovirus.smalla','r') as f: print f.read()
+    >>> shell('python converta.py Data/porcine_circovirus.fa TEST-DATA/porcine_circovirus.smalla')
+    >>> with open('TEST-DATA/porcine_circovirus.smalla','r') as f: print f.read()
     ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGCCACCGTTACCGCTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCAAAACGCCCTCCTGGGCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCTTTGAATACTACAGAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAGTGCTGTTATTCTAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTACCACTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCTGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTACAATTCAGAGAATTTAATCTTAAAGACCCCCCACTTAACCCTTAG
-    >>> with open('Data/porcine_circovirus.smalla.heada','r') as f: print f.read()
+    >>> with open('TEST-DATA/porcine_circovirus.smalla.heada','r') as f: print f.read()
     gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds
 
 Mutate
 ------
-We use mutate, in combination with a mutation parameter file to generate a VCF file. The `-v` flag causes `mutate.py` to
+We use mutate, in combination with a mutation parameter file, to generate a VCF file. The `-v` flag causes `mutate.py` to
 give a running commentary as it works, which is useful to see if everything is going well.
 
-    >>> shell('python mutate.py --chrom=1  --ref=Data/porcine_circovirus.smalla  --vcf=Data/variant.vcf  --paramfile=Examples/mutation_par.json  -v')
+    >>> shell('python mutate.py --chrom=1  --ref=TEST-DATA/porcine_circovirus.smalla  --vcf=TEST-DATA/variant.vcf  --paramfile=Examples/mutation_par.json  -v')
 
 You should see something like:
 
     DEBUG:root:{'--block_size': '100000',
      '--chrom': '1',
      '--paramfile': 'Examples/mutation_par.json',
-     '--ref': 'Data/porcine_circovirus.smalla',
-     '--vcf': 'Data/variant.vcf',
+     '--ref': 'TEST-DATA/porcine_circovirus.smalla',
+     '--vcf': 'TEST-DATA/variant.vcf',
      '-v': True}
     DEBUG:__main__:Input sequence has 702 bases
     DEBUG:__main__:Generated 1 inserts
@@ -121,11 +132,11 @@ You should see something like:
 
 You can take a look at the generated VCF file which should look like:
 
-    >>> with open('Data/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    >>> with open('TEST-DATA/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     ##fileformat=VCFv4.1
     ##fileDate=...
-    ##source=mutate.py 0.2.0 (['mutate.py', '--chrom=1', '--ref=Data/porcine_circovirus.smalla', '--vcf=Data/variant.vcf', '--paramfile=Examples/mutation_par.json', '-v'])
-    ##reference=Data/porcine_circovirus.smalla
+    ##source=mutate.py 0.2.0 (['mutate.py', '--chrom=1', '--ref=TEST-DATA/porcine_circovirus.smalla', '--vcf=TEST-DATA/variant.vcf', '--paramfile=Examples/mutation_par.json', '-v'])
+    ##reference=TEST-DATA/porcine_circovirus.smalla
     #CHROM POS     ID        REF    ALT     QUAL FILTER INFO
     1	169	.	A	T	96	PASS	.
     1	389	.	TAACAAAGGC	T	96	PASS	.
@@ -135,7 +146,7 @@ You can take a look at the generated VCF file which should look like:
 Mutate is smart enough not to overlay multiple variants. Consider the following parameter file that generates SNPs
 uniformly across the sequence
 
-    >>> with open('Data/mut_par.json','w') as f: f.write("""{
+    >>> with open('TEST-DATA/mut_par.json','w') as f: f.write("""{
     ... "snp": {
     ...    "model": "snp",
     ...    "start_snps_frac": 0.0,
@@ -147,12 +158,12 @@ uniformly across the sequence
 
 Let's take a look at the resulting VCF file:
 
-    >>> shell('python mutate.py --chrom=1  --ref=Data/porcine_circovirus.smalla  --vcf=Data/variant.vcf  --paramfile=Data/mut_par.json')
-    >>> with open('Data/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    >>> shell('python mutate.py --chrom=1  --ref=TEST-DATA/porcine_circovirus.smalla  --vcf=TEST-DATA/variant.vcf  --paramfile=TEST-DATA/mut_par.json')
+    >>> with open('TEST-DATA/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     ##fileformat=VCFv4.1
     ##fileDate=...
-    ##source=mutate.py 0.2.0 (['mutate.py', '--chrom=1', '--ref=Data/porcine_circovirus.smalla', '--vcf=Data/variant.vcf', '--paramfile=Data/mut_par.json'])
-    ##reference=Data/porcine_circovirus.smalla
+    ##source=mutate.py 0.2.0 (['mutate.py', '--chrom=1', '--ref=TEST-DATA/porcine_circovirus.smalla', '--vcf=TEST-DATA/variant.vcf', '--paramfile=TEST-DATA/mut_par.json'])
+    ##reference=TEST-DATA/porcine_circovirus.smalla
     #CHROM POS     ID        REF    ALT     QUAL FILTER INFO
     1	99	.	C	G	96	PASS	.
     1	187	.	A	C	96	PASS	.
@@ -165,7 +176,7 @@ Let's take a look at the resulting VCF file:
 
 Consider the following parameter file that generates deletes uniformly across the sequence
 
-    >>> with open('Data/mut_par.json','w') as f: f.write("""{
+    >>> with open('TEST-DATA/mut_par.json','w') as f: f.write("""{
     ... "delete": {
     ...     "model": "delete",
     ...     "start_dels_frac": 0.0,
@@ -178,12 +189,12 @@ Consider the following parameter file that generates deletes uniformly across th
 
 Let's take a look at the resulting VCF file:
 
-    >>> shell('python mutate.py --chrom=1  --ref=Data/porcine_circovirus.smalla  --vcf=Data/variant.vcf  --paramfile=Data/mut_par.json')
-    >>> with open('Data/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    >>> shell('python mutate.py --chrom=1  --ref=TEST-DATA/porcine_circovirus.smalla  --vcf=TEST-DATA/variant.vcf  --paramfile=TEST-DATA/mut_par.json')
+    >>> with open('TEST-DATA/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     ##fileformat=VCFv4.1
     ##fileDate=...
-    ##source=mutate.py 0.2.0 (['mutate.py', '--chrom=1', '--ref=Data/porcine_circovirus.smalla', '--vcf=Data/variant.vcf', '--paramfile=Data/mut_par.json'])
-    ##reference=Data/porcine_circovirus.smalla
+    ##source=mutate.py 0.2.0 (['mutate.py', '--chrom=1', '--ref=TEST-DATA/porcine_circovirus.smalla', '--vcf=TEST-DATA/variant.vcf', '--paramfile=TEST-DATA/mut_par.json'])
+    ##reference=TEST-DATA/porcine_circovirus.smalla
     #CHROM POS     ID        REF    ALT     QUAL FILTER INFO
     1	102	.	CCGTTACCGCTGG	C	96	PASS	.
     1	196	.	TCCTGGGCGGTGGACATGATGA	T	96	PASS	.
@@ -200,7 +211,7 @@ If we put these two sets of mutations together, we can see that the SNP at 374 w
 
 When we ask `mutate.py` for both these sets of mutations (keeping the same random seeds),
 
-    >>> with open('Data/mut_par.json','w') as f: f.write("""{
+    >>> with open('TEST-DATA/mut_par.json','w') as f: f.write("""{
     ... "snp": {
     ...    "model": "snp",
     ...    "start_snps_frac": 0.0,
@@ -221,12 +232,12 @@ When we ask `mutate.py` for both these sets of mutations (keeping the same rando
 
 we get:
 
-    >>> shell('python mutate.py --chrom=1  --ref=Data/porcine_circovirus.smalla  --vcf=Data/variant.vcf  --paramfile=Data/mut_par.json')
-    >>> with open('Data/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    >>> shell('python mutate.py --chrom=1  --ref=TEST-DATA/porcine_circovirus.smalla  --vcf=TEST-DATA/variant.vcf  --paramfile=TEST-DATA/mut_par.json')
+    >>> with open('TEST-DATA/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     ##fileformat=VCFv4.1
     ##fileDate=...
-    ##source=mutate.py 0.2.0 (['mutate.py', '--chrom=1', '--ref=Data/porcine_circovirus.smalla', '--vcf=Data/variant.vcf', '--paramfile=Data/mut_par.json'])
-    ##reference=Data/porcine_circovirus.smalla
+    ##source=mutate.py 0.2.0 (['mutate.py', '--chrom=1', '--ref=TEST-DATA/porcine_circovirus.smalla', '--vcf=TEST-DATA/variant.vcf', '--paramfile=TEST-DATA/mut_par.json'])
+    ##reference=TEST-DATA/porcine_circovirus.smalla
     #CHROM POS     ID        REF    ALT     QUAL FILTER INFO
     1	99	.	C	G	96	PASS	.
     1	102	.	CCGTTACCGCTGG	C	96	PASS	.
@@ -245,16 +256,92 @@ Mutate resolves the conflicts between the mutations and ensures they don't clash
 Also note that we've kept all our random number generators independent. This allows us greater control over the data
 we generate and allows us to avoid unexpected interactions between all our variables.
 
+Generating reads
+================
+
+In the previous section we learned how to use `mutate.py` to generate a VCF file with simulated variants representing
+a mutated sequence. We would, eventually, like to simulate reads from this mutated sequence. This is a two step process.
+In the first step we use `vcf2seq.py` to write out the mutated sequence by combining the reference sequence with the
+VCF file. `vcf2seq.py` also writes out a `pos` (position) file. In the next step we invoke `reads.py` to actually
+generate the reads. Just like `mutate.py` has different variant generating models `reads.py` has different read generating
+models simulating the read characteristics of different machines. **For every read we generate we store POS and CIGAR
+strings that correspond to a perfect alignment. We can use this to diagnose performance and errors in aligners and
+variant callers**. The POS and CIGAR are written into the qname field of the read and are easily extracted. The simple
+program `cheata.py` will generate a perfect alignment for you from a simulated .bam file produced by `reads.py`
 
 
+vcf2seq
+-------
+Running vcf2seq will generate a mutated sequence and a `.pos` file that contains important indexing information used by
+`reads.py`.
+
+    >>> shell('python vcf2seq.py TEST-DATA/porcine_circovirus.smalla TEST-DATA/pc_mutated.smalla 1 TEST-DATA/variant.vcf.gz')
+
+This generates a mutated sequence `pc_mutated.smalla` having all the mutations described in the VCF file above. Using
+a pen and paper we can work out what the mutated sequence should look like:
+
+                                                                                                    C -> G                                                                                  A -> C                                                                                    T -> C                                                                                                                                                                                                                                                                                               T -> C                                                                                 A -> G
+                                                                                                      |                                                                                       |                                                                                         |                                                                                                                                                                                                                                                                                                    |                                                                                      |
+    ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGCCACCGTTACCGCTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCAAAACGCCCTCCTGGGCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCTTTGAATACTACAGAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAGTGCTGTTATTCTAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTACCACTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCTGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTACAATTCAGAGAATTTAATCTTAAAGACCCCCCACTTAACCCTTAG
+                                                                                                          ------------                                                                                  ---------------------                                                                  -------                                                                       -------------                                                                                           ------                                                                                                                                                                                                -----------
+                                                                                                              del                                                                                                del                                                                             del                                                                              del                                                                                                  del                                                                                                                                                                                                     del
+
+and compare it to the generated one
+
+    >>> with open('TEST-DATA/pc_mutated.smalla','r') as f: print f.read()
+    ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGGCACAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCCAAACGCCCTGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCCTTGAATAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCCGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTGCAATTCTCTTAAAGACCCCCCACTTAACCCTTAG
+
+
+reads
+-----
+Now we run `reads.py` with an appropriate read parameter file to generate a bucket of reads.
+
+    >>> shell('python reads.py  --ref=TEST-DATA/pc_mutated.smalla --paramfile=Examples/read_par.json --coverage=20 --out=TEST-DATA/sim_reads -c')
+
+This produces a BAM file (`sim_reads.bam`) with perfect reads from the mutated sequence. Because of the `-c` option it
+also produces `sim_reads_c.bam` which has corrupted reads. This uses the stock plugin which generates errors at the
+inner ends of the reads with an exponential envelope.
+
+Note that if we wanted to generate reads from a reference sequence we would simply feed `reads.py` with the sequence.
+
+cheata
+------
+We can run `cheata.py`on this BAM file to generate perfect alignment
+
+    >>> shell('python cheata.py --inbam=TEST-DATA/sim_reads.bam --outbam=TEST-DATA/aligned.bam')
+
+Now you can use `samtools tview` or `tablet` or `IGV` to open up `aligned.bam` and see the perfectly aligned assembly of
+the data.
+
+You can repeat the process with the corrupted reads to get a perfectly aligned BAM but with simulated corruption in the
+reads.
+
+    >>> shell('python cheata.py --inbam=TEST-DATA/sim_reads_c.bam --outbam=TEST-DATA/aligned_c.bam')
+
+
+Testing `samtools mpileup`
+=========================
+Having done these steps, we can now test the `samtools mpileup` function and see if we can find back the variants we
+put into the mutated sequence from which we just generated reads.
+
+We first run `mpileup` on the perfect alignment
+
+    >>> _ = subprocess.call('samtools mpileup -uf Data/porcine_circovirus.fa TEST-DATA/aligned.bam | bcftools view -bvcg - > TEST-DATA/var.raw.bcf', shell=True)
+    >>> _ =subprocess.call('bcftools view TEST-DATA/var.raw.bcf | vcfutils.pl varFilter -D100 > TEST-DATA/mpileup.vcf', shell=True)
+
+Then we compare the original VCF with  the detected one
+
+    >>> shell('tail -n -11 TEST-DATA/variant.vcf')
+    >>> shell('tail -n -11 TEST-DATA/mpileup.vcf')
+
+The VCF entries should indicate identical variants from the `mpileup` command as we generated in the simulation.
 
 For further examples of what Mitty can do for you, please refer to the `Examples` directory and the `Readme.md`
-file there to read along.
+file there to read along. For each of the programs listed above please run the `-h` option to learn the usage pattern.
 
 
-
-Installation and use
---------------------
+Installation
+============
 
 There are two branches in the repository:
 
@@ -568,7 +655,6 @@ time of integration.
 These are simple binary files carrying unsigned 4 byte int information. This is enough to handle index/index diff sizes
 for human genome sizes, though if we ever work on heavily mutated specimens of the loblolly pine, perhaps we have to
 go to 8 byte ints ...
-
 
 Trivia
 ======
