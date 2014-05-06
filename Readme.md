@@ -327,7 +327,7 @@ put into the mutated sequence from which we just generated reads.
 We first run `mpileup` on the perfect alignment
 
     >>> _ = subprocess.call('samtools mpileup -uf Data/porcine_circovirus.fa TEST-DATA/aligned.bam | bcftools view -bvcg - > TEST-DATA/var.raw.bcf', shell=True)
-    >>> _ =subprocess.call('bcftools view TEST-DATA/var.raw.bcf | vcfutils.pl varFilter -D100 > TEST-DATA/mpileup.vcf', shell=True)
+    >>> _ = subprocess.call('bcftools view TEST-DATA/var.raw.bcf | vcfutils.pl varFilter -D100 > TEST-DATA/mpileup.vcf', shell=True)
 
 Then we compare the original VCF with  the detected one
 
