@@ -119,7 +119,7 @@ You should see something like:
     DEBUG:__main__:Generated 1 deletes
     DEBUG:__main__:Compressing and indexing VCF file
 
-You can take a look at the generate VCF file which should look like:
+You can take a look at the generated VCF file which should look like:
 
     >>> with open('Data/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     ##fileformat=VCFv4.1
@@ -132,6 +132,118 @@ You can take a look at the generate VCF file which should look like:
     1	593	.	T	TGCAGTCTCG	96	PASS	.
     <BLANKLINE>
 
+Mutate is smart enough not to overlay multiple variants. Consider the following parameter file that generates SNPs
+uniformly across the sequence
+
+    >>> with open('Data/mut_par.json','w') as f: f.write("""{
+    ... "snp": {
+    ...    "model": "snp",
+    ...    "start_snps_frac": 0.0,
+    ...    "stop_snps_frac":  1.0,
+    ...    "p": 0.01,
+    ...    "poisson_rng_seed": 1,
+    ...    "base_sub_rng_seed": 2
+    ... }}""")
+
+Let's take a look at the resulting VCF file:
+
+    >>> shell('python mutate.py --chrom=1  --ref=Data/porcine_circovirus.smalla  --vcf=Data/variant.vcf  --paramfile=Data/mut_par.json')
+    >>> with open('Data/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    ##fileformat=VCFv4.1
+    ##fileDate=...
+    ##source=mutate.py 0.2.0 (['mutate.py', '--chrom=1', '--ref=Data/porcine_circovirus.smalla', '--vcf=Data/variant.vcf', '--paramfile=Data/mut_par.json'])
+    ##reference=Data/porcine_circovirus.smalla
+    #CHROM POS     ID        REF    ALT     QUAL FILTER INFO
+    1	99	.	C	G	96	PASS	.
+    1	187	.	A	C	96	PASS	.
+    1	277	.	T	C	96	PASS	.
+    1	374	.	T	A	96	PASS	.
+    1	472	.	T	A	96	PASS	.
+    1	570	.	T	C	96	PASS	.
+    1	657	.	A	G	96	PASS	.
+    <BLANKLINE>
+
+Consider the following parameter file that generates deletes uniformly across the sequence
+
+    >>> with open('Data/mut_par.json','w') as f: f.write("""{
+    ... "delete": {
+    ...     "model": "delete",
+    ...     "start_dels_frac": 0.0,
+    ...     "stop_dels_frac":  1.0,
+    ...     "p_del": 0.01,
+    ...     "lam_del": 10,
+    ...     "del_loc_rng_seed": 3,
+    ...     "del_len_rng_seed": 4
+    ... }}""")
+
+Let's take a look at the resulting VCF file:
+
+    >>> shell('python mutate.py --chrom=1  --ref=Data/porcine_circovirus.smalla  --vcf=Data/variant.vcf  --paramfile=Data/mut_par.json')
+    >>> with open('Data/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    ##fileformat=VCFv4.1
+    ##fileDate=...
+    ##source=mutate.py 0.2.0 (['mutate.py', '--chrom=1', '--ref=Data/porcine_circovirus.smalla', '--vcf=Data/variant.vcf', '--paramfile=Data/mut_par.json'])
+    ##reference=Data/porcine_circovirus.smalla
+    #CHROM POS     ID        REF    ALT     QUAL FILTER INFO
+    1	102	.	CCGTTACCGCTGG	C	96	PASS	.
+    1	196	.	TCCTGGGCGGTGGACATGATGA	T	96	PASS	.
+    1	283	.	TACTACAG	T	96	PASS	.
+    1	361	.	AGTGCTGTTATTCT	A	96	PASS	.
+    1	465	.	CTACCAC	C	96	PASS	.
+    1	570	.	TGGAAAT	T	96	PASS	.
+    1	663	.	CAGAGAATTTAA	C	96	PASS	.
+    <BLANKLINE>
+
+If we put these two sets of mutations together, we can see that the SNP at 374 would overlap with the delete starting at
+361 and the SNP at 472 would come right after the delete at 465. The SNP at 570 would come right before the delete at
+570. For purposes of clarity (see below) we like to have at least a one base gap between mutations.
+
+When we ask `mutate.py` for both these sets of mutations (keeping the same random seeds),
+
+    >>> with open('Data/mut_par.json','w') as f: f.write("""{
+    ... "snp": {
+    ...    "model": "snp",
+    ...    "start_snps_frac": 0.0,
+    ...    "stop_snps_frac":  1.0,
+    ...    "p": 0.01,
+    ...    "poisson_rng_seed": 1,
+    ...    "base_sub_rng_seed": 2
+    ... },
+    ... "delete": {
+    ...     "model": "delete",
+    ...     "start_dels_frac": 0.0,
+    ...     "stop_dels_frac":  1.0,
+    ...     "p_del": 0.01,
+    ...     "lam_del": 10,
+    ...     "del_loc_rng_seed": 3,
+    ...     "del_len_rng_seed": 4
+    ... }}""")
+
+we get:
+
+    >>> shell('python mutate.py --chrom=1  --ref=Data/porcine_circovirus.smalla  --vcf=Data/variant.vcf  --paramfile=Data/mut_par.json')
+    >>> with open('Data/variant.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    ##fileformat=VCFv4.1
+    ##fileDate=...
+    ##source=mutate.py 0.2.0 (['mutate.py', '--chrom=1', '--ref=Data/porcine_circovirus.smalla', '--vcf=Data/variant.vcf', '--paramfile=Data/mut_par.json'])
+    ##reference=Data/porcine_circovirus.smalla
+    #CHROM POS     ID        REF    ALT     QUAL FILTER INFO
+    1	99	.	C	G	96	PASS	.
+    1	102	.	CCGTTACCGCTGG	C	96	PASS	.
+    1	187	.	A	C	96	PASS	.
+    1	196	.	TCCTGGGCGGTGGACATGATGA	T	96	PASS	.
+    1	277	.	T	C	96	PASS	.
+    1	283	.	TACTACAG	T	96	PASS	.
+    1	361	.	AGTGCTGTTATTCT	A	96	PASS	.
+    1	465	.	CTACCAC	C	96	PASS	.
+    1	570	.	T	C	96	PASS	.
+    1	657	.	A	G	96	PASS	.
+    1	663	.	CAGAGAATTTAA	C	96	PASS	.
+
+Mutate resolves the conflicts between the mutations and ensures they don't clash.
+
+Also note that we've kept all our random number generators independent. This allows us greater control over the data
+we generate and allows us to avoid unexpected interactions between all our variables.
 
 
 
