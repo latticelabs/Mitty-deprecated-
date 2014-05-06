@@ -66,7 +66,7 @@ def open_reads_files(out_prefix, seq_len, seq_header, corrupted_reads=False, sav
 
 def roll_cigar(this_read, p_arr):
   """
-  You can 'read along' with this tests from the Readme
+  You can 'read along' with these tests from the Readme developers section
 
   Test a fully matching read
   >>> t_read = ['ATTG','~~~~', 0]; \
@@ -95,6 +95,12 @@ def roll_cigar(this_read, p_arr):
   roll_cigar(t_read, p_arr)
   (1, '2M2D2M')
 
+  We actually missed this case: read with one matching base and then a delete
+  >>> t_read = ['CACT', '~~~~', 1]; \
+  roll_cigar(t_read, p_arr)
+  (2, '1M2D3M')
+
+
   Test for an unmapped read: pos and cigars should be None
   >>> t_read = ['AATT', '~~~~', 2]; \
   p_arr = [1, 2, 3, 3, 3, 3, 3, 3, 3, 4, 5, 6, 7, 8, 9]; \
@@ -110,7 +116,7 @@ def roll_cigar(this_read, p_arr):
   for n in range(coord, coord + len(this_read[0])):
     dp = p_arr[n+1] - p_arr[n]
     if dp == 1:
-      mapped = True  # As long as we have one I we are a mapped read
+      mapped = True  # As long as we have one M we are a mapped read
       if type != 'M':
         if counter > 0:  # Flush
           cigar += '{:d}{:s}'.format(counter, type)
@@ -125,11 +131,12 @@ def roll_cigar(this_read, p_arr):
       type = 'I'
       counter += 1
     elif dp > 1:
-      mapped = True  # As long as we have one I we are a mapped read
+      mapped = True  # As long as we have one M we are a mapped read
       if type != 'M':
         if counter > 0:  # Flush
           cigar += '{:d}{:s}'.format(counter, type)
           counter = 0
+      type = 'M'  # We need to set this because we could be at the start of a read and type = None still
       counter += 1
       cigar += '{:d}{:s}'.format(counter, type)
       type = 'D'
