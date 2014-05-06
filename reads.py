@@ -174,9 +174,9 @@ def roll(these_reads, pos_array):
     """Simple convenience function - for if we have null reads ."""
     paired = True if len(these_reads[0]) == 2 else False
     for this_read in these_reads:
-      qname = '{:d}:{:d}M'.format(this_read[0][2], len(this_read[0][0]))
+      qname = '{:d}:{:d}M'.format(this_read[0][2] + 1, len(this_read[0][0]))
       if paired:
-        qname += ':{:d}:{:d}M'.format(this_read[1][2], len(this_read[1][0]))
+        qname += ':{:d}:{:d}M'.format(this_read[1][2] + 1, len(this_read[1][0]))
         this_read[1][2] = qname
       this_read[0][2] = qname
 
