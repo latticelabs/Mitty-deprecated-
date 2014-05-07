@@ -269,12 +269,12 @@ if __name__ == "__main__":
   var_seq_fname = args['<var_seq>']
   var_seq_pos_fname = args['<var_seq>'] + '.pos'
 
-  with open(ref_seq_fname, 'r+b') as f_rseq, open(var_seq_fname, 'w') as f_vseq,\
+  with open(ref_seq_fname, 'rb') as f_rseq, open(var_seq_fname, 'w') as f_vseq,\
        open(var_seq_pos_fname, 'w') as f_vseq_pos:
     with open(var_seq_fname + '.heada', 'w') as fheada:  # Copy the header over
       fheada.write(open(ref_seq_fname + '.heada', 'r').readline() + ' (Mutated)')
 
-    ref_seq = mmap.mmap(f_rseq.fileno(), 0)
+    ref_seq = mmap.mmap(f_rseq.fileno(), 0, access=mmap.ACCESS_READ)
     block_size = int(args['--block_size'])  # This is how many bases we copy at a time. Only comes into play if the
                                             # gap between variants is larger than this
     assemble_sequence(ref_seq, vcf_reader, f_vseq, f_vseq_pos, block_size)
