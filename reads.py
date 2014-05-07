@@ -294,8 +294,8 @@ if __name__ == "__main__":
   read_model = imp.load_source('readmodel', model_fname, open(model_fname, 'r'))
 
   #Load the ref-seq smalla file and read the header side car
-  with open(args['--ref'], 'r+b') as f_ref:
-    seq = mmap.mmap(f_ref.fileno(), 0)  # Our reference sequence
+  with open(args['--ref'], 'rb') as f_ref:
+    seq = mmap.mmap(f_ref.fileno(), 0, access=mmap.ACCESS_READ)  # Our reference sequence
     seq_len = len(seq)
     seq_header = open(args['--ref'] + '.heada', 'r').readline()
 
