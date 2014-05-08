@@ -3,13 +3,13 @@ as a script as well. This is useful for creating test data for MGR algorithms/da
 VCF file(s).
 
 Usage:
-mutate [--chrom=CHR]  --ref=REF  [--vcf=VCF]  --paramfile=PFILE [--block_size=BS] [-v]
+mutate [--chrom=CHR]  --ref=REF  --vcf=VCF  --paramfile=PFILE [--block_size=BS] [-v]
 
 Options:
-  --chrom=CHROM           The VCF file needs chromosome info.
+  --chrom=CHROM           The VCF file needs chromosome info [default: 1].
                           This is also available to the simulation if it needs it [default: 1]
   --ref=REF               The reference sequence in smalla format
-  --vcf=VCF               The output VCF file. If not specified, the vcf file goes to stdout
+  --vcf=VCF               The output VCF file.
   --paramfile=PFILE       Name for parameter file
   --block_size=BS         Block size for operations. Adjust to match memory/resources of platform [default: 100000]
                           This governs how many variants are generated at a time before being dumped to disk.
@@ -20,8 +20,7 @@ Note: Running the code without any arguments will print this help string and exi
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
-
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 
 import sys
 import os
@@ -55,7 +54,7 @@ def write_vcf_header(file_handle, sim_date, argv, reference_filename):
 ##fileDate={:s}
 ##source=mutate.py {:s} ({:s})
 ##reference={:s}
-#CHROM POS     ID        REF    ALT     QUAL FILTER INFO\n""".format(sim_date, __version__, argv, reference_filename)
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n""".format(sim_date, __version__, argv, reference_filename)
   )
 
 
@@ -67,8 +66,8 @@ def write_vcf_mutations(file_handle, chrom, variants):
     variants      - list of tuples (POS, REF, ALT) : standard format as returned by the variant plugins
   """
   for var in variants:
-    # Need to add +1 because first base is 1 while we are using 0 indexing internally
-    file_handle.write("{:s}\t{:d}\t.\t{:s}\t{:s}\t96\tPASS\t.\n".format(chrom, var[0] + 1, var[1], var[2]))
+    # Need to add +1 because POS is 1-indexed while we are using 0-indexing internally
+    file_handle.write("{:s}\t{:d}\t.\t{:s}\t{:s}\t96\tPASS\t.\tGT\t{:s}\n".format(chrom, var[0] + 1, var[1], var[2], var[3]))
 
 
 '''
@@ -97,15 +96,15 @@ if __name__ == "__main__":
   logging.basicConfig(level=level)
   logging.debug(args)
 
-  params = json.load(open(args['--paramfile'], 'r')) #imp.load_source('params', args['--paramfile'], open(args['--paramfile'], 'r'))
+  params = json.load(open(args['--paramfile'], 'r'))
   block_size = int(args['--block_size'])
 
   #Load the ref-seq smalla file
-  fin = open(args['--ref'], 'r+b')
-  ref_seq = mmap.mmap(fin.fileno(), 0)
+  fin = open(args['--ref'], 'rb')
+  ref_seq = mmap.mmap(fin.fileno(), 0, access=mmap.ACCESS_READ)
   ref_seq_len = len(ref_seq)
 
-  fout = sys.stdout if args['--vcf'] is None else open(args['--vcf'], 'w')
+  fout = open(args['--vcf'], 'w')
 
   plugin_dir = os.path.join(os.path.dirname(__file__), 'Plugins', 'Mutation')  # Thanks Nebojsa Tijanic!
   variant_generator = {}
@@ -139,7 +138,7 @@ if __name__ == "__main__":
     if next_variant_type is not None:  # We are still in business
       these_variants.append(next_variant[next_variant_type])  # Queue this variant
       misc[next_variant_type] += 1
-      skip_to = next_variant[next_variant_type][3]  # The next variant has to come at or after this to avoid conflicts
+      skip_to = next_variant[next_variant_type][4]  # The next variant has to come at or after this to avoid conflicts
       # Move all variant counters forward as needed
       for k in params.keys():
         while next_variant[k] is not None:
