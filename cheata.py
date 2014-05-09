@@ -2,11 +2,13 @@
 seq id string. This 'aligned' file can be read in using a visualizer to debug the simulation chain.
 
 Usage:
-cheata --inbam=BAM  --outbam=BAM  [-v]
+cheata --inbam=BAM  --outbam=BAM  --refseq=REFSEQ  [-v]
 
 Options:
   --inbam=INBAM           Input (unaligned) bam file name of reads from reads.py
   --outbam=OUTBAM         Output (perfectly aligned) bam file name
+  --refseq=REFSEQ         Reference sequence smalla file
+                          (Needed for sequence name and length which other tools use for display)
   -v                      Dump detailed logger messages
 
 Notes:
@@ -18,7 +20,7 @@ BAM from cheatah. My wor around is to save as SAM and then convert to BAM which 
 __version__ = '0.2.0'
 
 import tempfile  # Needed because we sort the original alignment and then index it
-import os  # Needed for removing the extra .bam samtools sort adds to the name
+import os  # Needed for removing the extra .bam samtools sort adds to the name and for filesize (for sequence length)
 import pysam  # Needed to read/write BAM files
 import docopt
 
@@ -30,9 +32,13 @@ if __name__ == "__main__":
     args = docopt.docopt(__doc__, version=__version__)
 
   in_bamfile = pysam.Samfile(args['--inbam'], 'rb')
+
+  seq_name = open(args['--refseq'] + '.heada', 'r').readline()
+  seq_len = os.path.getsize(args['--refseq'])
+
   out_hdr = in_bamfile.header
-  seq_name = out_hdr['SQ'][0]['SN']
   out_hdr['SQ'][0]['SN'] = seq_name.split(' ')[0]  # Some programs, like tablet, can't handle seq names with spaces
+  out_hdr['SQ'][0]['LN'] = seq_len
 
   # We save the reads first to a temporary file, sort them and save the sorted aligned reads under the name we want
   tf_h, tf_name = tempfile.mkstemp()

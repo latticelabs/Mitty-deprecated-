@@ -1,6 +1,11 @@
 {
-    "model": "tiled_reads",
-    "args": {
+    "input sequences": ["mutated_1.smalla", "mutated_2.smalla"],
+    "total reads": [100, 100],
+    "is this ref seq": false,
+    "read ranges": [[0.0, 1.0], [0.0, 1.0]],
+    "output file (prefix only, no extension)": "sim_reads",
+    "read model": "tiled_reads",
+    "model params": {
         "paired": false,
         "read_len": 100,
         "template_len": 250,
