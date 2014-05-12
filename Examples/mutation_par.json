@@ -2,7 +2,8 @@
     "input dir": "Data",
     "output dir": "TEST-DATA",
     "reference sequence": {
-        "name": "porcine_circovirus",
+        "name": "Porcine circovirus",
+        "filename prefix": "porcine_circovirus",
         "chromosome": "1"
     },
     "output vcf file": "variants.vcf",
