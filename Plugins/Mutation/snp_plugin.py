@@ -25,7 +25,7 @@ def variant(ref_seq=None, ref_seq_len=0,
   Inputs:
     ref_seq              - The reference sequence
     ref_seq_len          - length of whole sequence (needed to compute start and stop)
-    phet                 - probability of having heterozygous reads
+    phet                 - probability of having heterozygous mutation
     p                    - probability of SNPs
     start_snps_frac      - start generating snps from here (0.0, 1.0)
     stop_snps_frac       - stop generating snps after this (0.0, 1.0) stop_snps_frac > start_snps_frac
