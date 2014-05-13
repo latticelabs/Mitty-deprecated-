@@ -9,7 +9,7 @@ vcf2seq <ref_seq>  <var_seq> <chrom> <vcf_file> [--ploidy=PL] [--block_size=BS] 
 Options:
   ref_seq            reference sequence in smalla format
   var_seq            output (variant) sequence (will be written in smalla format)
-                     In addition .heada, .pos and .diffpos files are written
+                     In addition .heada and .pos files are written
   chrom              Chromosome (Needed when pulling variants from indexed VCF file)
   vcf_file           indexed VCF file
   --ploidy=PL        Use genotype information in VCF file to create polyploid sequences
