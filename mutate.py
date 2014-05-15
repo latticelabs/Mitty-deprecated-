@@ -83,7 +83,7 @@ if __name__ == "__main__":
   block_size = int(args['--block_size'])
 
   #Load the ref-seq smalla file
-  fin = open(os.path.join(params['input dir'], params['reference sequence']['name'] + '.smalla'), 'rb')
+  fin = open(os.path.join(params['input dir'], params['reference sequence']['filename prefix'] + '.smalla'), 'rb')
   logger.debug('Input sequence: ' + fin.name)
   ref_seq = mmap.mmap(fin.fileno(), 0, access=mmap.ACCESS_READ)
   ref_seq_len = len(ref_seq)
