@@ -59,21 +59,20 @@ import os
 @require(mem_mb=1024, cpu=require.CPU_SINGLE)
 class Mutate(define.Wrapper):
   class Inputs(define.Inputs):
-    ref = define.input(name='Reference', description='The reference file')
+    ref = define.input(name='Reference', description='The reference sequence (.smalla format)')
     plugins = define.input(name='Plugins', description='The mutation plugins', list=True)
 
   class Outputs(define.Outputs):
-    vcf = define.output()
+    vcf = define.output(name='VCF file', description='A VCF file containing a list of simulated variants')
 
   class Params(define.Params):
     chromosome = define.string(required=True)
-    output_vcf_name = define.string()
-    #verbose = define.boolean()
 
   def execute(self):
     input_dir = os.path.dirname(self.inputs.ref)
     input_name = os.path.splitext(os.path.basename(self.inputs.ref))[0]
-    output_name = self.params.output_vcf_name or input_name + '_variants.vcf'
+    #output_name = self.params.output_vcf_name or input_name + '_variants.vcf'
+    output_name = input_name + '_variants.vcf'
     output_dir = 'OUTPUT'
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
@@ -174,6 +173,7 @@ def test_mutate_plugin_list_model_ids_different():
   """Test with a list of two identical plugins with the different model ids. Both the plugins
   should work as expected."""
   from snp_wrapper import SNP  # Thanks Nebojsa
+  from nose.tools import assert_equals
 
   snp_params = {
           "model_id": "snp_test",
@@ -212,4 +212,3 @@ def test_mutate_plugin_list_model_ids_different():
   outputs = wrp_m.test()
   assert outputs.vcf.endswith('porcine_circovirus_variants.vcf')
   assert os.path.getsize(outputs.vcf)
-

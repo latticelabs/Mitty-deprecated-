@@ -87,3 +87,9 @@ Now check out the latest version of Mitty. We should be sitting under
 
 
     sbg push "My commit message which will become the name for this release of the Mitty toolkit"
+
+
+Check at this url to see if the image took
+
+    https://images.sbgenomics.com/v1/repositories/kghosesbg/mitty/images
+

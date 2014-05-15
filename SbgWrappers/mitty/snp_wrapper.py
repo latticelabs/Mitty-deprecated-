@@ -2,7 +2,8 @@
 .json file that will be used by mutate_wrapper to create a full .json file that can be fed to mutate.py
 
 The .json fragment should look like
-
+          ______________ model id
+        /
       "snp": {
           "model": "snp",
           "start_snps_frac": 0.1,
@@ -32,7 +33,7 @@ class SNP(define.Wrapper):
 
   class Params(define.Params):
     model_id = define.string(required=True, description='A unique name for this instance of the SNP generator')
-    # "snp" in the example above. Needs to be unique8, currently not used by mutate
+    # "snp" in the example above. Needs to be unique
     start_snps_frac = define.real(default=0, min=0, max=1, category='SNP model',
                                   description='start generating snps from here (0.0, 1.0)')
     stop_snps_frac = define.real(default=1, min=0, max=1, category='SNP model',
@@ -50,6 +51,12 @@ class SNP(define.Wrapper):
     base_sub_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='SNP model',
           description='Seed for random number generator used to select ALT bases')
 
+  def write_to_json(self, fname):
+    with open(fname, 'w') as f:
+      params = self.params.__json__()
+      params.pop('model_id')
+      json.dump({self.params.model_id: dict(model='snp', **params)}, f)
+
   def execute(self):
     output_dir = 'OUTPUT'
     if not os.path.exists(output_dir):
@@ -57,10 +64,7 @@ class SNP(define.Wrapper):
     self.outputs.json_fragment = \
       os.path.join(output_dir, '{:s}_snp_plugin_params.json'.format(self.params.model_id))
     # By adding the model_id bit to the name we ensure uniqueness
-    with open(self.outputs.json_fragment, 'w') as f:
-      params = self.params.__json__()
-      params.pop('model_id')
-      json.dump({self.params.model_id: dict(model='snp', **params)}, f)
+    self.write_to_json(self.outputs.json_fragment)
     self.outputs.json_fragment.meta = self.outputs.json_fragment.make_metadata(file_type='json')
 
 

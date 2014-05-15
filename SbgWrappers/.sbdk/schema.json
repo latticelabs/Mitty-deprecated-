@@ -1,13 +1,30 @@
 [
   {
     "schema": {
-      "inputs": [], 
+      "inputs": [
+        {
+          "description": "The reference file", 
+          "id": "ref", 
+          "list": false, 
+          "name": "Reference", 
+          "required": false, 
+          "types": []
+        }, 
+        {
+          "description": "The mutation plugins", 
+          "id": "plugins", 
+          "list": true, 
+          "name": "Plugins", 
+          "required": false, 
+          "types": []
+        }
+      ], 
       "outputs": [
         {
-          "description": "Json fragment", 
-          "id": "json_fragment", 
+          "description": "Vcf", 
+          "id": "vcf", 
           "list": false, 
-          "name": "Json fragment", 
+          "name": "Vcf", 
           "required": false, 
           "types": []
         }
@@ -17,7 +34,49 @@
           "category": null, 
           "condition": null, 
           "default": null, 
-          "description": "Model id", 
+          "description": "Chromosome", 
+          "id": "chromosome", 
+          "list": false, 
+          "name": "Chromosome", 
+          "pattern": null, 
+          "required": true, 
+          "type": "string"
+        }, 
+        {
+          "category": null, 
+          "condition": null, 
+          "default": null, 
+          "description": "Output vcf name", 
+          "id": "output_vcf_name", 
+          "list": false, 
+          "name": "Output vcf name", 
+          "pattern": null, 
+          "required": false, 
+          "type": "string"
+        }
+      ]
+    }, 
+    "wrapper_id": "mitty.mutate_wrapper.Mutate"
+  }, 
+  {
+    "schema": {
+      "inputs": [], 
+      "outputs": [
+        {
+          "description": "SNP definitions for mutate", 
+          "id": "json_fragment", 
+          "list": false, 
+          "name": "SNPs", 
+          "required": false, 
+          "types": []
+        }
+      ], 
+      "params": [
+        {
+          "category": null, 
+          "condition": null, 
+          "default": null, 
+          "description": "A unique name for this instance of the SNP generator", 
           "id": "model_id", 
           "list": false, 
           "name": "Model id", 
@@ -29,7 +88,7 @@
           "category": "SNP model", 
           "condition": null, 
           "default": 0, 
-          "description": "Start snps frac", 
+          "description": "start generating snps from here (0.0, 1.0)", 
           "id": "start_snps_frac", 
           "list": false, 
           "max": 1, 
@@ -43,7 +102,7 @@
           "category": "SNP model", 
           "condition": null, 
           "default": 1, 
-          "description": "Stop snps frac", 
+          "description": "stop generating snps after this (0.0, 1.0) stop_snps_frac > start_snps_frac", 
           "id": "stop_snps_frac", 
           "list": false, 
           "max": 1, 
@@ -57,7 +116,7 @@
           "category": "SNP model", 
           "condition": null, 
           "default": 0.01, 
-          "description": "Phet", 
+          "description": "probability of having heterozygous mutation", 
           "id": "phet", 
           "list": false, 
           "max": 1, 
@@ -71,7 +130,7 @@
           "category": "SNP model", 
           "condition": null, 
           "default": 0.01, 
-          "description": "P", 
+          "description": "probability of SNPs", 
           "id": "p", 
           "list": false, 
           "max": 1, 
@@ -85,10 +144,38 @@
           "category": "SNP model", 
           "condition": null, 
           "default": 1, 
-          "description": "Poisson rng seed", 
+          "description": "Seed for random number generator used to decide if genotype is heterozygous or not", 
+          "id": "het_rng_seed", 
+          "list": false, 
+          "max": 4294967295, 
+          "min": 0, 
+          "name": "Het rng seed", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }, 
+        {
+          "category": "SNP model", 
+          "condition": null, 
+          "default": 1, 
+          "description": "Seed for random number generator used to decide which strand the SNP will be on", 
+          "id": "strand_rng_seed", 
+          "list": false, 
+          "max": 4294967295, 
+          "min": 0, 
+          "name": "Strand rng seed", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }, 
+        {
+          "category": "SNP model", 
+          "condition": null, 
+          "default": 1, 
+          "description": "Seed for SNP locator random number generator", 
           "id": "poisson_rng_seed", 
           "list": false, 
-          "max": null, 
+          "max": 4294967295, 
           "min": 0, 
           "name": "Poisson rng seed", 
           "required": false, 
@@ -99,10 +186,10 @@
           "category": "SNP model", 
           "condition": null, 
           "default": 1, 
-          "description": "Base sub rng seed", 
+          "description": "Seed for random number generator used to select ALT bases", 
           "id": "base_sub_rng_seed", 
           "list": false, 
-          "max": null, 
+          "max": 4294967295, 
           "min": 0, 
           "name": "Base sub rng seed", 
           "required": false, 
