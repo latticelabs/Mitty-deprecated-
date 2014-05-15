@@ -1,4 +1,21 @@
-"""TODO: Write docs"""
+"""This is the stock SNP plugin. It uses four independent RNGs to located SNPs along a reference sequence, assign each
+SNP a zygosity and assign an ALT base.
+
+Example parameter snippet:
+
+    "snp": {
+        "model": "snp",
+        "start_snps_frac": 0.1,
+        "stop_snps_frac":  0.3,
+        "phet": 0.5,
+        "p": 0.01,
+        "het_rng_seed":3,
+        "strand_rng_seed": 4,
+        "poisson_rng_seed": 1,
+        "base_sub_rng_seed": 2
+    }
+
+"""
 import numpy
 import logging
 
