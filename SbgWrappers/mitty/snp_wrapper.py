@@ -54,7 +54,9 @@ class SNP(define.Wrapper):
     output_dir = 'OUTPUT'
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
-    self.outputs.json_fragment = os.path.join(output_dir, 'snp_plugin_params.json')
+    self.outputs.json_fragment = \
+      os.path.join(output_dir, '{:s}_snp_plugin_params.json'.format(self.params.model_id))
+    # By adding the model_id bit to the name we ensure uniqueness
     with open(self.outputs.json_fragment, 'w') as f:
       params = self.params.__json__()
       params.pop('model_id')
