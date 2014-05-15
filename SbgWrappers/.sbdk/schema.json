@@ -1,0 +1,116 @@
+[
+  {
+    "schema": {
+      "inputs": [], 
+      "outputs": [
+        {
+          "description": "Json fragment", 
+          "id": "json_fragment", 
+          "list": false, 
+          "name": "Json fragment", 
+          "required": false, 
+          "types": []
+        }
+      ], 
+      "params": [
+        {
+          "category": null, 
+          "condition": null, 
+          "default": null, 
+          "description": "Model id", 
+          "id": "model_id", 
+          "list": false, 
+          "name": "Model id", 
+          "pattern": null, 
+          "required": true, 
+          "type": "string"
+        }, 
+        {
+          "category": "SNP model", 
+          "condition": null, 
+          "default": 0, 
+          "description": "Start snps frac", 
+          "id": "start_snps_frac", 
+          "list": false, 
+          "max": 1, 
+          "min": 0, 
+          "name": "Start snps frac", 
+          "required": false, 
+          "step": null, 
+          "type": "float"
+        }, 
+        {
+          "category": "SNP model", 
+          "condition": null, 
+          "default": 1, 
+          "description": "Stop snps frac", 
+          "id": "stop_snps_frac", 
+          "list": false, 
+          "max": 1, 
+          "min": 0, 
+          "name": "Stop snps frac", 
+          "required": false, 
+          "step": null, 
+          "type": "float"
+        }, 
+        {
+          "category": "SNP model", 
+          "condition": null, 
+          "default": 0.01, 
+          "description": "Phet", 
+          "id": "phet", 
+          "list": false, 
+          "max": 1, 
+          "min": 0, 
+          "name": "Phet", 
+          "required": false, 
+          "step": null, 
+          "type": "float"
+        }, 
+        {
+          "category": "SNP model", 
+          "condition": null, 
+          "default": 0.01, 
+          "description": "P", 
+          "id": "p", 
+          "list": false, 
+          "max": 1, 
+          "min": 0, 
+          "name": "P", 
+          "required": false, 
+          "step": null, 
+          "type": "float"
+        }, 
+        {
+          "category": "SNP model", 
+          "condition": null, 
+          "default": 1, 
+          "description": "Poisson rng seed", 
+          "id": "poisson_rng_seed", 
+          "list": false, 
+          "max": null, 
+          "min": 0, 
+          "name": "Poisson rng seed", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }, 
+        {
+          "category": "SNP model", 
+          "condition": null, 
+          "default": 1, 
+          "description": "Base sub rng seed", 
+          "id": "base_sub_rng_seed", 
+          "list": false, 
+          "max": null, 
+          "min": 0, 
+          "name": "Base sub rng seed", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }
+      ]
+    }, 
+    "wrapper_id": "mitty.snp_wrapper.SNP"
+  }
+]

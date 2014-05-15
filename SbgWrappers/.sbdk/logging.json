@@ -1,0 +1,20 @@
+{
+    "version":1,
+    "disable_existing_loggers": false,
+    "handlers": {
+        "file_handler": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": "__exec__.log"
+        }
+    },
+    "loggers": {
+        "root": {
+            "handlers": [
+                "file_handler"
+            ],
+            "level": "DEBUG",
+            "propagate": true
+        }
+    }
+}
