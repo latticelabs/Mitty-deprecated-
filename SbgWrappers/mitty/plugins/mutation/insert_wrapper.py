@@ -26,6 +26,7 @@ import json
 from sbgsdk import define
 from nose.tools import assert_equals
 
+
 class Insert(define.Wrapper):
   class Inputs(define.Inputs):
     pass
@@ -57,7 +58,6 @@ class Insert(define.Wrapper):
           description='Seed for insert length random number generator')
     base_sel_rng_seed = define.integer(default=5, min=0, max=2**32 - 1, category='Model params: RNG',
           description='Seed for random number generator used to select ALT bases')
-
 
   def write_to_json(self, fname):
     with open(fname, 'w') as f:
