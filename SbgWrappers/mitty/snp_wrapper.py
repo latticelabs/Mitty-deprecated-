@@ -32,23 +32,24 @@ class SNP(define.Wrapper):
     json_fragment = define.output(name="SNPs", description="SNP definitions for mutate")
 
   class Params(define.Params):
-    model_id = define.string(required=True, description='A unique name for this instance of the SNP generator')
+    model_id = define.string(required=True, description='A unique name for this instance of the SNP generator',
+                             category='General')
     # "snp" in the example above. Needs to be unique
-    start_snps_frac = define.real(default=0, min=0, max=1, category='SNP model',
+    start_snps_frac = define.real(default=0, min=0, max=1, category='Model params',
                                   description='start generating snps from here (0.0, 1.0)')
-    stop_snps_frac = define.real(default=1, min=0, max=1, category='SNP model',
-                                 description='stop generating snps after this (0.0, 1.0) stop_snps_frac > start_snps_frac')
-    phet = define.real(default=0.01, min=0, max=1, category='SNP model',
+    stop_snps_frac = define.real(default=1, min=0, max=1, category='Model params',
+                                 description='stop generating snps after this (0.0, 1.0)')
+    phet = define.real(default=0.01, min=0, max=1, category='Model params',
                        description='probability of having heterozygous mutation')
-    p = define.real(default=0.01, min=0, max=1, category='SNP model',
+    p = define.real(default=0.01, min=0, max=1, category='Model params',
                     description='probability of SNPs')
-    het_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='SNP model',
+    het_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='Model params: RNG',
           description='Seed for random number generator used to decide if genotype is heterozygous or not')
-    strand_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='SNP model',
+    strand_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='Model params: RNG',
           description='Seed for random number generator used to decide which strand the SNP will be on')
-    poisson_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='SNP model',
+    poisson_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='Model params: RNG',
           description='Seed for SNP locator random number generator')
-    base_sub_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='SNP model',
+    base_sub_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='Model params: RNG',
           description='Seed for random number generator used to select ALT bases')
 
   def write_to_json(self, fname):
