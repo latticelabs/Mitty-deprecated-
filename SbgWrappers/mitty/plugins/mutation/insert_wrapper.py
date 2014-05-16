@@ -47,7 +47,7 @@ class Insert(define.Wrapper):
     p_ins = define.real(default=0.01, min=0, max=1, category='Model params',
                         description='probability of an insert')
     lam_ins = define.integer(default=10, min=1, category='Model params',
-          description='Seed for random number generator used to decide if genotype is heterozygous or not')
+                             description='Mean length of insertion (Poisson distributed)')
     het_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='Model params: RNG',
           description='Seed for random number generator used to decide if genotype is heterozygous or not')
     strand_rng_seed = define.integer(default=2, min=0, max=2**32 - 1, category='Model params: RNG',
