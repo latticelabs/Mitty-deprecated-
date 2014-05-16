@@ -6,6 +6,21 @@ The other creates poisson distributed numbers to determine deletion lengths. Thi
 termination as a bernoulli process.
 
 Note: This never generates a deletion at the first base of a sequence.
+
+Example parameter snippet
+
+    "mydelete": {
+        "model": "delete",
+        "start_dels_frac": 0.7,
+        "stop_dels_frac":  0.9,
+        "phet": 0,
+        "p_del": 0.01,
+        "lam_del": 10,
+        "het_rng_seed": 3,
+        "strand_rng_seed": 4,
+        "del_loc_rng_seed": 0,
+        "del_len_rng_seed": 1
+    }
 """
 import numpy
 import logging
