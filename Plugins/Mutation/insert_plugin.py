@@ -6,7 +6,24 @@ The second creates poisson distributed numbers to determine deletion lengths. Th
 termination as a bernoulli process. The third is a uniform random number generator that is used to generate bases for
 the insertions. The plugin generates all bases at the same rate.
 
-Note: This never generates a deletion at the first base of a sequence."""
+Note: This never generates a deletion at the first base of a sequence.
+
+Example parameter snippet
+
+    "myinsert": {
+        "model": "insert",
+        "start_ins_frac": 0.7,
+        "stop_ins_frac":  0.9,
+        "phet": 0,
+        "p_ins": 0.01,
+        "lam_ins": 10,
+        "het_rng_seed": 3,
+        "strand_rng_seed": 4,
+        "ins_loc_rng_seed": 0,
+        "ins_len_rng_seed": 1,
+        "base_sel_rng_seed": 2
+    }
+"""
 import numpy
 import logging
 
