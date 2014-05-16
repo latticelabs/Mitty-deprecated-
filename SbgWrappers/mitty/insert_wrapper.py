@@ -34,7 +34,8 @@ class Insert(define.Wrapper):
     json_fragment = define.output(name="Inserts", description="Insertion definitions for mutate")
 
   class Params(define.Params):
-    model_id = define.string(required=True, description='A unique name for this instance of the SNP generator', category='General')
+    model_id = define.string(required=True,
+                             description='A unique name for this instance of the insert generator', category='General')
     # "myinsert" in the example above. Needs to be unique TODO: How to make interlock on platform
     start_ins_frac = define.real(default=0, min=0, max=1, category='Model params',
                                   description='start generating inserts from here (0.0, 1.0)')
