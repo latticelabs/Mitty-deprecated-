@@ -3,7 +3,7 @@ SNP a zygosity and assign an ALT base.
 
 Example parameter snippet:
 
-    "snp": {
+    "mysnp": {
         "model": "snp",
         "start_snps_frac": 0.1,
         "stop_snps_frac":  0.3,
@@ -14,7 +14,6 @@ Example parameter snippet:
         "poisson_rng_seed": 1,
         "base_sub_rng_seed": 2
     }
-
 """
 import numpy
 import logging
