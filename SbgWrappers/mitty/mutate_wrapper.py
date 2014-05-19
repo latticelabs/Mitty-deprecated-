@@ -66,12 +66,13 @@ class Mutate(define.Wrapper):
     vcf = define.output(name='VCF file', description='A VCF file containing a list of simulated variants', list=True)
 
   class Params(define.Params):
-    chromosome = define.string(required=True)
+    vcf_file_name = define.string(default='', description='Output file name. Leaving this blank will generate a file name with _variants.vcf added to the sequence name')
+    chromosome = define.string(default='1', description='Chromosome number')
 
   def execute(self):
     input_dir = os.path.dirname(self.inputs.ref)
     input_name = os.path.splitext(os.path.basename(self.inputs.ref))[0]
-    output_name = input_name + '_variants.vcf'
+    output_name = input_name + '_variants.vcf' if self.params.vcf_file_name == '' else self.params.vcf_file_name
     output_dir = 'OUTPUT'
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
