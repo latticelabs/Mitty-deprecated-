@@ -5,6 +5,8 @@ Command line parameters are
 
 """
 from sbgsdk import define, Process, require
+from sbgsdk.exceptions import InputsValidationException, ParamsValidationException, NoSuchMethodError
+# We needed to import these exceptions because we do a bit of our own input validation
 import os
 
 
@@ -12,15 +14,15 @@ import os
 class Vcf2Seq(define.Wrapper):
   class Inputs(define.Inputs):
     ref_seq = define.input(name='Reference', description='The reference sequence (.smalla format)', required=True)
-    vcf_file = define.input(name='VCF file', description='VCF file', required=True)
+    vcf_files = define.input(name='VCF file', description='VCF file (.vcf + .vcf.gz + .vcf.gz.tbi)', required=True, list=True)
 
   class Outputs(define.Outputs):
     var_seqs = define.output(name='Output sequence (s)',
-      description='smalla file(s) containing variant sequence(s) with listed variants', list=True)
+      description='smalla file(s) containing variant sequence(s) with listed variants (.smalla + .pos)', list=True)
 
   class Params(define.Params):
-    var_seq_prefix = define.string(required=True, default='variant_seq',
-                                   description='Prefix for the ouput smalla file(s)')
+    var_seq_prefix = define.string(required=True, default='',
+                                   description='Prefix for the ouput smalla file(s). If left empty it is automatically filled out based on the input name')
     chromosome = define.string(required=True)
     ploidy = define.integer(required=True, default=1, min=1, max=2,
                             description='How many sets of chromosomes do we have? We can take a diploid VCF file'
@@ -28,23 +30,32 @@ class Vcf2Seq(define.Wrapper):
                                         'mutations as homozygous - by putting in ploidy=1 here')
 
   def execute(self):
-    #output_name = self.params.output_vcf_name or input_name + '_variants.vcf'
-    #output_name = input_name + '_variants.vcf'
+    def check_vcf():
+      """Ugly convenience file to ensure vcf_in contains three files '.vcf', '.vcf.gz' and '.vcf.gz.tbi."""
+      import os
+      files = {os.path.splitext(fn)[1]: fn for fn in self.inputs.vcf_files}
+      for k in ['.vcf', '.gz', '.tbi']:
+        if k not in files:
+          raise InputsValidationException(unicode(self.__class__) + u': ' + k + u' file missing from inputs\n')
+      return files['.vcf']
+
+    vcf_file = check_vcf()
     output_dir = 'OUTPUT'
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
 
+    var_seq_prefix = os.path.splitext(os.path.basename(self.inputs.ref_seq))[0] + '_variant' if self.params.var_seq_prefix is '' else self.params.var_seq_prefix
     p = Process('python', '/Mitty/vcf2seq.py',
                 self.inputs.ref_seq,
-                os.path.join(output_dir, self.params.var_seq_prefix),
+                os.path.join(output_dir, var_seq_prefix),
                 self.params.chromosome,
-                self.inputs.vcf_file,
+                vcf_file,
                 '--ploidy', self.params.ploidy, '-v')
     p.run()
 
-    self.outputs.var_seqs = [os.path.join(output_dir,
-                                          self.params.var_seq_prefix + '_' + str(n) + '.smalla') for n in range(self.params.ploidy)]
-    self.outputs.var_seqs.meta = self.outputs.var_seqs.make_metadata(file_type='smalla', type='list')
+    for n in range(self.params.ploidy):
+      self.outputs.var_seqs.add_file(os.path.join(output_dir, var_seq_prefix + '_' + str(n) + '.smalla'))
+      self.outputs.var_seqs.add_file(os.path.join(output_dir, var_seq_prefix + '_' + str(n) + '.smalla.pos'))
 
 
 def test_vcf2seq():
@@ -79,14 +90,18 @@ def test_vcf2seq():
   expected_mut_seq = 'ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGGCACTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCCAAACGCCCTCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCCTTGAATAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCATTCAAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCCGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTGCAATTCTTTAATCTTAAAGACCCCCCACTTAACCCTTAG'
 
   inputs = {'ref_seq': '/sbgenomics/test-data/porcine_circovirus.smalla',
-            'vcf_file': '/sbgenomics/test-data/variants.vcf'}
-  params = {'var_seq_prefix': 'variant_seq',
+            'vcf_files': ['/sbgenomics/test-data/variants.vcf',
+                          '/sbgenomics/test-data/variants.vcf.gz',
+                          '/sbgenomics/test-data/variants.vcf.gz.tbi']}
+  params = {'var_seq_prefix': '',
             'chromosome': '1',
             'ploidy': 2}
   wrp = Vcf2Seq(inputs, params)
   outputs = wrp.test()
 
   # Test to see the written sequences are correct
-  for fname in outputs.var_seqs:
-    with open(fname, 'r') as f:
-      assert f.read() == expected_mut_seq
+  with open(outputs.var_seqs[0], 'r') as f:
+    assert f.read() == expected_mut_seq
+
+  with open(outputs.var_seqs[2], 'r') as f:
+    assert f.read() == expected_mut_seq
