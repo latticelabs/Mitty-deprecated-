@@ -3,7 +3,7 @@
     "schema": {
       "inputs": [
         {
-          "description": "The reference file", 
+          "description": "The reference sequence (.smalla format)", 
           "id": "ref", 
           "list": false, 
           "name": "Reference", 
@@ -21,10 +21,10 @@
       ], 
       "outputs": [
         {
-          "description": "Vcf", 
+          "description": "A VCF file containing a list of simulated variants", 
           "id": "vcf", 
           "list": false, 
-          "name": "Vcf", 
+          "name": "VCF file", 
           "required": false, 
           "types": []
         }
@@ -40,18 +40,6 @@
           "name": "Chromosome", 
           "pattern": null, 
           "required": true, 
-          "type": "string"
-        }, 
-        {
-          "category": null, 
-          "condition": null, 
-          "default": null, 
-          "description": "Output vcf name", 
-          "id": "output_vcf_name", 
-          "list": false, 
-          "name": "Output vcf name", 
-          "pattern": null, 
-          "required": false, 
           "type": "string"
         }
       ]
@@ -73,7 +61,7 @@
       ], 
       "params": [
         {
-          "category": null, 
+          "category": "General", 
           "condition": null, 
           "default": null, 
           "description": "A unique name for this instance of the SNP generator", 
@@ -85,7 +73,7 @@
           "type": "string"
         }, 
         {
-          "category": "SNP model", 
+          "category": "Model params", 
           "condition": null, 
           "default": 0, 
           "description": "start generating snps from here (0.0, 1.0)", 
@@ -99,10 +87,10 @@
           "type": "float"
         }, 
         {
-          "category": "SNP model", 
+          "category": "Model params", 
           "condition": null, 
           "default": 1, 
-          "description": "stop generating snps after this (0.0, 1.0) stop_snps_frac > start_snps_frac", 
+          "description": "stop generating snps after this (0.0, 1.0)", 
           "id": "stop_snps_frac", 
           "list": false, 
           "max": 1, 
@@ -113,7 +101,7 @@
           "type": "float"
         }, 
         {
-          "category": "SNP model", 
+          "category": "Model params", 
           "condition": null, 
           "default": 0.01, 
           "description": "probability of having heterozygous mutation", 
@@ -127,7 +115,7 @@
           "type": "float"
         }, 
         {
-          "category": "SNP model", 
+          "category": "Model params", 
           "condition": null, 
           "default": 0.01, 
           "description": "probability of SNPs", 
@@ -141,7 +129,7 @@
           "type": "float"
         }, 
         {
-          "category": "SNP model", 
+          "category": "Model params: RNG", 
           "condition": null, 
           "default": 1, 
           "description": "Seed for random number generator used to decide if genotype is heterozygous or not", 
@@ -155,7 +143,7 @@
           "type": "integer"
         }, 
         {
-          "category": "SNP model", 
+          "category": "Model params: RNG", 
           "condition": null, 
           "default": 1, 
           "description": "Seed for random number generator used to decide which strand the SNP will be on", 
@@ -169,7 +157,7 @@
           "type": "integer"
         }, 
         {
-          "category": "SNP model", 
+          "category": "Model params: RNG", 
           "condition": null, 
           "default": 1, 
           "description": "Seed for SNP locator random number generator", 
@@ -183,7 +171,7 @@
           "type": "integer"
         }, 
         {
-          "category": "SNP model", 
+          "category": "Model params: RNG", 
           "condition": null, 
           "default": 1, 
           "description": "Seed for random number generator used to select ALT bases", 
@@ -198,6 +186,332 @@
         }
       ]
     }, 
-    "wrapper_id": "mitty.snp_wrapper.SNP"
+    "wrapper_id": "mitty.plugins.mutation.snp_wrapper.SNP"
+  }, 
+  {
+    "schema": {
+      "inputs": [], 
+      "outputs": [
+        {
+          "description": "Insertion definitions for mutate", 
+          "id": "json_fragment", 
+          "list": false, 
+          "name": "Inserts", 
+          "required": false, 
+          "types": []
+        }
+      ], 
+      "params": [
+        {
+          "category": "General", 
+          "condition": null, 
+          "default": null, 
+          "description": "A unique name for this instance of the insert generator", 
+          "id": "model_id", 
+          "list": false, 
+          "name": "Model id", 
+          "pattern": null, 
+          "required": true, 
+          "type": "string"
+        }, 
+        {
+          "category": "Model params", 
+          "condition": null, 
+          "default": 0, 
+          "description": "start generating inserts from here (0.0, 1.0)", 
+          "id": "start_ins_frac", 
+          "list": false, 
+          "max": 1, 
+          "min": 0, 
+          "name": "Start ins frac", 
+          "required": false, 
+          "step": null, 
+          "type": "float"
+        }, 
+        {
+          "category": "Model params", 
+          "condition": null, 
+          "default": 1, 
+          "description": "stop generating inserts after this (0.0, 1.0)", 
+          "id": "stop_ins_frac", 
+          "list": false, 
+          "max": 1, 
+          "min": 0, 
+          "name": "Stop ins frac", 
+          "required": false, 
+          "step": null, 
+          "type": "float"
+        }, 
+        {
+          "category": "Model params", 
+          "condition": null, 
+          "default": 0.01, 
+          "description": "probability of having heterozygous mutation", 
+          "id": "phet", 
+          "list": false, 
+          "max": 1, 
+          "min": 0, 
+          "name": "Phet", 
+          "required": false, 
+          "step": null, 
+          "type": "float"
+        }, 
+        {
+          "category": "Model params", 
+          "condition": null, 
+          "default": 0.01, 
+          "description": "probability of an insert", 
+          "id": "p_ins", 
+          "list": false, 
+          "max": 1, 
+          "min": 0, 
+          "name": "P ins", 
+          "required": false, 
+          "step": null, 
+          "type": "float"
+        }, 
+        {
+          "category": "Model params", 
+          "condition": null, 
+          "default": 10, 
+          "description": "Mean length of insertion (Poisson distributed)", 
+          "id": "lam_ins", 
+          "list": false, 
+          "max": null, 
+          "min": 1, 
+          "name": "Lam ins", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }, 
+        {
+          "category": "Model params: RNG", 
+          "condition": null, 
+          "default": 1, 
+          "description": "Seed for random number generator used to decide if genotype is heterozygous or not", 
+          "id": "het_rng_seed", 
+          "list": false, 
+          "max": 4294967295, 
+          "min": 0, 
+          "name": "Het rng seed", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }, 
+        {
+          "category": "Model params: RNG", 
+          "condition": null, 
+          "default": 2, 
+          "description": "Seed for random number generator used to decide which strand the variant will be on", 
+          "id": "strand_rng_seed", 
+          "list": false, 
+          "max": 4294967295, 
+          "min": 0, 
+          "name": "Strand rng seed", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }, 
+        {
+          "category": "Model params: RNG", 
+          "condition": null, 
+          "default": 3, 
+          "description": "Seed for variant location random number generator", 
+          "id": "ins_loc_rng_seed", 
+          "list": false, 
+          "max": 4294967295, 
+          "min": 0, 
+          "name": "Ins loc rng seed", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }, 
+        {
+          "category": "Model params: RNG", 
+          "condition": null, 
+          "default": 4, 
+          "description": "Seed for insert length random number generator", 
+          "id": "ins_len_rng_seed", 
+          "list": false, 
+          "max": 4294967295, 
+          "min": 0, 
+          "name": "Ins len rng seed", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }, 
+        {
+          "category": "Model params: RNG", 
+          "condition": null, 
+          "default": 5, 
+          "description": "Seed for random number generator used to select ALT bases", 
+          "id": "base_sel_rng_seed", 
+          "list": false, 
+          "max": 4294967295, 
+          "min": 0, 
+          "name": "Base sel rng seed", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }
+      ]
+    }, 
+    "wrapper_id": "mitty.plugins.mutation.insert_wrapper.Insert"
+  }, 
+  {
+    "schema": {
+      "inputs": [], 
+      "outputs": [
+        {
+          "description": "Deletion definitions for mutate", 
+          "id": "json_fragment", 
+          "list": false, 
+          "name": "Deletions", 
+          "required": false, 
+          "types": []
+        }
+      ], 
+      "params": [
+        {
+          "category": "General", 
+          "condition": null, 
+          "default": null, 
+          "description": "A unique name for this instance of the insert generator", 
+          "id": "model_id", 
+          "list": false, 
+          "name": "Model id", 
+          "pattern": null, 
+          "required": true, 
+          "type": "string"
+        }, 
+        {
+          "category": "Model params", 
+          "condition": null, 
+          "default": 0, 
+          "description": "start generating deletions from here (0.0, 1.0)", 
+          "id": "start_dels_frac", 
+          "list": false, 
+          "max": 1, 
+          "min": 0, 
+          "name": "Start dels frac", 
+          "required": false, 
+          "step": null, 
+          "type": "float"
+        }, 
+        {
+          "category": "Model params", 
+          "condition": null, 
+          "default": 1, 
+          "description": "stop generating deletions after this (0.0, 1.0)", 
+          "id": "stop_dels_frac", 
+          "list": false, 
+          "max": 1, 
+          "min": 0, 
+          "name": "Stop dels frac", 
+          "required": false, 
+          "step": null, 
+          "type": "float"
+        }, 
+        {
+          "category": "Model params", 
+          "condition": null, 
+          "default": 0.01, 
+          "description": "probability of having heterozygous mutation", 
+          "id": "phet", 
+          "list": false, 
+          "max": 1, 
+          "min": 0, 
+          "name": "Phet", 
+          "required": false, 
+          "step": null, 
+          "type": "float"
+        }, 
+        {
+          "category": "Model params", 
+          "condition": null, 
+          "default": 0.01, 
+          "description": "probability of a deletion", 
+          "id": "p_del", 
+          "list": false, 
+          "max": 1, 
+          "min": 0, 
+          "name": "P del", 
+          "required": false, 
+          "step": null, 
+          "type": "float"
+        }, 
+        {
+          "category": "Model params", 
+          "condition": null, 
+          "default": 10, 
+          "description": "Mean length of deletion (Poisson distributed)", 
+          "id": "lam_del", 
+          "list": false, 
+          "max": null, 
+          "min": 1, 
+          "name": "Lam del", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }, 
+        {
+          "category": "Model params: RNG", 
+          "condition": null, 
+          "default": 1, 
+          "description": "Seed for random number generator used to decide if genotype is heterozygous or not", 
+          "id": "het_rng_seed", 
+          "list": false, 
+          "max": 4294967295, 
+          "min": 0, 
+          "name": "Het rng seed", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }, 
+        {
+          "category": "Model params: RNG", 
+          "condition": null, 
+          "default": 2, 
+          "description": "Seed for random number generator used to decide which strand the variant will be on", 
+          "id": "strand_rng_seed", 
+          "list": false, 
+          "max": 4294967295, 
+          "min": 0, 
+          "name": "Strand rng seed", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }, 
+        {
+          "category": "Model params: RNG", 
+          "condition": null, 
+          "default": 3, 
+          "description": "Seed for variant location random number generator", 
+          "id": "del_loc_rng_seed", 
+          "list": false, 
+          "max": 4294967295, 
+          "min": 0, 
+          "name": "Del loc rng seed", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }, 
+        {
+          "category": "Model params: RNG", 
+          "condition": null, 
+          "default": 4, 
+          "description": "Seed for deletion length random number generator", 
+          "id": "del_len_rng_seed", 
+          "list": false, 
+          "max": 4294967295, 
+          "min": 0, 
+          "name": "Del len rng seed", 
+          "required": false, 
+          "step": null, 
+          "type": "integer"
+        }
+      ]
+    }, 
+    "wrapper_id": "mitty.plugins.mutation.delete_wrapper.Deletion"
   }
 ]
