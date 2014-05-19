@@ -63,7 +63,7 @@ class Mutate(define.Wrapper):
     plugins = define.input(name='Plugins', description='The mutation plugins', list=True)
 
   class Outputs(define.Outputs):
-    vcf = define.output(name='VCF file', description='A VCF file containing a list of simulated variants')
+    vcf = define.output(name='VCF file', description='A VCF file containing a list of simulated variants', list=True)
 
   class Params(define.Params):
     chromosome = define.string(required=True)
@@ -94,7 +94,10 @@ class Mutate(define.Wrapper):
       json.dump(params_json, fp, indent=2)
     p = Process('python', '/Mitty/mutate.py', '--paramfile', 'params.json', '-v')
     p.run()
-    self.outputs.vcf = os.path.join(output_dir, output_name)
+    # mutate.py produces three files - the .vcf, the gzipped form .vcf.gz and the tabix index .vcf.gz.tbi
+    self.outputs.vcf.add_file(os.path.join(output_dir, output_name))
+    self.outputs.vcf.add_file(os.path.join(output_dir, output_name + '.gz'))
+    self.outputs.vcf.add_file(os.path.join(output_dir, output_name + '.gz.tbi'))
     self.outputs.vcf.meta = self.inputs.ref.make_metadata(file_type='vcf')
 
 
@@ -121,8 +124,10 @@ def test_mutate_simple():
             'plugins': [wrp.outputs.json_fragment]}
   wrp_m = Mutate(inputs, params)
   outputs = wrp_m.test()
-  assert outputs.vcf.endswith('porcine_circovirus_variants.vcf')
-  assert os.path.getsize(outputs.vcf)
+
+  expected_line = '1	169	.	A	T	96	PASS	.	GT	1/1'
+  with open(outputs.vcf[0], 'r') as f:
+    assert f.readlines()[5].strip() == expected_line
 
 
 def test_mutate_plugin_list_model_ids_same():
@@ -164,14 +169,17 @@ def test_mutate_plugin_list_model_ids_same():
             'plugins': [wrp_snp1.outputs.json_fragment, wrp_snp2.outputs.json_fragment]}
   wrp_m = Mutate(inputs, params)
   outputs = wrp_m.test()
-  assert outputs.vcf.endswith('porcine_circovirus_variants.vcf')
-  assert os.path.getsize(outputs.vcf)
+
+  expected_line = '1	590	.	G	A	96	PASS	.	GT	0/1'
+  with open(outputs.vcf[0], 'r') as f:
+    assert f.readlines()[5].strip() == expected_line
 
 
 def test_mutate_plugin_list_model_ids_different():
   """Test with a list of two identical plugins with the different model ids. Both the plugins
   should work as expected."""
   from .plugins.mutation.snp_wrapper import SNP
+  from nose.tools import assert_equals
 
   snp_params = {
           "model_id": "snp_test",
@@ -208,5 +216,9 @@ def test_mutate_plugin_list_model_ids_different():
             'plugins': [wrp_snp1.outputs.json_fragment, wrp_snp2.outputs.json_fragment]}
   wrp_m = Mutate(inputs, params)
   outputs = wrp_m.test()
-  assert outputs.vcf.endswith('porcine_circovirus_variants.vcf')
-  assert os.path.getsize(outputs.vcf)
+
+  expected_lines = ['1	169	.	A	T	96	PASS	.	GT	1/1', '1	590	.	G	A	96	PASS	.	GT	0/1']
+  with open(outputs.vcf[0], 'r') as f:
+    lines = f.readlines()
+    assert_equals(lines[5].strip(), expected_lines[0])
+    assert_equals(lines[6].strip(), expected_lines[1])
