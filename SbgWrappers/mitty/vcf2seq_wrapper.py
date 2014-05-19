@@ -23,7 +23,7 @@ class Vcf2Seq(define.Wrapper):
   class Params(define.Params):
     var_seq_prefix = define.string(required=True, default='',
                                    description='Prefix for the ouput smalla file(s). If left empty it is automatically filled out based on the input name')
-    chromosome = define.string(required=True)
+    chromosome = define.string(required=True, default='1')
     ploidy = define.integer(required=True, default=1, min=1, max=2,
                             description='How many sets of chromosomes do we have? We can take a diploid VCF file'
                                         '(with genotype info) and discard the genotype information - treat all'
