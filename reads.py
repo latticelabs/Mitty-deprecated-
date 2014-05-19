@@ -21,6 +21,24 @@ Notes:
    The perfect reads will be saved to sim_reads.bam (or sim_reads.fastq). If we ask for corrupted reads
    we will get the corrupted reads in the file sim_reads_c.fastq.
    A text sidecar file sim_reads.info will always be saved with simulation parameters.
+
+Example parameter file .json
+
+{
+    "input sequences": ["mutated_1.smalla", "mutated_2.smalla"],
+    "total reads": [100, 100],
+    "is this ref seq": false,
+    "read ranges": [[0.0, 1.0], [0.0, 1.0]],
+    "output file (prefix only, no extension)": "sim_reads",
+    "read model": "tiled_reads",
+    "model params": {
+        "paired": false,
+        "read_len": 100,
+        "template_len": 250,
+        "read_advance": 50
+    }
+}
+
 """
 __version__ = '0.3.0'
 
