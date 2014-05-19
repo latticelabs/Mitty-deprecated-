@@ -48,8 +48,8 @@ Input json file for mutate.py is like
     }
 }
 
-We get pieces of the .json file corresponding to entries under "mutations" from the plugin wrappers
-
+We get pieces of the .json file corresponding to entries under "mutations" from the plugin wrappers and then piece it
+together here.
 """
 from sbgsdk import define, Process, require
 import json
@@ -71,7 +71,6 @@ class Mutate(define.Wrapper):
   def execute(self):
     input_dir = os.path.dirname(self.inputs.ref)
     input_name = os.path.splitext(os.path.basename(self.inputs.ref))[0]
-    #output_name = self.params.output_vcf_name or input_name + '_variants.vcf'
     output_name = input_name + '_variants.vcf'
     output_dir = 'OUTPUT'
     if not os.path.exists(output_dir):
@@ -92,7 +91,7 @@ class Mutate(define.Wrapper):
       "mutations": mutations
     }
     with open('params.json', 'w') as fp:
-      json.dump(params_json, fp, indent=2)  ### remove pretty printing?
+      json.dump(params_json, fp, indent=2)
     p = Process('python', '/Mitty/mutate.py', '--paramfile', 'params.json', '-v')
     p.run()
     self.outputs.vcf = os.path.join(output_dir, output_name)
@@ -101,7 +100,7 @@ class Mutate(define.Wrapper):
 
 def test_mutate_simple():
   """Test with one plugin."""
-  from snp_wrapper import SNP  # Thanks Nebojsa
+  from .plugins.mutation.snp_wrapper import SNP  # Thanks Nebojsa
 
   snp_params = {
           "model_id": "snp_test",
@@ -128,7 +127,7 @@ def test_mutate_simple():
 
 def test_mutate_plugin_list_model_ids_same():
   """Test with a list of two identical plugins with the same name. The first one should be erased."""
-  from snp_wrapper import SNP  # Thanks Nebojsa
+  from .plugins.mutation.snp_wrapper import SNP
 
   snp_params = {
           "model_id": "snp_test",
@@ -172,8 +171,7 @@ def test_mutate_plugin_list_model_ids_same():
 def test_mutate_plugin_list_model_ids_different():
   """Test with a list of two identical plugins with the different model ids. Both the plugins
   should work as expected."""
-  from snp_wrapper import SNP  # Thanks Nebojsa
-  from nose.tools import assert_equals
+  from .plugins.mutation.snp_wrapper import SNP
 
   snp_params = {
           "model_id": "snp_test",
