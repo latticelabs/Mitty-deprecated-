@@ -21,7 +21,9 @@ Notes:
    The perfect reads will be saved to sim_reads.bam (or sim_reads.fastq). If we ask for corrupted reads
    we will get the corrupted reads in the file sim_reads_c.fastq.
    A text sidecar file sim_reads.info will always be saved with simulation parameters.
+"""
 
+__explain__ = """
 Example parameter file .json
 
 {
@@ -38,8 +40,8 @@ Example parameter file .json
         "read_advance": 50
     }
 }
-
 """
+
 __version__ = '0.3.0'
 
 import os
@@ -372,10 +374,12 @@ if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
   elif docopt.sys.argv[1] == 'test':
-    import sys
     import doctest
     doctest.testmod()
-    sys.exit()
+    exit(0)
+  elif docopt.sys.argv[1] == 'explain':
+    print __explain__
+    exit(0)
   else:
     arguments = docopt.docopt(__doc__, version=__version__)
   level = logging.DEBUG if arguments['-v'] else logging.WARNING
