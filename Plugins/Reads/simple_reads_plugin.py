@@ -3,8 +3,8 @@ used by other models (e.g. tiles_reads)
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
-
-
+"""
+__explain__ = """
 Example parameter file
 
 {
@@ -21,7 +21,6 @@ Example parameter file
     }
 }
 """
-
 import numpy
 import logging
 logger = logging.getLogger(__name__)
@@ -172,3 +171,9 @@ def corrupt_reads(reads, read_len=100,
     corrupted_reads.append(these_reads)
 
   return corrupted_reads
+
+if __name__ == "__main__":
+  import sys
+  if len(sys.argv) == 2:  # Print explain
+    if sys.argv[1] == 'explain':
+      print __explain__
