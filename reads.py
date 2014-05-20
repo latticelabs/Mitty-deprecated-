@@ -8,8 +8,6 @@ Options:
   --paramfile=PFILE       Name for parameter file (If none supplied, will read from stdin)
   --corrupt               Write out corrupted reads too.
   --fastq                 Write as FASTQ instead of BAM (simulated_reads.fastq)
-  --shortqname            Instead of writing the POS and CIGAR into the qname, reads.py will only write the
-                          read serial number. Some tools, such as Tablet and IGV can be crashed if len(qname) > 254
   --reads_per_block=BL    Generate these many reads at a time (Adjust to machine resources). [default: 100000]
   -v                      Dump detailed logger messages
 
@@ -27,13 +25,13 @@ __explain__ = """
 Example parameter file .json
 
 {
-    "input sequences": ["mutated_1.smalla", "mutated_2.smalla"],
-    "total reads": [100, 100],
-    "is this ref seq": false,
-    "read ranges": [[0.0, 1.0], [0.0, 1.0]],
-    "output file (prefix only, no extension)": "sim_reads",
-    "read model": "tiled_reads",
-    "model params": {
+    "input_sequences": ["mutated_1.smalla", "mutated_2.smalla"],
+    "total_reads": [100, 100],
+    "is_this_ref_seq": false,
+    "read_ranges": [[0.0, 1.0], [0.0, 1.0]],
+    "output_file_prefix": "sim_reads",
+    "read_model": "tiled_reads",
+    "model_params": {
         "paired": false,
         "read_len": 100,
         "template_len": 250,
@@ -342,28 +340,28 @@ def main(args):
 
   # Load the read model from the plugins directory
   plugin_dir = os.path.join(os.path.dirname(__file__), 'Plugins', 'Reads')
-  model_fname = os.path.join(plugin_dir, params['read model'] + '_plugin.py')
+  model_fname = os.path.join(plugin_dir, params['read_model'] + '_plugin.py')
   read_model = imp.load_source('readmodel', model_fname, open(model_fname, 'r'))
 
   # Generate a dictionary of file handles for perfect and corrupted reads (if needed)
   save_as_bam = not args['--fastq']  # bam is True if args['-f] is False
   write_corrupted = args['--corrupt']  # If True, corrupted reads will be written out
-  read_file_handles = open_reads_files(params['output file (prefix only, no extension)'], write_corrupted, save_as_bam)
+  read_file_handles = open_reads_files(params['output_file_prefix'], write_corrupted, save_as_bam)
 
   # For each sequence in our input list generate reads and flush to file
-  for seq_name, read_count, read_range in zip(params['input sequences'], params['total reads'], params['read ranges']):
+  for seq_name, read_count, read_range in zip(params['input_sequences'], params['total_reads'], params['read_ranges']):
     reads_from_a_sequence(seq_fname=seq_name,
-                          is_ref_seq=params['is this ref seq'],
+                          is_ref_seq=params['is_this_ref_seq'],
                           read_count=read_count,
                           read_range=read_range,
                           read_model=read_model,
-                          model_params=params['model params'],
+                          model_params=params['model_params'],
                           read_file_handles=read_file_handles,
                           write_corrupted=write_corrupted,
                           save_as_bam=save_as_bam,
                           reads_per_call=int(args['--reads_per_block']))
 
-  with open(params['output file (prefix only, no extension)'] + '.info','w') as f:
+  with open(params['output_file_prefix'] + '.info', 'w') as f:
     f.write('Command line\n-------------\n')
     f.write(json.dumps(args, indent=4))
     f.write('\n\nParameters\n------------\n')
