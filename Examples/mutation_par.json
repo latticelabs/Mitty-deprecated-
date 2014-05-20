@@ -1,12 +1,7 @@
 {
-    "input dir": "Data",
-    "output dir": "TEST-DATA",
-    "reference sequence": {
-        "name": "Porcine circovirus",
-        "filename prefix": "porcine_circovirus",
-        "chromosome": "1"
-    },
-    "output vcf file": "variants.vcf",
+    "input smalla file": "Data/porcine_circovirus.smalla",
+    "output vcf file": "TEST-DATA/variants.vcf",
+    "chromosome": "1",
     "mutations": {
         "snp": {
             "model": "snp",

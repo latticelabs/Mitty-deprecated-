@@ -17,18 +17,15 @@ Notes:
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
+"""
 
+__explain__ = """
 Example json parameter file
 
 {
-    "input dir": "Data",
-    "output dir": "TEST-DATA",
-    "reference sequence": {
-        "name": "Porcine circovirus",
-        "filename prefix": "porcine_circovirus",
-        "chromosome": "1"
-    },
+    "input smalla file": "porcine_circovirus.smalla",
     "output vcf file": "variants.vcf",
+    "chromosome": "1",
     "mutations": {
         "snp": {
             "model": "snp",
@@ -63,7 +60,8 @@ Example json parameter file
     }
 }
 """
-__version__ = '0.3.0'
+
+__version__ = '0.3.1'
 
 import sys
 import os
@@ -118,6 +116,9 @@ def write_vcf_mutations(file_handle, chrom, variants):
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
+  elif docopt.sys.argv[1] == 'explain':
+    print __explain__
+    exit(0)
   else:
     args = docopt.docopt(__doc__, version=__version__)
 
@@ -128,14 +129,14 @@ if __name__ == "__main__":
   block_size = int(args['--block_size'])
 
   #Load the ref-seq smalla file
-  fin = open(os.path.join(params['input dir'], params['reference sequence']['filename prefix'] + '.smalla'), 'rb')
+  fin = open(params['input smalla file'], 'rb')
   logger.debug('Input sequence: ' + fin.name)
   ref_seq = mmap.mmap(fin.fileno(), 0, access=mmap.ACCESS_READ)
   ref_seq_len = len(ref_seq)
   logger.debug('Input sequence has {:d} bases'.format(ref_seq_len))
 
-  chrom = params['reference sequence']['chromosome'].encode('ascii')  # Tabix barfs if it gets unicode
-  vcf_file_name = os.path.join(params['output dir'], params['output vcf file']).encode('ascii')
+  chrom = params['chromosome'].encode('ascii')  # Tabix barfs if it gets unicode
+  vcf_file_name = params['output vcf file'].encode('ascii')
   logger.debug('Output file name: ' + vcf_file_name)
 
   model_params = params['mutations']
@@ -151,7 +152,8 @@ if __name__ == "__main__":
     misc[k] = 0
 
   with open(vcf_file_name, 'w') as vcf_file:
-    write_vcf_header(vcf_file, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(), params['reference sequence']['name'])
+    write_vcf_header(vcf_file, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(),
+                     os.path.basename(params['input smalla file']))
 
     #For now, ignoring footprint (only needed for distal variants)
     current_pos = 0  # Current position on sequence
