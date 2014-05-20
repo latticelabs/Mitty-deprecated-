@@ -51,7 +51,7 @@ class SimpleReads(define.Wrapper):
   def write_to_json(self, fname):
     with open(fname, 'w') as f:
       params = self.params.__json__()
-      json.dump({'model': 'simple_reads', 'args': params}, f)
+      json.dump({'read_model': 'simple_reads', 'model_params': params}, f)
 
   def execute(self):
     output_dir = 'OUTPUT'
@@ -78,8 +78,8 @@ def test():
   wrp = SimpleReads(inputs, params)
   outputs = wrp.test()
   expected = {
-    "model": "simple_reads",
-    "args": {
+    "read_model": "simple_reads",
+    "model_params": {
         "paired": False,
         "read_len": 100,
         "template_len": 250,

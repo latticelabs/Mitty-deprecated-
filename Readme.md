@@ -383,9 +383,9 @@ vcf2seq
 Running vcf2seq will generate a mutated sequence and a `.pos` file that contains important indexing information used by
 `reads.py`.
 
-    >>> shell('python vcf2seq.py TEST-DATA/porcine_circovirus.smalla TEST-DATA/pc_mutated 1 TEST-DATA/variants.vcf.gz')
+    >>> shell('python vcf2seq.py TEST-DATA/porcine_circovirus.smalla TEST-DATA/pc_mutated 1 TEST-DATA/variants.vcf.gz  --ploidy=2')
 
-This generates a mutated sequence `pc_mutated_1.smalla` having all the mutations described in the VCF file above. Using
+This generates two sequences `pc_mutated_0.smalla` and  having all the mutations described in the VCF file above. Using
 a pen and paper we can work out what the mutated sequence should look like:
 
                                                                                                     C -> G                                                                                  A -> C                                                                                    T -> C                                                                                                                                                                                                                                                                                               T -> C                                                                                 A -> G
@@ -403,11 +403,29 @@ and compare it to the generated one
 
 reads
 -----
+
+    >>> json.dump(
+    ... {
+    ...     "input_sequences": ["TEST-DATA/pc_mutated_0.smalla", "TEST-DATA/pc_mutated_1.smalla"],
+    ...     "total_reads": [100, 100],
+    ...     "is_this_ref_seq": False,
+    ...     "read_ranges": [[0.0, 1.0], [0.0, 1.0]],
+    ...     "output_file_prefix": "sim_reads",
+    ...     "read_model": "tiled_reads",
+    ...     "model_params": {
+    ...         "paired": False,
+    ...         "read_len": 100,
+    ...         "template_len": 250,
+    ...         "read_advance": 50
+    ...     }
+    ... }, open('TEST-DATA/read_par.json','w'), indent=2)
+
+
 Now we run `reads.py` with an appropriate read parameter file to generate a bucket of reads.
 
-    >>> shell('python reads.py  --paramfile=Examples/read_par.json --coverage=20 --out=TEST-DATA/sim_reads -c')
+    >>> shell('python reads.py  --paramfile=TEST-DATA/read_par.json  --corrupt')
 
-This produces a BAM file (`sim_reads.bam`) with perfect reads from the mutated sequence. Because of the `-c` option it
+This produces a BAM file (`sim_reads.bam`) with perfect reads from the mutated sequence. Because of the `--corrupt` option it
 also produces `sim_reads_c.bam` which has corrupted reads. This uses the stock plugin which generates errors at the
 inner ends of the reads with an exponential envelope.
 
