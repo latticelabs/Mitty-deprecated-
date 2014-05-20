@@ -6,14 +6,9 @@ Command line parameters are
 Input json file for mutate.py is like
 
 {
-    "input dir": "Data",
-    "output dir": "TEST-DATA",
-    "reference sequence": {
-        "name": "Porcine circovirus",
-        "filename prefix": "porcine_circovirus",
-        "chromosome": "1"
-    },
-    "output vcf file": "variants.vcf",
+    "input smalla file": "Data/porcine_circovirus.smalla",
+    "output vcf file": "TEST-DATA/variants.vcf",
+    "chromosome": "1",
     "mutations": {
         "snp": {
             "model": "snp",
@@ -70,25 +65,20 @@ class Mutate(define.Wrapper):
     chromosome = define.string(default='1', description='Chromosome number')
 
   def execute(self):
-    input_dir = os.path.dirname(self.inputs.ref)
     input_name = os.path.splitext(os.path.basename(self.inputs.ref))[0]
-    output_name = input_name + '_variants.vcf' if self.params.vcf_file_name == '' else self.params.vcf_file_name
+    output_basename = input_name + '_variants.vcf' if self.params.vcf_file_name == '' else self.params.vcf_file_name
     output_dir = 'OUTPUT'
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
+    output_absolute_path = os.path.join(output_dir, output_basename)
     mutations = {}
     for in_file in self.inputs.plugins:
       mutations.update(json.load(open(in_file, 'r')))
 
     params_json = {
-      "input dir": input_dir,
-      "output dir": output_dir,
-      "reference sequence": {
-        "filename prefix": input_name,
-        "name": input_name,
-        "chromosome": self.params.chromosome
-      },
-      "output vcf file": output_name,
+      "input smalla file": self.inputs.ref,
+      "output vcf file": output_absolute_path,
+      "chromosome": self.params.chromosome,
       "mutations": mutations
     }
     with open('params.json', 'w') as fp:
@@ -96,9 +86,9 @@ class Mutate(define.Wrapper):
     p = Process('python', '/Mitty/mutate.py', '--paramfile', 'params.json', '-v')
     p.run()
     # mutate.py produces three files - the .vcf, the gzipped form .vcf.gz and the tabix index .vcf.gz.tbi
-    self.outputs.vcf.add_file(os.path.join(output_dir, output_name))
-    self.outputs.vcf.add_file(os.path.join(output_dir, output_name + '.gz'))
-    self.outputs.vcf.add_file(os.path.join(output_dir, output_name + '.gz.tbi'))
+    self.outputs.vcf.add_file(output_absolute_path)
+    self.outputs.vcf.add_file(output_absolute_path + '.gz')
+    self.outputs.vcf.add_file(output_absolute_path + '.gz.tbi')
     self.outputs.vcf.meta = self.inputs.ref.make_metadata(file_type='vcf')
 
 
