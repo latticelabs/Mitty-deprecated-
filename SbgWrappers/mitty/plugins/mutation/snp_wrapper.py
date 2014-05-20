@@ -71,29 +71,31 @@ class SNP(define.Wrapper):
 
 def test():
   params = {
-            "model_id": "snp_test",
-            "start_snps_frac": 0.1,
-            "stop_snps_frac": 0.3,
-            "phet": 0,
-            "p": 0.01,
-            "het_rng_seed": 3,
-            "strand_rng_seed": 4,
-            "poisson_rng_seed": 1,
-            "base_sub_rng_seed": 2
-        }
+    "model_id": "snp_test",
+    "start_snps_frac": 0.1,
+    "stop_snps_frac": 0.3,
+    "phet": 0,
+    "p": 0.01,
+    "het_rng_seed": 3,
+    "strand_rng_seed": 4,
+    "poisson_rng_seed": 1,
+    "base_sub_rng_seed": 2
+  }
   inputs = {}
   wrp = SNP(inputs, params)
   outputs = wrp.test()
-  expected = {"snp_test": {
-            "model": "snp",
-            "start_snps_frac": 0.1,
-            "stop_snps_frac":  0.3,
-            "phet": 0,
-            "p": 0.01,
-            "het_rng_seed":3,
-            "strand_rng_seed": 4,
-            "poisson_rng_seed": 1,
-            "base_sub_rng_seed": 2
-        }}
+  expected = {
+    "snp_test": {
+      "model": "snp",
+      "start_snps_frac": 0.1,
+      "stop_snps_frac":  0.3,
+      "phet": 0,
+      "p": 0.01,
+      "het_rng_seed":3,
+      "strand_rng_seed": 4,
+      "poisson_rng_seed": 1,
+      "base_sub_rng_seed": 2
+    }
+  }
   with open(outputs.json_fragment) as fp:
     assert_equals(json.load(fp), expected)
