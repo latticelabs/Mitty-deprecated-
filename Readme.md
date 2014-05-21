@@ -410,7 +410,7 @@ reads
     ...     "total_reads": [100, 100],
     ...     "is_this_ref_seq": False,
     ...     "read_ranges": [[0.0, 1.0], [0.0, 1.0]],
-    ...     "output_file_prefix": "sim_reads",
+    ...     "output_file_prefix": "TEST-DATA/sim_reads",
     ...     "read_model": "tiled_reads",
     ...     "model_params": {
     ...         "paired": False,
@@ -435,7 +435,7 @@ cheata
 ------
 We can run `cheata.py`on this BAM file to generate perfect alignment
 
-    >>> shell('python cheata.py --inbam=TEST-DATA/sim_reads.bam --outbam=TEST-DATA/aligned.bam')
+    >>> shell('python cheata.py --inbam=TEST-DATA/sim_reads.bam --outbam=TEST-DATA/aligned.bam  --refname=gi|52547303|gb|AY735451.1|  --reflen=702')
 
 Now you can use `samtools tview` or `tablet` or `IGV` to open up `aligned.bam` and see the perfectly aligned assembly of
 the data.
@@ -443,7 +443,7 @@ the data.
 You can repeat the process with the corrupted reads to get a perfectly aligned BAM but with simulated corruption in the
 reads.
 
-    >>> shell('python cheata.py --inbam=TEST-DATA/sim_reads_c.bam --outbam=TEST-DATA/aligned_c.bam')
+    >>> shell('python cheata.py --inbam=TEST-DATA/sim_reads_c.bam --outbam=TEST-DATA/aligned_c.bam  --refname="gi|52547303|gb|AY735451.1|"  --reflen=702')
 
 
 Testing `samtools mpileup`
@@ -458,7 +458,7 @@ We first run `mpileup` on the perfect alignment
 
 Then we compare the original VCF with  the detected one
 
-    >>> shell('tail -n -11 TEST-DATA/variant.vcf')
+    >>> shell('tail -n -11 TEST-DATA/variants.vcf')
     >>> shell('tail -n -11 TEST-DATA/mpileup.vcf')
 
 The VCF entries should indicate identical variants from the `mpileup` command as we generated in the simulation.
