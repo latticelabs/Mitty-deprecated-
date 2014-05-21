@@ -7,6 +7,7 @@ List of Mitty tasks in order of priority
 ========================================
 Definitely email kaushik.ghose@sbgenomics.com if you have a suggestion/feature request to be added
 
+1. Create lock for insert/delete length to make sure it does not exceed sequence length
 
 1. Heterozygous reads clean up and draw out architecture for whole genome stuff. Start with Readme.md and then
    proceed

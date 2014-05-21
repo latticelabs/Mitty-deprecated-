@@ -149,12 +149,10 @@ We also don't want to clutter up our workspace with a [plethora][pleth] of gener
 store created data files in. We don't delete this directory at the end, in case you want to take a look at the files at
 your leisure. **We do clear out this directory every time we run.**
 
-[pleth]: youtube.com/
-
     >>> shell('mkdir -p TEST-DATA')
     >>> shell('rm TEST-DATA/*')
 
-[pleth]: youtube.com
+[pleth]: https://www.youtube.com/watch?v=tyBUMntP6DI
 
 Generating simulated variations
 ===============================
@@ -251,7 +249,7 @@ uniformly across the sequence
     ...      }
     ...  }, open('TEST-DATA/mutations2.json','w'), indent=2)
 
-(Note that you can leave out parameters. In general programs in Mitty will fill out missing parameters with defaults. In
+(Note that you can leave out parameters. In general, programs in Mitty will fill out missing parameters with defaults. In
 this case we left out the `het_rng_seed` but `phet=0.0` means that we don't need that anyway.)
 
 Let's take a look at the resulting VCF file:
@@ -532,6 +530,11 @@ Say our original sequence is `ATCGGATC`
     Insertion     0    .      TTT    -> TTTATCGGATC
     Insertion     1    A      AGGG   -> AGGGTCGGATC
     SNP           1    A       G     -> GTCGATC
+
+In addition to this Mitty adds an additional code to the genotype (GT) field 1/0. This is because in the simulation we
+have actual access to which copy of a diploid sequence has a heterozygous mutation. Therefore we use the GT field to
+encode on which set of the sequence the variant exists. Note that VCF files produced by Mitty never have 0/0 as we do
+not include any standard variant from a library.
 
 ## "Buffer bases" between simulated variants
 
