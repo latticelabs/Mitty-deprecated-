@@ -39,9 +39,9 @@ class Reads(define.Wrapper):
 
   class Outputs(define.Outputs):
     perfect_read_file = define.output(name='Perfect reads',
-      description='.bam and .bai files containing perfect reads', list=True)
+      description='.bam file containing perfect reads')
     corrupted_read_file = define.output(name='Corrupted reads',
-      description='.bam and .bai files containing corrupted reads', list=True)
+      description='.bam file containing corrupted reads')
 
   class Params(define.Params):
     total_reads = define.integer(default=100, min=1, description='Number of reads', category='General')
@@ -67,7 +67,7 @@ class Reads(define.Wrapper):
       "total_reads": [self.params.total_reads] * len(input_smalla),
       "is_this_ref_seq": self.params.is_this_ref_seq,
       "read_ranges": [[self.params.read_start, self.params.read_stop]] * len(input_smalla),
-      "output_file_prefix": self.params.output_file_prefix
+      "output_file_prefix": os.path.join(output_dir, self.params.output_file_prefix)
     }
     params_json.update(json.load(open(self.inputs.plugin, 'r')))
     with open('params.json', 'w') as fp:
@@ -75,9 +75,9 @@ class Reads(define.Wrapper):
     p = Process('python', '/Mitty/reads.py', '--paramfile', 'params.json', '--corrupt')
     p.run()
     # reads.py produces two files - .bam, and _c.bam
-    self.outputs.perfect_read_file = self.params.output_file_prefix + '.bam'
+    self.outputs.perfect_read_file = params_json['output_file_prefix'] + '.bam'
     self.outputs.perfect_read_file.meta = self.outputs.perfect_read_file.make_metadata(file_type='bam')
-    self.outputs.corrupted_read_file = self.params.output_file_prefix + '_c.bam'
+    self.outputs.corrupted_read_file = params_json['output_file_prefix'] + '_c.bam'
     self.outputs.corrupted_read_file.meta = self.outputs.corrupted_read_file.make_metadata(file_type='bam')
 
 
@@ -85,8 +85,8 @@ def test_reads():
   """Test with simple reads from the porcine circovirus test data. Pretend it's a diploid sequence to test input
   of multiple files"""
   json.dump({
-    "model": "simple_reads",
-    "args": {
+    "read_model": "simple_reads",
+    "model_params": {
         "paired": True,
         "read_len": 100,
         "template_len": 250,
