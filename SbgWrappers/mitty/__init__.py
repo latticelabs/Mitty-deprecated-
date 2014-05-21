@@ -1,3 +1,4 @@
+from .converta_wrapper import Converta
 from .mutate_wrapper import Mutate
 from .vcf2seq_wrapper import Vcf2Seq
 
