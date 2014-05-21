@@ -87,7 +87,7 @@ has great advantages when developing the code for the wrappers.
     sbg init mitty  # There might be a noticable pause here. You will be asked for your SBG Platform credentials
                     # Nebojsa says sbg is going to the platform to make sure there are no name clashes
 
-Choose this name well because this is what you will see on the Apps panel.
+Choose this name well because this is what you will see on the Apps panel. This
 
 We need to be in this directory to run any `sbg` commands.
 
@@ -175,6 +175,14 @@ This reads the wrappers listed in `__init__.py` and drops json output that looks
         "wrapper_id": "mitty.plugins.mutation.delete_wrapper.Deletion"
       }
 
+To update the tool code
+
+    sbg sh
+    cd /Mitty
+    git pull
+    exit  # Say yes to committing changes
+
+
 
 Push the wrappers
 
@@ -186,19 +194,29 @@ I usually end up doing something like
 
 because that's what appears in the Apps panel on the left and I want that to be informative.
 
-If you get `No wrappers registered (empty __init__.py?). Exiting.` then you need to go fill out `__init__.py` at the
-root level. For example
+This command also generates the .sbdk/schema.json and .sbdk/state.json files.
+
+
+
+If you get `No wrappers registered (empty __init__.py?). Exiting.` or if some of your wrappers don't show up in the
+`Wrappers` tab, then you need to go fill out `__init__.py` at the root level. For example
 
     from .mutate_wrapper import Mutate
     from .plugins.mutation.snp_wrapper import SNP
     from .plugins.mutation.insert_wrapper import Insert
     from .plugins.mutation.delete_wrapper import Deletion
 
-This is cool because it allows you to select which wrappers get pushed.
+This is cool because it allows you to select which wrappers get pushed. ALL the wrappers, regardless of where they are
+located need to be filled out here and not in any `__init__.py` located in any sub-directory.
 
 Check at this url to see if the image took
 
     https://images.sbgenomics.com/v1/repositories/kghosesbg/mitty/images
 
 
+
+Troubleshooting:
+
+    docker push images.sbgenomics.com/kghose/mitty
+    docker images
 
