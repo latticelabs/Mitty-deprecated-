@@ -2,13 +2,14 @@
 seq id string. This 'aligned' file can be read in using a visualizer to debug the simulation chain.
 
 Usage:
-cheata --inbam=BAM  --outbam=BAM  --refseq=REFSEQ  [-v]
+cheata --inbam=BAM  --outbam=BAM  --refname=REFNAME  --reflen=REFLEN  [-v]
 
 Options:
   --inbam=INBAM           Input (unaligned) bam file name of reads from reads.py
   --outbam=OUTBAM         Output (perfectly aligned) bam file name
-  --refseq=REFSEQ         Reference sequence smalla file
-                          (Needed for sequence name and length which other tools use for display)
+  --refname=REFNAME       Reference sequence name
+  --reflen=REFLEN         Reference sequence lengths
+                          (These are needed by other tools that look at the BAM file)
   -v                      Dump detailed logger messages
 
 Notes:
@@ -33,8 +34,11 @@ if __name__ == "__main__":
 
   in_bamfile = pysam.Samfile(args['--inbam'], 'rb')
 
-  seq_name = open(args['--refseq'] + '.heada', 'r').readline()
-  seq_len = os.path.getsize(args['--refseq'])
+  # seq_name = open(args['--refseq'] + '.heada', 'r').readline()
+  # seq_len = os.path.getsize(args['--refseq'])
+
+  seq_name = args['--refname']
+  seq_len = int(args['--reflen'])
 
   out_hdr = in_bamfile.header
   out_hdr['SQ'][0]['SN'] = seq_name.split(' ')[0]  # Some programs, like tablet, can't handle seq names with spaces
@@ -44,7 +48,6 @@ if __name__ == "__main__":
   tf_h, tf_name = tempfile.mkstemp()
   os.close(tf_h)
   out_bamfile = pysam.Samfile(tf_name, 'wb', header=out_hdr)
-  #out_bamfile = pysam.Samfile(tf_name, 'wh', header=out_hdr)
 
   cnt = 0
   blk = 0
@@ -55,9 +58,6 @@ if __name__ == "__main__":
     aligned_read.seq = read.seq
     aligned_read.qual = read.qual
     aligned_read.mapq = 100  # It's better to set this
-    #aligned_read.cigarstring = '100X'
-    #aligned_read.cigar = [(7,100)]
-    #read.cigar = [(0, 100)]  # TODO: think hard about how to generate proper CIGARS for different variants
     aligned_read.pos = int(parts[1])-1  # 0-indexed
     aligned_read.cigarstring = parts[2]
     aligned_read.flag = read.flag
@@ -75,8 +75,6 @@ if __name__ == "__main__":
 
   print '{:d} reads done'.format(cnt)
   out_bamfile.close()
-
-  #os.rename(tf_name, args['--outbam'])  # Take thsi out
 
   pysam.sort(tf_name, args['--outbam'])
   os.rename(args['--outbam'] + '.bam', args['--outbam'])
