@@ -5,8 +5,8 @@ start with a shifted offset.
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
-
-
+"""
+__explain__ = """
 Example parameter file
 
 {
@@ -23,6 +23,7 @@ Example parameter file
     }
 }
 """
+
 import numpy  # For the read corruption
 from Plugins.Reads.simple_reads_plugin import corrupt_reads  # An example of how we can reuse components
 import logging
