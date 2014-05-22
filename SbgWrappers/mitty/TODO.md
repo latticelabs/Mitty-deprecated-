@@ -1,0 +1,1 @@
+* Once PIPITOR + PDL is updated to handle side car file check to see which I/O pins are lists only to accommodate side-car files
