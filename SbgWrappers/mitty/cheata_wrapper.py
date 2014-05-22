@@ -15,7 +15,8 @@ class Cheata(define.Wrapper):
     bam = define.input(name='Simulated BAM', description='.bam file produced by read simulator', required=True)
 
   class Outputs(define.Outputs):
-    bam = define.output(name='Perfectly aligned BAM', description='.bam file of perfectly aligned reads')
+    bam = define.output(name='Perfectly aligned BAM', description='.bam (and index) file of perfectly aligned reads',
+                        list=True)
 
   class Params(define.Params):
     ref_name = define.string(description='Header for the reference sequence', required=True)
@@ -34,7 +35,8 @@ class Cheata(define.Wrapper):
                 '--reflen', self.params.ref_len,
                 '-v')
     p.run()
-    self.outputs.bam = out_file
+    self.outputs.bam.add_file(out_file)
+    self.outputs.bam.add_file(out_file + '.bai')
 
 
 def test_cheata():
@@ -46,5 +48,6 @@ def test_cheata():
   wrp = Cheata(inputs, params)
   outputs = wrp.test()
 
-  # Test to see the output exists
-  assert os.path.exists(outputs.bam)
+  # Test to see the output and indexes exist
+  assert os.path.exists(outputs.bam[0])
+  assert os.path.exists(outputs.bam[1])
