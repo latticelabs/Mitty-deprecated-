@@ -161,8 +161,8 @@ In the following examples we will use the porcine circovirus sequence ([porcine_
 as a reference sequence. In some experiments we may use the adenovirus sequence ([adenovirus.fa][2]), which is slightly
 longer at 34094b. Both the sequences are found under the `Data` directory.
 
-[1:] http://www.ncbi.nlm.nih.gov/nuccore/AY735451.1
-[2:] http://www.ncbi.nlm.nih.gov/nuccore/AB026117.1
+[1]: http://www.ncbi.nlm.nih.gov/nuccore/AY735451.1
+[2]: http://www.ncbi.nlm.nih.gov/nuccore/AB026117.1
 
 Converta
 --------
