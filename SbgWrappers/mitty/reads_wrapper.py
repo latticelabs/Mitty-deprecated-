@@ -33,30 +33,33 @@ import os
 class Reads(define.Wrapper):
   class Inputs(define.Inputs):
     seq = define.input(name='Input sequence',
-                       description='.smalla and .pos file(s) containing the sets of sequences making up the sample',
+                       description='.smalla and .pos file(s) containing the sets of sequences making up the sample.'
+                                   ' It is easiest to hook up the output pin of vcf2seq to this pin. Alternatively, '
+                                   'pipe any .smalla and .pos files you have to this pin. If this is a reference '
+                                   'sequence no need for .pos files.',
                        required=True, list=True)
-    plugin = define.input(name='Plugins', description='The read plugin')
+    plugin = define.input(name='Plugins', description='Hook the output pin of the read plugin you want to use to this.')
 
   class Outputs(define.Outputs):
     perfect_read_file = define.output(name='Perfect reads',
-      description='.bam file containing perfect reads')
+      description='.bam file containing perfect reads', list=True)
     corrupted_read_file = define.output(name='Corrupted reads',
-      description='.bam file containing corrupted reads')
+      description='.bam file containing corrupted reads', list=True)
 
   class Params(define.Params):
-    total_reads = define.integer(default=100, min=1, description='Number of reads', category='General')
+    total_reads = define.integer(default=100, min=1, description='Total number of reads to generate', category='General')
     is_this_ref_seq = define.boolean(default=False,
-                                     description='Is this a reference sequence? If true reads will not look for .pos file',
+                                     description='Is this a reference sequence? If true we will not look for .pos file',
                                      category='General')
     read_start = define.real(default=0.0, min=0, max=1, description='From what fraction of the sequence do we start taking reads',
                              category='Advanced')
     read_stop = define.real(default=1.0, min=0, max=1, description='At what fraction of the sequence do we stop taking reads',
                             category='Advanced')
-    output_file_prefix = define.string(default='sim_reads', category='General')
+    output_file_prefix = define.string(default='sim_reads', category='General',
+                                       description='If this is sim_reads, we will get output files as '
+                                                   'sim_reads.bam, sim_reads.bam.bai, sim_reads_c.bam, sim_reads_c.bam.bai')
 
   def execute(self):
-    #output_name = self.params.output_vcf_name or input_name + '_variants.vcf'
-    #output_name = input_name + '_variants.vcf'
     output_dir = 'OUTPUT'
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
@@ -64,7 +67,7 @@ class Reads(define.Wrapper):
     input_smalla = [fname for fname in self.inputs.seq if fname.endswith('.smalla')]  # Discard .pos files
     params_json = {
       "input_sequences": input_smalla,
-      "total_reads": [self.params.total_reads] * len(input_smalla),
+      "total_reads": [self.params.total_reads / len(input_smalla)] * len(input_smalla),
       "is_this_ref_seq": self.params.is_this_ref_seq,
       "read_ranges": [[self.params.read_start, self.params.read_stop]] * len(input_smalla),
       "output_file_prefix": os.path.join(output_dir, self.params.output_file_prefix)
@@ -74,10 +77,12 @@ class Reads(define.Wrapper):
       json.dump(params_json, fp, indent=2)
     p = Process('python', '/Mitty/reads.py', '--paramfile', 'params.json', '--corrupt')
     p.run()
-    # reads.py produces two files - .bam, and _c.bam
-    self.outputs.perfect_read_file = params_json['output_file_prefix'] + '.bam'
+    # reads.py produces two sets of files - .bam, .bam.bai and _c.bam, _c.bam.bai
+    self.outputs.perfect_read_file.add_file(params_json['output_file_prefix'] + '.bam')
+    self.outputs.perfect_read_file.add_file(params_json['output_file_prefix'] + '.bam.bai')
     self.outputs.perfect_read_file.meta = self.outputs.perfect_read_file.make_metadata(file_type='bam')
-    self.outputs.corrupted_read_file = params_json['output_file_prefix'] + '_c.bam'
+    self.outputs.corrupted_read_file.add_file(params_json['output_file_prefix'] + '_c.bam')
+    self.outputs.corrupted_read_file.add_file(params_json['output_file_prefix'] + '_c.bam.bai')
     self.outputs.corrupted_read_file.meta = self.outputs.corrupted_read_file.make_metadata(file_type='bam')
 
 
@@ -110,5 +115,5 @@ def test_reads():
   outputs = wrp.test()
 
   # we should have two .BAM files
-  assert os.path.exists(outputs.perfect_read_file)
-  assert os.path.exists(outputs.corrupted_read_file)
+  assert os.path.exists(outputs.perfect_read_file[0])
+  assert os.path.exists(outputs.corrupted_read_file[0])
