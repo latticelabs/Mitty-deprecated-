@@ -1,5 +1,5 @@
-"""The snp_plugin does not run by itself (it merely runs tests), but this wrapper is used to generate parts of the
-.json file that will be used by mutate_wrapper to create a full .json file that can be fed to mutate.py
+"""This wrapper only translates input parameters into a json file that is an input to the mutate wrapper. The mutate
+wrapper combines json fragments from all the plugins into a complete json parameters file that is then fed to mutate.py
 
 The .json fragment should look like
           ______________ model id
