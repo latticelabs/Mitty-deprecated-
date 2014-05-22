@@ -42,9 +42,9 @@ class Reads(define.Wrapper):
 
   class Outputs(define.Outputs):
     perfect_read_file = define.output(name='Perfect reads',
-      description='.bam file containing perfect reads', list=True)
+      description='.bam file containing perfect reads')
     corrupted_read_file = define.output(name='Corrupted reads',
-      description='.bam file containing corrupted reads', list=True)
+      description='.bam file containing corrupted reads')
 
   class Params(define.Params):
     total_reads = define.integer(default=100, min=1, description='Total number of reads to generate', category='General')
@@ -56,8 +56,9 @@ class Reads(define.Wrapper):
     read_stop = define.real(default=1.0, min=0, max=1, description='At what fraction of the sequence do we stop taking reads',
                             category='Advanced')
     output_file_prefix = define.string(default='sim_reads', category='General',
-                                       description='If this is sim_reads, we will get output files as '
-                                                   'sim_reads.bam, sim_reads.bam.bai, sim_reads_c.bam, sim_reads_c.bam.bai')
+                                       description='If this is "sim_reads", we will get output files as '
+                                                   '"sim_reads.bam", "sim_reads.bam.bai", '
+                                                   '"sim_reads_c.bam", "sim_reads_c.bam.bai"')
 
   def execute(self):
     output_dir = 'OUTPUT'
@@ -78,11 +79,9 @@ class Reads(define.Wrapper):
     p = Process('python', '/Mitty/reads.py', '--paramfile', 'params.json', '--corrupt')
     p.run()
     # reads.py produces two sets of files - .bam, .bam.bai and _c.bam, _c.bam.bai
-    self.outputs.perfect_read_file.add_file(params_json['output_file_prefix'] + '.bam')
-    self.outputs.perfect_read_file.add_file(params_json['output_file_prefix'] + '.bam.bai')
+    self.outputs.perfect_read_file = params_json['output_file_prefix'] + '.bam'
     self.outputs.perfect_read_file.meta = self.outputs.perfect_read_file.make_metadata(file_type='bam')
-    self.outputs.corrupted_read_file.add_file(params_json['output_file_prefix'] + '_c.bam')
-    self.outputs.corrupted_read_file.add_file(params_json['output_file_prefix'] + '_c.bam.bai')
+    self.outputs.corrupted_read_file = params_json['output_file_prefix'] + '_c.bam'
     self.outputs.corrupted_read_file.meta = self.outputs.corrupted_read_file.make_metadata(file_type='bam')
 
 
