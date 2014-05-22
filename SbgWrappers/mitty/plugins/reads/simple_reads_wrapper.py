@@ -1,5 +1,5 @@
-"""The snp_plugin does not run by itself: it is used to generate parts of the .json file that will be used by
-reads_wrapper to create a full .json file that can be fed to reads.py
+"""This wrapper only translates input parameters into a json file that is an input to the reads wrapper. The reads
+wrapper combines the json fragment into a complete json parameters file that is then fed to reads.py
 
 The .json fragment should look like
 
