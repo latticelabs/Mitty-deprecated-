@@ -27,6 +27,7 @@ Example parameter file .json
 {
     "input_sequences": ["mutated_1.smalla", "mutated_2.smalla"],
     "total_reads": [100, 100],
+    "coverages": [2.0, 10.0],
     "is_this_ref_seq": false,
     "read_ranges": [[0.0, 1.0], [0.0, 1.0]],
     "output_file_prefix": "sim_reads",
@@ -38,6 +39,8 @@ Example parameter file .json
         "read_advance": 50
     }
 }
+
+Specify either total_reads OR coverage. If you specify both only the coverage will be honored
 """
 
 __version__ = '0.3.0'
@@ -347,6 +350,12 @@ def main(args):
   save_as_bam = not args['--fastq']  # bam is True if args['-f] is False
   write_corrupted = args['--corrupt']  # If True, corrupted reads will be written out
   read_file_handles = open_reads_files(params['output_file_prefix'], write_corrupted, save_as_bam)
+
+  #if coverage is specified fill out total_reads based on sequence lengths etc.
+  if 'coverages' in params:
+    params['total_reads'] = \
+      [int(os.stat(seq_name).st_size * float(cov) / read_model.average_read_len(params['model_params']))
+       for seq_name, cov in zip(params['input_sequences'], params['coverages'])]
 
   # For each sequence in our input list generate reads and flush to file
   for seq_name, read_count, read_range in zip(params['input_sequences'], params['total_reads'], params['read_ranges']):
