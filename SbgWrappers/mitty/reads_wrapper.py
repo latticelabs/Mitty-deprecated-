@@ -12,6 +12,7 @@ Example param file
 {
     "input_sequences": ["mutated_1.smalla", "mutated_2.smalla"],
     "total_reads": [100, 100],
+    "coverages": [5.0, 5.0]
     "is_this_ref_seq": false,
     "read_ranges": [[0.0, 1.0], [0.0, 1.0]],
     "output_file_prefix": "sim_reads",
@@ -47,7 +48,8 @@ class Reads(define.Wrapper):
       description='.bam file containing corrupted reads')
 
   class Params(define.Params):
-    total_reads = define.integer(default=100, min=1, description='Total number of reads to generate', category='General')
+    coverage = define.real(default=5.0, min=0.0, description='Coverage level', category='General')
+    #total_reads = define.integer(default=100, min=1, description='Total number of reads to generate', category='General')
     is_this_ref_seq = define.boolean(default=False,
                                      description='Is this a reference sequence? If true we will not look for .pos file',
                                      category='General')
@@ -74,7 +76,8 @@ class Reads(define.Wrapper):
     input_smalla = [fname for fname in self.inputs.seq if fname.endswith('.smalla')]
     params_json = {
       "input_sequences": input_smalla,
-      "total_reads": [self.params.total_reads / len(input_smalla)] * len(input_smalla),
+      #"total_reads": [self.params.total_reads / len(input_smalla)] * len(input_smalla),
+      "coverages": [self.params.coverage] * len(input_smalla),
       "is_this_ref_seq": self.params.is_this_ref_seq,
       "read_ranges": [[self.params.read_start, self.params.read_stop]] * len(input_smalla),
       "output_file_prefix": os.path.join(output_dir, of_prefix)
@@ -110,7 +113,7 @@ def test_reads():
   inputs = {'seq': ['/sbgenomics/test-data/porcine_circovirus.smalla', '/sbgenomics/test-data/porcine_circovirus.smalla'],
             'plugin': '/sbgenomics/test-data/read_par.json'}
   params = {
-    'total_reads': 100,
+    'coverage': 5,
     'is_this_ref_seq': True,
     'read_start': 0.0,
     'read_stop': 1.0,
