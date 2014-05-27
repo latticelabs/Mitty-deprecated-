@@ -32,7 +32,7 @@ base_sub_mat = {  # GATC
 }
 
 
-def average_read_len(read_len, **kwargs):
+def average_read_len(read_len=None, **kwargs):
   """Given the same parameters passed to generate_reads tell us what the average read len is going to be. reads.py
   uses this in combination with coverage and seq_len to figure out how many reads we need."""
   return read_len
