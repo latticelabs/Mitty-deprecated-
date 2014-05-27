@@ -55,23 +55,29 @@ class Reads(define.Wrapper):
                              category='Advanced')
     read_stop = define.real(default=1.0, min=0, max=1, description='At what fraction of the sequence do we stop taking reads',
                             category='Advanced')
-    output_file_prefix = define.string(default='sim_reads', category='General',
+    output_file_prefix = define.string(default=None, category='General',
                                        description='If this is "sim_reads", we will get output files as '
                                                    '"sim_reads.bam", "sim_reads.bam.bai", '
-                                                   '"sim_reads_c.bam", "sim_reads_c.bam.bai"')
+                                                   '"sim_reads_c.bam", "sim_reads_c.bam.bai". Leave blank to have the'
+                                                   'name track the first input file name. For example, if seq file name '
+                                                   'is ch1 then output will be ch1_sim_reads')
 
   def execute(self):
     output_dir = 'OUTPUT'
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
 
-    input_smalla = [fname for fname in self.inputs.seq if fname.endswith('.smalla')]  # Discard .pos files
+    #We need to figure out if we are going to have to make up our own output file name
+    of_prefix = self.params.output_file_prefix or os.path.splitext(os.path.basename(self.inputs.seq[0]))[0] + '_sim_reads'
+
+    # We only indicate the .smalla files in the json parameters (ignore the .pos files)
+    input_smalla = [fname for fname in self.inputs.seq if fname.endswith('.smalla')]
     params_json = {
       "input_sequences": input_smalla,
       "total_reads": [self.params.total_reads / len(input_smalla)] * len(input_smalla),
       "is_this_ref_seq": self.params.is_this_ref_seq,
       "read_ranges": [[self.params.read_start, self.params.read_stop]] * len(input_smalla),
-      "output_file_prefix": os.path.join(output_dir, self.params.output_file_prefix)
+      "output_file_prefix": os.path.join(output_dir, of_prefix)
     }
     params_json.update(json.load(open(self.inputs.plugin, 'r')))
     with open('params.json', 'w') as fp:
@@ -108,7 +114,7 @@ def test_reads():
     'is_this_ref_seq': True,
     'read_start': 0.0,
     'read_stop': 1.0,
-    'output_file_prefix': 'sim_reads'
+    'output_file_prefix': None  # Output name should shadow input name
   }
   wrp = Reads(inputs, params)
   outputs = wrp.test()
