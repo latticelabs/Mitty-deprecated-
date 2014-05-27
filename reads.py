@@ -354,7 +354,7 @@ def main(args):
   #if coverage is specified fill out total_reads based on sequence lengths etc.
   if 'coverages' in params:
     params['total_reads'] = \
-      [int(os.stat(seq_name).st_size * float(cov) / read_model.average_read_len(params['model_params']))
+      [int(os.stat(seq_name).st_size * float(cov) / read_model.average_read_len(**params['model_params']))
        for seq_name, cov in zip(params['input_sequences'], params['coverages'])]
 
   # For each sequence in our input list generate reads and flush to file
