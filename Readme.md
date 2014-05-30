@@ -170,10 +170,10 @@ We use converta to reorganize sequence data in .fasta files so that Mitty's rout
 by stripping out the header and newlines from the .fasta file the .smalla file can be easily used as a disk mapped
 array - via mmap - so we can handle large sequences without loading it into memory all at once)
 
-    >>> shell('python converta.py Data/porcine_circovirus.fa TEST-DATA/porcine_circovirus.smalla')
-    >>> with open('TEST-DATA/porcine_circovirus.smalla','r') as f: print f.read()
+    >>> shell('python converta.py Data/porcine_circovirus.fa TEST-DATA/porcine_circovirus')
+    >>> with open('TEST-DATA/porcine_circovirus_0.smalla','r') as f: print f.read()
     ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGCCACCGTTACCGCTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCAAAACGCCCTCCTGGGCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCTTTGAATACTACAGAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAGTGCTGTTATTCTAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTACCACTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCTGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTACAATTCAGAGAATTTAATCTTAAAGACCCCCCACTTAACCCTTAG
-    >>> with open('TEST-DATA/porcine_circovirus.smalla.heada','r') as f: print f.read()
+    >>> with open('TEST-DATA/porcine_circovirus_0.smalla.heada','r') as f: print f.read()
     gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds
 
 Mutate
@@ -186,7 +186,7 @@ We will start with a simple experiment where we insert a few SNPs into the porci
     >>> import json
     >>> json.dump(
     ... {
-    ...      "input smalla file": "TEST-DATA/porcine_circovirus.smalla",
+    ...      "input smalla file": "TEST-DATA/porcine_circovirus_0.smalla",
     ...      "output vcf file": "TEST-DATA/variants.vcf",
     ...      "chromosome": "1",
     ...      "mutations": {
@@ -210,7 +210,7 @@ e.g. `python Plugins/Mutation/insert_plugin.py explain`).
 
 You should see something like:
 
-    DEBUG:__main__:Input sequence: TEST-DATA/porcine_circovirus.smalla
+    DEBUG:__main__:Input sequence: TEST-DATA/porcine_circovirus_0.smalla
     DEBUG:__main__:Input sequence has 702 bases
     DEBUG:__main__:Output file name: TEST-DATA/variants.vcf
     DEBUG:__main__:100% done
@@ -223,7 +223,7 @@ You can take a look at the generated VCF file:
     ##fileformat=VCFv4.1
     ##fileDate=...
     ##source=...
-    ##reference=porcine_circovirus.smalla
+    ##reference=porcine_circovirus_0.smalla
     #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample
     1	169	.	A	T	96	PASS	.	GT	1/1
     <BLANKLINE>
@@ -233,7 +233,7 @@ uniformly across the sequence
 
     >>> json.dump(
     ... {
-    ...      "input smalla file": "TEST-DATA/porcine_circovirus.smalla",
+    ...      "input smalla file": "TEST-DATA/porcine_circovirus_0.smalla",
     ...      "output vcf file": "TEST-DATA/variants.vcf",
     ...      "chromosome": "1",
     ...      "mutations": {
@@ -259,7 +259,7 @@ Let's take a look at the resulting VCF file:
     ##fileformat=VCFv4.1
     ##fileDate=...
     ##source=...
-    ##reference=porcine_circovirus.smalla
+    ##reference=porcine_circovirus_0.smalla
     #CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  sample
     1       99      .       C       G       96      PASS    .       GT      1/1
     1       187     .       A       C       96      PASS    .       GT      1/1
@@ -275,7 +275,7 @@ Consider the following parameter file that generates deletes uniformly across th
 
     >>> json.dump(
     ... {
-    ...      "input smalla file": "TEST-DATA/porcine_circovirus.smalla",
+    ...      "input smalla file": "TEST-DATA/porcine_circovirus_0.smalla",
     ...      "output vcf file": "TEST-DATA/variants.vcf",
     ...      "chromosome": "1",
     ...      "mutations": {
@@ -299,7 +299,7 @@ Let's take a look at the resulting VCF file:
     ##fileformat=VCFv4.1
     ##fileDate=...
     ##source=...
-    ##reference=porcine_circovirus.smalla
+    ##reference=porcine_circovirus_0.smalla
     #CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  sample
     1       102     .       CCGTTACCGC      C       96      PASS    .       GT      1/1
     1       196     .       TCCTGGG T       96      PASS    .       GT      1/1
@@ -318,7 +318,7 @@ When we ask `mutate.py` for both these sets of mutations (keeping the same rando
 
     >>> json.dump(
     ... {
-    ...      "input smalla file": "TEST-DATA/porcine_circovirus.smalla",
+    ...      "input smalla file": "TEST-DATA/porcine_circovirus_0.smalla",
     ...      "output vcf file": "TEST-DATA/variants.vcf",
     ...      "chromosome": "1",
     ...      "mutations": {
@@ -351,7 +351,7 @@ we get:
     ##fileformat=VCFv4.1
     ##fileDate=...
     ##source=...
-    ##reference=porcine_circovirus.smalla
+    ##reference=porcine_circovirus_0.smalla
     #CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT  sample
     1       99      .       C       G       96      PASS    .       GT      1/1
     1       102     .       CCGTTACCGC      C       96      PASS    .       GT      1/1
@@ -391,7 +391,7 @@ vcf2seq
 Running vcf2seq will generate a mutated sequence and a `.pos` file that contains important indexing information used by
 `reads.py`.
 
-    >>> shell('python vcf2seq.py TEST-DATA/porcine_circovirus.smalla TEST-DATA/pc_mutated 1 TEST-DATA/variants.vcf.gz  --ploidy=2')
+    >>> shell('python vcf2seq.py TEST-DATA/porcine_circovirus_0.smalla TEST-DATA/pc_mutated 1 TEST-DATA/variants.vcf.gz  --ploidy=2')
 
 This generates two sequences `pc_mutated_0.smalla` and  having all the mutations described in the VCF file above. Using
 a pen and paper we can work out what the mutated sequence should look like:
