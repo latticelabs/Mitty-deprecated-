@@ -1,12 +1,14 @@
-"""Script to convert from fasta to smalla files
+"""
+For efficiency purposes we strip the header and all new lines out of the original .fasta file. The resulting file is
+called a .smalla file and is what the rest of the tools use. The header is saved into a .smalla.heada file.
 
 Usage:
-converta <fasta> <smalla> [--block_size=BS]
+converta  <fasta>  <smalla_prefix>
+converta test
 
 Options:
   fasta              Input file name
-  smalla             Output file name
-  --block_size=BS    Block size [default: 1000000]
+  smalla_prefix      Output file prefix
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
@@ -14,64 +16,57 @@ Current contact: kaushik.ghose@sbgenomics.com
 import docopt
 __version__ = '0.1.0'
 
-def get_fasta_header(fname):
-  """Read FASTA header
 
-  >>> print get_fasta_header(fname='Data/porcine_circovirus.fa')
-  gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds
+def fasta_to_smalla(fasta_fname, smalla_prefix):
+  """Flush each sequence in the file into a separate smalla file, write headers into side-car files
+  >>> import tempfile, os
+  >>> seq1 = 'ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCC'
+  >>> seq2 = 'GCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCA'
+  >>> seq3 = 'ATGACGTATCCAAGGAGGCCCTCCGCCGCCGCCCCTGGCTCGTCCA'
+  >>> tdir = tempfile.gettempdir()
+  >>> open(os.path.join(tdir, 'test.fa'), 'w').write('>hdr1\\nATGACGTATCCAA\\nGGAGGCGTTACCGGAGAA\\nGAAG\\nA\\nCACCGCCCCC\\n>hdr2\\nGCAGCCA\\nTC\\nT\\nTGGCCAGATCCTCCGCCGCCGCCCC\\nTGGCTCGTCCA>hdr3\\nATGACGTATCCAAGGAGGCCCTCCGCCGCCGCCCCTGGCTCGTCCA')
+  >>> fasta_to_smalla(os.path.join(tdir, 'test.fa'), os.path.join(tdir,'test'))
+  >>> open(os.path.join(tdir, 'test_0.smalla.heada'), 'r').read()
+  'hdr1'
+  >>> open(os.path.join(tdir, 'test_1.smalla.heada'), 'r').read()
+  'hdr2'
+  >>> open(os.path.join(tdir, 'test_2.smalla.heada'), 'r').read()
+  'hdr3'
+  >>> open(os.path.join(tdir, 'test_0.smalla'), 'r').read() == seq1
+  True
+  >>> open(os.path.join(tdir, 'test_1.smalla'), 'r').read() == seq2
+  True
+  >>> open(os.path.join(tdir, 'test_2.smalla'), 'r').read() == seq3
+  True
   """
-  line = open(fname, 'r').readline().strip()
-  if len(line): line = line[1:]  # get rid of the leading >
-  return line
-
-
-def block_read_fasta(fname, block_size=1000):
-  """Read FASTA file in blocks. For now this simply discards any lines begining with '>'
-
-  >>> print ''.join([s for s in block_read_fasta(fname='Data/porcine_circovirus.fa', block_size=1)])
-  ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGCCACCGTTACCGCTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCAAAACGCCCTCCTGGGCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCTTTGAATACTACAGAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAGTGCTGTTATTCTAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTACCACTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCTGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTACAATTCAGAGAATTTAATCTTAAAGACCCCCCACTTAACCCTTAG
-  >>> print ''.join([s for s in block_read_fasta(fname='Data/porcine_circovirus.fa', block_size=13)])
-  ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGCCACCGTTACCGCTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCAAAACGCCCTCCTGGGCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCTTTGAATACTACAGAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAGTGCTGTTATTCTAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTACCACTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCTGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTACAATTCAGAGAATTTAATCTTAAAGACCCCCCACTTAACCCTTAG
-  >>> print ''.join([s for s in block_read_fasta(fname='Data/porcine_circovirus.fa', block_size=1000)])
-  ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGCCACCGTTACCGCTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCAAAACGCCCTCCTGGGCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCTTTGAATACTACAGAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAGTGCTGTTATTCTAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTACCACTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCTGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTACAATTCAGAGAATTTAATCTTAAAGACCCCCCACTTAACCCTTAG
-  """
-  seq_buff = ''
-  seq_buff_len = 0
-  with open(fname, 'r') as f:
-    for line in f.readlines():
-      if line[0] == '>':
-
-        continue  # A seq id line
-      line = line.strip()
-      seq_buff_len += len(line)
-      seq_buff += line
-      while seq_buff_len > block_size:  # Time to spit it out
-        seq = seq_buff[:block_size]
-        seq_buff = seq_buff[block_size:]
-        seq_buff_len -= block_size
-        yield seq
-
-    if seq_buff_len:
-      yield seq_buff  # The last tail after the file ends
-
-
-def fasta_to_smalla(fasta_fname, smalla_fname, block_size=1000):
-  with open(smalla_fname + '.heada', 'w') as f:
-    f.write(get_fasta_header(args['<fasta>']))
-
-  with open(smalla_fname, 'w') as f:
-    for s in block_read_fasta(fname=fasta_fname, block_size=block_size):
-      f.write(s)
-
+  with open(fasta_fname, 'r') as fin:
+    read_a_byte = fin.read
+    seq_count = 0  # How many sequences are we at now?
+    fout = None
+    while True:
+      byte = read_a_byte(1)
+      if not byte:
+        break
+      if byte == '>':  # We've gotten to a new sequence header, time to flush the prev sequence and start a new one
+        if fout:
+          fout.close()
+        smalla_fname = '{:s}_{:d}.smalla'.format(smalla_prefix, seq_count)
+        # Write the header
+        with open('{:s}_{:d}.smalla.heada'.format(smalla_prefix, seq_count), 'w') as f:
+          f.write(fin.readline()[:-1])
+        fout = open(smalla_fname, 'w')
+        seq_count += 1
+      elif byte != '\n':  # Part of the sequence
+        fout.write(byte)
 
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
-  elif docopt.sys.argv[1] == 'test':
-    import sys
-    import doctest
-    doctest.testmod()
-    sys.exit()
   else:
     args = docopt.docopt(__doc__, version=__version__)
-  fasta_to_smalla(args['<fasta>'], args['<smalla>'], int(args['--block_size']))
+  if args['test']:
+    import doctest
+    doctest.testmod()
+    exit(0)
+
+  fasta_to_smalla(args['<fasta>'], args['<smalla_prefix>'])
