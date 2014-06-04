@@ -11,9 +11,18 @@ Options:
   --reads_per_block=BL    Generate these many reads at a time (Adjust to machine resources). [default: 100000]
   -v                      Dump detailed logger messages
 
+# The qname of an unpaired read is written as
+# rN:POS:CIGAR
+# while that of paired reads are written as
+# rN:POS1:CIGAR1:POS2:CIGAR2
+
 Notes:
-1. The seq id of each read is the string 'rN:S1:S2' where N is the number of the read,
-   S1 the start of the first read and S2 the start of the mate pair. Unpaired reads have no S2
+1. The seq id (qname) of each read is the string
+
+   'rN:POS1:CIGAR1:POS2:CIGAR2'
+
+   where N is the number of the read, POS1 the start (POS) of the first read, CIGAR1 is the CIGAR string with POS2,
+   CIGAR2 applying to the mate pair. Unpaired reads have no POS2, CIGAR2
 2. The quality scores are in Phred scale (as specified in the SAM spec)
 3. We supply the prefix of output file name in the parameter file . Say we set this as sim_reads.
    The perfect reads will be saved to sim_reads.bam (or sim_reads.fastq). If we ask for corrupted reads
