@@ -1,9 +1,8 @@
-"""This is the wrapper for converta
+"""This is the wrapper for cheata
 
 Command line parameters are
 
-cheata --inbam=BAM  --outbam=BAM  --refname=REFNAME  --reflen=REFLEN  [-v]
-
+cheata  --inbam=INBAM  --outbam=OUTBAM  --heada=HD  [-v]
 """
 from sbgsdk import define, Process, require
 import os
@@ -13,38 +12,35 @@ import os
 class Cheata(define.Wrapper):
   class Inputs(define.Inputs):
     bam = define.input(name='Simulated BAM', description='.bam file produced by read simulator', required=True)
+    heada = define.input(name='HEADA file', description='.smalla.heada file produced by converta', required=True)
 
   class Outputs(define.Outputs):
     bam = define.output(name='Perfectly aligned BAM', description='.bam (and index) file of perfectly aligned reads',
                         list=True)
 
-  class Params(define.Params):
-    ref_name = define.string(description='Header for the reference sequence', required=True)
-    ref_len = define.integer(description='Length of the reference sequence', required=True)
-
   def execute(self):
     output_dir = 'OUTPUT'
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
-    in_file = self.inputs.bam
-    out_file = os.path.join(output_dir, os.path.splitext(os.path.basename(in_file))[0] + '_aligned.bam')
+    inbam = self.inputs.bam
+    heada = self.inputs.heada
+    outbam = os.path.join(output_dir, os.path.splitext(os.path.basename(inbam))[0] + '_aligned.bam')
     p = Process('python', '/Mitty/cheata.py',
-                '--inbam', in_file,
-                '--outbam', out_file,
-                '--refname', self.params.ref_name,
-                '--reflen', self.params.ref_len,
+                '--inbam', inbam,
+                '--outbam', outbam,
+                '--heada', heada,
                 '-v')
     p.run()
-    self.outputs.bam.add_file(out_file)
-    self.outputs.bam.add_file(out_file + '.bai')
+    self.outputs.bam.add_file(outbam)
+    self.outputs.bam.add_file(outbam + '.bai')
 
 
 def test_cheata():
   """Test with the porcine circovirus test data"""
 
-  inputs = {'bam': '/sbgenomics/test-data/sim_reads.bam'}
-  params = {'ref_name': 'gi|52547303|gb|AY735451.1|',
-            'ref_len': 702}
+  inputs = {'bam': '/sbgenomics/test-data/sim_reads.bam',
+            'heada': '/sbgenomics/test-data/porcine_circovirus_0.smalla.heada'}
+  params = {}
   wrp = Cheata(inputs, params)
   outputs = wrp.test()
 
