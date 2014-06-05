@@ -110,7 +110,7 @@ def test_reads():
         "k": 0.1
     }
   }, open('/sbgenomics/test-data/read_par.json','w'), indent=2)
-  inputs = {'seq': ['/sbgenomics/test-data/porcine_circovirus.smalla', '/sbgenomics/test-data/porcine_circovirus.smalla'],
+  inputs = {'seq': ['/sbgenomics/test-data/porcine_circovirus_0.smalla', '/sbgenomics/test-data/porcine_circovirus_0.smalla'],
             'plugin': '/sbgenomics/test-data/read_par.json'}
   params = {
     'coverage': 5,
