@@ -434,6 +434,19 @@ and then add the vcf and index files to the list:
     self.outputs.vcf.meta = self.inputs.ref.make_metadata(file_type='vcf')
 ```
 
+Testing
+-------
+Calling `sbg test mitty.read_wrapper` runs nose tests on the wrapper called `read_wrapper`. You can also run tests by
+
+    cd /sbgenomics
+    pip install .  # Don't need to keep doing this
+    nosetests mitty.read_wrapper
+
+You will note that this creates a directory like `test_Reads_t27qu7` under which you will find log files like
+`process_0.err` and `process_0.out` and any files/directories your tool creates. This directory is created when the
+wrapper is run and all output is dumped in here.
+
+
 Pushing the wrappers onto the platform
 --------------------------------------
 After you are satisfied with how the wrappers are working you can push them onto the Seven Bridges computing platform
