@@ -98,7 +98,7 @@ that your tool needs.
 I'm not sure why. This puts a mild damper on things, since I often write code on the train etc. where I don't have an
 internet connection.**
 
-For Mitty I do the following things
+For Mitty I do the following things (while still inside the docker image i.e. having done `sbg sh`)
 
     sudo pip install sbgsdk --upgrade   # Make sure we have the latest SDK.
 
