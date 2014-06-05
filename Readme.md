@@ -144,6 +144,7 @@ gets python to properly call the shell command we would have used. It is a bit l
 
     >>> import shlex, subprocess
     >>> def shell(command): subprocess.call(shlex.split(command))
+    >>> def shelly(command): _ = subprocess.call(command, shell=True)
 
 We also don't want to clutter up our workspace with a [plethora][pleth] of generated files, so we create a temporary directory to
 store created data files in. We don't delete this directory at the end, in case you want to take a look at the files at
@@ -175,6 +176,7 @@ array - via mmap - so we can handle large sequences without loading it into memo
     ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGCCACCGTTACCGCTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCAAAACGCCCTCCTGGGCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCTTTGAATACTACAGAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAGTGCTGTTATTCTAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTACCACTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCTGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTACAATTCAGAGAATTTAATCTTAAAGACCCCCCACTTAACCCTTAG
     >>> with open('TEST-DATA/porcine_circovirus_0.smalla.heada','r') as f: print f.read()
     gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds
+    702
 
 Mutate
 ------
@@ -445,7 +447,7 @@ cheata
 ------
 We can run `cheata.py`on this BAM file to generate perfect alignment
 
-    >>> shell('python cheata.py --inbam=TEST-DATA/sim_reads.bam --outbam=TEST-DATA/aligned.bam  --refname=gi|52547303|gb|AY735451.1|  --reflen=702')
+    >>> shell('python cheata.py --inbam=TEST-DATA/sim_reads.bam --outbam=TEST-DATA/aligned.bam  --heada=TEST-DATA/porcine_circovirus_0.smalla.heada')
 
 Now you can use `samtools tview` or `tablet` or `IGV` to open up `aligned.bam` and see the perfectly aligned assembly of
 the data.
@@ -453,7 +455,7 @@ the data.
 You can repeat the process with the corrupted reads to get a perfectly aligned BAM but with simulated corruption in the
 reads.
 
-    >>> shell('python cheata.py --inbam=TEST-DATA/sim_reads_c.bam --outbam=TEST-DATA/aligned_c.bam  --refname="gi|52547303|gb|AY735451.1|"  --reflen=702')
+    >>> shell('python cheata.py --inbam=TEST-DATA/sim_reads_c.bam --outbam=TEST-DATA/aligned_c.bam  --heada=TEST-DATA/porcine_circovirus_0.smalla.heada')
 
 
 Testing `samtools mpileup`
@@ -463,8 +465,8 @@ put into the mutated sequence from which we just generated reads.
 
 We first run `mpileup` on the perfect alignment
 
-    >>> _ = subprocess.call('samtools mpileup -uf Data/porcine_circovirus.fa TEST-DATA/aligned.bam | bcftools view -bvcg - > TEST-DATA/var.raw.bcf', shell=True)
-    >>> _ = subprocess.call('bcftools view TEST-DATA/var.raw.bcf | vcfutils.pl varFilter -D100 > TEST-DATA/mpileup.vcf', shell=True)
+    >>> shelly('samtools mpileup -uf Data/porcine_circovirus.fa TEST-DATA/aligned.bam | bcftools view -bvcg - > TEST-DATA/var.raw.bcf')
+    >>> shelly('bcftools view TEST-DATA/var.raw.bcf | vcfutils.pl varFilter -D100 > TEST-DATA/mpileup.vcf')
 
 Then we compare the original VCF with  the detected one
 
@@ -472,6 +474,56 @@ Then we compare the original VCF with  the detected one
     >>> shell('tail -n -11 TEST-DATA/mpileup.vcf')
 
 The VCF entries should indicate identical variants from the `mpileup` command as we generated in the simulation.
+
+
+Testing BWA alignment
+=====================
+How about using `reads.py` to generate some reads from a reference sequence and then checking how well a commonly used
+aligner can align the reads?
+
+    >>> shell('python converta.py Data/adenovirus.fa TEST-DATA/adenovirus')
+    >>> json.dump(
+    ... {
+    ...     "input_sequences": ["TEST-DATA/adenovirus_0.smalla"],
+    ...     "coverages": [10.0],
+    ...     "is_this_ref_seq": True,
+    ...     "read_ranges": [[0.0, 1.0]],
+    ...     "output_file_prefix": "TEST-DATA/adeno_reads",
+    ...     "read_model": "simple_reads",
+    ...     "model_params": {
+    ...         "paired": True,
+    ...         "read_len": 10,
+    ...         "template_len": 250,
+    ...     }
+    ... }, open('TEST-DATA/adeno_read_par.json','w'), indent=2)
+    >>> shell('python reads.py  --paramfile=TEST-DATA/adeno_read_par.json')
+    >>> shelly('samtools bam2fq TEST-DATA/adeno_reads.bam > TEST-DATA/raw_reads.fq')
+    >>> shell('bwa index Data/adenovirus.fa')
+    >>> shelly('bwa mem -p Data/adenovirus.fa TEST-DATA/raw_reads.fq > TEST-DATA/adeno_aligned.sam')
+    >>> shelly('samtools view -Sb TEST-DATA/adeno_aligned.sam > TEST-DATA/temp.bam')
+    >>> shell('samtools sort TEST-DATA/temp.bam TEST-DATA/adeno_aligned')
+    >>> shell('samtools index TEST-DATA/adeno_aligned.bam')
+    >>> shell('python cheata.py check --inbam=TEST-DATA/adeno_aligned.bam --checkfile=TEST-DATA/adeno_stats.pkl')
+
+Now let's load the alignment diagnostics and plot it
+
+    >>> import cPickle, pylab
+    >>> st = cPickle.load(open('TEST-DATA/adeno_stats','r'))
+    >>> x = st['correct_pos']
+    >>> y = st['aligned_pos']
+    >>> pylab.plot(x,y,'k.')
+    >>> pylab.plot([0, st['len']], [0, st['len']], 'k:')
+    >>> pylab.axis('scaled')
+    >>> pylab.setp(pylab.gca(), xlim=[0, st['len']], ylim=[0, st['len']], xlabel='Correct pos', ylabel='Aligned pos')
+
+You should end up with a scatter plot of misaligned reads comparing their true position with their placement by the
+aligner. If there are no misaligned reads the plot will be empty
+
+    >>> pylab.hist(st['bad_alignment_map_score'], bins=21, color='r')
+    >>> pylab.hist(st['good_alignment_map_score'], bins=21, color='g')
+
+This histogram shows the distribution of mapping scores for properly aligned and misaligned reads
+
 
 For further examples of what Mitty can do for you, please refer to the `Examples` directory and the `Readme.md`
 file there to read along. For each of the programs listed above please run the `-h` option to learn the usage pattern.
