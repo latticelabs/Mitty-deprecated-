@@ -16,6 +16,7 @@ class Converta(define.Wrapper):
 
   class Outputs(define.Outputs):
     smalla = define.output(name='SMALLA', description='The output .smalla file')
+    heada = define.output(name='HEADA', description='The output .smalla.heada file')
     # TODO: when implemented in IGOR, add heada as sidecar file
 
   def execute(self):
@@ -23,11 +24,11 @@ class Converta(define.Wrapper):
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
     in_file = self.inputs.fasta
-    out_file = os.path.join(output_dir, os.path.splitext(os.path.basename(in_file))[0] + '.smalla')
-    p = Process('python', '/Mitty/converta.py', in_file, out_file, '--block_size', 10000000)  # TODO: scale this with allocated resources
+    out_file_prefix = os.path.join(output_dir, os.path.splitext(os.path.basename(in_file))[0])
+    p = Process('python', '/Mitty/converta.py', in_file, out_file_prefix, '--block_size', 10000000)  # TODO: scale this with allocated resources
     p.run()
-    self.outputs.smalla = out_file
-
+    self.outputs.smalla = out_file_prefix  + '.smalla'
+    self.outputs.heada = out_file_prefix  + '.smalla.heada'
 
 def test_converta():
   """Test with the porcine circovirus test data"""
