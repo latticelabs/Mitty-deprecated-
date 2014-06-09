@@ -124,7 +124,6 @@ def check(inbam, checkfile):
   }, open(checkfile, 'w'), protocol=cPickle.HIGHEST_PROTOCOL)
 
 
-
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
