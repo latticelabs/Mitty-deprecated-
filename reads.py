@@ -3,6 +3,8 @@ useful for creating test data for MGR algorithms/data formats
 
 Usage:
 reads [--paramfile=PFILE]  [--corrupt]  [--fastq] [--reads_per_block=BL]  [-v]
+reads test [-v]
+reads explain
 
 Options:
   --paramfile=PFILE       Name for parameter file (If none supplied, will read from stdin)
@@ -10,6 +12,8 @@ Options:
   --fastq                 Write as FASTQ instead of BAM (simulated_reads.fastq)
   --reads_per_block=BL    Generate these many reads at a time (Adjust to machine resources). [default: 100000]
   -v                      Dump detailed logger messages
+  test                    Run doctests
+  explain                 Print json file format
 
 # The qname of an unpaired read is written as
 # rN:POS:CIGAR
@@ -389,16 +393,18 @@ def main(args):
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
-  elif docopt.sys.argv[1] == 'test':
+  else:
+    cmd_args = docopt.docopt(__doc__, version=__version__)
+
+  if cmd_args['test']:
     import doctest
     doctest.testmod()
     exit(0)
-  elif docopt.sys.argv[1] == 'explain':
+  elif cmd_args['explain']:
     print __explain__
     exit(0)
-  else:
-    arguments = docopt.docopt(__doc__, version=__version__)
-  level = logging.DEBUG if arguments['-v'] else logging.WARNING
+
+  level = logging.DEBUG if cmd_args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
 
-  main(arguments)
+  main(cmd_args)
