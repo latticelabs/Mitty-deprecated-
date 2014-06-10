@@ -74,8 +74,12 @@ def read_generator(seq,
                        .
                  ] -> outer list = number of reads
 
-  Note: coordinate is 0-indexed
-  Quality: Sanger scale 33-126
+  Notes:
+  0. This yields a generator
+  1. Coordinate is 0-indexed
+  2. Quality: Sanger scale 33-126
+  3. The number of reads returned on each iteration can be less than reads_per_call because we toss out reads with Ns
+     in them
   """
   # We need to initialize the rngs and a bunch of other stuff
   read_loc_rng = numpy.random.RandomState(seed=read_loc_rng_seed)
@@ -88,14 +92,21 @@ def read_generator(seq,
     read_count = num_reads
 
   while read_count < num_reads:
-    rd_st = read_loc_rng.randint(low=read_start, high=read_stop - tl, size=min(reads_per_call, num_reads-read_count))
+    rd_st = read_loc_rng.randint(low=read_start, high=read_stop - tl, size=reads_per_call)
+    reads = []
     if paired:
-      reads = [[[seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]],
-                [seq[rd_st[n] + tl - rl:rd_st[n] + tl], '~' * rl, rd_st[n] + tl - rl]] for n in range(rd_st.size)]
+      for this_rd_st in rd_st:
+        if 'N' in seq[this_rd_st:this_rd_st + tl]:  # read taken from a masked/unknown region
+          continue
+        reads.append([[seq[this_rd_st:this_rd_st + rl], '~' * rl, this_rd_st],
+                      [seq[this_rd_st + tl - rl:this_rd_st + tl], '~' * rl, this_rd_st + tl - rl]])
     else:
-      reads = [[[seq[rd_st[n]:rd_st[n] + rl], '~' * rl, rd_st[n]]] for n in range(rd_st.size)]
+      for this_rd_st in rd_st:
+        if 'N' in seq[this_rd_st:this_rd_st + tl]:  # read taken from a masked/unknown region
+          continue
+        reads.append([[seq[this_rd_st:this_rd_st + rl], '~' * rl, this_rd_st]])
 
-    read_count += rd_st.size
+    read_count += len(reads)
     yield reads
 
 
