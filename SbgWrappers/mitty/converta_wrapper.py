@@ -27,8 +27,8 @@ class Converta(define.Wrapper):
     out_file_prefix = os.path.join(output_dir, os.path.splitext(os.path.basename(in_file))[0])
     p = Process('python', '/Mitty/converta.py', in_file, out_file_prefix)
     p.run()
-    self.outputs.smalla = out_file_prefix  + '.smalla'
-    self.outputs.heada = out_file_prefix  + '.smalla.heada'
+    self.outputs.smalla = out_file_prefix + '_0.smalla'  # Hack - we can actually produce several outputs - what to do here?
+    self.outputs.heada = out_file_prefix + '_0.smalla.heada'
 
 def test_converta():
   """Test with the porcine circovirus test data"""
