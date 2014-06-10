@@ -61,11 +61,6 @@ def read_generator(seq,
     read_len         - Fixed read length (for this model)
     template_len     - Fixed template length (for this model). Only needed if paired is True
     read_loc_rng_seed- Seed for rng that drives the read location picker
-    error_rng_seed   - Seed for rng that determines if there is a read error or not on the base
-    base_chose_rng_seed - Seed for rng that determines which base is erroneously read
-    max_p_error      - error probability for last base of read
-                        (0.0 is perfect reads, 1.0 -> every base is guaranteed to be wrong)
-    k                - exponential factor. 0 < k < 1 The closer this is to 0 the quicker the base error rate drops
     kwargs           - to swallow any other arguments
 
   Outputs
