@@ -25,7 +25,7 @@ class Converta(define.Wrapper):
       os.makedirs(output_dir)
     in_file = self.inputs.fasta
     out_file_prefix = os.path.join(output_dir, os.path.splitext(os.path.basename(in_file))[0])
-    p = Process('python', '/Mitty/converta.py', in_file, out_file_prefix, '--block_size', 10000000)  # TODO: scale this with allocated resources
+    p = Process('python', '/Mitty/converta.py', in_file, out_file_prefix)
     p.run()
     self.outputs.smalla = out_file_prefix  + '.smalla'
     self.outputs.heada = out_file_prefix  + '.smalla.heada'
