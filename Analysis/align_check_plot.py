@@ -19,7 +19,18 @@ import mmap
 import docopt
 import os
 
-def shannon_entropy(sequence, block_size=10000, block_overlap=5000, alphabet=['A', 'C', 'T', 'G']):
+
+def shannon_entropy(sequence, alphabet=['A', 'C', 'T', 'G']):
+  """Given a sequence compute the shannon entropy given the alphabet. Do the computation in blocks if asked for
+  >>> shannon_entropy('AACCTTGG')
+  2.0
+  """
+  seq_len = float(len(sequence))
+  p_obs_alphabet = [sequence.count(k) / seq_len for k in alphabet]
+  return - sum([p_obs * math.log(p_obs, 2) for p_obs in p_obs_alphabet if p_obs > 0])
+
+
+def shannon_entropy_blocked(sequence, block_size=10000, block_overlap=5000, alphabet=['A', 'C', 'T', 'G']):
   """Given a sequence compute the shannon entropy given the alphabet. Do the computation in blocks if asked for
 
   >>> shannon_entropy('AACCTTGG')
@@ -45,19 +56,29 @@ def shannon_entropy(sequence, block_size=10000, block_overlap=5000, alphabet=['A
   return entropy, index
 
 
-def setup_axes():
-  from matplotlib.patches import Rectangle as pRect
-  fig = pylab.figure(figsize=(9.8,14))
-  H = {
-    'scatter': pylab.axes([0.07, .29, .92, .67], xticks=[]),
-    'alignment error': pylab.axes([0.07, .16, .92, .11], xticks=[]),
-    'entropy': pylab.axes([0.07, .04, .92, .11]),
-    'map score hist': pylab.axes([.15, .75, .3, .12], axisbg=None)
-  }
-  H['map score hist'].patch.set_alpha(0.5)
-  rect = pRect((0.1, 0.73), 0.32, 0.13, facecolor='white', edgecolor='none', transform=fig.transFigure, zorder=-1)
-  fig.patches.append(rect)
+def shannon_entropy_local(sequence, pos_list, window, alphabet=['A', 'C', 'T', 'G']):
+  """Given a sequence return the entropy value in a window starting at pos. We don't check to see if a given
+  pos + window is within sequence
+  """
+  w = float(window)
+  entropy = []
+  for pos in pos_list:
+    sub_sequence = sequence[pos:pos+window]
+    p_obs_alphabet = [sub_sequence.count(k) / w for k in alphabet]
+    entropy.append(- sum([p_obs * math.log(p_obs, 2) for p_obs in p_obs_alphabet if p_obs > 0]))
+  return entropy
 
+
+def setup_axes():
+  fig = pylab.figure(figsize=(9.8,15))
+  fig.subplots_adjust(top=0.97, bottom=0.1, left=0.09, right=0.99)
+  H = {
+    'scatter': pylab.subplot2grid((8, 2), (0, 0), colspan=2, rowspan=5, xticks=[]),
+    'alignment error': pylab.subplot2grid((8, 2), (5, 0), colspan=2, xticks=[]),
+    'entropy': pylab.subplot2grid((8, 2), (6, 0), colspan=2),
+    'map score hist': pylab.subplot2grid((8, 2), (7, 0)),
+    'local entropy hist': pylab.subplot2grid((8, 2), (7, 1))
+  }
   return H
 
 
@@ -70,24 +91,37 @@ def alignment_error_scatter_plot(st):
   pylab.setp(pylab.gca(), xlim=[0, st['len']], ylim=[0, st['len']], xlabel='Correct pos', ylabel='Aligned pos')
 
 
-def alignment_score_histogram(st):
-  pylab.hist(st['bad_alignment_map_score'], bins=21, range=[0,40], color='r', histtype='step', lw=5)
-  pylab.hist(st['good_alignment_map_score'], bins=21, range=[0,40], color='y', histtype='step', lw=5)
-  pylab.gca().set_yscale("log", nonposy='clip')
-  pylab.xlabel('Mapping score')
-  pylab.ylabel('Read count')
-
-
 def entropy_plot(seq):
-  entropy, index = shannon_entropy(seq, block_size=10000, block_overlap=0, alphabet=['A', 'C', 'T', 'G'])
+  entropy, index = shannon_entropy_blocked(seq, block_size=10000, block_overlap=0, alphabet=['A', 'C', 'T', 'G'])
   pylab.plot(index, entropy)
   pylab.setp(pylab.gca(), xlim=[0, len(seq)], ylim=[0, 2], ylabel='Bits')
 
 
 def alignment_error_density_plot(st):
-  pylab.hist(st['correct_pos'], range=[0, st['len']], bins=1000, normed=True, histtype='step')
+  pylab.hist(st['correct_pos'], range=[0, st['len']], bins=1000, normed=True, histtype='step', lw=3)
   pylab.setp(pylab.gca(), xlim=[0, st['len']])
   pylab.ylabel('Error density')
+
+
+def alignment_score_histogram(st):
+  pylab.hist(st['bad_alignment_map_score'], bins=21, range=[0,40], color='r', histtype='step', lw=3)
+  pylab.hist(st['good_alignment_map_score'], bins=21, range=[0,40], color='y', histtype='step', lw=1)
+  pylab.gca().set_yscale("log", nonposy='clip')
+  pylab.xlabel('Mapping score')
+  pylab.ylabel('Read count')
+
+
+# To change in checka - give us pos of correct reads too?
+def local_entropy_histogram(seq, st, read_len=150):  # TODO enter more read details when saving from checka
+  entropy = shannon_entropy_local(seq, st['correct_pos'], read_len)
+  pylab.hist(entropy, range=[0, 2], bins=1000, normed=True, histtype='step', lw=3, color='r')
+
+  entropy = shannon_entropy_local(seq, range(0, len(seq), read_len), read_len)  # Normal entropy distribution
+  pylab.hist(entropy, range=[0, 2], bins=1000, normed=True, histtype='step', lw=1, color='g')
+
+  pylab.gca().set_yscale("log", nonposy='clip')
+  pylab.xlabel('Local entropy')
+  pylab.ylabel('Read density')
 
 
 def main(pkl_fname, smalla_fname):
@@ -109,10 +143,14 @@ def main(pkl_fname, smalla_fname):
     pylab.axes(H['map score hist'])
     alignment_score_histogram(st)
 
+    pylab.axes(H['local entropy hist'])
+    local_entropy_histogram(seq, st, read_len=150)
+
     misaligned_reads = len(st['bad_alignment_map_score'])
     total_reads = misaligned_reads + len(st['good_alignment_map_score'])
-    title='{:s}: {:0.2f}% reads misaligned'.format(os.path.basename(args['<pklfname>']).split('_')[0],
+    title = '{:s}: {:0.2f}% reads misaligned'.format(os.path.basename(args['<pklfname>']).split('_')[0],
                                                    100 * misaligned_reads / float(total_reads))
+
     pylab.suptitle(title)
 
 if __name__ == "__main__":
