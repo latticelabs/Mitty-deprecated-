@@ -471,6 +471,6 @@ generates the `.sbdk/schema.json` file.
 This is cool because it allows you to select which wrappers get pushed. ALL the wrappers, regardless of where they are
 located need to be filled out here and not in any `__init__.py` located in any sub-directory.
 
-Next, check at this url to see if the image took (replace the path with your username)
+Next, split_good_bad at this url to see if the image took (replace the path with your username)
 
     https://images.sbgenomics.com/v1/repositories/kghosesbg/mitty/images
