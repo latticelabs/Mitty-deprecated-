@@ -120,6 +120,9 @@ if __name__ == "__main__":
   else:
     args = docopt.docopt(__doc__, version=__version__)
 
+  level = logging.DEBUG if args['-v'] else logging.WARNING
+  logging.basicConfig(level=level)
+
   if args['split']:  # We are in split_good_bad mode
     split_good_bad(args['--inbam'])
   else:  # We are in align mode
