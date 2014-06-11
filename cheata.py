@@ -72,7 +72,7 @@ def align(inbam, outbam, seq_name, seq_len):
   sort_and_index_bam(outbam)
 
 
-def check(inbam):
+def split_good_bad(inbam):
   """Split the aligned BAM file into two sets of reads - properly aligned and misaligned - and save them in two bam
   files"""
 
@@ -120,8 +120,8 @@ if __name__ == "__main__":
   else:
     args = docopt.docopt(__doc__, version=__version__)
 
-  if args['check']:  # We are in check mode
-    check(args['--inbam'])
+  if args['split']:  # We are in split_good_bad mode
+    split_good_bad(args['--inbam'])
   else:  # We are in align mode
     seq_name, seq_len = open(args['--heada']).readlines()
     align(args['--inbam'], args['--outbam'], seq_name, seq_len)

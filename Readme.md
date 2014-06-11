@@ -503,7 +503,7 @@ aligner can align the reads?
     >>> shelly('samtools view -Sb TEST-DATA/adeno_aligned.sam > TEST-DATA/temp.bam')
     >>> shell('samtools sort TEST-DATA/temp.bam TEST-DATA/adeno_aligned')
     >>> shell('samtools index TEST-DATA/adeno_aligned.bam')
-    >>> shell('python cheata.py check --inbam=TEST-DATA/adeno_aligned.bam --checkfile=TEST-DATA/adeno_stats.pkl')
+    >>> shell('python cheata.py split --inbam=TEST-DATA/adeno_aligned.bam --checkfile=TEST-DATA/adeno_stats.pkl')
 
 Now let's load the alignment diagnostics and plot it
 
