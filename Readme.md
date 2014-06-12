@@ -137,7 +137,7 @@ Test as you read
 ----------------
 
 **This document contains doctest strings! Running `python -m doctest -v Readme.md` will run all the code snippets you
-see here and make sure Mitty is doing what it is supposed to be.**
+see here and make sure Mitty is doing what it is supposed to be. All the generated data files are left under README-DATA**
 
 In order to run the command line code within the examples, without getting messy, we define a function `shell` that
 gets python to properly call the shell command we would have used. It is a bit like IPython's `%run` magic command.
@@ -150,8 +150,8 @@ We also don't want to clutter up our workspace with a [plethora][pleth] of gener
 store created data files in. We don't delete this directory at the end, in case you want to take a look at the files at
 your leisure. **We do clear out this directory every time we run.**
 
-    >>> shell('mkdir -p TEST-DATA')
-    >>> shell('rm TEST-DATA/*')
+    >>> shell('mkdir -p README-DATA')
+    >>> shell('rm README-DATA/*')
 
 [pleth]: https://www.youtube.com/watch?v=tyBUMntP6DI
 
@@ -171,10 +171,10 @@ We use converta to reorganize sequence data in .fasta files so that Mitty's rout
 by stripping out the header and newlines from the .fasta file the .smalla file can be easily used as a disk mapped
 array - via mmap - so we can handle large sequences without loading it into memory all at once)
 
-    >>> shell('python converta.py Data/porcine_circovirus.fa TEST-DATA/porcine_circovirus')
-    >>> with open('TEST-DATA/porcine_circovirus_0.smalla','r') as f: print f.read()
+    >>> shell('python converta.py Data/porcine_circovirus.fa README-DATA/porcine_circovirus')
+    >>> with open('README-DATA/porcine_circovirus_0.smalla','r') as f: print f.read()
     ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGCCACCGTTACCGCTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCAAAACGCCCTCCTGGGCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCTTTGAATACTACAGAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCAGTGCTGTTATTCTAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCTACCACTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCTGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTACAATTCAGAGAATTTAATCTTAAAGACCCCCCACTTAACCCTTAG
-    >>> with open('TEST-DATA/porcine_circovirus_0.smalla.heada','r') as f: print f.read()
+    >>> with open('README-DATA/porcine_circovirus_0.smalla.heada','r') as f: print f.read()
     gi|52547303|gb|AY735451.1| Porcine circovirus isolate Hebei capsid protein gene, complete cds
     702
 
@@ -188,8 +188,8 @@ We will start with a simple experiment where we insert a few SNPs into the porci
     >>> import json
     >>> json.dump(
     ... {
-    ...      "input smalla file": "TEST-DATA/porcine_circovirus_0.smalla",
-    ...      "output vcf file": "TEST-DATA/variants.vcf",
+    ...      "input smalla file": "README-DATA/porcine_circovirus_0.smalla",
+    ...      "output vcf file": "README-DATA/variants.vcf",
     ...      "chromosome": "1",
     ...      "mutations": {
     ...          "snp": {
@@ -204,24 +204,24 @@ We will start with a simple experiment where we insert a few SNPs into the porci
     ...              "base_sub_rng_seed": 2
     ...          }
     ...      }
-    ...  }, open('TEST-DATA/mutations1.json','w'), indent=2)
-    >>> shell('python mutate.py --paramfile=TEST-DATA/mutations1.json  -v')
+    ...  }, open('README-DATA/mutations1.json','w'), indent=2)
+    >>> shell('python mutate.py --paramfile=README-DATA/mutations1.json  -v')
 
 (For a detailed description of the stock plugin parameters you can run the plugin as a script with the `explain` command,
 e.g. `python Plugins/Mutation/insert_plugin.py explain`).
 
 You should see something like:
 
-    DEBUG:__main__:Input sequence: TEST-DATA/porcine_circovirus_0.smalla
+    DEBUG:__main__:Input sequence: README-DATA/porcine_circovirus_0.smalla
     DEBUG:__main__:Input sequence has 702 bases
-    DEBUG:__main__:Output file name: TEST-DATA/variants.vcf
+    DEBUG:__main__:Output file name: README-DATA/variants.vcf
     DEBUG:__main__:100% done
     DEBUG:__main__:Generated 1 snps
     DEBUG:__main__:Compressing and indexing VCF file
 
 You can take a look at the generated VCF file:
 
-    >>> with open('TEST-DATA/variants.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    >>> with open('README-DATA/variants.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     ##fileformat=VCFv4.1
     ##fileDate=...
     ##source=...
@@ -235,8 +235,8 @@ uniformly across the sequence
 
     >>> json.dump(
     ... {
-    ...      "input smalla file": "TEST-DATA/porcine_circovirus_0.smalla",
-    ...      "output vcf file": "TEST-DATA/variants.vcf",
+    ...      "input smalla file": "README-DATA/porcine_circovirus_0.smalla",
+    ...      "output vcf file": "README-DATA/variants.vcf",
     ...      "chromosome": "1",
     ...      "mutations": {
     ...          "snp": {
@@ -249,15 +249,15 @@ uniformly across the sequence
     ...              "base_sub_rng_seed": 2
     ...          }
     ...      }
-    ...  }, open('TEST-DATA/mutations2.json','w'), indent=2)
+    ...  }, open('README-DATA/mutations2.json','w'), indent=2)
 
 (Note that you can leave out parameters. In general, programs in Mitty will fill out missing parameters with defaults. In
 this case we left out the `het_rng_seed` but `phet=0.0` means that we don't need that anyway.)
 
 Let's take a look at the resulting VCF file:
 
-    >>> shell('python mutate.py --paramfile=TEST-DATA/mutations2.json')
-    >>> with open('TEST-DATA/variants.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    >>> shell('python mutate.py --paramfile=README-DATA/mutations2.json')
+    >>> with open('README-DATA/variants.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     ##fileformat=VCFv4.1
     ##fileDate=...
     ##source=...
@@ -277,8 +277,8 @@ Consider the following parameter file that generates deletes uniformly across th
 
     >>> json.dump(
     ... {
-    ...      "input smalla file": "TEST-DATA/porcine_circovirus_0.smalla",
-    ...      "output vcf file": "TEST-DATA/variants.vcf",
+    ...      "input smalla file": "README-DATA/porcine_circovirus_0.smalla",
+    ...      "output vcf file": "README-DATA/variants.vcf",
     ...      "chromosome": "1",
     ...      "mutations": {
     ...          "delete": {
@@ -292,12 +292,12 @@ Consider the following parameter file that generates deletes uniformly across th
     ...              "del_len_sub_rng_seed": 4
     ...          }
     ...      }
-    ...  }, open('TEST-DATA/mutations3.json','w'), indent=2)
+    ...  }, open('README-DATA/mutations3.json','w'), indent=2)
 
 Let's take a look at the resulting VCF file:
 
-    >>> shell('python mutate.py --paramfile=TEST-DATA/mutations3.json')
-    >>> with open('TEST-DATA/variants.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    >>> shell('python mutate.py --paramfile=README-DATA/mutations3.json')
+    >>> with open('README-DATA/variants.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     ##fileformat=VCFv4.1
     ##fileDate=...
     ##source=...
@@ -320,8 +320,8 @@ When we ask `mutate.py` for both these sets of mutations (keeping the same rando
 
     >>> json.dump(
     ... {
-    ...      "input smalla file": "TEST-DATA/porcine_circovirus_0.smalla",
-    ...      "output vcf file": "TEST-DATA/variants.vcf",
+    ...      "input smalla file": "README-DATA/porcine_circovirus_0.smalla",
+    ...      "output vcf file": "README-DATA/variants.vcf",
     ...      "chromosome": "1",
     ...      "mutations": {
     ...          "snp": {
@@ -344,12 +344,12 @@ When we ask `mutate.py` for both these sets of mutations (keeping the same rando
     ...              "del_len_sub_rng_seed": 4
     ...          }
     ...      }
-    ...  }, open('TEST-DATA/mutations4.json','w'), indent=2)
+    ...  }, open('README-DATA/mutations4.json','w'), indent=2)
 
 we get:
 
-    >>> shell('python mutate.py --paramfile=TEST-DATA/mutations4.json')
-    >>> with open('TEST-DATA/variants.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+    >>> shell('python mutate.py --paramfile=README-DATA/mutations4.json')
+    >>> with open('README-DATA/variants.vcf','r') as f: print f.read()  # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     ##fileformat=VCFv4.1
     ##fileDate=...
     ##source=...
@@ -393,7 +393,7 @@ vcf2seq
 Running vcf2seq will generate a mutated sequence and a `.pos` file that contains important indexing information used by
 `reads.py`.
 
-    >>> shell('python vcf2seq.py TEST-DATA/porcine_circovirus_0.smalla TEST-DATA/pc_mutated 1 TEST-DATA/variants.vcf.gz  --ploidy=2')
+    >>> shell('python vcf2seq.py README-DATA/porcine_circovirus_0.smalla README-DATA/pc_mutated 1 README-DATA/variants.vcf.gz  --ploidy=2')
 
 This generates two sequences `pc_mutated_0.smalla` and  having all the mutations described in the VCF file above. Using
 a pen and paper we can work out what the mutated sequence should look like:
@@ -408,7 +408,7 @@ a pen and paper we can work out what the mutated sequence should look like:
 
 and compare it to the generated one
 
-    >>> with open('TEST-DATA/pc_mutated_0.smalla','r') as f: print f.read()
+    >>> with open('README-DATA/pc_mutated_0.smalla','r') as f: print f.read()
     ATGACGTATCCAAGGAGGCGTTACCGGAGAAGAAGACACCGCCCCCGCAGCCATCTTGGCCAGATCCTCCGCCGCCGCCCCTGGCTCGTCCACCCCCGGCACTGGAGAAGGAAAAACGGCATCTTCAACACCCGCCTCTCCCGCACCTTCGGATATACTATCAAGCGAACCACAGTCCAAACGCCCTCGGTGGACATGATGAGATTCAATATTAATGACTTTCTTCCCCCAGGAGGGGGCTCAAACCCCCGCTCTGTGCCCCTTGAATAATAAGAAAGGTTAAGGTTGAATTCTGGCCCTGCTCCCCGATCACCCAGGGTGACAGGGGAGTGGGCTCCATTCAAGATGATAACTTTGTAACAAAGGCCACAGCCCTCACCTATGACCCCTATGTAAACTACTCCTCCCGCCATACCATAACCCAGCCCTTCTCCCGCTACTTTACCCCCAAACCTGTCCTAGATTCCACTATTGATTACTTCCAACCAAACAACAAAAGAAATCAGCTGTGGCTGAGACTACAAACTGCCGGAAATGTAGACCACGTAGGCCTCGGCACTGCGTTCGAAAACAGTATATACGACCAGGAATACAATATCCGTGTAACCATGTATGTGCAATTCTTTAATCTTAAAGACCCCCCACTTAACCCTTAG
 
 reads
@@ -418,11 +418,11 @@ file names under `input_sequences`. This element (alongwith `total_reads` and `r
 
     >>> json.dump(
     ... {
-    ...     "input_sequences": ["TEST-DATA/pc_mutated_0.smalla", "TEST-DATA/pc_mutated_1.smalla"],
+    ...     "input_sequences": ["README-DATA/pc_mutated_0.smalla", "README-DATA/pc_mutated_1.smalla"],
     ...     "total_reads": [100, 100],
     ...     "is_this_ref_seq": False,
     ...     "read_ranges": [[0.0, 1.0], [0.0, 1.0]],
-    ...     "output_file_prefix": "TEST-DATA/sim_reads",
+    ...     "output_file_prefix": "README-DATA/sim_reads",
     ...     "read_model": "tiled_reads",
     ...     "model_params": {
     ...         "paired": False,
@@ -430,12 +430,12 @@ file names under `input_sequences`. This element (alongwith `total_reads` and `r
     ...         "template_len": 250,
     ...         "read_advance": 50
     ...     }
-    ... }, open('TEST-DATA/read_par.json','w'), indent=2)
+    ... }, open('README-DATA/read_par.json','w'), indent=2)
 
 
 Now we run `reads.py` with an appropriate read parameter file to generate a bucket of reads.
 
-    >>> shell('python reads.py  --paramfile=TEST-DATA/read_par.json  --corrupt')
+    >>> shell('python reads.py  --paramfile=README-DATA/read_par.json  --corrupt')
 
 This produces a BAM file (`sim_reads.bam`) with perfect reads from the mutated sequence. Because of the `--corrupt` option it
 also produces `sim_reads_c.bam` which has corrupted reads. This uses the stock plugin which generates errors at the
@@ -447,7 +447,7 @@ cheata
 ------
 We can run `cheata.py`on this BAM file to generate perfect alignment
 
-    >>> shell('python cheata.py --inbam=TEST-DATA/sim_reads.bam --outbam=TEST-DATA/aligned.bam  --heada=TEST-DATA/porcine_circovirus_0.smalla.heada')
+    >>> shell('python cheata.py --inbam=README-DATA/sim_reads.bam --outbam=README-DATA/aligned.bam  --heada=README-DATA/porcine_circovirus_0.smalla.heada')
 
 Now you can use `samtools tview` or `tablet` or `IGV` to open up `aligned.bam` and see the perfectly aligned assembly of
 the data.
@@ -455,7 +455,7 @@ the data.
 You can repeat the process with the corrupted reads to get a perfectly aligned BAM but with simulated corruption in the
 reads.
 
-    >>> shell('python cheata.py --inbam=TEST-DATA/sim_reads_c.bam --outbam=TEST-DATA/aligned_c.bam  --heada=TEST-DATA/porcine_circovirus_0.smalla.heada')
+    >>> shell('python cheata.py --inbam=README-DATA/sim_reads_c.bam --outbam=README-DATA/aligned_c.bam  --heada=README-DATA/porcine_circovirus_0.smalla.heada')
 
 
 Testing `samtools mpileup`
@@ -465,13 +465,13 @@ put into the mutated sequence from which we just generated reads.
 
 We first run `mpileup` on the perfect alignment
 
-    >>> shelly('samtools mpileup -uf Data/porcine_circovirus.fa TEST-DATA/aligned.bam | bcftools view -bvcg - > TEST-DATA/var.raw.bcf')
-    >>> shelly('bcftools view TEST-DATA/var.raw.bcf | vcfutils.pl varFilter -D100 > TEST-DATA/mpileup.vcf')
+    >>> shelly('samtools mpileup -uf Data/porcine_circovirus.fa README-DATA/aligned.bam | bcftools view -bvcg - > README-DATA/var.raw.bcf')
+    >>> shelly('bcftools view README-DATA/var.raw.bcf | vcfutils.pl varFilter -D100 > README-DATA/mpileup.vcf')
 
 Then we compare the original VCF with  the detected one
 
-    >>> shell('tail -n -11 TEST-DATA/variants.vcf')
-    >>> shell('tail -n -11 TEST-DATA/mpileup.vcf')
+    >>> shell('tail -n -11 README-DATA/variants.vcf')
+    >>> shell('tail -n -11 README-DATA/mpileup.vcf')
 
 The VCF entries should indicate identical variants from the `mpileup` command as we generated in the simulation.
 
@@ -481,48 +481,34 @@ Testing BWA alignment
 How about using `reads.py` to generate some reads from a reference sequence and then checking how well a commonly used
 aligner can align the reads?
 
-    >>> shell('python converta.py Data/adenovirus.fa TEST-DATA/adenovirus')
+    >>> shell('python converta.py Data/adenovirus.fa README-DATA/adenovirus')
     >>> json.dump(
     ... {
-    ...     "input_sequences": ["TEST-DATA/adenovirus_0.smalla"],
+    ...     "input_sequences": ["README-DATA/adenovirus_0.smalla"],
     ...     "coverages": [10.0],
     ...     "is_this_ref_seq": True,
     ...     "read_ranges": [[0.0, 1.0]],
-    ...     "output_file_prefix": "TEST-DATA/adeno_reads",
+    ...     "output_file_prefix": "README-DATA/adeno_reads",
     ...     "read_model": "simple_reads",
     ...     "model_params": {
     ...         "paired": True,
     ...         "read_len": 10,
     ...         "template_len": 250,
     ...     }
-    ... }, open('TEST-DATA/adeno_read_par.json','w'), indent=2)
-    >>> shell('python reads.py  --paramfile=TEST-DATA/adeno_read_par.json')
-    >>> shelly('samtools bam2fq TEST-DATA/adeno_reads.bam > TEST-DATA/raw_reads.fq')
+    ... }, open('README-DATA/adeno_read_par.json','w'), indent=2)
+    >>> shell('python reads.py  --paramfile=README-DATA/adeno_read_par.json')
+    >>> shelly('samtools bam2fq README-DATA/adeno_reads.bam > README-DATA/raw_reads.fq')
     >>> shell('bwa index Data/adenovirus.fa')
-    >>> shelly('bwa mem -p Data/adenovirus.fa TEST-DATA/raw_reads.fq > TEST-DATA/adeno_aligned.sam')
-    >>> shelly('samtools view -Sb TEST-DATA/adeno_aligned.sam > TEST-DATA/temp.bam')
-    >>> shell('samtools sort TEST-DATA/temp.bam TEST-DATA/adeno_aligned')
-    >>> shell('samtools index TEST-DATA/adeno_aligned.bam')
-    >>> shell('python cheata.py split --inbam=TEST-DATA/adeno_aligned.bam --checkfile=TEST-DATA/adeno_stats.pkl')
+    >>> shelly('bwa mem -p Data/adenovirus.fa README-DATA/raw_reads.fq > README-DATA/adeno_aligned.sam')
+    >>> shelly('samtools view -Sb README-DATA/adeno_aligned.sam > README-DATA/temp.bam')
+    >>> shell('samtools sort README-DATA/temp.bam README-DATA/adeno_aligned')
+    >>> shell('samtools index README-DATA/adeno_aligned.bam')
+    >>> shell('python cheata.py split --inbam=README-DATA/adeno_aligned.bam')
+    >>> shell('python Analysis/diagnose_alignment.py --correctbam=README-DATA/adeno_aligned_correct.bam --wrongbam=README-DATA/adeno_aligned_wrong.bam  --smalla=README-DATA/adenovirus_0.smalla  --outpkl=README-DATA/bwa_adenovirus_stats.pkl  --outfig=README-DATA/bwa_adenovirus_stats.png')
 
-Now let's load the alignment diagnostics and plot it
+You should end up with a page of plots telling you how well the aligner did its job
 
-    >>> import cPickle, pylab
-    >>> st = cPickle.load(open('TEST-DATA/adeno_stats','r'))
-    >>> x = st['correct_pos']
-    >>> y = st['aligned_pos']
-    >>> pylab.plot(x,y,'k.')
-    >>> pylab.plot([0, st['len']], [0, st['len']], 'k:')
-    >>> pylab.axis('scaled')
-    >>> pylab.setp(pylab.gca(), xlim=[0, st['len']], ylim=[0, st['len']], xlabel='Correct pos', ylabel='Aligned pos')
-
-You should end up with a scatter plot of misaligned reads comparing their true position with their placement by the
-aligner. If there are no misaligned reads the plot will be empty
-
-    >>> pylab.hist(st['bad_alignment_map_score'], bins=21, color='r')
-    >>> pylab.hist(st['good_alignment_map_score'], bins=21, color='g')
-
-This histogram shows the distribution of mapping scores for properly aligned and misaligned reads
+![Aligner summary figure]: (README-DATA/bwa_adenovirus_stats.png)
 
 
 For further examples of what Mitty can do for you, please refer to the `Examples` directory and the `Readme.md`
