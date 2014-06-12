@@ -831,6 +831,34 @@ These are simple binary files carrying unsigned 4 byte int information. This is 
 for human genome sizes, though if we ever work on heavily mutated specimens of the loblolly pine, perhaps we have to
 go to 8 byte ints ...
 
+
+Whole genome file
+-----------------
+
+    Header-----------------------------------------------
+    [char10]  - version of whole genome file
+    [char255] - Human readable species etc
+    [uint8]   - number of chromosomes
+    [uint8]   - ploidy of the *data* (1,2,3 ...)
+
+    Index-------------------------------------------------
+    For each chromosome--------------------------
+        [uint8]   - chromosome number
+        [char255] - Human readable description
+        [char255] - NCBI accession string (if any)
+        For each copy------------------------------
+            [uint32]  - start of data in this file
+            [uint32]  - length of sequence
+
+    Data--------------------------------------------------
+    For each chromosome--------------------------
+        For each copy------------------------------
+            [uchar]   - Nucleotide data
+              ...
+
+Python's native mmap can't do proper offsets ... should we use numpy?
+
+
 Trivia
 ======
 Since you were dying to know: Mitty comes from James Thurber's "[The Secret Life of Walter Mitty][mitty]" one of my
