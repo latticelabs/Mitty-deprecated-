@@ -131,7 +131,8 @@ def alignment_error_scatter_plot(bad):
 
 
 def alignment_error_density_plot(bad):
-  pylab.hist(bad['correct pos'], range=[0, bad['sequence len']], bins=1000, normed=True, histtype='step', lw=3)
+  if len(bad['correct pos']):
+    pylab.hist(bad['correct pos'], range=[0, bad['sequence len']], bins=1000, normed=True, histtype='step', lw=3)
   pylab.setp(pylab.gca(), xlim=[0, bad['sequence len']])
   pylab.ylabel('Error density')
 
@@ -144,16 +145,20 @@ def entropy_plot(seq):
 
 
 def alignment_score_histogram(good, bad):
-  pylab.hist(bad['mapping score'], bins=21, range=[0,70], color='r', histtype='step', lw=3)
-  pylab.hist(good['mapping score'], bins=21, range=[0, 70], color='y', histtype='step', lw=2)
+  if len(bad['mapping score']):
+    pylab.hist(bad['mapping score'], bins=21, range=[0,70], color='r', histtype='step', lw=3)
+  if len(good['mapping score']):
+    pylab.hist(good['mapping score'], bins=21, range=[0, 70], color='y', histtype='step', lw=2)
   pylab.gca().set_yscale("log", nonposy='clip')
   pylab.xlabel('Mapping score')
   pylab.ylabel('Read count')
 
 
 def local_entropy_histogram(good, bad):
-  pylab.hist(bad['sequence entropy'], range=[0, 2], bins=1000, normed=True, histtype='step', lw=3, color='r')
-  pylab.hist(good['sequence entropy'], range=[0, 2], bins=1000, normed=True, histtype='step', lw=1, color='g')
+  if len(bad['sequence entropy']):
+    pylab.hist(bad['sequence entropy'], range=[0, 2], bins=1000, normed=True, histtype='step', lw=3, color='r')
+  if len(good['sequence entropy']):
+    pylab.hist(good['sequence entropy'], range=[0, 2], bins=1000, normed=True, histtype='step', lw=1, color='g')
   pylab.gca().set_yscale("log", nonposy='clip')
   pylab.xlabel('Local entropy')
   pylab.ylabel('Read density')
