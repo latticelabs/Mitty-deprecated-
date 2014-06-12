@@ -21,7 +21,6 @@ BAM from cheata. My work around is to save as SAM and then convert to BAM which 
 """
 __version__ = '0.2.0'
 
-import tempfile  # Needed because we sort the original alignment and then index it
 import os  # Needed for filesize (for sequence length) and messing with filenames
 import pysam  # Needed to read/write BAM files
 import docopt
@@ -31,14 +30,9 @@ logger = logging.getLogger(__name__)
 
 def sort_and_index_bam(bamfile):
   """Do the filename gymnastics required to end up with a sorted, indexed, bam file."""
-  # We save the reads first to a temporary file, sort them and save the sorted aligned reads under the name we want
-  tf_h, tf_name = tempfile.mkstemp()
-  os.close(tf_h)
-  pysam.sort(bamfile, tf_name)
   # samtools sort adds a '.bam' to the end of the file name.
-  os.rename(tf_name + '.bam', bamfile)
+  pysam.sort(bamfile, os.path.splitext(bamfile)[0])
   pysam.index(bamfile)
-  os.remove(tf_name)  # Clean up after ourselves
 
 
 def align(inbam, outbam, seq_name, seq_len):
@@ -87,6 +81,8 @@ def split_good_bad(inbam):
 
   cnt = 0
   blk = 0
+  good_cnt = 0
+  bad_cnt = 0
   for read in in_bamfile:
     cheat_answer = read.qname.split(':')
     this_correct_pos = int(cheat_answer[1])
@@ -98,9 +94,10 @@ def split_good_bad(inbam):
 
     if this_correct_pos != computed_pos:  # We go into the bad pile
       wrong_bamfile.write(read)
+      bad_cnt += 1
     else:
       correct_bamfile.write(read)
-
+      good_cnt += 1
     blk += 1
     if blk == 100000:
       cnt += blk
@@ -108,6 +105,8 @@ def split_good_bad(inbam):
       blk = 0
 
   logger.debug('{:d} reads done'.format(cnt))
+  logger.debug('Found {:d} good reads, {:d} bad reads'.format(good_cnt, bad_cnt))
+
   correct_bamfile.close()
   wrong_bamfile.close()
   sort_and_index_bam(correct_bam)
