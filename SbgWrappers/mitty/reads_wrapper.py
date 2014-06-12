@@ -53,6 +53,7 @@ class Reads(define.Wrapper):
     is_this_ref_seq = define.boolean(default=False,
                                      description='Is this a reference sequence? If true we will not look for .pos file',
                                      category='General')
+    fastq = define.boolean(default=False, description='Use FASTQ as output file format?', category='General')
     read_start = define.real(default=0.0, min=0, max=1, description='From what fraction of the sequence do we start taking reads',
                              category='Advanced')
     read_stop = define.real(default=1.0, min=0, max=1, description='At what fraction of the sequence do we stop taking reads',
@@ -79,13 +80,18 @@ class Reads(define.Wrapper):
     params_json.update(json.load(open(self.inputs.plugin, 'r')))
     with open('params.json', 'w') as fp:
       json.dump(params_json, fp, indent=2)
-    p = Process('python', '/Mitty/reads.py', '--paramfile', 'params.json', '--corrupt')
+
+    fastq = '--fastq' if self.params.fastq else ''
+    p = Process('python', '/Mitty/reads.py', '--paramfile', 'params.json', '--corrupt', fastq)
     p.run()
-    # reads.py produces two sets of files - .bam, .bam.bai and _c.bam, _c.bam.bai
-    self.outputs.perfect_read_file = params_json['output_file_prefix'] + '.bam'
-    self.outputs.perfect_read_file.meta = self.outputs.perfect_read_file.make_metadata(file_type='bam')
-    self.outputs.corrupted_read_file = params_json['output_file_prefix'] + '_c.bam'
-    self.outputs.corrupted_read_file.meta = self.outputs.corrupted_read_file.make_metadata(file_type='bam')
+    # reads.py produces two files - .bam/.fastq, and _c.bam/_c.fastq
+
+    filetype = 'fastq' if self.params.fastq else 'bam'
+
+    self.outputs.perfect_read_file = params_json['output_file_prefix'] + '.' + filetype
+    self.outputs.perfect_read_file.meta = self.outputs.perfect_read_file.make_metadata(file_type=filetype)
+    self.outputs.corrupted_read_file = params_json['output_file_prefix'] + '_c.' + filetype
+    self.outputs.corrupted_read_file.meta = self.outputs.corrupted_read_file.make_metadata(file_type=filetype)
 
 
 def test_reads():
