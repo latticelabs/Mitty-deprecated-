@@ -143,7 +143,7 @@ class WholeGenome():
   def write_header(self):
     self.fp.seek(0)
     self.fp.write(struct.pack(self.header_fmt, self.header['version'],
-                              self.header['species'], self.header['chromosome count']))
+                              self.header['species'][:255], self.header['chromosome count']))
 
   def read_index(self):
     def read_index_entry(fp):
@@ -175,7 +175,7 @@ class WholeGenome():
     self.index[cik(chrom_no, chrom_cpy)] = {
         'chromosome number': chrom_no,
         'chromosome copy': chrom_cpy,
-        'sequence id': seq_id,
+        'sequence id': seq_id[:255],
         'start byte of sequence data': start_byte,
         'length of sequence': seq_len
     }  # We mirror this for internal book-keeping (keep track of what has been added and how many)
