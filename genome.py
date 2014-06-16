@@ -59,9 +59,9 @@ class WholeGenome():
   ...   print wg.get_seq(1,1)
   ...   print wg.get_seq(2,2)
   ...   print wg.get_seq(4,2)  # Will return none - no such chromosome copy
-  GATTACA
-  GATTACTGA
-  None
+  ('GATTACA', 'Test')
+  ('GATTACTGA', 'Test')
+  (None, 'No such sequence')
   """
   header_fmt = '10s 255s H'
   index_fmt = 'H H 255s Q Q'
@@ -122,6 +122,9 @@ class WholeGenome():
 
   def __exit__(self, type, value, traceback):
     self.close()
+
+  def __len__(self):
+    return len(self.index)
 
   def read_header(self):
     try:
@@ -200,7 +203,7 @@ class WholeGenome():
   def get_seq(self, chrom_no=1, chrom_cpy=1):
     if cik(chrom_no, chrom_cpy) in self.index:
       self.fp.seek(self.index[cik(chrom_no, chrom_cpy)]['start byte of sequence data'])
-      return self.fp.read(self.index[cik(chrom_no, chrom_cpy)]['length of sequence'])
+      return self.fp.read(self.index[cik(chrom_no, chrom_cpy)]['length of sequence']), self.index[cik(chrom_no, chrom_cpy)]['sequence id']
     else:
       logger.error('No such sequence {:s}'.format(cik(chrom_no, chrom_cpy)))
-      return None
+      return None, 'No such sequence'
