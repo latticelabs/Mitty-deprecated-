@@ -38,7 +38,31 @@ def cik(chrom_no=1, chrom_cpy=1):
 
 
 class WholeGenome():
-  """This takes care of reading in an existing WG file or creates an empty one for writing to disk."""
+  """This takes care of reading in an existing WG file or creates an empty one for writing to disk.
+
+  >>> import tempfile
+  >>> fname = tempfile.mktemp()
+  >>> with WholeGenome(fname, chrom_count=4) as wg:
+  ...   wg.insert_seq('GATTACA', 1,1)
+  ...   wg.insert_seq('GATTACA', 1,1)  # Can't do this twice, will be caught
+  ...   wg.insert_seq('GATTACAGATTACA', 2,1)
+  ...   wg.insert_seq('GATTACT', 1,2)
+  ...   wg.insert_seq('GATTACTGA', 2,2)
+  ...   wg.insert_seq('GATTACTGA', 3,1)  # Can't do this - too many chromosomes now, will be caught
+  True
+  False
+  True
+  True
+  True
+  False
+  >>> with WholeGenome(fname) as wg:
+  ...   print wg.get_seq(1,1)
+  ...   print wg.get_seq(2,2)
+  ...   print wg.get_seq(4,2)  # Will return none - no such chromosome copy
+  GATTACA
+  GATTACTGA
+  None
+  """
   header_fmt = '10s 255s H'
   index_fmt = 'H H 255s Q Q'
 
@@ -62,6 +86,7 @@ class WholeGenome():
       self.writing = True
     else:  # Opening existing file (gzipped)
       self.fp = gzip.open(fname, mode='rb', compresslevel=compress_level or 9)
+      self.writing = False
 
     if mode == 'rb':  # If this is an existing file we should load the header and indexes
       self.header = self.read_header()
@@ -90,6 +115,13 @@ class WholeGenome():
         bytes_written = 1
         while bytes_written:
           bytes_written = fp.write(self.fp.read(block_size))  # This should compress the file.
+
+  # __enter__ and __exit__ are needed for Python contexts ('with')
+  def __enter__(self):
+    return self
+
+  def __exit__(self, type, value, traceback):
+    self.close()
 
   def read_header(self):
     try:
