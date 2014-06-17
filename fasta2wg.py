@@ -2,12 +2,13 @@
 list of files is given in the index file (.json)
 
 Usage:
-fasta2wg  --index=IDX  --wg=WG  [-v]
+fasta2wg  --index=IDX  --wg=WG  [--fa=FA] [-v]
 fasta2wg  explain
 
 Options:
   --index=IDX       Index file (.json) listing fasta files to be inserted into whole genome
   --wg=WG           Name of .wg.gz file to save to (Saved as gzipped .wg file)
+  --fa=FA           If set, will also dump a fa.gz file (by simply concatenating the files together) for use by BWA
   -v                Be verbose when you do things
   explain           Print index file format and exit
 
@@ -50,6 +51,21 @@ def read_single_seq_fasta(fasta_fname):
     seq = fasta_fp.read().replace('\n', '').upper()
   return seq_id, seq
 
+
+def concatenate_fasta(file_list, fasta_out):
+  """A wrapper around cat and gzip.
+  1. You can concatenate gzipped files and they will work!
+  2. Concatenating chains the strings togther, but we need a newline after each sequence
+  """
+  import os, subprocess
+  # This is our newline after each file
+  with gzip.open(fasta_out + '.sp', 'w') as fp:
+    fp.write('\n')
+  f_list = ' {:s} '.format(fasta_out + '.sp').join(file_list)
+  #TODO watch out for overly long command lines here
+  _ = subprocess.call('cat {:s} > {:s}'.format(f_list, fasta_out), shell=True)  # We live dangerously
+  os.remove(fasta_out + '.sp')  # Clean up after ourselves
+
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
@@ -72,3 +88,6 @@ if __name__ == "__main__":
       this_seq_id, this_seq = read_single_seq_fasta(fasta_fname)
       if wg.insert_seq(this_seq, chrom_no=chrom_no, chrom_cpy=chrom_cpy, seq_id=this_seq_id):
         print 'Inserted chromosome {:d}, copy {:d} ({:s})'.format(chrom_no, chrom_cpy, this_seq_id)
+
+  if args['--fa']:
+    concatenate_fasta(idx['chromosomes'].values(), args['--fa'])
