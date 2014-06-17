@@ -1,13 +1,15 @@
-"""This converts whole genome fasta files e.g. hg38.fa.gz - "Soft-masked" assembly sequence in one file
-released by the GRC into a .wg.gz file.
+"""Given a list of fasta files, each containing one fasta sequence we compact this into a whole genome file. The
+list of files is given in the index file (.json)
 
 Usage:
 fasta2wg  --index=IDX  --wg=WG  [-v]
+fasta2wg  explain
 
 Options:
   --index=IDX       Index file (.json) listing fasta files to be inserted into whole genome
   --wg=WG           Name of .wg.gz file to save to (Saved as gzipped .wg file)
   -v                Be verbose when you do things
+  explain           Print index file format and exit
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
@@ -21,12 +23,31 @@ logger = logging.getLogger(__name__)
 
 __version__ = '0.2.0'
 
+__explain__ = """
+Index file example:
+
+{
+    "header": {
+        "species": "Test Chimera",
+        "chromosome count": 5
+    },
+    "chromosomes": {
+        "1:1": "Data/porcine_circovirus.fa.gz",
+        "2:1": "Data/adenovirus.fa.gz",
+        "1:2": "Data/altered_porcine.fa.gz",
+        "2:2": "Data/herpes.fa.gz",
+        "3:1": "Data/parvovirus.fa.gz"
+    }
+}
+
+"""
+
 
 def read_single_seq_fasta(fasta_fname):
-  """Given a fasta filename with one sequence read it."""
+  """Given a fasta filename with one sequence, read it."""
   with gzip.open(fasta_fname, 'rb') as fasta_fp:
     seq_id = fasta_fp.readline()[1:-1]
-    seq = fasta_fp.read().replace('\n','').upper()
+    seq = fasta_fp.read().replace('\n', '').upper()
   return seq_id, seq
 
 if __name__ == "__main__":
@@ -34,6 +55,10 @@ if __name__ == "__main__":
     docopt.docopt(__doc__, ['-h'])
   else:
     args = docopt.docopt(__doc__, version=__version__)
+
+  if args['explain']:
+    print __explain__
+    exit(0)
 
   level = logging.DEBUG if args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
