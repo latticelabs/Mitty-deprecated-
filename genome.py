@@ -1,6 +1,10 @@
 """This module defines a whole genome file (.wg) that allows us to store multiple sequences in an organized fashion. It
 also defines an interface to read in chosen sequences from the file. The file is meant to represent an individual and
-carries multiple chromosomes and multiple copies of each chromosome. """
+carries multiple chromosomes and multiple copies of each chromosome.
+
+TODO: Have a way to stop reading index data at the item we've actually stored
+
+"""
 import tempfile
 import gzip
 import struct
@@ -16,7 +20,8 @@ File format
     Header-----------------------------------------------
     [char10]   - version string of wg format
     [char255]  - Human readable species name (string)
-    [uint16]   - number of chromosomes max 65535
+    [uint16]   - max number of chromosomes (max 65535)
+    [uint16]   - actual number of chromosomes in file
 
     Index-------------------------------------------------
     For each chromosome copy --------------------------
@@ -63,7 +68,7 @@ class WholeGenome():
   ('GATTACTGA', 'Test')
   (None, 'No such sequence')
   """
-  header_fmt = '10s 255s H'
+  header_fmt = '10s 255s H H'
   index_fmt = 'H H 255s Q Q'
 
   def __init__(self, fname=None, species=None, chrom_count=None, compress_level=None):
@@ -95,13 +100,14 @@ class WholeGenome():
       self.header = {
         'version': __version__,
         'species': species or 'Test',
-        'chromosome count': chrom_count
+        'max chromosome count': chrom_count,
+        'actual chromosome count': 0
       }
       self.index = {}
       self.write_header()
       # Some pointer locations that are important when we write to a file
       self.index_pos = struct.calcsize(self.header_fmt)  # Our index starts from here
-      self.seq_data_pos = struct.calcsize(self.index_fmt) * self.header['chromosome count'] + self.index_pos
+      self.seq_data_pos = struct.calcsize(self.index_fmt) * self.header['max chromosome count'] + self.index_pos
 
   def __del__(self):
     """Only needed if we are writing. We'd like to compress on exit."""
@@ -137,13 +143,14 @@ class WholeGenome():
     return {
       'version': values[0],
       'species': values[1],
-      'chromosome count': values[2]
+      'max chromosome count': values[2],
+      'actual chromosome count': values[3]
     }
 
   def write_header(self):
     self.fp.seek(0)
-    self.fp.write(struct.pack(self.header_fmt, self.header['version'],
-                              self.header['species'][:255], self.header['chromosome count']))
+    self.fp.write(struct.pack(self.header_fmt, self.header['version'], self.header['species'][:255],
+                              self.header['max chromosome count'], self.header['actual chromosome count']))
 
   def read_index(self):
     def read_index_entry(fp):
@@ -163,7 +170,7 @@ class WholeGenome():
       return None
 
     index = {}
-    for n in range(self.header['chromosome count']):
+    for n in range(self.header['actual chromosome count']):
       this_index = read_index_entry(self.fp)
       index['{:d}:{:d}'.format(this_index['chromosome number'], this_index['chromosome copy'])] = this_index
     return index
@@ -172,13 +179,17 @@ class WholeGenome():
     self.fp.seek(self.index_pos)
     self.fp.write(struct.pack(self.index_fmt, chrom_no, chrom_cpy, seq_id, start_byte, seq_len))
     self.index_pos = self.fp.tell()
-    self.index[cik(chrom_no, chrom_cpy)] = {
-        'chromosome number': chrom_no,
-        'chromosome copy': chrom_cpy,
-        'sequence id': seq_id[:255],
-        'start byte of sequence data': start_byte,
-        'length of sequence': seq_len
-    }  # We mirror this for internal book-keeping (keep track of what has been added and how many)
+    self.header['actual chromosome count'] += 1
+    self.write_header()
+    self.index = self.read_index() # We mirror this for internal book-keeping (keep track of what has been added and how many)
+
+    # self.index[cik(chrom_no, chrom_cpy)] = {
+    #     'chromosome number': chrom_no,
+    #     'chromosome copy': chrom_cpy,
+    #     'sequence id': seq_id[:255],
+    #     'start byte of sequence data': start_byte,
+    #     'length of sequence': seq_len
+    # }  # We mirror this for internal book-keeping (keep track of what has been added and how many)
 
   def insert_seq(self, seq, chrom_no=1, chrom_cpy=1, seq_id='Test'):
     """Given a sequence, insert this into the file and update the index."""
@@ -187,8 +198,8 @@ class WholeGenome():
       logger.error('This sequence has already been inserted')
       return False
 
-    if len(self.index) == self.header['chromosome count']:
-      logger.error('This file is set for {:d} chromosomes and that count has been already reached'.format(self.header['chromosome count']))
+    if len(self.index) == self.header['max chromosome count']:
+      logger.error('This file is set for {:d} chromosomes and that count has been already reached'.format(self.header['max chromosome count']))
       return False
 
     self.fp.seek(self.seq_data_pos)
@@ -204,6 +215,55 @@ class WholeGenome():
     if cik(chrom_no, chrom_cpy) in self.index:
       self.fp.seek(self.index[cik(chrom_no, chrom_cpy)]['start byte of sequence data'])
       return self.fp.read(self.index[cik(chrom_no, chrom_cpy)]['length of sequence']), self.index[cik(chrom_no, chrom_cpy)]['sequence id']
+    else:
+      logger.error('No such sequence {:s}'.format(cik(chrom_no, chrom_cpy)))
+      return None, 'No such sequence'
+
+
+class WholeGenomePos(WholeGenome):
+  """This class is used to store POS information for mutated genomes to enable reads.py to produce proper CIGARS.
+
+  >>> import tempfile
+  >>> fname = tempfile.mktemp()
+  >>> with WholeGenomePos(fname, chrom_count=4) as wg:
+  ...   wg.insert_seq([0,1,2,3,4,5,6], 1,1)
+  ...   wg.insert_seq([0,1,2,3], 2,1)
+  True
+  True
+  >>> with WholeGenomePos(fname) as wg:
+  ...   print wg.get_seq(1,1)
+  ...   print wg.get_seq(2,1)
+  ...   print wg.get_seq(4,2)  # Will return none - no such chromosome copy
+  ((0, 1, 2, 3, 4, 5, 6), 'Test')
+  ((0, 1, 2, 3), 'Test')
+  (None, 'No such sequence')
+  """
+
+  def insert_seq(self, pos, chrom_no=1, chrom_cpy=1, seq_id='Test'):
+    """Given a pos array, insert this into the file and update the index."""
+    # Check if this already exists in the index. If so, return an error.
+    if cik(chrom_no, chrom_cpy) in self.index:
+      logger.error('This position array has already been inserted')
+      return False
+
+    if len(self.index) == self.header['max chromosome count']:
+      logger.error('This file is set for {:d} chromosomes and that count has been already reached'.format(self.header['max chromosome count']))
+      return False
+
+    self.fp.seek(self.seq_data_pos)
+    start_byte = self.fp.tell()
+    self.fp.write(struct.pack('I' * len(pos), *pos))
+    self.seq_data_pos = self.fp.tell()
+
+    self.append_index(chrom_no, chrom_cpy, seq_id, start_byte, len(pos))
+
+    return True
+
+  def get_seq(self, chrom_no=1, chrom_cpy=1):
+    if cik(chrom_no, chrom_cpy) in self.index:
+      self.fp.seek(self.index[cik(chrom_no, chrom_cpy)]['start byte of sequence data'])
+      len_pos = self.index[cik(chrom_no, chrom_cpy)]['length of sequence']
+      return struct.unpack('I'*len_pos, self.fp.read(4*len_pos)), self.index[cik(chrom_no, chrom_cpy)]['sequence id']
     else:
       logger.error('No such sequence {:s}'.format(cik(chrom_no, chrom_cpy)))
       return None, 'No such sequence'
