@@ -55,7 +55,7 @@ def read_single_seq_fasta(fasta_fname):
 def concatenate_fasta(file_list, fasta_out):
   """A wrapper around cat and gzip.
   1. You can concatenate gzipped files and they will work!
-  2. Concatenating chains the strings togther, but we need a newline after each sequence
+  2. Concatenating chains the strings together, but we need a newline after each sequence
   """
   import os, subprocess
   # This is our newline after each file
