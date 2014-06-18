@@ -288,4 +288,5 @@ if __name__ == "__main__":
     exit(0)
 
   with WholeGenome(fname=args['--wg']) as wg:
+    print json.dumps(wg.header, indent=2)
     print json.dumps(wg.index, indent=2)
