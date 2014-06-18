@@ -2,17 +2,15 @@
 useful for creating test data for MGR algorithms/data formats
 
 Usage:
-reads [--paramfile=PFILE]  [--corrupt]  [--fastq] [--reads_per_block=BL]  [-v]
-reads test [-v]
+reads --paramfile=PFILE  [--corrupt]  [--fastq] [--reads_per_block=BL]  [-v]
 reads explain
 
 Options:
-  --paramfile=PFILE       Name for parameter file (If none supplied, will read from stdin)
+  --paramfile=PFILE       Name for parameter file
   --corrupt               Write out corrupted reads too.
   --fastq                 Write as FASTQ instead of BAM (simulated_reads.fastq)
   --reads_per_block=BL    Generate these many reads at a time (Adjust to machine resources). [default: 100000]
   -v                      Dump detailed logger messages
-  test                    Run doctests
   explain                 Print json file format
 
 # The qname of an unpaired read is written as
@@ -38,11 +36,10 @@ __explain__ = """
 Example parameter file .json
 
 {
-    "input_sequences": ["mutated_1.smalla", "mutated_2.smalla"],
-    "total_reads": [100, 100],
-    "coverages": [2.0, 10.0],
-    "is_this_ref_seq": false,
-    "read_ranges": [[0.0, 1.0], [0.0, 1.0]],
+    "whole genome file": "test.wg.gz",
+    "whole genome pos file": "test.wg.pos",
+    "take reads from": ['1:1', '1:2'],
+    "coverage": 5.0,
     "output_file_prefix": "sim_reads",
     "read_model": "tiled_reads",
     "model_params": {
@@ -53,20 +50,22 @@ Example parameter file .json
     }
 }
 
-Specify either total_reads OR coverage. If you specify both only the coverage will be honored
+* If "take reads from" is set to none reads will be generated from all chromosomes. Otherwise reads will be taken only
+  from the specified chromosomes
+* In the pos file (test.wg.pos in this case) if the pos data for a particular chromosome is not present, we will assume
+  that the sequence is the reference sequence
+* If the pos file is left empty (None) then we assume this is the reference genome.
 """
 
-__version__ = '0.3.0'
+__version__ = '0.4.0'
 
+import genome
 import os
 import imp
 import json
-import mmap
 import docopt
-import numpy  # Needed for mmap of pos file
 import pysam  # Needed to write BAM files
 import logging
-
 logger = logging.getLogger(__name__)
 
 
@@ -303,56 +302,36 @@ def save_reads_to_fastq(fastq_file_handle, these_reads, first_read_serial):
       fastq_file_handle.write('@{:s}\n{:s}\n+\n{:s}\n'.format(qname, seq, qual))
 
 
-def reads_from_a_sequence(seq_fname=None,
-                          is_ref_seq=False,
-                          read_count=100,
-                          read_range=[0.0, 1.0],
-                          read_model=None,
-                          model_params=None,
-                          read_file_handles=None,
-                          write_corrupted=False,
-                          save_as_bam=True,
-                          reads_per_call=10000):
-
-  with open(seq_fname, 'rb') as f_seq:
-    seq = mmap.mmap(f_seq.fileno(), 0, access=mmap.ACCESS_READ)  # sequence the reads come from
-    seq_len = len(seq)
-    if is_ref_seq:
-      seq_pos = None  # Only roll uses this and will assume reads from ref_seq if this is None
-      logger.debug('Reference sequence, not searching for a pos file')
-    else:
-      seq_pos_filename = seq_fname + '.pos'
-      if os.path.exists(seq_pos_filename):
-        seq_pos = numpy.memmap(seq_pos_filename, dtype='int32', mode='r', shape=(seq_len + 1,))  # Our relevant pos file
-      else:
-        logger.error('Could not find POS file! Quitting')
-        return
-
-    start_reads = int(read_range[0] * seq_len)
-    stop_reads = int(read_range[1] * seq_len)
-    reads = read_model.read_generator(seq=seq,
-                                      read_start=start_reads,
-                                      read_stop=stop_reads,
-                                      num_reads=read_count,
-                                      reads_per_call=reads_per_call,
-                                      **model_params)
-    current_read_count = 0
-    for perfect_reads in reads:
-      roll(perfect_reads, seq_pos)  # The function modifies perfect_reads in place to fill out the POS and CIGAR
-      save_reads(read_file_handles['perfect'], perfect_reads, current_read_count, save_as_bam)
-      #save_reads needs current_read_count because we put in a read serial number in the qname
-      if write_corrupted:
-        save_reads(read_file_handles['corrupted'], read_model.corrupt_reads(perfect_reads, **model_params),
-                   current_read_count, save_as_bam)
-      current_read_count += len(perfect_reads)
-      logger.debug('Generated {:d} reads ({:d}%)'.
-                   format(current_read_count, int(100 * current_read_count / float(read_count))))
+def add_reads_to_file(seq=None, seq_pos=None, coverage=5.0,
+                      read_model=None, model_params=None,
+                      reads_per_call=1000,
+                      write_corrupted=True, save_as_bam=True,
+                      reads_file_handles=None):
+  seq_len = len(seq)
+  read_count = int(seq_len * coverage / read_model.average_read_len(**model_params))
+  reads = read_model.read_generator(seq=seq,
+                                    read_start=0,
+                                    read_stop=seq_len,
+                                    num_reads=read_count,
+                                    reads_per_call=reads_per_call,
+                                    **model_params)
+  current_template_count = 0
+  for perfect_reads in reads:
+    roll(perfect_reads, seq_pos)  # The function modifies perfect_reads in place to fill out the POS and CIGAR
+    save_reads(reads_file_handles['perfect'], perfect_reads, current_template_count, save_as_bam)
+    #save_reads needs current_read_count because we put in a read serial number in the qname
+    if write_corrupted:
+      save_reads(reads_file_handles['corrupted'], read_model.corrupt_reads(perfect_reads, **model_params),
+                 current_template_count, save_as_bam)
+    current_template_count += len(perfect_reads)
+    total_reads = current_template_count * len(perfect_reads[0])
+    logger.debug('Generated {:d} reads ({:d}%)'.
+                 format(total_reads, int(100 * total_reads / float(read_count))))
 
 
 def main(args):
-  # Read parameter file from stdin if no name is given
-  param_string = sys.stdin.read() if args['--paramfile'] is None else open(args['--paramfile'], 'r').read()
-  params = json.loads(param_string)
+  # Load parameter file
+  params = json.load(open(args['--paramfile'], 'r'))
 
   # Load the read model from the plugins directory
   plugin_dir = os.path.join(os.path.dirname(__file__), 'Plugins', 'Reads')
@@ -360,28 +339,27 @@ def main(args):
   read_model = imp.load_source('readmodel', model_fname, open(model_fname, 'r'))
 
   # Generate a dictionary of file handles for perfect and corrupted reads (if needed)
-  save_as_bam = not args['--fastq']  # bam is True if args['-f] is False
+  save_as_bam = not args['--fastq']
   write_corrupted = args['--corrupt']  # If True, corrupted reads will be written out
-  read_file_handles = open_reads_files(params['output_file_prefix'], write_corrupted, save_as_bam)
+  reads_file_handles = open_reads_files(params['output_file_prefix'], write_corrupted, save_as_bam)
 
-  #if coverage is specified fill out total_reads based on sequence lengths etc.
-  if 'coverages' in params:
-    params['total_reads'] = \
-      [int(os.stat(seq_name).st_size * float(cov) / read_model.average_read_len(**params['model_params']))
-       for seq_name, cov in zip(params['input_sequences'], params['coverages'])]
+  #Load the whole genome file
+  wg = genome.WholeGenome(fname=params['whole genome file'])
 
-  # For each sequence in our input list generate reads and flush to file
-  for seq_name, read_count, read_range in zip(params['input_sequences'], params['total_reads'], params['read_ranges']):
-    reads_from_a_sequence(seq_fname=seq_name,
-                          is_ref_seq=params['is_this_ref_seq'],
-                          read_count=read_count,
-                          read_range=read_range,
-                          read_model=read_model,
-                          model_params=params['model_params'],
-                          read_file_handles=read_file_handles,
-                          write_corrupted=write_corrupted,
-                          save_as_bam=save_as_bam,
-                          reads_per_call=int(args['--reads_per_block']))
+  #Load the whole genome pos file if we have one
+  #(if the filename is None, we get a dummy, empty file back)
+  wg_pos = genome.WholeGenomePos(fname=params['whole genome pos file'])
+
+  chrom_list = params["take reads from"] or wg.index.keys()
+  for chrom in chrom_list:
+    if chrom not in wg.index.keys():
+      logger.warning('No chromosome {:s}'.format(chrom))
+      continue
+    add_reads_to_file(seq=wg[chrom][0], seq_pos=wg_pos[chrom][0], coverage=params['coverage'],
+                      read_model=read_model, model_params=params['model_params'],
+                      reads_per_call=int(args['--reads_per_block']),
+                      write_corrupted=write_corrupted, save_as_bam=save_as_bam,
+                      reads_file_handles=reads_file_handles)
 
   with open(params['output_file_prefix'] + '.info', 'w') as f:
     f.write('Command line\n-------------\n')
@@ -396,11 +374,7 @@ if __name__ == "__main__":
   else:
     cmd_args = docopt.docopt(__doc__, version=__version__)
 
-  if cmd_args['test']:
-    import doctest
-    doctest.testmod()
-    exit(0)
-  elif cmd_args['explain']:
+  if cmd_args['explain']:
     print __explain__
     exit(0)
 
