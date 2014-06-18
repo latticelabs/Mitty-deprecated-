@@ -69,7 +69,7 @@ class WholeGenome():
   False
   >>> with WholeGenome(fname) as wg:
   ...   print wg[1,1]
-  ...   print wg[2,2]
+  ...   print wg['2:2']
   ...   print wg[4,2]  # Will return none - no such chromosome copy
   ('GATTACA', 'Test')
   ('GATTACTGA', 'Test')
@@ -212,7 +212,7 @@ class WholeGenome():
 
   def __getitem__(self, item):
     """Cute ways to get our sequence data."""
-    key = cik(item[0], item[1])
+    key = cik(item[0], item[1]) if isinstance(item, tuple) else item
     if key in self.index:
       this_index = self.index[key]
       self.fp.seek(this_index['start byte of sequence data'])
@@ -237,7 +237,7 @@ class WholeGenomePos(WholeGenome):
   True
   >>> with WholeGenomePos(fname) as wg:
   ...   print wg[1,1]
-  ...   print wg[2,1]
+  ...   print wg['2:1']
   ...   print wg[4,2]  # Will return none - no such chromosome copy
   ((0, 1, 2, 3, 4, 5, 6), 'Test')
   ((0, 1, 2, 3), 'Test')
