@@ -68,9 +68,9 @@ class WholeGenome():
   True
   False
   >>> with WholeGenome(fname) as wg:
-  ...   print wg.get_seq(1,1)
-  ...   print wg.get_seq(2,2)
-  ...   print wg.get_seq(4,2)  # Will return none - no such chromosome copy
+  ...   print wg[1,1]
+  ...   print wg[2,2]
+  ...   print wg[4,2]  # Will return none - no such chromosome copy
   ('GATTACA', 'Test')
   ('GATTACTGA', 'Test')
   (None, 'No such sequence')
@@ -190,14 +190,6 @@ class WholeGenome():
     self.write_header()
     self.index = self.read_index() # We mirror this for internal book-keeping (keep track of what has been added and how many)
 
-    # self.index[cik(chrom_no, chrom_cpy)] = {
-    #     'chromosome number': chrom_no,
-    #     'chromosome copy': chrom_cpy,
-    #     'sequence id': seq_id[:255],
-    #     'start byte of sequence data': start_byte,
-    #     'length of sequence': seq_len
-    # }  # We mirror this for internal book-keeping (keep track of what has been added and how many)
-
   def insert_seq(self, seq, chrom_no=1, chrom_cpy=1, seq_id='Test'):
     """Given a sequence, insert this into the file and update the index."""
     # Check if this already exists in the index. If so, return an error.
@@ -218,13 +210,19 @@ class WholeGenome():
 
     return True
 
-  def get_seq(self, chrom_no=1, chrom_cpy=1):
-    if cik(chrom_no, chrom_cpy) in self.index:
-      self.fp.seek(self.index[cik(chrom_no, chrom_cpy)]['start byte of sequence data'])
-      return self.fp.read(self.index[cik(chrom_no, chrom_cpy)]['length of sequence']), self.index[cik(chrom_no, chrom_cpy)]['sequence id']
+  def __getitem__(self, item):
+    """Cute ways to get our sequence data."""
+    key = cik(item[0], item[1])
+    if key in self.index:
+      this_index = self.index[key]
+      self.fp.seek(this_index['start byte of sequence data'])
+      return self._myread(this_index['length of sequence']), this_index['sequence id']
     else:
-      logger.error('No such sequence {:s}'.format(cik(chrom_no, chrom_cpy)))
+      logger.error('No such sequence {:s}'.format(key))
       return None, 'No such sequence'
+
+  def _myread(self, n):
+    return self.fp.read(n)
 
 
 class WholeGenomePos(WholeGenome):
@@ -238,9 +236,9 @@ class WholeGenomePos(WholeGenome):
   True
   True
   >>> with WholeGenomePos(fname) as wg:
-  ...   print wg.get_seq(1,1)
-  ...   print wg.get_seq(2,1)
-  ...   print wg.get_seq(4,2)  # Will return none - no such chromosome copy
+  ...   print wg[1,1]
+  ...   print wg[2,1]
+  ...   print wg[4,2]  # Will return none - no such chromosome copy
   ((0, 1, 2, 3, 4, 5, 6), 'Test')
   ((0, 1, 2, 3), 'Test')
   (None, 'No such sequence')
@@ -266,14 +264,9 @@ class WholeGenomePos(WholeGenome):
 
     return True
 
-  def get_seq(self, chrom_no=1, chrom_cpy=1):
-    if cik(chrom_no, chrom_cpy) in self.index:
-      self.fp.seek(self.index[cik(chrom_no, chrom_cpy)]['start byte of sequence data'])
-      len_pos = self.index[cik(chrom_no, chrom_cpy)]['length of sequence']
-      return struct.unpack('I'*len_pos, self.fp.read(4*len_pos)), self.index[cik(chrom_no, chrom_cpy)]['sequence id']
-    else:
-      logger.error('No such sequence {:s}'.format(cik(chrom_no, chrom_cpy)))
-      return None, 'No such sequence'
+  def _myread(self, n):
+    return struct.unpack('I' * n, self.fp.read(4 * n))
+
 
 if __name__ == "__main__":
   import json
