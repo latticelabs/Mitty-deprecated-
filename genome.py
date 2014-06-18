@@ -94,6 +94,7 @@ class WholeGenome():
         'actual chromosome count': 0
       }
       self.index = {}
+      self.writing = False
       return
 
     # The only tricky thing here is that when writing we can't use a gzipped file (we can't rewind). So, for writing
