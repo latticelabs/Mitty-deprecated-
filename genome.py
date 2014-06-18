@@ -2,8 +2,13 @@
 also defines an interface to read in chosen sequences from the file. The file is meant to represent an individual and
 carries multiple chromosomes and multiple copies of each chromosome.
 
-TODO: Have a way to stop reading index data at the item we've actually stored
+Usage:
+genome.py --wg=WG
+genome.py explain
 
+Options:
+ --wg=WG     Name of Whole Genome file to summarize
+ explain     Explain the file format
 """
 import tempfile
 import gzip
@@ -35,6 +40,8 @@ File format
     For each chromosome copy --------------------------
       [uchar]   - Nucleotide data
         ...
+
+For WholeGenomePos files the Data is uint64 rather than uchar. Everything else is the same.
 """
 
 
@@ -267,3 +274,18 @@ class WholeGenomePos(WholeGenome):
     else:
       logger.error('No such sequence {:s}'.format(cik(chrom_no, chrom_cpy)))
       return None, 'No such sequence'
+
+if __name__ == "__main__":
+  import json
+  import docopt
+  if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
+    docopt.docopt(__doc__, ['-h'])
+  else:
+    args = docopt.docopt(__doc__, version=__version__)
+
+  if args['explain']:
+    print __explain__
+    exit(0)
+
+  with WholeGenome(fname=args['--wg']) as wg:
+    print json.dumps(wg.index, indent=2)
