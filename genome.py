@@ -86,8 +86,16 @@ class WholeGenome():
       species        - Ascii string corresponding to name of species. Leave None to load
       chrom_count    - Total number of chromosomes in genome. Leave None to load
       """
-    if fname is None:
+    if fname is None:  # Create an empty file
+      self.header = {
+        'version': __version__,
+        'species': 'Empty',
+        'max chromosome count': 0,
+        'actual chromosome count': 0
+      }
+      self.index = {}
       return
+
     # The only tricky thing here is that when writing we can't use a gzipped file (we can't rewind). So, for writing
     # we open a regular file and we gzip it on __del__ or close()
     mode = 'wb' if chrom_count else 'rb'
