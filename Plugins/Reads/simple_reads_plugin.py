@@ -91,8 +91,13 @@ def read_generator(seq,
     logger.error('Template len too large for given sequence.')
     read_count = num_reads
 
+  if paired:
+    num_reads = max(1, num_reads / 2)
+    reads_per_call = max(1, reads_per_call / 2)
+
   while read_count < num_reads:
-    rd_st = read_loc_rng.randint(low=read_start, high=read_stop - tl, size=reads_per_call)
+    nominal_read_count = min(reads_per_call, num_reads - read_count)
+    rd_st = read_loc_rng.randint(low=read_start, high=read_stop - tl, size=nominal_read_count)
     reads = []
     if paired:
       for this_rd_st in rd_st:
@@ -106,7 +111,7 @@ def read_generator(seq,
           continue
         reads.append([[seq[this_rd_st:this_rd_st + rl], '~' * rl, this_rd_st]])
 
-    read_count += len(reads)
+    read_count += nominal_read_count * (2 if paired else 1) # len(reads) We don't use actual read count to avoid thrashing when we have tons of Ns in the sequence
     yield reads
 
 
