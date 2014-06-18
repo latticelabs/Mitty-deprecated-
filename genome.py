@@ -148,8 +148,8 @@ class WholeGenome():
 
     values = struct.unpack(self.header_fmt, self.fp.read(struct.calcsize(self.header_fmt)))
     return {
-      'version': values[0],
-      'species': values[1],
+      'version': values[0].strip('\0'),
+      'species': values[1].strip('\0'),
       'max chromosome count': values[2],
       'actual chromosome count': values[3]
     }
@@ -288,5 +288,7 @@ if __name__ == "__main__":
     exit(0)
 
   with WholeGenome(fname=args['--wg']) as wg:
+    print 'Header'
     print json.dumps(wg.header, indent=2)
+    print 'Index'
     print json.dumps(wg.index, indent=2)
