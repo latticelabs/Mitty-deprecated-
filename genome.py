@@ -10,7 +10,6 @@ Options:
  --wg=WG     Name of Whole Genome file to summarize
  explain     Explain the file format
 """
-import tempfile
 import gzip
 import struct
 import logging
@@ -101,7 +100,7 @@ class WholeGenome():
     # we open a regular file and we gzip it on __del__ or close()
     mode = 'wb' if chrom_count else 'rb'
     if mode == 'wb':  # Need to write a new file
-      self.fp = tempfile.TemporaryFile()  #  open(fname, mode='wb')
+      self.fp = open(fname + '.tmp', 'w+b')  # open(fname, mode='wb')
       self.compress_level = compress_level  # We'll compress it on exit
       self.fname = fname
       self.writing = True
@@ -125,18 +124,13 @@ class WholeGenome():
       self.index_pos = struct.calcsize(self.header_fmt)  # Our index starts from here
       self.seq_data_pos = struct.calcsize(self.index_fmt) * self.header['max chromosome count'] + self.index_pos
 
-  def __del__(self):
-    """Only needed if we are writing. We'd like to compress on exit."""
-    self.close()
-
   def close(self):
     if self.writing:
-      block_size = 1073741824
-      with gzip.open(self.fname, mode='wb', compresslevel=self.compress_level or 9) as fp:
-        self.fp.seek(0)
-        bytes_written = 1
-        while bytes_written:
-          bytes_written = fp.write(self.fp.read(block_size))  # This should compress the file.
+      self.fp.close()  # Flush data
+      import subprocess
+      import os
+      subprocess.call(['gzip', self.fp.name])  # Use the right tool for the job
+      os.rename(self.fp.name + '.gz', self.fname)
 
   # __enter__ and __exit__ are needed for Python contexts ('with')
   def __enter__(self):
