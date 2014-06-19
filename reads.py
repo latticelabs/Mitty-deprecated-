@@ -11,22 +11,10 @@ Options:
   --fastq                 Write as FASTQ instead of BAM (simulated_reads.fastq)
   --reads_per_block=BL    Generate these many reads at a time (Adjust to machine resources). [default: 100000]
   -v                      Dump detailed logger messages
-  explain                 Print json file format
+  explain                 Print json file format and explain read qname format
 
-# The qname of an unpaired read is written as
-# rN:POS:CIGAR
-# while that of paired reads are written as
-# rN:POS1:CIGAR1:POS2:CIGAR2
-
-Notes:
-1. The seq id (qname) of each read is the string
-
-   'rN:POS1:CIGAR1:POS2:CIGAR2'
-
-   where N is the number of the read, POS1 the start (POS) of the first read, CIGAR1 is the CIGAR string with POS2,
-   CIGAR2 applying to the mate pair. Unpaired reads have no POS2, CIGAR2
-2. The quality scores are in Phred scale (as specified in the SAM spec)
-3. We supply the prefix of output file name in the parameter file . Say we set this as sim_reads.
+1. The quality scores are in Phred scale (as specified in the SAM spec)
+2. We supply the prefix of output file name in the parameter file . Say we set this as sim_reads.
    The perfect reads will be saved to sim_reads.bam (or sim_reads.fastq). If we ask for corrupted reads
    we will get the corrupted reads in the file sim_reads_c.fastq.
    A text sidecar file sim_reads.info will always be saved with simulation parameters.
@@ -55,6 +43,24 @@ Example parameter file .json
 * In the pos file (test.wg.pos in this case) if the pos data for a particular chromosome is not present, we will assume
   that the sequence is the reference sequence
 * If the pos file is left empty (None) then we assume this is the reference genome.
+
+Qname "cheat" string for reads
+
+The qname of an unpaired read is written as
+
+    ch:cp:rN:POS:CIGAR
+
+while that of paired reads are written as
+
+    ch:cp:rN:POS1:CIGAR1:POS2:CIGAR2
+
+Where
+
+    ch    - chromosome number
+    cp    - chromosome copy
+    N     - number of the read,
+    POS   - correct position of read
+    CIGAR - correct CIGAR
 """
 
 __version__ = '0.4.0'
@@ -189,8 +195,9 @@ def roll_cigar(this_read, p_arr):
 # rN:POS1:CIGAR1:POS2:CIGAR2
 # This function fills out the POS and CIGAR in the qname
 def roll(these_reads, pos_array):
-  """Given a list of reads return us the reads with the coordinate replaced by a (POS,CIGAR) tuple. CIGAR, create the
-  CIGAR, roll, get it? Oh, alright, I tried.
+  """Given a list of reads return us the reads with the coordinate replaced by a 'POS:CIGAR' string.
+  CIGAR, create the CIGAR, roll, get it? Oh, alright, I tried.
+
   Inputs:
                                  _________ ( seq_str, quality_str, coordinate)
     reads     -  [              /
@@ -233,19 +240,21 @@ def roll(these_reads, pos_array):
     this_read[0][2] = qname
 
 
-def save_reads(fh, these_reads, offset, save_as_bam=True):
+def save_reads(fh, these_reads, chrom_key, offset, save_as_bam=True):
   if save_as_bam:
-    save_reads_to_bam(fh, these_reads, offset)
+    save_reads_to_bam(fh, these_reads, chrom_key, offset)
   else:
-    save_reads_to_fastq(fh, these_reads, offset)
+    save_reads_to_fastq(fh, these_reads, chrom_key, offset)
 
 
 # Didn't refactor these functions as that would involve another function call within a loop
 #TODO: Implement option to write short qname
-def save_reads_to_bam(bam_file, these_reads, first_read_serial):
+def save_reads_to_bam(bam_file, these_reads, chrom_key, first_read_serial):
   """
   Inputs:
-                                 _________ ( seq_str, quality_str, qname)
+    bam_file  -  bam file handle
+
+                                 _________ ( seq_str, quality_str, 'POS:CIGAR ...' string to put in qname)
     reads     -  [              /
                   [( ... ), ( ...)],
                   [( ... ), ( ...)], -> inner list = 2 elements if paired reads, 1 otherwise
@@ -253,12 +262,14 @@ def save_reads_to_bam(bam_file, these_reads, first_read_serial):
                        .
                        .
                  ] -> outer list = number of reads
+    chrom_key  - chrom key string used to get sequence from .wg file e.g. '1:2'
+    first_read_serial  - serial number of first read in this list. Needed since we give each template a unique name
   """
   if len(these_reads) == 0: return
   paired = True if len(these_reads[0]) == 2 else False
   for ser_no, this_read in enumerate(these_reads):
     ar = pysam.AlignedRead()
-    ar.qname = 'r{:d}:'.format(first_read_serial + ser_no) + this_read[0][2]
+    ar.qname = '{:s}:r{:d}:{:s}'.format(chrom_key, first_read_serial + ser_no, this_read[0][2])
     ar.seq = this_read[0][0]
     ar.qual = this_read[0][1]
     if paired:
@@ -272,14 +283,13 @@ def save_reads_to_bam(bam_file, these_reads, first_read_serial):
       bam_file.write(ar)
 
 
-def save_reads_to_fastq(fastq_file_handle, these_reads, first_read_serial):
+def save_reads_to_fastq(fastq_file_handle, these_reads, chrom_key, first_read_serial):
   """Given a list of sequences and their quality write the read data to an already opened text file. This saves data
   in interleaved form if paired reads are present
 
-  Inputs:
-    fastq_file_handle - file handles read for writing
+    bam_file  -  bam file handle
 
-                                 _________ ( seq_str, quality_str, qname)
+                                 _________ ( seq_str, quality_str, 'POS:CIGAR ...' string to put in qname)
     reads     -  [              /
                   [( ... ), ( ...)],
                   [( ... ), ( ...)], -> inner list = 2 elements if paired reads, 1 otherwise
@@ -287,12 +297,13 @@ def save_reads_to_fastq(fastq_file_handle, these_reads, first_read_serial):
                        .
                        .
                  ] -> outer list = number of reads
-
+    chrom_key  - chrom key string used to get sequence from .wg file e.g. '1:2'
+    first_read_serial  - serial number of first read in this list. Needed since we give each template a unique name
   """
   if len(these_reads) == 0: return
   paired = True if len(these_reads[0]) == 2 else False
   for ser_no, read in enumerate(these_reads):
-    qname = 'r{:d}:'.format(first_read_serial + ser_no) + read[0][2]
+    qname = '{:s}:r{:d}:{:s}'.format(chrom_key, first_read_serial + ser_no, this_read[0][2])
     seq = read[0][0]
     qual = read[0][1]
     fastq_file_handle.write('@{:s}\n{:s}\n+\n{:s}\n'.format(qname, seq, qual))
@@ -302,7 +313,8 @@ def save_reads_to_fastq(fastq_file_handle, these_reads, first_read_serial):
       fastq_file_handle.write('@{:s}\n{:s}\n+\n{:s}\n'.format(qname, seq, qual))
 
 
-def add_reads_to_file(seq=None, seq_pos=None, coverage=5.0,
+def add_reads_to_file(chrom_key='a:b',
+                      seq=None, seq_pos=None, coverage=5.0,
                       read_model=None, model_params=None,
                       reads_per_call=1000,
                       write_corrupted=True, save_as_bam=True,
@@ -318,11 +330,11 @@ def add_reads_to_file(seq=None, seq_pos=None, coverage=5.0,
   current_template_count = 0
   for perfect_reads in reads:
     roll(perfect_reads, seq_pos)  # The function modifies perfect_reads in place to fill out the POS and CIGAR
-    save_reads(reads_file_handles['perfect'], perfect_reads, current_template_count, save_as_bam)
+    save_reads(reads_file_handles['perfect'], perfect_reads, chrom_key, current_template_count, save_as_bam)
     #save_reads needs current_read_count because we put in a read serial number in the qname
     if write_corrupted:
       save_reads(reads_file_handles['corrupted'], read_model.corrupt_reads(perfect_reads, **model_params),
-                 current_template_count, save_as_bam)
+                 chrom_key, current_template_count, save_as_bam)
     current_template_count += len(perfect_reads)
     total_reads = current_template_count * len(perfect_reads[0])
     logger.debug('Generated {:d} reads ({:d}%)'.
@@ -355,7 +367,8 @@ def main(args):
     if chrom not in wg.index.keys():
       logger.warning('No chromosome {:s}'.format(chrom))
       continue
-    add_reads_to_file(seq=wg[chrom][0], seq_pos=wg_pos[chrom][0], coverage=params['coverage'],
+    add_reads_to_file(chrom_key=chrom,
+                      seq=wg[chrom][0], seq_pos=wg_pos[chrom][0], coverage=params['coverage'],
                       read_model=read_model, model_params=params['model_params'],
                       reads_per_call=int(args['--reads_per_block']),
                       write_corrupted=write_corrupted, save_as_bam=save_as_bam,
