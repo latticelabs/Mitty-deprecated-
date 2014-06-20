@@ -1,6 +1,8 @@
 """This module defines a whole genome file (.wg) that allows us to store multiple sequences in an organized fashion. It
 also defines an interface to read in chosen sequences from the file. The file is meant to represent an individual and
-carries multiple chromosomes and multiple copies of each chromosome.
+carries multiple chromosomes and multiple copies of each chromosome. The rationale for using this (rather than a pickle
+or some other format) is that it is a simple file format that allows us to efficiently access any part of the genome.
+We could have used HDF5 but it would have been standards compliant at the expense of unnecessary complexity.
 
 Usage:
 genome.py --wg=WG
@@ -53,7 +55,7 @@ class WholeGenome():
 
   >>> import tempfile
   >>> fname = tempfile.mktemp()
-  >>> with WholeGenome(fname, chrom_count=4) as wg:
+  >>> with WholeGenome(fname, chrom_count=4, compress_level=4) as wg:
   ...   wg.insert_seq('GATTACA', 1,1)
   ...   wg.insert_seq('GATTACA', 1,1)  # Can't do this twice, will be caught
   ...   wg.insert_seq('GATTACAGATTACA', 2,1)
@@ -77,7 +79,7 @@ class WholeGenome():
   header_fmt = '10s 255s H H'
   index_fmt = 'H H 255s Q Q'
 
-  def __init__(self, fname=None, species=None, chrom_count=None, compress_level=None):
+  def __init__(self, fname=None, species=None, chrom_count=None, compress_level=6):
     """Create a new instance of a whole genome
     Inputs:
       fname          - Open this file for reading if species and chrom_count are None otherwise open for
@@ -101,7 +103,9 @@ class WholeGenome():
     mode = 'wb' if chrom_count else 'rb'
     if mode == 'wb':  # Need to write a new file
       self.fp = open(fname + '.tmp', 'w+b')  # open(fname, mode='wb')
-      self.compress_level = compress_level  # We'll compress it on exit
+      assert compress_level > 0
+      assert compress_level < 10
+      self.compress_level = int(compress_level)  # We'll compress it on exit
       self.fname = fname
       self.writing = True
     else:  # Opening existing file (gzipped)
@@ -129,7 +133,7 @@ class WholeGenome():
       self.fp.close()  # Flush data
       import subprocess
       import os
-      subprocess.call(['gzip', self.fp.name])  # Use the right tool for the job
+      subprocess.call(['gzip', self.fp.name, '-{:d}'.format(self.compress_level)])  # Use the right tool for the job
       os.rename(self.fp.name + '.gz', self.fname)
 
   # __enter__ and __exit__ are needed for Python contexts ('with')
@@ -138,6 +142,7 @@ class WholeGenome():
 
   def __exit__(self, type, value, traceback):
     self.close()
+    return True
 
   def __len__(self):
     return len(self.index)
@@ -206,12 +211,15 @@ class WholeGenome():
 
     self.fp.seek(self.seq_data_pos)
     start_byte = self.fp.tell()
-    self.fp.write(seq)
+    self._mywrite(seq)
     self.seq_data_pos = self.fp.tell()
 
     self.append_index(chrom_no, chrom_cpy, seq_id, start_byte, len(seq))
 
     return True
+
+  def _mywrite(self, seq):
+    self.fp.write(seq)
 
   def __getitem__(self, item):
     """Cute ways to get our sequence data."""
@@ -246,30 +254,46 @@ class WholeGenomePos(WholeGenome):
   ((0, 1, 2, 3), 'Test')
   (None, 'No such sequence')
   """
-
-  def insert_seq(self, pos, chrom_no=1, chrom_cpy=1, seq_id='Test'):
-    """Given a pos array, insert this into the file and update the index."""
-    # Check if this already exists in the index. If so, return an error.
-    if cik(chrom_no, chrom_cpy) in self.index:
-      logger.error('This position array has already been inserted')
-      return False
-
-    if len(self.index) == self.header['max chromosome count']:
-      logger.error('This file is set for {:d} chromosomes and that count has been already reached'.format(self.header['max chromosome count']))
-      return False
-
-    self.fp.seek(self.seq_data_pos)
-    start_byte = self.fp.tell()
-    self.fp.write(struct.pack('I' * len(pos), *pos))
-    self.seq_data_pos = self.fp.tell()
-
-    self.append_index(chrom_no, chrom_cpy, seq_id, start_byte, len(pos))
-
-    return True
+  def _mywrite(self, seq):
+    self.fp.write(struct.pack('I' * len(seq), *seq))
 
   def _myread(self, n):
     return struct.unpack('I' * n, self.fp.read(4 * n))
 
+
+# class WholeGenomeStruct(WholeGenome):
+#   """A generalization of WholeGenome to store any kind of data.
+#
+#   We really should store the 'fmt' string in the header of the file. This will break compatibility with prev version of
+#   file, so will do later
+#
+#   >>> import tempfile
+#   >>> fname = tempfile.mktemp()
+#   >>> with WholeGenomeStruct(fname, fmt='f I', chrom_count=2) as wg:
+#   ...   wg.insert_seq([(0.0, 0), (0.1, 1), (0.2, 2), (0.3, 3), (0.4, 4), (0.5, 5), (0.6, 6)], 1,1)
+#   ...   wg.insert_seq([(0.0, 0), (0.6, 6)], 2,1)
+#   True
+#   True
+#   >>> with WholeGenomeStruct(fname, fmt='f I') as wg:
+#   ...   print wg[1,1]
+#   ...   print wg['2:1']
+#   ...   print wg[4,2]  # Will return none - no such chromosome copy
+#   ((0, 1, 2, 3, 4, 5, 6), 'Test')
+#   ((0, 1, 2, 3), 'Test')
+#   (None, 'No such sequence')
+#   """
+#   import itertools
+#
+#   def __init__(self, *args, **kwargs):
+#     self.fmt = kwargs.pop('fmt')
+#     self.fmt_size = struct.calcsize(self.fmt)
+#     WholeGenome.__init__(self, *args, **kwargs)
+#
+#   def _mywrite(self, seq):
+#     self.fp.write(struct.pack(self.fmt * len(seq), *itertools.chain.from_iterable(seq)))
+#
+#   def _myread(self, n):
+#     return struct.unpack(self.fmt * n, self.fp.read(self.fmt_size * n))
 
 if __name__ == "__main__":
   import json
