@@ -115,6 +115,7 @@ class WholeGenome():
     if mode == 'rb':  # If this is an existing file we should load the header and indexes
       self.header = self.read_header()
       self.index = self.read_index()
+      self.reverse_index = self.create_reverse_index()
     else:  # We should initialize the file
       self.header = {
         'version': __version__,
@@ -189,6 +190,13 @@ class WholeGenome():
       this_index = read_index_entry(self.fp)
       index['{:d}:{:d}'.format(this_index['chromosome number'], this_index['chromosome copy'])] = this_index
     return index
+
+  def create_reverse_index(self):
+    """When aligners work on the reads for our data they return data labeled using the first part of the sequence id
+    In order to efficiently find which chromosome key a sequence id refers to we create this reverse index when we
+    load the data."""
+    return {v.split()[0]: k for k,v in wg.index.iteritems()}
+
 
   def append_index(self, chrom_no=1, chrom_cpy=1, seq_id='Test', start_byte=0, seq_len=0):
     self.fp.seek(self.index_pos)
