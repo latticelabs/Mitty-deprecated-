@@ -142,7 +142,7 @@ class WholeGenome():
 
   def __exit__(self, type, value, traceback):
     self.close()
-    return True
+    return True if type is None else False
 
   def __len__(self):
     return len(self.index)
