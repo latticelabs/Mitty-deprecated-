@@ -49,7 +49,7 @@ class WholeGenomeCompactor(define.Wrapper):
     self.outputs.wg = wg_file_name
     self.outputs.wg.meta = self.outputs.wg.make_metadata(filetype='wg.gz')
     self.outputs.fasta = fasta_file_name
-    self.outputs.fasta.meta = self.outputs.wg.make_metadata(filetype='fa.gz')
+    self.outputs.fasta.meta = self.outputs.fasta.make_metadata(filetype='fa.gz')
 
 
 def test_compactor():
