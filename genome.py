@@ -195,7 +195,7 @@ class WholeGenome():
     """When aligners work on the reads for our data they return data labeled using the first part of the sequence id
     In order to efficiently find which chromosome key a sequence id refers to we create this reverse index when we
     load the data."""
-    return {v.split()[0]: k for k,v in wg.index.iteritems()}
+    return {v['sequence id'].split()[0]: k for k, v in self.index.iteritems()}
 
 
   def append_index(self, chrom_no=1, chrom_cpy=1, seq_id='Test', start_byte=0, seq_len=0):
