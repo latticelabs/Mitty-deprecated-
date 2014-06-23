@@ -91,18 +91,33 @@ def kmer_locate_sparse(seq, chrom_key, kmer_len, kmer_dict=None, alphabet='ACTG'
   return kmer_dict
 
 
+# def kmer_candidate_loc_count(wg, chrom_key, kmer_len):
+#   """Given a sequence dictionary (like a WholeGenome) return us a list of locations along with counts of how many
+#   locations in the genome the k-mer starting there maps to as well. Minimum should be 1. If it is 0 it means that the
+#   sequence there contains an 'N' and was discarded
+#   """
+#   this_seq = wg[chrom_key][0]
+#   candidate_count = numpy.recarray((len(this_seq) - kmer_len + 1,), dtype=[(k,int) for k in wg.index.keys()])
+#   for n in range(len(this_seq) - kmer_len + 1):  # Walk along this sequence
+#     this_kmer = this_seq[n:n + kmer_len]
+#     for chrom in wg.index.keys():
+#       candidate_count[chrom][n] = 0 if 'N' in this_kmer else wg[chrom][0].count(this_kmer)
+#
+#   return candidate_count
+
 def kmer_candidate_loc_count(wg, chrom_key, kmer_len):
   """Given a sequence dictionary (like a WholeGenome) return us a list of locations along with counts of how many
   locations in the genome the k-mer starting there maps to as well. Minimum should be 1. If it is 0 it means that the
   sequence there contains an 'N' and was discarded
   """
   this_seq = wg[chrom_key][0]
-  candidate_count = numpy.recarray((len(this_seq) - kmer_len + 1,), dtype=[(k,int) for k in wg.index.keys()])
+  candidate_count = numpy.zeros(len(this_seq) - kmer_len + 1, dtype=numpy.uint32)  # We are being safe
   for n in range(len(this_seq) - kmer_len + 1):  # Walk along this sequence
     this_kmer = this_seq[n:n + kmer_len]
+    if 'N' in this_kmer:
+      continue
     for chrom in wg.index.keys():
-      candidate_count[chrom][n] = 0 if 'N' in this_kmer else wg[chrom][0].count(this_kmer)
-
+      candidate_count[n] += wg[chrom][0].count(this_kmer)
   return candidate_count
 
 
