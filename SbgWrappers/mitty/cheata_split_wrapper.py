@@ -1,14 +1,14 @@
-"""This is the wrapper for cheata check
+"""This is the wrapper for cheata split
 
 Command line parameters are
 
-cheata check --inbam=INBAM  [-v]
+cheata split --inbam=INBAM  --wg=WG [-v]
 """
 from sbgsdk import define, Process, require
 import os
 
 
-@require(mem_mb=4048, cpu=require.CPU_SINGLE)
+#@require(mem_mb=4048, cpu=require.CPU_SINGLE)
 class SplitGoodBadAlignments(define.Wrapper):
   class Inputs(define.Inputs):
     bam = define.input(name='BAM', description='aligned .bam file of reads produced by read simulator', required=True)  # , file_types=['.bam'])
@@ -18,6 +18,7 @@ class SplitGoodBadAlignments(define.Wrapper):
     good_bam = define.output(name='good BAM', description='.bam (and index) file of correctly aligned reads')  #, list=True)  # , file_types=['.bam', '.bai'])
     bad_bam = define.output(name='bad BAM', description='.bam (and index) file of incorrectly aligned reads')  #, list=True)  # , file_types=['.bam', '.bai'])
     unmapped_bam = define.output(name='unmapped BAM', description='.bam (and index) file of unmapped reads')  #, list=True)  # , file_types=['.bam', '.bai'])
+    data_file = define.output(name='Data file (.pkl)', description='.pkl file of table of read analysis')
 
   def execute(self):
     inbam = self.inputs.bam
@@ -28,6 +29,7 @@ class SplitGoodBadAlignments(define.Wrapper):
     correct_bam = os.path.splitext(inbam)[0] + '_correct.bam'
     bad_bam = os.path.splitext(inbam)[0] + '_wrong.bam'
     unmapped_bam = os.path.splitext(inbam)[0] + '_unmapped.bam'
+    data_file = os.path.splitext(inbam)[0] + '_alignment_data.pkl'
 
     self.outputs.good_bam = correct_bam  #.add_file(correct_bam)
     #self.outputs.good_bam.add_file(correct_bam + '.bai')
@@ -41,6 +43,8 @@ class SplitGoodBadAlignments(define.Wrapper):
     #self.outputs.unmapped_bam.add_file(unmapped_bam + '.bai')
     self.outputs.unmapped_bam.meta = self.inputs.bam.make_metadata()
 
+    self.outputs.data_file = data_file  # .add_file(unmapped_bam)
+
 
 def test_checka():
   """Test with the porcine circovirus test data"""
@@ -51,7 +55,8 @@ def test_checka():
   wrp = SplitGoodBadAlignments(inputs, params)
   outputs = wrp.test()
 
-  # Test to see the output and indexes exist
+  # Test to see the outputs exist
   assert os.path.exists(outputs.good_bam)
   assert os.path.exists(outputs.bad_bam)
   assert os.path.exists(outputs.unmapped_bam)
+  assert os.path.exists(outputs.data_file)
