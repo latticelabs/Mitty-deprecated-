@@ -318,14 +318,14 @@ def save_reads_to_fastq(fastq_file_handle, these_reads, chrom_key, first_read_se
   """
   if len(these_reads) == 0: return
   paired = True if len(these_reads[0]) == 2 else False
-  for ser_no, read in enumerate(these_reads):
+  for ser_no, this_read in enumerate(these_reads):
     qname = '{:s}|r{:d}|{:s}'.format(chrom_key, first_read_serial + ser_no, this_read[0][2])
-    seq = read[0][0]
-    qual = read[0][1]
+    seq = this_read[0][0]
+    qual = this_read[0][1]
     fastq_file_handle.write('@{:s}\n{:s}\n+\n{:s}\n'.format(qname, seq, qual))
     if paired:
-      seq = read[1][0]
-      qual = read[1][1]
+      seq = this_read[1][0]
+      qual = this_read[1][1]
       fastq_file_handle.write('@{:s}\n{:s}\n+\n{:s}\n'.format(qname, seq, qual))
 
 
