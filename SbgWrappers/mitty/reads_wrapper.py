@@ -1,20 +1,19 @@
 """This is the wrapper for reads.py.
 Command line parameters are
 
-[--paramfile=PFILE]  [--corrupt]  [--fastq] [--reads_per_block=BL]  [-v]
+reads --paramfile=PFILE  [--corrupt]  [--fastq] [--reads_per_block=BL]  [-v]
 
 TODO: We set the flag for --corrupt depending on whether there is a consumer for the corrupt reads.
 
 We set the same number of reads and read range for every sequence in the set.
 
-Example param file
+Example parameter file .json
 
 {
-    "input_sequences": ["mutated_1.smalla", "mutated_2.smalla"],
-    "total_reads": [100, 100],
-    "coverages": [5.0, 5.0]
-    "is_this_ref_seq": false,
-    "read_ranges": [[0.0, 1.0], [0.0, 1.0]],
+    "whole genome file": "test.wg.gz",
+    "whole genome pos file": "test.wg.pos",
+    "take reads from": ['1:1', '1:2'],
+    "coverage": 5.0,
     "output_file_prefix": "sim_reads",
     "read_model": "tiled_reads",
     "model_params": {
@@ -24,21 +23,23 @@ Example param file
         "read_advance": 50
     }
 }
+
+* If "take reads from" is set to none reads will be generated from all chromosomes. Otherwise reads will be taken only
+  from the specified chromosomes
+* In the pos file (test.wg.pos in this case) if the pos data for a particular chromosome is not present, we will assume
+  that the sequence is the reference sequence
+* If the pos file is left empty (None) then we assume this is the reference genome.
 """
 from sbgsdk import define, Process, require
 import json
 import os
 
 
-@require(mem_mb=4048, cpu=require.CPU_SINGLE)
+#@require(mem_mb=4048, cpu=require.CPU_SINGLE)
 class Reads(define.Wrapper):
   class Inputs(define.Inputs):
-    seq = define.input(name='Input sequence',
-                       description='.smalla and .pos file(s) containing the sets of sequences making up the sample.'
-                                   ' It is easiest to hook up the output pin of vcf2seq to this pin. Alternatively, '
-                                   'pipe any .smalla and .pos files you have to this pin. If this is a reference '
-                                   'sequence no need for .pos files.',
-                       required=True, list=True)
+    wg = define.input(name='wg.gz', description='Whole genome .gz file', required=True)
+    wg_pos = define.input(name='.pos.wg.gz', description='Whole genome pos .gz file as produced by vcf2seq')
     plugin = define.input(name='Plugins', description='Hook the output pin of the read plugin you want to use to this.')
 
   class Outputs(define.Outputs):
@@ -49,40 +50,29 @@ class Reads(define.Wrapper):
 
   class Params(define.Params):
     coverage = define.real(default=5.0, min=0.0, description='Coverage level', category='General')
-    #total_reads = define.integer(default=100, min=1, description='Total number of reads to generate', category='General')
-    is_this_ref_seq = define.boolean(default=False,
-                                     description='Is this a reference sequence? If true we will not look for .pos file',
-                                     category='General')
     fastq = define.boolean(default=False, description='Use FASTQ as output file format?', category='General')
-    read_start = define.real(default=0.0, min=0, max=1, description='From what fraction of the sequence do we start taking reads',
-                             category='Advanced')
-    read_stop = define.real(default=1.0, min=0, max=1, description='At what fraction of the sequence do we stop taking reads',
-                            category='Advanced')
+    #take_reads_from = define.real(default=5.0, min=0.0, description='Coverage level', category='General')
 
   def execute(self):
     output_dir = 'OUTPUT'
     if not os.path.exists(output_dir):
       os.makedirs(output_dir)
 
-    #We need to figure out if we are going to have to make up our own output file name
-    of_prefix = os.path.splitext(os.path.basename(self.inputs.seq[0]))[0] + '_sim_reads'
+    of_prefix = os.path.join(output_dir, os.path.splitext(os.path.basename(self.inputs.wg))[0] + '_sim_reads')
 
-    # We only indicate the .smalla files in the json parameters (ignore the .pos files)
-    input_smalla = [fname for fname in self.inputs.seq if fname.endswith('.smalla')]
     params_json = {
-      "input_sequences": input_smalla,
-      #"total_reads": [self.params.total_reads / len(input_smalla)] * len(input_smalla),
-      "coverages": [self.params.coverage] * len(input_smalla),
-      "is_this_ref_seq": self.params.is_this_ref_seq,
-      "read_ranges": [[self.params.read_start, self.params.read_stop]] * len(input_smalla),
-      "output_file_prefix": os.path.join(output_dir, of_prefix)
-    }
+      "whole genome file": self.inputs.wg,
+      "whole genome pos file": self.inputs.wg_pos,
+      "take reads from": None,
+      "coverage": self.params.coverage,
+      "output_file_prefix": of_prefix,
+      }
     params_json.update(json.load(open(self.inputs.plugin, 'r')))
     with open('params.json', 'w') as fp:
       json.dump(params_json, fp, indent=2)
 
     fastq = '--fastq' if self.params.fastq else ''
-    p = Process('python', '/Mitty/reads.py', '--paramfile', 'params.json', '--corrupt', fastq)
+    p = Process('python', '/Mitty/reads.py', '--paramfile', 'params.json', '--corrupt', fastq, '-v')
     p.run()
     # reads.py produces two files - .bam/.fastq, and _c.bam/_c.fastq
 
@@ -110,13 +100,11 @@ def test_reads():
         "k": 0.1
     }
   }, open('/sbgenomics/test-data/read_par.json','w'), indent=2)
-  inputs = {'seq': ['/sbgenomics/test-data/porcine_circovirus_0.smalla', '/sbgenomics/test-data/porcine_circovirus_0.smalla'],
+  inputs = {'wg': '/sbgenomics/test-data/chimera.wg.gz',
             'plugin': '/sbgenomics/test-data/read_par.json'}
   params = {
     'coverage': 5,
-    'is_this_ref_seq': True,
-    'read_start': 0.0,
-    'read_stop': 1.0
+    'fastq': True
   }
   wrp = Reads(inputs, params)
   outputs = wrp.test()
