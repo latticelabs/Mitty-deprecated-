@@ -197,6 +197,9 @@ class WholeGenome():
     load the data."""
     return {v['sequence id'].split()[0]: k for k, v in self.index.iteritems()}
 
+  def sorted_index_keys(self):
+    """Return the index (chromosome) keys sorted by number."""
+    return sorted(self.index, key=lambda k: int(k.split(':')[0]))
 
   def append_index(self, chrom_no=1, chrom_cpy=1, seq_id='Test', start_byte=0, seq_len=0):
     self.fp.seek(self.index_pos)
