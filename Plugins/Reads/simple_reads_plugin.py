@@ -3,6 +3,9 @@ used by other models (e.g. tiles_reads)
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
+
+TODO: Fix the corruption algorithm
+
 """
 __explain__ = """
 Example parameter file
@@ -21,15 +24,17 @@ Example parameter file
     }
 }
 """
+import string
 import numpy
 import logging
 logger = logging.getLogger(__name__)
-base_sub_mat = {  # GATC
+base_sub_mat = {  # GATC For base errors
                   'G': 'ATC',
                   'A': 'TCG',
                   'T': 'CGA',
                   'C': 'GAT',
 }
+DNA_complement = string.maketrans('ATCG', 'TAGC')
 
 
 def average_read_len(read_len=None, **kwargs):
@@ -103,8 +108,11 @@ def read_generator(seq,
       for this_rd_st in rd_st:
         if 'N' in seq[this_rd_st:this_rd_st + tl]:  # read taken from a masked/unknown region
           continue
-        reads.append([[seq[this_rd_st:this_rd_st + rl], '~' * rl, this_rd_st],
-                      [seq[this_rd_st + tl - rl:this_rd_st + tl], '~' * rl, this_rd_st + tl - rl]])
+        seq_1 = seq[this_rd_st:this_rd_st + rl]
+        seq_2 = seq[this_rd_st + tl - rl:this_rd_st + tl]
+        seq_2_rev_c = seq_2.translate(DNA_complement)[::-1]
+        reads.append([[seq_1, '~' * rl, this_rd_st],
+                      [seq_2_rev_c, '~' * rl, this_rd_st + tl - rl]])
     else:
       for this_rd_st in rd_st:
         if 'N' in seq[this_rd_st:this_rd_st + tl]:  # read taken from a masked/unknown region
