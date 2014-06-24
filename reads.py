@@ -83,11 +83,11 @@ def interpret_read_qname(read):
   cheat_answer = read.qname.split('|')
   correct_chrom = cheat_answer[0]
   correct_pos = int(cheat_answer[2])
-  correct_cigar = int(cheat_answer[3])
+  correct_cigar = cheat_answer[3]
   if read.flag & 0x01:  # Paired reads
     if read.flag & 0x80:  # Second end (mate)
       correct_pos = int(cheat_answer[4])
-      correct_cigar = int(cheat_answer[5])
+      correct_cigar = cheat_answer[5]
   return correct_chrom, correct_pos, correct_cigar
 
 
