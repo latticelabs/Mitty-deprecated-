@@ -89,6 +89,7 @@ def split(wg, in_bam, correct_bam, wrong_bam, unmapped_bam, data_save_fp):
   rev_idx = wg.reverse_index
 
   total_reads = in_bam.mapped + in_bam.unmapped   #total_reads = int(pysam.view('-c', in_bam.filename)[0].strip())
+  logger.debug('Total reads: {:d}'.format(total_reads))
 
   #This array stores our parsed read data
   # read_analysis = numpy.recarray(shape=(total_reads,),
