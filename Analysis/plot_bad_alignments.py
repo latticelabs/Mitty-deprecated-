@@ -23,7 +23,7 @@ if __name__ == "__main__":
   data = numpy.load(args['--file'])
   ra = data['read data']
   hdr = data['reference data']
-  chrom_keys_sorted = sorted(data['reference data'].keys(), key=lambda k: k.split(':')[0])
+  chrom_keys_sorted = sorted(data['reference data'].keys(), key=lambda k: int(k.split(':')[0]))
 
   pylab.figure(figsize=(10, 1.25*len(chrom_keys_sorted)))
   pylab.subplots_adjust(left=0.1, right=0.99, top=0.99, bottom=0.01, hspace=0.02)
@@ -38,4 +38,6 @@ if __name__ == "__main__":
     pylab.ylabel('{:s}\n({:2.2f}%)\n{:d}'.format(key, 100*float(idx_wrong.size)/num_total, num_total))
     pylab.setp(pylab.gca(), xlim=[0, seq_len], xticks=[], yticks=[])
 
-  pylab.savefig(os.path.splitext(args['--file'])[0] + '_analyzed.pdf')
+  fig_fname = os.path.splitext(args['--file'])[0] + '_analyzed.pdf'
+  pylab.savefig(fig_fname)
+  print 'Saved to {:s}'.format(fig_fname)
