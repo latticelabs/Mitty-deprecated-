@@ -121,7 +121,7 @@ def split(wg, in_bam, correct_bam, wrong_bam, unmapped_bam, data_save_fp):
       aligned_chrom_no, aligned_chrom_copy = rev_idx[seq_name_list[read.rname]]
       aligned_pos = read.pos + 1  # PySam uses 0 indexing ...
 
-      read_analysis[n].aligned_chrom = aligned_chrom_no
+      read_analysis[n].aligned_chrom_no = aligned_chrom_no
       read_analysis[n].aligned_chrom_copy = aligned_chrom_copy
       read_analysis[n].aligned_pos = aligned_pos
       #read_analysis[n].correct_cigar = correct_cigar
@@ -136,7 +136,7 @@ def split(wg, in_bam, correct_bam, wrong_bam, unmapped_bam, data_save_fp):
 
   cPickle.dump({
     'read data': read_analysis,
-    'reference data': {rev_idx[seq_name]: {'name': seq_n, 'len': l} for seq_n, l in zip(seq_name_list, in_bam.lengths)}
+    'reference data': {rev_idx[seq_n]: {'name': seq_n, 'len': l} for seq_n, l in zip(seq_name_list, in_bam.lengths)}
   }, data_save_fp, protocol=cPickle.HIGHEST_PROTOCOL)
 
   logger.debug('{:d} reads done'.format(total_reads))
@@ -167,6 +167,7 @@ if __name__ == "__main__":
             wrong_bam=pysam.Samfile(wrong_bam_name, 'wb', header=in_bam_f.header),
             unmapped_bam=pysam.Samfile(unmapped_bam_name, 'wb', header=in_bam_f.header),
             data_save_fp=open(data_file_name, 'wb'))
+      logger.debug('Saved data to:\n{:s}\n{:s}\n{:s}\n{:s}'.format(correct_bam_name, wrong_bam_name, unmapped_bam_name, data_file_name))
   else:  # We are in align mode
     seq_name, seq_len = open(args['--heada']).readlines()
     align(args['--inbam'], args['--outbam'], seq_name, seq_len)
