@@ -195,7 +195,7 @@ class WholeGenome():
     """When aligners work on the reads for our data they return data labeled using the first part of the sequence id
     In order to efficiently find which chromosome key a sequence id refers to we create this reverse index when we
     load the data."""
-    return {v['sequence id'].split()[0]: k for k, v in self.index.iteritems()}
+    return {v['sequence id'].split()[0]: tuple([int(m) for m in k.split(':')]) for k, v in self.index.iteritems()}
 
   def sorted_index_keys(self):
     """Return the index (chromosome) keys sorted by number."""
