@@ -81,14 +81,14 @@ def interpret_read_qname(read):
   The qname looks like ->    ch:cp|rN|POS1|CIGAR1|POS2|CIGAR2
   """
   cheat_answer = read.qname.split('|')
-  correct_chrom = cheat_answer[0]
+  correct_chrom_no, correct_chrom_copy = cheat_answer[0].split(':')
   correct_pos = int(cheat_answer[2])
   correct_cigar = cheat_answer[3]
   if read.flag & 0x01:  # Paired reads
     if read.flag & 0x80:  # Second end (mate)
       correct_pos = int(cheat_answer[4])
       correct_cigar = cheat_answer[5]
-  return correct_chrom, correct_pos, correct_cigar
+  return correct_chrom_no, correct_chrom_copy, correct_pos, correct_cigar
 
 
 def open_reads_files(out_prefix, corrupted_reads=False, save_as_bam=True):
