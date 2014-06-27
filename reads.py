@@ -81,7 +81,7 @@ def interpret_read_qname(read):
   The qname looks like ->    ch:cp|rN|POS1|CIGAR1|POS2|CIGAR2
   """
   cheat_answer = read.qname.split('|')
-  correct_chrom_no, correct_chrom_copy = cheat_answer[0].split(':')
+  correct_chrom_no, correct_chrom_copy = [int(k) for k in cheat_answer[0].split(':')]
   correct_pos = int(cheat_answer[2])
   correct_cigar = cheat_answer[3]
   if read.flag & 0x01:  # Paired reads

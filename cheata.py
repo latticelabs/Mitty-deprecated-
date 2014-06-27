@@ -33,7 +33,8 @@ import numpy
 import cPickle
 import docopt
 import genome
-import reads
+#import reads
+from reads import interpret_read_qname
 import logging
 logger = logging.getLogger(__name__)
 
@@ -101,14 +102,15 @@ def split(wg, in_bam, correct_bam, wrong_bam, unmapped_bam, data_save_fp):
   #                                       ('mapping_qal', '<i1')])
 
   read_analysis = numpy.recarray(shape=(total_reads,),
-                                 dtype=[('correct_chrom', '5S'), ('correct_pos', '<i4'),
-                                        ('aligned_chrom', '5S'), ('aligned_pos', '<i4'),
+                                 dtype=[('correct_chrom_no', '<i1'), ('correct_chrom_copy', '<i1'), ('correct_pos', '<i4'),
+                                        ('aligned_chrom_no', '<i1'), ('aligned_chrom_copy', '<i1'), ('aligned_pos', '<i4'),
                                         ('mapped', bool), ('correctly_aligned', bool),
                                         ('mapping_qual', '<i1')])
 
   for n, read in enumerate(in_bam):
-    correct_chrom, correct_pos, correct_cigar = reads.interpret_read_qname(read)
-    read_analysis[n].correct_chrom = correct_chrom
+    correct_chrom_no, correct_chrom_copy, correct_pos, correct_cigar = interpret_read_qname(read)#reads.interpret_read_qname(read)
+    read_analysis[n].correct_chrom_no = correct_chrom_no
+    read_analysis[n].correct_chrom_copy = correct_chrom_copy
     read_analysis[n].correct_pos = correct_pos
     #read_analysis[n].correct_cigar = correct_cigar
     if read.flag & 0x4:  # Unmapped
@@ -116,15 +118,16 @@ def split(wg, in_bam, correct_bam, wrong_bam, unmapped_bam, data_save_fp):
       unmapped_bam.write(read)
     else:
       read_analysis[n].mapped = True
-      aligned_chrom = rev_idx[seq_name_list[read.rname]]
+      aligned_chrom_no, aligned_chrom_copy = rev_idx[seq_name_list[read.rname]]
       aligned_pos = read.pos + 1  # PySam uses 0 indexing ...
 
-      read_analysis[n].aligned_chrom = aligned_chrom
+      read_analysis[n].aligned_chrom = aligned_chrom_no
+      read_analysis[n].aligned_chrom_copy = aligned_chrom_copy
       read_analysis[n].aligned_pos = aligned_pos
       #read_analysis[n].correct_cigar = correct_cigar
       read_analysis[n].mapping_qual = read.mapq
 
-      if correct_chrom == aligned_chrom and correct_pos == aligned_pos:
+      if correct_chrom_no == aligned_chrom_no and correct_chrom_copy == aligned_chrom_copy and correct_pos == aligned_pos:
         correct_bam.write(read)
         read_analysis[n].correctly_aligned = True
       else:
@@ -133,7 +136,7 @@ def split(wg, in_bam, correct_bam, wrong_bam, unmapped_bam, data_save_fp):
 
   cPickle.dump({
     'read data': read_analysis,
-    'reference data': {rev_idx[seq_name]: {'name': seq_name, 'len': l} for seq_name, l in zip(seq_name_list, in_bam.lengths)}
+    'reference data': {rev_idx[seq_name]: {'name': seq_n, 'len': l} for seq_n, l in zip(seq_name_list, in_bam.lengths)}
   }, data_save_fp, protocol=cPickle.HIGHEST_PROTOCOL)
 
   logger.debug('{:d} reads done'.format(total_reads))
