@@ -102,8 +102,8 @@ def split(wg, in_bam, correct_bam, wrong_bam, unmapped_bam, data_save_fp):
   #                                       ('mapping_qal', '<i1')])
 
   read_analysis = numpy.recarray(shape=(total_reads,),
-                                 dtype=[('correct_chrom_no', '<i1'), ('correct_chrom_copy', '<i1'), ('correct_pos', '<i4'),
-                                        ('aligned_chrom_no', '<i1'), ('aligned_chrom_copy', '<i1'), ('aligned_pos', '<i4'),
+                                 dtype=[('correct_chrom_no', '<i1'), ('correct_chrom_copy', '<i1'), ('correct_pos', '<u4'),
+                                        ('aligned_chrom_no', '<i1'), ('aligned_chrom_copy', '<i1'), ('aligned_pos', '<u4'),
                                         ('mapped', bool), ('correctly_aligned', bool),
                                         ('mapping_qual', '<i1')])
 
