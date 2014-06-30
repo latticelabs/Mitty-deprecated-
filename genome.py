@@ -46,10 +46,6 @@ For WholeGenomePos files the Data is uint64 rather than uchar. Everything else i
 """
 
 
-def cik(chrom_no=1, chrom_cpy=1):
-  return '{:d}:{:d}'.format(chrom_no, chrom_cpy)
-
-
 class WholeGenome():
   """This takes care of reading in an existing WG file or creates an empty one for writing to disk.
 
@@ -188,14 +184,15 @@ class WholeGenome():
     index = {}
     for n in range(self.header['actual chromosome count']):
       this_index = read_index_entry(self.fp)
-      index['{:d}:{:d}'.format(this_index['chromosome number'], this_index['chromosome copy'])] = this_index
+      #index['{:d}:{:d}'.format(this_index['chromosome number'], this_index['chromosome copy'])] = this_index
+      index[(this_index['chromosome number'], this_index['chromosome copy'])] = this_index
     return index
 
   def create_reverse_index(self):
     """When aligners work on the reads for our data they return data labeled using the first part of the sequence id
     In order to efficiently find which chromosome key a sequence id refers to we create this reverse index when we
     load the data."""
-    return {v['sequence id'].split()[0]: tuple([int(m) for m in k.split(':')]) for k, v in self.index.iteritems()}
+    return {v['sequence id'].split()[0]: k for k, v in self.index.iteritems()}
 
   def sorted_index_keys(self):
     """Return the index (chromosome) keys sorted by number."""
@@ -234,7 +231,7 @@ class WholeGenome():
 
   def __getitem__(self, item):
     """Cute ways to get our sequence data."""
-    key = cik(item[0], item[1]) if isinstance(item, tuple) else item
+    key = tuple([int(k) for k in item.split(':')]) if isinstance(item, str) else item
     if key in self.index:
       this_index = self.index[key]
       self.fp.seek(this_index['start byte of sequence data'])
