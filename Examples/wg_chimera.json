@@ -1,7 +1,6 @@
 {
     "header": {
-        "species": "Test Chimera",
-        "chromosome count": 5
+        "species": "Test Chimera"
     },
     "chromosomes": {
         "1:1": "Data/porcine_circovirus.fa.gz",

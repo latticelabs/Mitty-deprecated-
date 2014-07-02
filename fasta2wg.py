@@ -15,10 +15,11 @@ Options:
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
+import h5py
+import numpy
 import json
 import gzip
 import docopt
-import genome
 import logging
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,6 @@ Index file example:
 {
     "header": {
         "species": "Test Chimera",
-        "chromosome count": 5
     },
     "chromosomes": {
         "1:1": "Data/porcine_circovirus.fa.gz",
@@ -41,15 +41,22 @@ Index file example:
     }
 }
 
+f['sequence/1/1'][:30].tostring()
 """
 
 
-def read_single_seq_fasta(fasta_fname):
+def save_genome_to_hdf5(index, h5_fp):
   """Given a fasta filename with one sequence, read it."""
-  with gzip.open(fasta_fname, 'rb') as fasta_fp:
-    seq_id = fasta_fp.readline()[1:-1]
-    seq = fasta_fp.read().replace('\n', '').upper()
-  return seq_id, seq
+  h5_fp.attrs['species'] = index['header']['species']
+  grp = h5_fp.create_group('sequence')
+  for k, fasta_fname in index['chromosomes'].iteritems():
+    chrom_no, chrom_cpy = int(k.split(':')[0]), int(k.split(':')[1])
+    with gzip.open(fasta_fname, 'rb') as fasta_fp:
+      seq_id = fasta_fp.readline()[1:-1]
+      dset = h5_fp.create_dataset('{:s}/{:d}/{:d}'.format(grp.name, chrom_no, chrom_cpy),
+                                  data=numpy.fromstring(fasta_fp.read().replace('\n', '').upper(), dtype='u1'))
+      dset.attrs['seq id'] = seq_id
+      logger.debug('Inserted chromosome {:d}, copy {:d} ({:s})'.format(chrom_no, chrom_cpy, seq_id))
 
 
 def concatenate_fasta(file_list, fasta_out):
@@ -80,14 +87,9 @@ if __name__ == "__main__":
   logging.basicConfig(level=level)
 
   idx = json.load(open(args['--index'],'r'))
-  with genome.WholeGenome(fname=args['--wg'], species=idx['header']['species'].encode('ascii'),
-                          chrom_count=idx['header']['chromosome count']) as wg:
-    for k, fasta_fname in idx['chromosomes'].iteritems():
-
-      chrom_no, chrom_cpy = int(k.split(':')[0]), int(k.split(':')[1])
-      this_seq_id, this_seq = read_single_seq_fasta(fasta_fname)
-      if wg.insert_seq(this_seq, chrom_no=chrom_no, chrom_cpy=chrom_cpy, seq_id=this_seq_id):
-        print 'Inserted chromosome {:d}, copy {:d} ({:s})'.format(chrom_no, chrom_cpy, this_seq_id)
+  f = h5py.File(args['--wg'], "w")
+  save_genome_to_hdf5(idx, f)
+  f.close()
 
   if args['--fa']:
     concatenate_fasta(idx['chromosomes'].values(), args['--fa'])
