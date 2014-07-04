@@ -32,13 +32,13 @@ Index file example:
     "header": {
         "species": "Test Chimera",
     },
-    "chromosomes": {
-        "1:1": "Data/porcine_circovirus.fa.gz",
-        "2:1": "Data/adenovirus.fa.gz",
-        "1:2": "Data/altered_porcine.fa.gz",
-        "2:2": "Data/herpes.fa.gz",
-        "3:1": "Data/parvovirus.fa.gz"
-    }
+    "chromosomes": [
+        ["Data/porcine_circovirus.fa.gz"],
+        ["Data/adenovirus.fa.gz"],
+        ["Data/altered_porcine.fa.gz"],
+        ["Data/herpes.fa.gz"],
+        ["Data/parvovirus.fa.gz"]
+    ]
 }
 
 f['sequence/1/1'][:30].tostring()
@@ -46,17 +46,17 @@ f['sequence/1/1'][:30].tostring()
 
 
 def save_genome_to_hdf5(index, h5_fp):
-  """Given a fasta filename with one sequence, read it."""
+  """Store all the fasta sequences in the appropriate places in the hdf5 file."""
   h5_fp.attrs['species'] = index['header']['species']
   grp = h5_fp.create_group('sequence')
-  for k, fasta_fname in index['chromosomes'].iteritems():
-    chrom_no, chrom_cpy = int(k.split(':')[0]), int(k.split(':')[1])
-    with gzip.open(fasta_fname, 'rb') as fasta_fp:
-      seq_id = fasta_fp.readline()[1:-1]
-      dset = h5_fp.create_dataset('{:s}/{:d}/{:d}'.format(grp.name, chrom_no, chrom_cpy),
-                                  data=numpy.fromstring(fasta_fp.read().replace('\n', '').upper(), dtype='u1'))
-      dset.attrs['seq id'] = seq_id
-      logger.debug('Inserted chromosome {:d}, copy {:d} ({:s})'.format(chrom_no, chrom_cpy, seq_id))
+  for n, fasta_fnames in enumerate(index['chromosomes']):
+    for m, fasta_fname in enumerate(fasta_fnames):
+      with gzip.open(fasta_fname, 'rb') as fasta_fp:
+        seq_id = fasta_fp.readline()[1:-1]
+        dset = h5_fp.create_dataset('{:s}/{:d}/{:d}'.format(grp.name, n + 1, m + 1),
+                                    data=numpy.fromstring(fasta_fp.read().replace('\n', '').upper(), dtype='u1'))
+        dset.attrs['seq id'] = seq_id
+        logger.debug('Inserted chromosome {:d}, copy {:d} ({:s})'.format(n + 1, m + 1, seq_id))
 
 
 def concatenate_fasta(file_list, fasta_out):
@@ -92,4 +92,4 @@ if __name__ == "__main__":
   f.close()
 
   if args['--fa']:
-    concatenate_fasta(idx['chromosomes'].values(), args['--fa'])
+    concatenate_fasta([fname for fname_groups in idx['chromosomes'] for fname in fname_groups], args['--fa'])
