@@ -19,13 +19,14 @@ Example parameter snippet:
         "copy_rng_seed": 5
     }
 """
-
-
+import string
 import numpy
 import logging
 
 logger = logging.getLogger(__name__)
-bases = 'GATC'
+intab = '\x00\x01\x02\x03'
+outtab = 'GATC'
+trantab = string.maketrans(intab, outtab)
 #             0      1      2      3
 gt_string = ['0/0', '0/1', '1/0', '1/1']  # The types of genotypes
 
@@ -148,7 +149,8 @@ def variants(ref_fp=None,
       if ref == 'N':
         continue  # Not valid, skip to next
       else:
-        alt = ref + ''.join([bases[k] for k in base_sel_rng.randint(4, size=ins_len)])
+        #alt = ref + ''.join([bases[k] for k in base_sel_rng.randint(4, size=ins_len)])
+        alt = ref + base_sel_rng.randint(4, size=ins_len).astype('u1').tostring().translate(trantab)
         gt = gt_string[het]
 
       description.append('Insert')
