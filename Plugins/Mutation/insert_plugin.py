@@ -1,45 +1,46 @@
-"""This is the stock insertion generator. Please see Readme for details on how to write variant generator plugins for
-mutate.py.
-
-The plugin uses three random number generators. The first creates poisson distributed numbers to locate the deletions.
-The second creates poisson distributed numbers to determine deletion lengths. This is equivalent to modeling deletion
-termination as a bernoulli process. The third is a uniform random number generator that is used to generate bases for
-the insertions. The plugin generates all bases at the same rate.
+"""This is the stock insertion generator.
 
 Note: This never generates a deletion at the first base of a sequence.
 
-Example parameter snippet
+"""
+__explain__ = """
+Example parameter snippet:
 
-    "myinsert": {
+    {
+        "chromosome": [1],
         "model": "insert",
-        "start_ins_frac": 0.7,
-        "stop_ins_frac":  0.9,
-        "phet": 0,
-        "p_ins": 0.01,
+        "phet": 0.5,
+        "p": 0.01,
         "lam_ins": 10,
-        "het_rng_seed": 3,
-        "strand_rng_seed": 4,
-        "ins_loc_rng_seed": 0,
-        "ins_len_rng_seed": 1,
-        "base_sel_rng_seed": 2
+        "ins_loc_rng_seed": 1,
+        "ins_len_rng_seed": 2,
+        "base_sel_rng_seed": 3,
+        "het_rng_seed": 4,
+        "copy_rng_seed": 5
     }
 """
+
+
 import numpy
 import logging
 
 logger = logging.getLogger(__name__)
 bases = 'GATC'
-het_type = ['0/1', '1/0']  # The two types of het
+#             0      1      2      3
+gt_string = ['0/0', '0/1', '1/0', '1/1']  # The types of genotypes
 
-def variant(ref_seq=None, ref_seq_len=0,
-            phet=0.0, p_ins=0.01, lam_ins=5,
-            start_ins_frac=0.0, stop_ins_frac=1.0,
-            het_rng_seed=1,
-            strand_rng_seed=4,
-            ins_loc_rng_seed=0,
-            ins_len_rng_seed=1,
-            base_sel_rng_seed=2,
-            block_size=10000, **kwargs):
+
+def variants(ref_fp=None,
+             chromosome=None,
+             p=0.01,
+             phet=0.5,
+             lam_ins=10,
+             ins_loc_rng_seed=1,
+             ins_len_rng_seed=2,
+             base_sel_rng_seed=3,
+             het_rng_seed=4,
+             copy_rng_seed=5,
+             **kwargs):
   """A generator which returns a variant when asked for. This is the stock SNP generator and returns snp locations in
   a poisson distributed fashion.
   Inputs:
@@ -125,48 +126,34 @@ def variant(ref_seq=None, ref_seq_len=0,
   None
   None
   """
-  def get_locs_and_lens():  # Simply a convenience.
-    het_or_not = het_rng.rand(block_size)
-    strand_no = strand_rng.randint(2, size=block_size)
-    loc_diff = numpy.maximum(ins_loc_rng.poisson(lam=1.0 / p_ins, size=block_size), 1)  # Please sir, can I have some more?
-    ins_lens = ins_len_rng.poisson(lam=lam_ins, size=block_size)
-    bc = base_sel_rng.randint(0, 4, size=numpy.sum(ins_lens))
-    csl = numpy.concatenate(([0],numpy.cumsum(ins_lens)))
-    base_calls = [bc[csl[n]:csl[n+1]] for n in range(block_size)]
-    locs = numpy.cumsum(loc_diff) + start_offset
-    return het_or_not, strand_no, locs, ins_lens, locs[-1], base_calls
-
-  het_rng = numpy.random.RandomState(seed=het_rng_seed)
-  strand_rng = numpy.random.RandomState(seed=strand_rng_seed)
   ins_loc_rng = numpy.random.RandomState(seed=ins_loc_rng_seed)
   ins_len_rng = numpy.random.RandomState(seed=ins_len_rng_seed)
   base_sel_rng = numpy.random.RandomState(seed=base_sel_rng_seed)
+  het_rng = numpy.random.RandomState(seed=het_rng_seed)
+  copy_rng = numpy.random.RandomState(seed=copy_rng_seed)
 
-  start_offset = int(ref_seq_len * start_ins_frac)
-  ins_end = int(ref_seq_len * stop_ins_frac)
+  description, footprint, vcf_line = [], [], []
 
-  het_or_not, strand_no, locs, ins_lens, start_offset, base_calls = get_locs_and_lens()
-  internal_cntr = 0
-  while locs[internal_cntr] < ins_end:
-    vl = locs[internal_cntr]
-    ref = ref_seq[vl]
-    if ref == 'N':
-      alt = None  # Don't do insertions is regions with Ns
-    else:
-      alt = ref + ''.join([bases[k] for k in base_calls[internal_cntr]])
-      gt = '1/1' if het_or_not[internal_cntr] > phet else het_type[strand_no[internal_cntr]]
+  for chrom in chromosome:
+    ref_seq = ref_fp['sequence/{:d}/1'.format(chrom)][:].tostring()  # Very cheap operation
+    ins_locs, = numpy.nonzero(ins_loc_rng.rand(len(ref_seq)) < p)
+    ins_lens = ins_len_rng.poisson(lam=lam_ins, size=ins_locs.size)
+    het_type = numpy.empty((ins_locs.size,), dtype='u1')
+    het_type.fill(3)  # Homozygous
+    idx_het, = numpy.nonzero(het_rng.rand(het_type.size) < phet)  # Heterozygous locii
+    het_type[idx_het] = 1  # On copy 1
+    het_type[idx_het[numpy.nonzero(copy_rng.rand(idx_het.size) < 0.5)[0]]] = 2  # On copy 2
+    for het, pos, ins_len in zip(het_type, ins_locs, ins_lens):
+      ref = ref_seq[pos]
+      if ref == 'N':
+        continue  # Not valid, skip to next
+      else:
+        alt = ref + ''.join([bases[k] for k in base_sel_rng.randint(4, size=ins_len)])
+        gt = gt_string[het]
 
-    internal_cntr += 1
-    if internal_cntr == locs.size:
-      het_or_not, strand_no, locs, ins_lens, start_offset, base_calls = get_locs_and_lens()
-      internal_cntr = 0
-
-    if alt is not None:
-      yield (vl, ref, alt, gt, vl+2, None)  # POS, REF, ALT, skipto, list(footprints)
-                                         # footprints, in this case, is None, since we simply skip forward
-      # We have vl + 2 because we want 1 base buffer between variants (see Readme)
-
-
-if __name__ == "__main__":
-  import doctest
-  doctest.testmod()
+      description.append('Insert')
+      footprint.append([(het, chrom-1, pos, pos + 1)])  # Chrom is internal numbering, starts from 0
+      # [(het, chrom, pos_st, pos_nd)]
+      vcf_line.append([(chrom, pos+1, '.', ref, alt, 100, 'PASS', '.', 'GT', gt)])  # POS is VCF number starts from 1
+      # CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample
+  return description, footprint, vcf_line
