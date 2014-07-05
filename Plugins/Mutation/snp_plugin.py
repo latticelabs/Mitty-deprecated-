@@ -1,22 +1,37 @@
-"""This is the stock SNP plugin. It uses four independent RNGs to located SNPs along a reference sequence, assign each
+"""This is the stock SNP plugin. It uses four independent RNGs to locate SNPs along a reference sequence, assign each
 SNP a zygosity and assign an ALT base.
-
-Example parameter snippet:
-
-    "mysnp": {
-        "model": "snp",
-        "start_snps_frac": 0.1,
-        "stop_snps_frac":  0.3,
-        "phet": 0.5,
-        "p": 0.01,
-        "het_rng_seed":3,
-        "strand_rng_seed": 4,
-        "poisson_rng_seed": 1,
-        "base_sub_rng_seed": 2
-    }
 """
 import numpy
 import logging
+
+__explain__ = """
+Example parameter snippet:
+
+    {
+        "chromosome": [1],
+        "model": "snp",
+        "phet": 0.5,
+        "p": 0.01,
+        "base_loc_rng_seed": 1,
+        "base_sub_rng_seed": 2,
+        "het_rng_seed": 3,
+        "copy_rng_seed": 4
+    }
+
+In order to work with mutate.py the model needs a method called variants that returns three lists
+
+description, footprint, vcf_line
+
+higher order description  ()  - as needed to describe complex variants - will make VCF more sophisticated as needed later)
+footprints                (het, chrom, pos_st, pos_nd) ... used for collision detection
+vcf list                  (chrom, pos, id, ref, alt, qual, filter, info, format, sample) ... (as many as needed) - for simple VCF file
+
+
+1 -> variant on copy 1
+2 -> variant on copy 2
+3 -> variant on both copies
+
+"""
 
 logger = logging.getLogger(__name__)
 base_sub_mat = {  # GATC
@@ -25,18 +40,20 @@ base_sub_mat = {  # GATC
                   'T': 'CGA',
                   'C': 'GAT'
 }
-het_type = ['0/1', '1/0']  # The two types of het
+#             0      1      2      3
+gt_string = ['0/0', '0/1', '1/0', '1/1']  # The types of genotypes
 
 
-def variant(ref_seq=None, ref_seq_len=0,
-            phet=0.0, p=0.01,
-            start_snps_frac=0.0, stop_snps_frac=1.0,
-            het_rng_seed=1,
-            strand_rng_seed=4,
-            poisson_rng_seed=2,
-            base_sub_rng_seed=3,
-            block_size=10000, **kwargs):
-  """A generator which returns a variant when asked for. This is the stock SNP generator and returns snp locations in
+def variants(ref_fp=None,
+             chromosome=None,
+             phet=0.5,
+             p=0.01,
+             base_loc_rng_seed=1,
+             base_sub_rng_seed=2,
+             het_rng_seed=3,
+             copy_rng_seed=4,
+             **kwargs):
+  """This is the stock SNP generator and returns snp locations in
   a poisson distributed fashion.
   Inputs:
     ref_seq              - The reference sequence
@@ -116,43 +133,34 @@ def variant(ref_seq=None, ref_seq_len=0,
   None
   None
   """
-  def get_locs_and_subs():  # Simply a convenience.
-    het_or_not = het_rng.rand(block_size)
-    strand_no = strand_rng.randint(2, size=block_size)
-    poiss = numpy.maximum(poisson_rng.poisson(lam=1.0 / p, size=block_size), 1)  # Please sir, can I have some more?
-    base_subs = base_sub_rng.randint(3, size=block_size)
-    locs = numpy.cumsum(poiss) + start_offset
-    return het_or_not, strand_no, locs, base_subs, locs[-1]
-
-  het_rng = numpy.random.RandomState(seed=het_rng_seed)
-  strand_rng = numpy.random.RandomState(seed=strand_rng_seed)
-  poisson_rng = numpy.random.RandomState(seed=poisson_rng_seed)
+  base_loc_rng = numpy.random.RandomState(seed=base_loc_rng_seed)
   base_sub_rng = numpy.random.RandomState(seed=base_sub_rng_seed)
+  het_rng = numpy.random.RandomState(seed=het_rng_seed)
+  copy_rng = numpy.random.RandomState(seed=copy_rng_seed)
 
-  start_offset = int(ref_seq_len * start_snps_frac)
-  snp_end = int(ref_seq_len * stop_snps_frac)
+  description, footprint, vcf_line = [], [], []
 
-  het_or_not, strand_no, locs, subs, start_offset = get_locs_and_subs()
-  internal_cntr = 0
-  while locs[internal_cntr] < snp_end:
-    vl = locs[internal_cntr]
-    ref = ref_seq[vl]
-    if ref in ['G', 'A', 'T', 'C']:
-      alt = base_sub_mat[ref][subs[internal_cntr]]
-      gt = '1/1' if het_or_not[internal_cntr] > phet else het_type[strand_no[internal_cntr]]
-    else:
-      alt = None  # Not valid, skip to next
+  for chrom in chromosome:
+    ref_seq = ref_fp['sequence/{:d}/1'.format(chrom)][:].tostring()  # Very cheap operation
+    base_locs, = numpy.nonzero(base_loc_rng.rand(len(ref_seq)) < p)
+    het_type = numpy.empty((base_locs.size,), dtype='u1')
+    het_type.fill(3)  # Homozygous
+    idx_het, = numpy.nonzero(het_rng.rand(het_type.size) < phet)  # Heterozygous locii
+    het_type[idx_het] = 1  # On copy 1
+    het_type[idx_het[numpy.nonzero(copy_rng.rand(idx_het.size) < 0.5)[0]]] = 2  # On copy 2
+    base_subs = base_sub_rng.randint(3, size=base_locs.size)
 
-    internal_cntr += 1
-    if internal_cntr == locs.size:  # Ran out of random numbers, need to generate some more
-      het_or_not, strand_no, locs, subs, start_offset = get_locs_and_subs()
-      internal_cntr = 0
+    for het, pos, bsub in zip(het_type, base_locs, base_subs):
+      ref = ref_seq[pos]
+      if ref in ['G', 'A', 'T', 'C']:
+        alt = base_sub_mat[ref][bsub]
+        gt = gt_string[het]
+      else:
+        continue  # Not valid, skip to next
 
-    if alt is not None:
-      yield (vl, ref, alt, gt, vl + 2, None)  # POS, REF, ALT, skipto, list(footprints)
-                                          # footprints, in this case, is None, since we simply skip forward
-      # We have vl + 2 because we want 1 base buffer between variants, even SNPs (see Readme)
-
-if __name__ == "__main__":
-  import doctest
-  doctest.testmod()
+      description.append('SNP')
+      footprint.append([(het, chrom-1, pos, pos + 1)])  # Chrom is internal numbering, starts from 0
+      # [(het, chrom, pos_st, pos_nd)]
+      vcf_line.append([(chrom, pos+1, '.', ref, alt, 100, 'PASS', '.', 'GT', gt)])  # POS is VCF number starts from 1
+      # CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample
+  return description, footprint, vcf_line
