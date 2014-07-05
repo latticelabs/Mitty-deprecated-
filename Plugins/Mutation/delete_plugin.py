@@ -1,89 +1,92 @@
-"""This is the stock deletion generator. Please see Readme for details on how to write variant generator plugins for
-mutate.py.
-
-The plugin uses two random number generators. The first creates poisson distributed numbers to locate the deletions.
-The other creates poisson distributed numbers to determine deletion lengths. This is equivalent to modeling deletion
-termination as a bernoulli process.
+"""This is the stock deletion generator.
 
 Note: This never generates a deletion at the first base of a sequence.
 
-Example parameter snippet
+"""
+__explain__ = """
+Example parameter snippet:
 
-    "mydelete": {
-        "model": "delete",
-        "start_dels_frac": 0.7,
-        "stop_dels_frac":  0.9,
-        "phet": 0,
-        "p_del": 0.01,
+    {
+        "chromosome": [1],
+        "model": "deletion",
+        "phet": 0.5,
+        "p": 0.01,
         "lam_del": 10,
+        "del_loc_rng_seed": 1,
+        "del_len_rng_seed": 2,
         "het_rng_seed": 3,
-        "strand_rng_seed": 4,
-        "del_loc_rng_seed": 0,
-        "del_len_rng_seed": 1
+        "copy_rng_seed": 4
     }
 """
 import numpy
 import logging
-het_type = ['0/1', '1/0']  # The two types of het
 
 logger = logging.getLogger(__name__)
+#             0      1      2      3
+gt_string = ['0/0', '0/1', '1/0', '1/1']  # The types of genotypes
 
 
-def variant(ref_seq=None, ref_seq_len=0,
-            phet=0.0, p_del=0.01, lam_del=5,
-            start_dels_frac=0.0, stop_dels_frac=1.0,
-            het_rng_seed=1,
-            strand_rng_seed=4,
-            del_loc_rng_seed=1,
-            del_len_rng_seed=1,
-            block_size=10000, **kwargs):
+def variants(ref_fp=None,
+             chromosome=None,
+             p=0.01,
+             phet=0.5,
+             lam_del=10,
+             del_loc_rng_seed=1,
+             del_len_rng_seed=2,
+             het_rng_seed=3,
+             copy_rng_seed=4,
+             **kwargs):
   """A generator which returns a variant when asked for. This is the stock SNP generator and returns snp locations in
   a poisson distributed fashion.
   Inputs:
     ref_seq              - The reference sequence
     ref_seq_len          - length of whole sequence (needed to compute start and stop)
     phet                 - probability of having heterozygous mutation
-    p_del                - probability of deletes
-    lam_del              - mean length of poisson distributed delete lengths
-    start_dels_frac      - start generating dels from here (0.0, 1.0)
-    stop_dels_frac       - stop generating dels after this (0.0, 1.0) stop_snps_frac > start_snps_frac
+    p_ins                - probability of inserts
+    lam_ins              - mean length of poisson distributed insert lengths
+    start_ins_frac       - start generating inserts from here (0.0, 1.0)
+    stop_ins_frac        - stop generating inserts after this (0.0, 1.0) stop_ins_frac > start_ins_frac
     het_rng_seed         - rng used to decide if genotype is heterozygous or not (0/1 or 1/0  vs 1/1)
-    del_loc_rng_seed     - SNP locator rng numpy.random.RandomState(seed)
-    del_len_rng_seed     - rng used to determine length of delete
+    strand_rng_seed      - rng used to decide which het type 0/1 or 1/0
+    ins_loc_rng_seed     - INS locator rng -> numpy.random.RandomState(seed)
+    ins_len_rng_seed     - rng used to determine length of insert
+    base_sel_rng_seed    - seed for rng used to determine bases to insert
+    block_size           - how many random numbers should we geenrate at a time
     kwargs               - absorbs any other parameters it does not use
 
   Outputs:
     variant              - (POS, REF, ALT, GT, skip, list(footprints))
 
 
-  Test with 'N's. No deletions should straddle a region with N
-  >>> args = {'p_del': .1, 'lam_del': 3, 'del_loc_rng_seed': 1, 'del_len_rng_seed': 2}; \
-  ref_seq='ACGTACGTANGTACGTACGTACGTACGTACGTACGTACGTACNTACGTACGTACGTACGT'; ref_seq_len = len(ref_seq); \
+  Test with 'N' regions. There should be no insertions after an 'N'
+  >>> args = {'p_ins': .1, 'lam_ins': 3, 'ins_loc_rng_seed': 1, 'ins_len_rng_seed': 2, 'base_sel_rng_seed': 3}; \
+  ref_seq='ACGTACGTANGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT'; ref_seq_len = len(ref_seq); \
   gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=100, **args);
   >>> for n in range(10): print next(gen,None)
-  (15, 'TACG', 'T', '1/1', 20, None)
-  (22, 'GTA', 'G', '1/1', 26, None)
-  (31, 'TACG', 'T', '1/1', 36, None)
-  (49, 'CGT', 'C', '1/1', 53, None)
-  (55, 'TA', 'T', '1/1', 58, None)
-  None
+  (15, 'T', 'TGAC', '1/1', 17, None)
+  (22, 'G', 'GGG', '1/1', 24, None)
+  (31, 'T', 'TGAA', '1/1', 33, None)
+  (40, 'A', 'ACTCA', '1/1', 42, None)
+  (49, 'C', 'CAT', '1/1', 51, None)
+  (55, 'T', 'TA', '1/1', 57, None)
   None
   None
   None
   None
 
+
   Test with one block
-  >>> args = {'p_del': .1, 'lam_del': 3, 'del_loc_rng_seed': 1, 'del_len_rng_seed': 2}; \
+  >>> args = {'p_ins': .1, 'lam_ins': 3, 'ins_loc_rng_seed': 1, 'ins_len_rng_seed': 2, 'base_sel_rng_seed': 3}; \
   ref_seq='ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT'; ref_seq_len = len(ref_seq); \
   gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=100, **args);
   >>> for n in range(10): print next(gen,None)
-  (9, 'CG', 'C', '1/1', 12, None)
-  (15, 'TACG', 'T', '1/1', 20, None)
-  (22, 'GTA', 'G', '1/1', 26, None)
-  (31, 'TACG', 'T', '1/1', 36, None)
-  (40, 'ACGTA', 'A', '1/1', 46, None)
-  (49, 'CGT', 'C', '1/1', 53, None)
-  (55, 'TA', 'T', '1/1', 58, None)
+  (9, 'C', 'CT', '1/1', 11, None)
+  (15, 'T', 'TGAC', '1/1', 17, None)
+  (22, 'G', 'GGG', '1/1', 24, None)
+  (31, 'T', 'TGAA', '1/1', 33, None)
+  (40, 'A', 'ACTCA', '1/1', 42, None)
+  (49, 'C', 'CAT', '1/1', 51, None)
+  (55, 'T', 'TA', '1/1', 57, None)
   None
   None
   None
@@ -91,71 +94,62 @@ def variant(ref_seq=None, ref_seq_len=0,
   Test with multiple blocks - should be same answer even though we have changed the block size
   >>> gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=1, **args);
   >>> for n in range(10): print next(gen,None)
-  (9, 'CG', 'C', '1/1', 12, None)
-  (15, 'TACG', 'T', '1/1', 20, None)
-  (22, 'GTA', 'G', '1/1', 26, None)
-  (31, 'TACG', 'T', '1/1', 36, None)
-  (40, 'ACGTA', 'A', '1/1', 46, None)
-  (49, 'CGT', 'C', '1/1', 53, None)
-  (55, 'TA', 'T', '1/1', 58, None)
+  (9, 'C', 'CT', '1/1', 11, None)
+  (15, 'T', 'TGAC', '1/1', 17, None)
+  (22, 'G', 'GGG', '1/1', 24, None)
+  (31, 'T', 'TGAA', '1/1', 33, None)
+  (40, 'A', 'ACTCA', '1/1', 42, None)
+  (49, 'C', 'CAT', '1/1', 51, None)
+  (55, 'T', 'TA', '1/1', 57, None)
   None
   None
   None
 
-  Test heterozygous deletes
-  >>> args = {'phet': 0.5, 'p_del': .1, 'lam_del': 3, 'het_rng_seed': 3, 'strand_rng_seed': 5, 'del_loc_rng_seed': 1, 'del_len_rng_seed': 2}; \
+  Test with heterozygosity
+  >>> args = {'phet': 0.5, 'p_ins': .1, 'lam_ins': 3, 'het_rng_seed': 3, 'strand_rng_seed': 5, 'ins_loc_rng_seed': 1, 'ins_len_rng_seed': 2, 'base_sel_rng_seed': 3}; \
   ref_seq='ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT'; ref_seq_len = len(ref_seq); \
   gen = variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=100, **args);
   >>> for n in range(10): print next(gen,None)
-  (9, 'CG', 'C', '1/1', 12, None)
-  (15, 'TACG', 'T', '1/1', 20, None)
-  (22, 'GTA', 'G', '1/0', 26, None)
-  (31, 'TACG', 'T', '1/1', 36, None)
-  (40, 'ACGTA', 'A', '1/1', 46, None)
-  (49, 'CGT', 'C', '1/1', 53, None)
-  (55, 'TA', 'T', '0/1', 58, None)
+  (9, 'C', 'CT', '1/1', 11, None)
+  (15, 'T', 'TGAC', '1/1', 17, None)
+  (22, 'G', 'GGG', '1/0', 24, None)
+  (31, 'T', 'TGAA', '1/1', 33, None)
+  (40, 'A', 'ACTCA', '1/1', 42, None)
+  (49, 'C', 'CAT', '1/1', 51, None)
+  (55, 'T', 'TA', '0/1', 57, None)
   None
   None
   None
   """
-  def get_locs_and_lens():  # Simply a convenience.
-    het_or_not = het_rng.rand(block_size)
-    strand_no = strand_rng.randint(2, size=block_size)
-    loc_diff = numpy.maximum(del_loc_rng.poisson(lam=1.0 / p_del, size=block_size), 1)
-    del_lens = del_len_rng.poisson(lam=lam_del, size=block_size)
-    locs = numpy.cumsum(loc_diff) + start_offset
-    return het_or_not, strand_no, locs, del_lens, locs[-1]
-
-  het_rng = numpy.random.RandomState(seed=het_rng_seed)
-  strand_rng = numpy.random.RandomState(seed=strand_rng_seed)
   del_loc_rng = numpy.random.RandomState(seed=del_loc_rng_seed)
   del_len_rng = numpy.random.RandomState(seed=del_len_rng_seed)
+  het_rng = numpy.random.RandomState(seed=het_rng_seed)
+  copy_rng = numpy.random.RandomState(seed=copy_rng_seed)
 
-  start_offset = int(ref_seq_len * start_dels_frac)
-  del_end = int(ref_seq_len * stop_dels_frac)
+  description, footprint, vcf_line = [], [], []
 
-  het_or_not, strand_no, locs, del_lens, start_offset = get_locs_and_lens()
-  internal_cntr = 0
-  while locs[internal_cntr] < del_end:
-    vl = locs[internal_cntr]
-    dl = del_lens[internal_cntr]
-    ref = ref_seq[vl:vl+dl+1]
-    if 'N' in ref:
-      alt = None  # Very conservative - we only do deletions in completely known regions
-    else:
-      alt = ref[0]
-      gt = '1/1' if het_or_not[internal_cntr] > phet else het_type[strand_no[internal_cntr]]
+  for chrom in chromosome:
+    ref_seq = ref_fp['sequence/{:d}/1'.format(chrom)][:].tostring()  # Very cheap operation
+    del_locs, = numpy.nonzero(del_loc_rng.rand(len(ref_seq)) < p)
+    del_lens = del_len_rng.poisson(lam=lam_del, size=del_locs.size)
+    het_type = numpy.empty((del_locs.size,), dtype='u1')
+    het_type.fill(3)  # Homozygous
+    idx_het, = numpy.nonzero(het_rng.rand(het_type.size) < phet)  # Heterozygous locii
+    het_type[idx_het] = 1  # On copy 1
+    het_type[idx_het[numpy.nonzero(copy_rng.rand(idx_het.size) < 0.5)[0]]] = 2  # On copy 2
+    for het, pos, del_len in zip(het_type, del_locs, del_lens):
+      if pos + del_len >= len(ref_seq):
+        continue  # Deletion beyond the sequence, just drop it
+      ref = ref_seq[pos:pos + del_len]
+      if 'N' in ref:
+        continue  # Don't do deletions in the middle of 'N's
+      else:
+        alt = '.'
+        gt = gt_string[het]
 
-    internal_cntr += 1
-    if internal_cntr == locs.size:
-      het_or_not, strand_no, locs, del_lens, start_offset = get_locs_and_lens()
-      internal_cntr = 0
-
-    if alt is not None:
-      yield (vl, ref, alt, gt, vl + dl + 2, None)  # POS, REF, ALT, skipto, list(footprints)
-                                               # footprints, in this case, is None, since we simply skip forward
-      # We have vl dl + 2 because we want 1 base buffer between variants, even SNPs (see Readme)
-
-if __name__ == "__main__":
-  import doctest
-  doctest.testmod()
+      description.append('Deletion')
+      footprint.append([(het, chrom-1, pos, pos + del_len)])  # Chrom is internal numbering, starts from 0
+      # [(het, chrom, pos_st, pos_nd)]
+      vcf_line.append([(chrom, pos+1, '.', ref, alt, 100, 'PASS', '.', 'GT', gt)])  # POS is VCF number starts from 1
+      # CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample
+  return description, footprint, vcf_line
