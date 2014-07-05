@@ -3,12 +3,10 @@ as a script as well. This is useful for creating test data for MGR algorithms/da
 VCF file(s).
 
 Usage:
-mutate --paramfile=PFILE  [--block_size=BS] [-v]
+mutate --paramfile=PFILE  [-v]
 
 Options:
   --paramfile=PFILE       Name for parameter file
-  --block_size=BS         Block size for operations. Adjust to match memory/resources of platform [default: 100000]
-                          This governs how many variants are generated at a time before being dumped to disk.
   -v                      Dump detailed logger messages
 
 Notes:
@@ -23,30 +21,28 @@ __explain__ = """
 Example json parameter file
 
 {
-    "input smalla file": "porcine_circovirus.smalla",
-    "output vcf file": "variants.vcf",
-    "chromosome": "1",
-    "mutations": {
-        "snp": {
+    "reference": "chimera.h5",
+    "output_vcf": "chimera_var.vcf",
+    "variant_models": [
+        {
+            "chromosome": [1],
             "model": "snp",
-            "start_snps_frac": 0.1,
-            "stop_snps_frac":  0.3,
-            "phet": 0,
+            "phet": 0.5,
             "p": 0.01,
             "poisson_rng_seed": 1,
             "base_sub_rng_seed": 2
         },
-        "delete": {
+        {
+            "chromosome": [1],
             "model": "delete",
-            "start_dels_frac": 0.4,
-            "stop_dels_frac":  0.6,
-            "phet": 0,
+            "phet": 0.5,
             "p_del": 0.01,
             "lam_del": 10,
             "del_loc_rng_seed": 10,
             "del_len_rng_seed": 1
         },
-        "insert": {
+        {
+            "chromosome": [1],
             "model": "insert",
             "start_ins_frac": 0.7,
             "stop_ins_frac":  0.9,
@@ -57,23 +53,145 @@ Example json parameter file
             "ins_len_rng_seed": 1,
             "base_sel_rng_seed": 2
         }
-    }
+    ]
 }
+
+Internally, Mitty stores each variant as a group of operations
+
+(type, het, footprint)
+()
+
+
+
+The reference is assumed to be haploid (we always use copy 1)
+
+Mitty stores the actual generated variant in a systematic format in a hdf5 file. Conceptually, each variant is stored
+as follows:
+
+   _ type name
+  /
+(type, het, footprint, )
+        \            \
+         \            \_ list of variant description tuples
+          \
+              0 -> no variant (due to arbitration, see below)
+              1 -> variant on copy 1
+              2 -> variant on copy 2
+              3 -> variant on both copies
+
+Most commonly, there is only one element in the list of variant descriptions and this corresponds exactly with a VCF
+file entry. Complicated variants are expressed as a sequence of insertions and deletions.
+
+Each variant model returns a variant file of proposed variants in this format. Mitty then arbitrates between all the
+variants to make sure they don't clash.
+
+Variant types:
+
+SNP             - footprint is 1
+Insert          - footprint is 0
+Delete          - footprint is N
+Inversion       - footprint is N
+Repeat          - footprint is N
+Translocation   - foorprint is N
+
+Mitty writes out variants in VCF format (using the variant2vcf tool).
+
+Each model should have a .variant method that is passed the reference genome data and any general and specific
+parameters it needs. Each model's .variant method is called in turn and it fills out the variant data structure
+(on an hdf5 file, due to the potential size of the data) and returns it to mutate.py
+
+mutate.py is responsible for arbitrating between variants that clash by using a genome-wide mask.
 """
 
-__version__ = '0.3.1'
+__version__ = '0.4.0'
 
-import sys
+import h5py
+import subprocess
+import scipy.sparse as sparse
 import os
 import imp
 import json
-import mmap  # To memory map our smalla files
 import docopt
 import datetime
 import pysam  # For the tabix functions
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def load_models(json_list_models):
+  plugin_dir = os.path.join(os.path.dirname(__file__), 'Plugins', 'Mutation')  # Thanks Nebojsa Tijanic!
+  models = []
+  for model_json in json_list_models:
+    #model_fname = os.path.join(plugin_dir, model_json['model'] + '_plugin.py')
+    #models.append(imp.load_source(model_fname, model_fname, open(model_fname, 'r')))
+    fp, pathname, description = imp.find_module(model_json['model'] + '_plugin', [plugin_dir])
+    models.append(imp.load_module(model_json['model'], fp, pathname, description))
+  return models
+
+
+def initialize_mask(seq_fp):
+  """Given the sequence hdf5 file create a list of sparse arrays that represent the collision mask. This is a diplod
+  mask assuming a haploid reference """
+  return [sparse.lil_matrix((2, seq_fp['sequence/{:s}/1'.format(str(c))].size), dtype='i1') for c in seq_fp['sequence']]
+
+
+def filter_variants(mask, footprint):
+  """Given mask and variant data, arbitrate collisions.
+
+  footprint   -  [ [(het, chrom, pos_st, pos_nd) ...] ... ]
+
+
+  >>> f = h5py.File("Examples/Data/chimera.h5","r")
+  >>> mask = initialize_mask(f)
+  >>> footprint = [[(1, 0, 100, 101)]]  # This should pass as a variant
+  >>> filter_variants(mask, footprint)
+  [0]
+  >>> footprint = [[(1, 0, 70, 121)]]  # This should not pass as a variant
+  >>> filter_variants(mask, footprint)
+  []
+  >>> footprint = [[(2, 0, 70, 121)]]  # This should pass as a variant - collision is on other chromosome copy
+  >>> filter_variants(mask, footprint)
+  [0]
+  >>> footprint = [[(1, 0, 70, 80), (1, 0, 90, 110)]]  # This should not pass as a variant
+  >>> filter_variants(mask, footprint)
+  []
+  >>> footprint = [[(1, 0, 70, 80)], [(1, 0, 90, 110)]]  # Only the first should pass as a variant
+  >>> filter_variants(mask, footprint)
+  [0]
+  >>> footprint = [[(1, 0, 120, 130)], [(2, 0, 140, 150)]]  # All should pass as variants
+  >>> filter_variants(mask, footprint)
+  [0, 1]
+  >>> footprint = [[(3, 0, 90, 110)], [(3, 0, 140, 150)]]  # None should pass as variants
+  >>> filter_variants(mask, footprint)
+  []
+  """
+  idx = []
+  for n, feet in enumerate(footprint):
+    collision = False
+    for foot in feet:
+      het = foot[0]
+      chrom = foot[1] - 1  # We are zero indexed
+      copy_1 = mask[chrom][0, foot[2] - 1:foot[3] + 1].getnnz()  # footprint is internal and is 0 indexed
+      copy_2 = mask[chrom][1, foot[2] - 1:foot[3] + 1].getnnz()  # We use a 1 base buffer around variants
+      # If there are collisions, simply skip this variant
+      if copy_1:
+        if het == 1 or het == 3:
+          collision = True
+          break
+      if copy_2:
+        if het == 2 or het == 3:
+          collision = True
+          break
+
+    if not collision:
+      # No collisions, valid variant, add to mask
+      idx.append(n)
+      if het == 1 or het == 3:
+        mask[chrom][0, foot[2]:foot[3]] = 1
+      if het == 2 or het == 3:
+        mask[chrom][1, foot[2]:foot[3]] = 1
+  return idx
 
 
 def write_vcf_header(file_handle, sim_date, argv, reference_filename):
@@ -100,7 +218,7 @@ def write_vcf_header(file_handle, sim_date, argv, reference_filename):
   )
 
 
-def write_vcf_mutations(file_handle, chrom, variants):
+def write_vcf_mutations(fp, variants):
   """Given a mutator format dictionary write the mutations in VCF format into the file
   Inputs:
     file_handle   - handle of an opened text file. The output will be appended to this file.
@@ -108,10 +226,42 @@ def write_vcf_mutations(file_handle, chrom, variants):
     variants      - list of tuples (POS, REF, ALT) : standard format as returned by the variant plugins
   """
   for var in variants:
-    # Need to add +1 because POS is 1-indexed while we are using 0-indexing internally
-    file_handle.write("{:s}\t{:d}\t.\t{:s}\t{:s}\t96\tPASS\t.\tGT\t{:s}\n".
-                      format(chrom, var[0] + 1, var[1], var[2], var[3]))
+    #       CHROM    POS   ID   REF   ALT   QUAL FILTER INFO FORMAT tsample
+    fp.write("{:d}\t{:d}\t{:s}\t{:s}\t{:s}\t{:d}\t{:s}\t{:s}\t{:s}\t{:s}\n".format(*var))
 
+
+def main(args):
+  """variants take the form of ."""
+  params = json.load(open(args['--paramfile'], 'r'))
+  model_list = load_models(params['variant_models'])
+
+  v_file_name = params['output_vcf'].encode('ascii')
+  logger.debug('Output file name: ' + v_file_name)
+
+  with h5py.File(params['reference'], 'r') as ref_fp, open(v_file_name, 'w') as vcf_fp:
+    mask = initialize_mask(ref_fp)
+    write_vcf_header(vcf_fp, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(),
+                     os.path.basename(params['reference']))
+    for model, model_params in zip(model_list, params['variant_models']):
+      description, footprint, vcf_line = model.variants(ref_fp, **model_params)
+      idx = filter_variants(mask, footprint)
+      write_vcf_mutations(vcf_fp, [vl for n in idx for vl in vcf_line[n]])
+
+  #For further use, this vcf file usually needs to be sorted and then compressed and indexed
+  #vcf-sort the.vcf > sorted.vcf
+  #bgzip -c sorted.vcf > sorted.vcf.gz
+  #tabix sorted.vcf.gz
+
+  # logger.debug('Sorting VCF file')
+  # print v_file_name
+  # ps = subprocess.Popen(('vcf-sort', v_file_name), stdout=subprocess.PIPE)
+  # output = subprocess.check_output(('temp.vcf'), stdin=ps.stdout)
+  # ps.wait()
+  #
+  # #subprocess.call(['vcf-sort', v_file_name, '>', 'temp.vcf'], shell=True)
+  # logger.debug('Compressing and indexing VCF file')
+  # pysam.tabix_compress('temp.vcf', v_file_name + '.gz', force=True)
+  # pysam.tabix_index(v_file_name + '.gz', force=True, preset='vcf')
 
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
@@ -120,89 +270,9 @@ if __name__ == "__main__":
     print __explain__
     exit(0)
   else:
-    args = docopt.docopt(__doc__, version=__version__)
+    cmd_args = docopt.docopt(__doc__, version=__version__)
 
-  level = logging.DEBUG if args['-v'] else logging.WARNING
+  level = logging.DEBUG if cmd_args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
 
-  params = json.load(open(args['--paramfile'], 'r'))
-  block_size = int(args['--block_size'])
-
-  #Load the ref-seq smalla file
-  fin = open(params['input smalla file'], 'rb')
-  logger.debug('Input sequence: ' + fin.name)
-  ref_seq = mmap.mmap(fin.fileno(), 0, access=mmap.ACCESS_READ)
-  ref_seq_len = len(ref_seq)
-  logger.debug('Input sequence has {:d} bases'.format(ref_seq_len))
-
-  chrom = params['chromosome'].encode('ascii')  # Tabix barfs if it gets unicode
-  vcf_file_name = params['output vcf file'].encode('ascii')
-  logger.debug('Output file name: ' + vcf_file_name)
-
-  model_params = params['mutations']
-  plugin_dir = os.path.join(os.path.dirname(__file__), 'Plugins', 'Mutation')  # Thanks Nebojsa Tijanic!
-  variant_generator = {}
-  next_variant = {}
-  misc = {}  # For now, holds a count of how many variants of each type
-  for k in model_params.keys():
-    model_fname = os.path.join(plugin_dir, model_params[k]['model'] + '_plugin.py')
-    model = imp.load_source(k, model_fname, open(model_fname, 'r'))
-    variant_generator[k] = model.variant(ref_seq=ref_seq, ref_seq_len=ref_seq_len, block_size=block_size, **model_params[k])
-    next_variant[k] = next(variant_generator[k], None)  # Will return None if we have no more of these variants
-    misc[k] = 0
-
-  with open(vcf_file_name, 'w') as vcf_file:
-    write_vcf_header(vcf_file, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(),
-                     os.path.basename(params['input smalla file']))
-
-    #For now, ignoring footprint (only needed for distal variants)
-    current_pos = 0  # Current position on sequence
-    these_variants = []
-    while current_pos < ref_seq_len:
-      next_variant_pos = ref_seq_len
-      next_variant_type = None
-      # Find the earliest variant
-      for k in model_params.keys():
-        if next_variant[k] is not None:
-          if next_variant[k][0] < next_variant_pos:
-            next_variant_pos = next_variant[k][0]
-            next_variant_type = k
-
-      if next_variant_type is not None:  # We are still in business
-        these_variants.append(next_variant[next_variant_type])  # Queue this variant
-        misc[next_variant_type] += 1
-        skip_to = next_variant[next_variant_type][4]  # The next variant has to come at or after this to avoid conflicts
-        # Move all variant counters forward as needed
-        for k in model_params.keys():
-          while next_variant[k] is not None:
-            if next_variant[k][0] < skip_to:
-              next_variant[k] = next(variant_generator[k], None)
-            else:
-              break
-
-      # Flush variants to disk
-      if len(these_variants) == block_size:
-        write_vcf_mutations(vcf_file, chrom, these_variants)
-        logger.debug('{:d}% done'.format(int(100.0 * current_pos / ref_seq_len)))
-        these_variants = []
-
-      current_pos = next_variant_pos
-
-    # Flush any remaining variants to disk
-    write_vcf_mutations(vcf_file, chrom, these_variants)
-    logger.debug('{:d}% done'.format(int(100.0 * current_pos / ref_seq_len)))
-
-  fin.close()
-
-  for k in model_params.keys():
-    logger.debug('Generated {:d} {:s}s'.format(misc[k], k))
-
-  logger.debug('Compressing and indexing VCF file')
-  pysam.tabix_compress(vcf_file_name, vcf_file_name + '.gz', force=True)
-  pysam.tabix_index(vcf_file_name + '.gz', force=True, preset='vcf')
-
-  with open(vcf_file_name + '.info', 'w') as f:
-    f.write('Command line\n-------------\n')
-    f.write(json.dumps(args, indent=4))
-    f.write('\n\nParameters\n------------\n')
-    f.write(json.dumps(params, indent=4))
+  main(cmd_args)
