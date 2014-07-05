@@ -171,17 +171,19 @@ def filter_variants(mask, footprint):
     collision = False
     for foot in feet:
       het = foot[0]
-      chrom = foot[1] - 1  # We are zero indexed
+      chrom = foot[1]
       copy_1 = mask[chrom][0, foot[2] - 1:foot[3] + 1].getnnz()  # footprint is internal and is 0 indexed
       copy_2 = mask[chrom][1, foot[2] - 1:foot[3] + 1].getnnz()  # We use a 1 base buffer around variants
       # If there are collisions, simply skip this variant
       if copy_1:
         if het == 1 or het == 3:
           collision = True
+          logger.debug('Collision at {:d}:1 {:d} - {:d}'.format(foot[1] + 1, foot[2], foot[3]))
           break
       if copy_2:
         if het == 2 or het == 3:
           collision = True
+          logger.debug('Collision at {:d}:2 {:d} - {:d}'.format(foot[1] + 1, foot[2], foot[3]))
           break
 
     if not collision:
@@ -244,7 +246,9 @@ def main(args):
                      os.path.basename(params['reference']))
     for model, model_params in zip(model_list, params['variant_models']):
       description, footprint, vcf_line = model.variants(ref_fp, **model_params)
+      logger.debug('{:d} {:s} generated'.format(len(vcf_line), model_params['model']))
       idx = filter_variants(mask, footprint)
+      logger.debug('{:d} {:s} placed without collision'.format(len(idx), model_params['model']))
       write_vcf_mutations(vcf_fp, [vl for n in idx for vl in vcf_line[n]])
 
   #For further use, this vcf file usually needs to be sorted and then compressed and indexed
