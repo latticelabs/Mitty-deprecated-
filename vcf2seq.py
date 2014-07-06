@@ -4,83 +4,30 @@ vcf2seq.py and reads.py to generate reads with correct pos and CIGAR encoded (wh
 generate perfect alignments and can be used to check alignment performance of other tools).
 
 Usage:
-vcf2seq <ref_seq>  <var_seq> <chrom> <vcf_file> [--ploidy=PL] [--block_size=BS] [-v]
+vcf2seq --ref=REF  --vcf=VCF  --var=SAMP  [-v]
 
 Options:
-  ref_seq            reference sequence in smalla format
-  var_seq            output (variant) sequence (will be written in smalla format)
-                     In addition .heada and .pos files are written
-  chrom              Chromosome (Needed when pulling variants from indexed VCF file)
-  vcf_file           indexed VCF file
-  --ploidy=PL        Use genotype information in VCF file to create polyploid sequences
-                     If this is 1 (default) we ignore any genotype information in the VCF file and only produce one
-                     .smalla mutated sequence. If this is set to 2 (or 3 or so on) we generate that many sequences
-                     (numbered _1 _2 and so on) representing each strand of the sequence [default: 1].
-  --block_size=BS    How many bases to process at one time [default: 1000000]
+  --ref=REF          reference genome sequence
+  --vcf=VCF          vcf file
+  --var=SAMP         output genome file (diploid)
   -v                 Verbose (print debugging messages)
-
-Notes:
-1. If the VCF has alternate alleles only the first one is used when generating the variant sequence
-2. Run tests by calling as vcf2seq test or vcf2seq test -v
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
-__version__ = '0.2.0'
+__version__ = '0.3.0'
+import h5py
 import docopt
-import mmap  # For random, disk based access of reference .smalla files
+import numpy
 import struct  # For writing pos and dpos data in binary format (need struct.pack)
 import vcf
 import logging
 
 logger = logging.getLogger(__name__)
-
-def block_copy_seq(ref_seq, start, stop, f_vseq, f_vseq_pos, block_size=1000):
-  """This is a straight copy. It starts and ends at conserved sections.
-
-  Try a complete copy
-  >>> import io, struct; \
-  ref_seq = 'ACTGACTG'; \
-  f_vseq = io.BytesIO(); \
-  f_vseq_pos = io.BytesIO(); \
-  block_copy_seq(ref_seq, 0, 8, f_vseq, f_vseq_pos)
-  >>> _ = f_vseq.seek(0); print f_vseq.read()
-  ACTGACTG
-  >>> _ = f_vseq_pos.seek(0); print struct.unpack('8I',f_vseq_pos.read(4*8))
-  (1, 2, 3, 4, 5, 6, 7, 8)
-
-  Copy just a section - note that the pos array should still contain the correct
-  >>> f_vseq = io.BytesIO(); \
-  f_vseq_pos = io.BytesIO(); \
-  block_copy_seq(ref_seq, 3, 6, f_vseq, f_vseq_pos)
-  >>> _ = f_vseq.seek(0); print f_vseq.read()
-  GAC
-  >>> _ = f_vseq_pos.seek(0); print struct.unpack('3I',f_vseq_pos.read(4*3))
-  (4, 5, 6)
+pos_null = numpy.empty((0,), dtype='u4')
 
 
-  Copy just a section with smallest block size possible
-  >>> f_vseq = io.BytesIO(); \
-  f_vseq_pos = io.BytesIO(); \
-  block_copy_seq(ref_seq, 3, 6, f_vseq, f_vseq_pos, block_size=1)
-  >>> _ = f_vseq.seek(0); print f_vseq.read()
-  GAC
-  >>> _ = f_vseq_pos.seek(0); print struct.unpack('3I',f_vseq_pos.read(4*3))
-  (4, 5, 6)
-
-
-  """
-  this_start = start
-  while this_start < stop:
-    this_stop = min(this_start + block_size, stop)
-    f_vseq.write(ref_seq[this_start:this_stop])
-    f_vseq_pos.write(struct.pack('{:d}I'.format(stop-start), *[n+1 for n in range(start, stop)]))  # +1 because of
-                                                                                                 # 1-indexing
-    logger.debug('{:d}% done'.format(int(100.0 * this_stop / len(ref_seq))))
-    this_start = this_stop
-
-
-def handle_variant(variant, f_vseq, f_vseq_pos, strand_no=None):
+def handle_variant(variant):
   """Write the variant to the mutated sequence and fill out the pos array
 
   Some setup
@@ -244,121 +191,70 @@ def handle_variant(variant, f_vseq, f_vseq_pos, strand_no=None):
 
   See Readme.md for details of algorithm
   """
-  var_type = '1' if strand_no is None else variant.genotype('sample').data.GT.split('/')[strand_no]
-  # 0 means REF 1 means ALT. If we don't specify a strand number it means we don't care about Zygosity and will always
-  # take the ALT
-  if var_type == '1':
-    alt = variant.ALT[0].sequence
-    if alt == '.': alt = ''
-    ref = variant.REF
-    if ref == '.': ref = ''
-    f_vseq.write(alt)    # Copy over ALT
-    new_ref_pos = len(ref) + variant.POS - 1  # Advance along ref_seq
-                                              # -1 because POS is 1-indexed, we are 0-indexed internally
-    if len(alt) > 0:
-      if len(ref) > 0:
-        f_vseq_pos.write(struct.pack('I', variant.POS))  # The original base
-      if len(alt) > 1:
-        f_vseq_pos.write(struct.pack('{:d}I'.format(len(alt) - len(ref)), *[new_ref_pos + 1] * (len(alt) - len(ref))))
+  #alt = variant.ALT[0].sequence
+  #if alt == '.': alt = ''
+  #ref = variant.REF
+  #if ref == '.': ref = ''
+  alt = variant.ALT[0].sequence if variant.ALT[0] is not None else ''
+  ref = variant.REF or ''
+  ptr_adv = len(ref) + 1  # You need to be one beyond ref
+  pos_alt = numpy.arange(variant.POS, variant.POS + len(ref), dtype='u4')  # We might have ref bases in alt
+  if len(alt) > len(ref):  # This was an insertion
+    pos_alt = numpy.concatenate((pos_alt, numpy.ones(len(alt) - len(ref), dtype='u4') * (variant.POS + len(ref))))
+  if variant.heterozygosity > 0:  # This is heterozygous
+    if variant.samples[0].gt_nums[0] == '1':
+      return [alt, ''], [pos_alt, pos_null], [ptr_adv, 0]
+    else:
+      return ['', alt], [pos_null, pos_alt], [0, ptr_adv]
   else:
-    new_ref_pos = variant.POS - 1  # Keep us here - we didn't implement this variant and we should keep copying
-                                   # -1 because POS is 1-indexed, we are 0-indexed internally
-  return new_ref_pos
+    return [alt, alt], [pos_alt, pos_alt], [ptr_adv, ptr_adv]
 
 
-def assemble_sequence(ref_seq, variants, f_vseq, f_vseq_pos, strand_no=None, block_size=1000):
-  """Given a ref_seq and list of variants, generate the var_seq and pos arrays.
-  Inputs:
-    ref_seq       - the reference sequence,
-    variants      - any object that has a .next operator that will yield model._Record. This can be a list, or a
-                    generator like vcf.Reader()
-    f_vseq        - file like device for storing the mutated seq
-    f_vseq_pos    - file like device for storing pos
-    strand_no     - If None, we ignore the GT information in the VCF records. If 0,1,2 ... we pick the value of the
-                    relevant GT string to determine if the variant is to be applied or not.
-    block_size    - how many bases we copy at a time. Only comes into play if the gap between variants is larger than
-                    this
+def assemble_sequences(ref_seq, reader):
+  copy = ['', '']
+  pos = [pos_null, pos_null]
+  pointer = [0, 0]  # Which part of the reference are we reading, for each copy of the chromosome
+  for variant in reader:
+    for n in [0, 1]:
+      # Copy up to this variant
+      copy[n] += ref_seq[pointer[n]:variant.POS - 1]
+      pos[n] = numpy.concatenate((pos[n], numpy.arange(pointer[n] + 1, variant.POS, dtype='u4')))
+      pointer[n] = variant.POS - 1
 
-  Note: The way heterozygous genotyping works is that we put a number into strand_no and we look to the GT (Genotype)
-  information in the VCF entry. Depending on the value of the relevant genotype (currently 0 or 1 only) we either write
-  out the variant or we skip it.
+    # Handle variants
+    var_seq, var_pos, ptr_adv = handle_variant(variant)
+    for n in [0, 1]:
+      copy[n] += var_seq[n]
+      pos[n] = numpy.concatenate((pos[n], var_pos[n]))
+      pointer[n] += ptr_adv[n]
 
-  Test with SNP, insert and delete
-  >>> import io, vcf, struct; \
-  variants = []; \
-  ref_seq = 'ACTGACTG'; \
-  pos = 2; \
-  ref = 'C'; \
-  alt = [vcf.model._Substitution('T')]; \
-  variants.append(vcf.model._Record('1', pos, '.', ref, alt, 100, None, None, None, None, None)); \
-  pos = 4; \
-  ref = 'G'; \
-  alt = [vcf.model._Substitution('GT')]; \
-  variants.append(vcf.model._Record('1', pos, '.', ref, alt, 100, None, None, None, None, None)); \
-  pos = 6; \
-  ref = 'CTG'; \
-  alt = [vcf.model._Substitution('.')]; \
-  variants.append(vcf.model._Record('1', pos, '.', ref, alt, 100, None, None, None, None, None)); \
-  f_vseq = io.BytesIO(); \
-  f_vseq_pos = io.BytesIO(); \
-  assemble_sequence(ref_seq, variants, f_vseq, f_vseq_pos);
-  >>> _ = f_vseq.seek(0); print f_vseq.read()
-  ATTGTA
-  >>> _ = f_vseq_pos.seek(0); print struct.unpack('7I',f_vseq_pos.read(4*7))
-  (1, 2, 3, 4, 5, 5, 9)
+  for n in [0, 1]:
+    # Now copy over any residual
+    copy[n] += ref_seq[pointer[n]:]
+    pos[n] = numpy.concatenate((pos[n], numpy.arange(pointer[n] + 1, len(ref_seq) + 1, dtype='u4')))
+    # Don't forget to add the 'tail': simply an additional, imaginary, base for housekeeping
 
-  Now test the same thing, but with the smallest blocks possible. The answer should not change
-  >>> f_vseq = io.BytesIO(); \
-  f_vseq_pos = io.BytesIO(); \
-  assemble_sequence(ref_seq, variants, f_vseq, f_vseq_pos, block_size=1);
-  >>> _ = f_vseq.seek(0); print f_vseq.read()
-  ATTGTA
-  >>> _ = f_vseq_pos.seek(0); print struct.unpack('7I',f_vseq_pos.read(4*7))
-  (1, 2, 3, 4, 5, 5, 9)
-  """
-  copy_start = 0  # Start at the beginning
-  for variant in variants:
-    # Copy up to this variant
-    block_copy_seq(ref_seq, copy_start, variant.POS - 1, f_vseq, f_vseq_pos, block_size)
-    # -1 because we are zero indexed
-    copy_start = handle_variant(variant, f_vseq, f_vseq_pos, strand_no)
+  return copy, pos
 
-  # Now copy over any residual
-  block_copy_seq(ref_seq, copy_start, len(ref_seq), f_vseq, f_vseq_pos, block_size)
 
-  # Don't forget to add the 'tail': simply an additional, imaginary, base for housekeeping
-  f_vseq_pos.write(struct.pack('I', len(ref_seq) + 1))
+def main():
+  vcf_reader = vcf.Reader(filename=args['--vcf'])
+  with h5py.File(args['--ref'], 'r') as ref_fp, h5py.File(args['--var'], 'w') as var_fp:
+    for chrom in ref_fp['sequence']:
+      ref_seq = ref_fp['sequence/{:d}/1'.format(chrom)][:].tostring()  # Very cheap operation
+      copy, pos = assemble_sequences(ref_seq, vcf_reader.fetch(chrom=chrom, start=0, end=len(ref_seq)))
+      for n, (this_copy, this_pos) in enumerate(zip(copy, pos)):
+        var_fp.create_dataset('sequence/{:d}/{:d}'.format(chrom, n+1), data=this_copy)
+        var_fp.create_dataset('pos/{:d}/{:d}'.format(chrom, n+1), data=this_pos)
 
 
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
-  elif docopt.sys.argv[1] == 'test':
-    import sys
-    import doctest
-    doctest.testmod()
-    sys.exit()
   else:
-    args = docopt.docopt(__doc__, version=__version__)
+    cmd_args = docopt.docopt(__doc__, version=__version__)
 
   level = logging.DEBUG if args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
 
-  chrom = args['<chrom>']  # TODO: use this info in reading the VCF
-  ploidy = int(args['--ploidy'])
-  ref_seq_fname = args['<ref_seq>']
-  var_seq_fname_prefix = args['<var_seq>']
-  #var_seq_pos_fname = args['<var_seq>'] + '.pos'
-  with open(ref_seq_fname, 'rb') as f_rseq:
-    f_vseq_l = [open('{:s}_{:d}.smalla'.format(var_seq_fname_prefix, n), 'w') for n in range(ploidy)]
-    f_vseq_pos_l = [open('{:s}_{:d}.smalla.pos'.format(var_seq_fname_prefix, n), 'w') for n in range(ploidy)]
-    header = open(ref_seq_fname + '.heada', 'r').readline() + ' (Mutated)'
-    for n in range(ploidy): open('{:s}_{:d}.smalla.heada'.format(var_seq_fname_prefix, n), 'w').write(header)
-    ref_seq = mmap.mmap(f_rseq.fileno(), 0, access=mmap.ACCESS_READ)
-    block_size = int(args['--block_size'])  # This is how many bases we copy at a time. Only comes into play if the
-                                            # gap between variants is larger than this
-    for n, (f_vseq, f_vseq_pos) in enumerate(zip(f_vseq_l, f_vseq_pos_l)):
-      vcf_reader = vcf.Reader(filename=args['<vcf_file>'])
-      logger.debug('Writing strand {:d}'.format(n))
-      strand_no = None if ploidy == 1 else n  # If ploidy is 1 we ignore the genotype info in the VCF if any
-      assemble_sequence(ref_seq, vcf_reader, f_vseq, f_vseq_pos, strand_no=strand_no, block_size=block_size)
+  main(cmd_args)
