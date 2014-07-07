@@ -1,0 +1,12 @@
+{
+    "whole genome file": "Examples/Reads/Data/genome1.h5",
+    "take reads from": [1, 2],
+    "coverage": 5.0,
+    "output_file_prefix": "Examples/Reads/Data/genome1_reads",
+    "read_model": "simple_reads",
+    "model_params": {
+        "paired": true,
+        "read_len": 100,
+        "template_len": 250
+    }
+}

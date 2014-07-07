@@ -1,0 +1,39 @@
+{
+    "reference": "Examples/Reads/Data/haploid_ref.h5",
+    "output_vcf": "Examples/Reads/Data/mixed_variants.vcf",
+    "variant_models": [
+        {
+            "chromosome": [2],
+            "model": "snp",
+            "phet": 0.5,
+            "p": 0.001,
+            "poisson_rng_seed": 1,
+            "base_sub_rng_seed": 2,
+            "het_rng_seed": 3,
+            "copy_rng_seed": 4
+        },
+        {
+            "chromosome": [2],
+            "model": "insert",
+            "phet": 0.5,
+            "p": 0.001,
+            "lam_ins": 10,
+            "ins_loc_rng_seed": 5,
+            "ins_len_rng_seed": 6,
+            "base_sel_rng_seed": 7,
+            "het_rng_seed": 8,
+            "copy_rng_seed": 9
+        },
+        {
+            "chromosome": [2],
+            "model": "delete",
+            "phet": 0.5,
+            "p": 0.001,
+            "lam_del": 10,
+            "del_loc_rng_seed": 10,
+            "del_len_rng_seed": 11,
+            "het_rng_seed": 12,
+            "copy_rng_seed": 13
+        }
+    ]
+}

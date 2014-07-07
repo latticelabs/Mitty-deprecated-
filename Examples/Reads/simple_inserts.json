@@ -1,0 +1,18 @@
+{
+    "reference": "Examples/Reads/Data/haploid_ref.h5",
+    "output_vcf": "Examples/Reads/Data/simple_inserts.vcf",
+    "variant_models": [
+        {
+            "chromosome": [2],
+            "model": "insert",
+            "phet": 0.0,
+            "p": 0.001,
+            "lam_ins": 10,
+            "ins_loc_rng_seed": 1,
+            "ins_len_rng_seed": 2,
+            "base_sel_rng_seed": 3,
+            "het_rng_seed": 4,
+            "copy_rng_seed": 5
+        }
+    ]
+}
