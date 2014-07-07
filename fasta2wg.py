@@ -47,7 +47,7 @@ f['sequence/1/1'][:30].tostring()
 
 def save_genome_to_hdf5(index, h5_fp):
   """Store all the fasta sequences in the appropriate places in the hdf5 file."""
-  h5_fp.attrs['species'] = index['header']['species']
+  h5_fp.attrs['species'] = index['header']['species'].encode('ascii')  # Ubuntu HDF5 version, issue with unicode
   grp = h5_fp.create_group('sequence')
   for n, fasta_fnames in enumerate(index['chromosomes']):
     for m, fasta_fname in enumerate(fasta_fnames):
