@@ -245,7 +245,7 @@ def roll(these_reads, pos_array):
     for this_read in these_reads:
       qname = '{:d}|{:d}M|{:d}'.format(this_read[0][2] + 1, len(this_read[0][0]), this_read[0][2] + 1)
       if paired:
-        qname += '|{:d}|{:d}M'.format(this_read[1][2] + 1, len(this_read[1][0]), this_read[1][2] + 1)
+        qname += '|{:d}|{:d}M|{:d}'.format(this_read[1][2] + 1, len(this_read[1][0]), this_read[1][2] + 1)
         this_read[1][2] = qname
       this_read[0][2] = qname
 
@@ -359,12 +359,14 @@ def add_reads_to_file(chrom='1', ref_fp=None,
     except KeyError:
       seq_pos = None
     reads = read_model.read_generator(seq=seq,
+                                      chrom_copy=int(cpy),
                                       read_start=0,
                                       read_stop=seq_len,
                                       num_reads=reads_per_copy,
                                       reads_per_call=reads_per_call,
                                       **model_params)
     chrom_key = '{:s}:{:s}'.format(chrom, cpy)
+    logger.debug('Generating reads from {:s}'.format(chrom_key))
     for perfect_reads in reads:
       roll(perfect_reads, seq_pos)  # The function modifies perfect_reads in place to fill out the POS and CIGAR
       save_reads(reads_file_handles['perfect'], perfect_reads, chrom_key, current_template_count, save_as_bam)
@@ -398,6 +400,7 @@ def main(args):
       if chrom not in ref_fp['sequence'].keys():
         logger.warning('No chromosome {:s}'.format(chrom))
         continue
+      logger.debug('Generating reads from {:s}'.format(chrom))
       #We send in the chrom and the ref_fp and let the read model decide which copy to read from etc.
       add_reads_to_file(chrom=chrom, ref_fp=ref_fp,
                         coverage=params['coverage'],
