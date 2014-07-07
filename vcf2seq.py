@@ -44,31 +44,31 @@ def handle_variant(variant):
 
 
 def assemble_sequences(ref_seq, reader):
-  copy = ['', '']
-  pos = [pos_null, pos_null]
+  copy = [[], []]
+  pos = [[pos_null], [pos_null]]
   pointer = [0, 0]  # Which part of the reference are we reading, for each copy of the chromosome
   for variant in reader:
     for n in [0, 1]:
       # Copy up to this variant
-      copy[n] += ref_seq[pointer[n]:variant.POS - 1]
-      pos[n] = numpy.concatenate((pos[n], numpy.arange(pointer[n] + 1, variant.POS, dtype='u4')))
+      copy[n].append(ref_seq[pointer[n]:variant.POS - 1])
+      pos[n].append(numpy.arange(pointer[n] + 1, variant.POS, dtype='u4'))
       pointer[n] += max(0, variant.POS - 1 - pointer[n])
 
     # Handle variants
     var_seq, var_pos, ptr_adv = handle_variant(variant)
     for n in [0, 1]:
-      copy[n] += var_seq[n]
-      pos[n] = numpy.concatenate((pos[n], var_pos[n]))
+      copy[n].append(var_seq[n])
+      pos[n].append(var_pos[n])
       pointer[n] += ptr_adv[n]
     logger.debug('({:d}%, {:d}%)'.format(100*pointer[0]/len(ref_seq), 100*pointer[1]/len(ref_seq)))
 
   for n in [0, 1]:
     # Now copy over any residual
-    copy[n] += ref_seq[pointer[n]:]
-    pos[n] = numpy.concatenate((pos[n], numpy.arange(pointer[n] + 1, len(ref_seq) + 2, dtype='u4')))
+    copy[n].append(ref_seq[pointer[n]:])
+    pos[n].append(numpy.arange(pointer[n] + 1, len(ref_seq) + 2, dtype='u4'))
     # Don't forget to add the 'tail': simply an additional, imaginary, base for housekeeping
 
-  return copy, pos
+  return (''.join(copy[0]), ''.join(copy[1])), (numpy.concatenate(pos[0]), numpy.concatenate(pos[1]))
 
 
 def main(args):
