@@ -24,9 +24,6 @@ import numpy
 import logging
 
 logger = logging.getLogger(__name__)
-intab = '\x00\x01\x02\x03'
-outtab = 'GATC'
-trantab = string.maketrans(intab, outtab)
 #             0      1      2      3
 gt_string = ['0/0', '0/1', '1/0', '1/1']  # The types of genotypes
 
@@ -138,7 +135,7 @@ def variants(ref_fp=None,
   for chrom in chromosome:
     ref_seq = ref_fp['sequence/{:d}/1'.format(chrom)][:].tostring()  # Very cheap operation
     ins_locs, = numpy.nonzero(ins_loc_rng.rand(len(ref_seq)) < p)
-    ins_lens = ins_len_rng.poisson(lam=lam_ins, size=ins_locs.size)
+    ins_lens = ins_len_rng.geometric(p=1.0/lam_ins, size=ins_locs.size)
     het_type = numpy.empty((ins_locs.size,), dtype='u1')
     het_type.fill(3)  # Homozygous
     idx_het, = numpy.nonzero(het_rng.rand(het_type.size) < phet)  # Heterozygous locii
@@ -149,8 +146,7 @@ def variants(ref_fp=None,
       if ref == 'N':
         continue  # Not valid, skip to next
       else:
-        #alt = ref + ''.join([bases[k] for k in base_sel_rng.randint(4, size=ins_len)])
-        alt = ref + base_sel_rng.randint(4, size=ins_len).astype('u1').tostring().translate(trantab)
+        alt = ref + base_sel_rng.choice(['A','C','G','T'], size=10, replace=True, p=[.3, .2, .2, .3]).tostring()
         gt = gt_string[het]
 
       description.append('Insert')
@@ -158,4 +154,7 @@ def variants(ref_fp=None,
       # [(het, chrom, pos_st, pos_nd)]
       vcf_line.append([(chrom, pos+1, '.', ref, alt, 100, 'PASS', '.', 'GT', gt)])  # POS is VCF number starts from 1
       # CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample
+
+  logger.debug('Generated {:d} insertions with min={:d},mean={:f},max={:d}'.
+               format(ins_lens.size, int(ins_lens.min()), ins_lens.mean(), int(ins_lens.max())))
   return description, footprint, vcf_line
