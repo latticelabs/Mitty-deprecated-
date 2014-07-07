@@ -11,8 +11,7 @@ bwa index Examples/Reads/Data/haploid_ref.fa.gz  # Indexing needed becasue we us
 : Create null reads from it
 python reads.py --paramfile=Examples/Reads/null_reads.json -v --fastq
 
-: Do some alignment (to check)
-#bwa mem -p Examples/Temp/chimera.fa.gz Examples/Temp/raw_reads.fq > Examples/Temp/bwa_aligned.sam
+: Do some alignment to check
 bwa mem Examples/Reads/Data/haploid_ref.fa.gz Examples/Reads/Data/null_reads.fastq > Examples/Reads/Data/aligned_null.sam
 
 : Generate a VCF file with some insertions
@@ -26,7 +25,7 @@ python vcf2seq.py --ref=Examples/Reads/Data/haploid_ref.h5 --vcf=Examples/Reads/
 : Create reads from it
 python reads.py --paramfile=Examples/Reads/genome1_reads.json -v --fastq
 
-: Do some alignment (to check)
+: Do some alignment to check
 bwa mem -p Examples/Reads/Data/haploid_ref.fa.gz Examples/Reads/Data/genome1_reads.fastq > Examples/Reads/Data/genome1_aligned.sam
 
 
@@ -41,5 +40,5 @@ python vcf2seq.py --ref=Examples/Reads/Data/haploid_ref.h5 --vcf=Examples/Reads/
 : Create reads from it
 python reads.py --paramfile=Examples/Reads/genome2_reads.json -v --fastq
 
-: Do some alignment (to check)
+: Do some alignment to check
 bwa mem -p Examples/Reads/Data/haploid_ref.fa.gz Examples/Reads/Data/genome2_reads.fastq > Examples/Reads/Data/genome2_aligned.sam
