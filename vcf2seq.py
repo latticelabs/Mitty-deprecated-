@@ -70,15 +70,21 @@ def assemble_sequences(ref_seq, reader):
   return copy, pos
 
 
-def main():
+def main(args):
   vcf_reader = vcf.Reader(filename=args['--vcf'])
   with h5py.File(args['--ref'], 'r') as ref_fp, h5py.File(args['--var'], 'w') as var_fp:
-    for chrom in ref_fp['sequence']:
+    for chrom in [int(c) for c in ref_fp['sequence']]:  #h5 keys are unicode
+      # We assume the reference is haploid
       ref_seq = ref_fp['sequence/{:d}/1'.format(chrom)][:].tostring()  # Very cheap operation
-      copy, pos = assemble_sequences(ref_seq, vcf_reader.fetch(chrom=chrom, start=0, end=len(ref_seq)))
+      try:
+        copy, pos = assemble_sequences(ref_seq, vcf_reader.fetch(chrom=chrom, start=0, end=len(ref_seq)))
+      except KeyError:  # No mutations for this chromosome
+        copy = [ref_seq, ref_seq]  # Same as reference
+        pos = [None, None]
       for n, (this_copy, this_pos) in enumerate(zip(copy, pos)):
-        var_fp.create_dataset('sequence/{:d}/{:d}'.format(chrom, n+1), data=this_copy)
-        var_fp.create_dataset('pos/{:d}/{:d}'.format(chrom, n+1), data=this_pos)
+        var_fp.create_dataset('sequence/{:d}/{:d}'.format(chrom, n+1), data=numpy.fromstring(this_copy, dtype='u1'))
+        if this_pos is not None:
+          var_fp.create_dataset('pos/{:d}/{:d}'.format(chrom, n+1), data=this_pos)
 
 
 if __name__ == "__main__":
@@ -87,7 +93,7 @@ if __name__ == "__main__":
   else:
     cmd_args = docopt.docopt(__doc__, version=__version__)
 
-  level = logging.DEBUG if args['-v'] else logging.WARNING
+  level = logging.DEBUG if cmd_args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
 
   main(cmd_args)
