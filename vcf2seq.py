@@ -60,6 +60,7 @@ def assemble_sequences(ref_seq, reader):
       copy[n] += var_seq[n]
       pos[n] = numpy.concatenate((pos[n], var_pos[n]))
       pointer[n] += ptr_adv[n]
+    logger.debug('({:d}%, {:d}%)'.format(100*pointer[0]/len(ref_seq), 100*pointer[1]/len(ref_seq)))
 
   for n in [0, 1]:
     # Now copy over any residual
@@ -73,12 +74,15 @@ def assemble_sequences(ref_seq, reader):
 def main(args):
   vcf_reader = vcf.Reader(filename=args['--vcf'])
   with h5py.File(args['--ref'], 'r') as ref_fp, h5py.File(args['--var'], 'w') as var_fp:
+    logger.debug('Writing to {:s}'.format(var_fp.filename))
     for chrom in [int(c) for c in ref_fp['sequence']]:  #h5 keys are unicode
+      logger.debug('Assembling chromosome {:d}'.format(chrom))
       # We assume the reference is haploid
       ref_seq = ref_fp['sequence/{:d}/1'.format(chrom)][:].tostring()  # Very cheap operation
       try:
         copy, pos = assemble_sequences(ref_seq, vcf_reader.fetch(chrom=chrom, start=0, end=len(ref_seq)))
       except KeyError:  # No mutations for this chromosome
+        logger.debug('Chromosome {:d} is unaltered, copying reference'.format(chrom))
         copy = [ref_seq, ref_seq]  # Same as reference
         pos = [None, None]
       for n, (this_copy, this_pos) in enumerate(zip(copy, pos)):
