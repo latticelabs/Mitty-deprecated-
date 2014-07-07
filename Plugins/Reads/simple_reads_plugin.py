@@ -44,6 +44,7 @@ def average_read_len(read_len=None, **kwargs):
 
 
 def read_generator(seq,
+                   chrom_copy=0,
                    read_start=0,
                    read_stop=0,
                    reads_per_call=1000,
@@ -57,7 +58,8 @@ def read_generator(seq,
 
   Inputs:
     seq              - string(like)s containing the DNA sequence to generate reads from
-    seq_len          - length of the sequence
+    chrom_copy       - we use this to change the rng seeds to ensure we take different reads/different positions
+                       from each chromosome copy
     read_start       - start generating reads from here (0.0, 1.0)
     read_stop        - stop generating reads from here (0.0, 1.0)
     reads_per_call   - each call to next will generate these many reads
@@ -87,7 +89,7 @@ def read_generator(seq,
      in them
   """
   # We need to initialize the rngs and a bunch of other stuff
-  read_loc_rng = numpy.random.RandomState(seed=read_loc_rng_seed)
+  read_loc_rng = numpy.random.RandomState(seed=read_loc_rng_seed + int(chrom_copy))
 
   rl = read_len
   tl = template_len if paired else rl
