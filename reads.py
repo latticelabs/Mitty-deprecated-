@@ -114,22 +114,24 @@ def open_reads_files(out_prefix, corrupted_reads=False, save_as_bam=True):
                'SQ': [{'LN': 1, 'SN': 'raw reads',
                        'SP': 'reads.py {:s}'.format(__version__)}]}
     file_handles['perfect'] = pysam.Samfile(perfect_reads_fname, 'wb', header=bam_hdr)  # Write binary BAM with header
-    logger.debug('Saving reads to {:s}'.format(perfect_reads_fname))
     if corrupted_reads:
       corrupted_reads_fname = out_prefix + '_c.bam'
       bam_hdr['SQ'] = [{'LN': 1, 'SN': 'raw corrupted reads',
                         'SP': 'reads.py {:s}'.format(__version__)}]
       file_handles['corrupted'] = \
         pysam.Samfile(corrupted_reads_fname, 'wb', header=bam_hdr)  # Write binary BAM with header
-      logger.debug('Saving reads to {:s}'.format(corrupted_reads_fname))
   else:  # FASTQ
     perfect_reads_fname = out_prefix + '.fastq'
     file_handles['perfect'] = open(perfect_reads_fname, 'w')  # File handles for FASTQ
-    logger.debug('Saving reads to {:s}'.format(perfect_reads_fname))
     if corrupted_reads:
       corrupted_reads_fname = out_prefix + '_c.fastq'
       file_handles['corrupted'] = open(corrupted_reads_fname, 'w')
-      logger.debug('Saving reads to {:s}'.format(corrupted_reads_fname))
+
+  logger.debug('Saving perfect reads to {:s}'.format(perfect_reads_fname))
+  try:
+    logger.debug('Saving corrupted reads to {:s}'.format(corrupted_reads_fname))
+  except NameError:
+    pass
   return file_handles
 
 
@@ -360,7 +362,9 @@ def add_reads_to_file(chrom='1', ref_fp=None,
   logger.debug('For {:1.1f}x we need {:d} total reads ({:d} reads per chrom copy)'.format(coverage, total_reads, reads_per_copy))
   current_template_count = 0
   for cpy in chrom_copies:
+    logger.debug('Loading sequence')
     seq = ref_fp['sequence/{:s}/{:s}'.format(chrom, cpy)][:].tostring()
+    logger.debug('Computing complement')
     complement_seq = seq.translate(DNA_complement)
     seq_len = len(seq)
     try:
@@ -380,13 +384,16 @@ def add_reads_to_file(chrom='1', ref_fp=None,
     logger.debug('Generating reads from {:s}'.format(chrom_key))
     for perfect_reads, corrupt_reads in reads:
       roll(perfect_reads, seq_pos)  # The function modifies reads in place to fill out the POS and CIGAR
+      logger.debug('Computed POS and CIGARs')
       save_reads(reads_file_handles['perfect'], perfect_reads, chrom_key, current_template_count, save_as_bam)
       #save_reads needs current_template_count because we put in a read serial number in the qname
+      logger.debug('Saved perfect reads')
       if write_corrupted:
         for c_template, p_template in zip(corrupt_reads, perfect_reads):
           for c_read in c_template:
             c_read[2] = p_template[0][2]  # Copy over the qname
         save_reads(reads_file_handles['corrupted'], corrupt_reads, chrom_key, current_template_count, save_as_bam)
+        logger.debug('Saved corrupted reads')
       current_template_count += len(perfect_reads)
       generated_reads = current_template_count * len(perfect_reads[0])  # This last gives us reads per template
       logger.debug('Generated {:d} reads ({:d}%)'.
