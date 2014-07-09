@@ -11,7 +11,8 @@ Example parameter snippet:
         "model": "insert",
         "phet": 0.5,
         "p": 0.01,
-        "lam_ins": 10,
+        "ins_len_lo": 100,
+        "ins_len_hi": 10000,
         "ins_loc_rng_seed": 1,
         "ins_len_rng_seed": 2,
         "base_sel_rng_seed": 3,
@@ -32,7 +33,8 @@ def variants(ref_fp=None,
              chromosome=None,
              p=0.01,
              phet=0.5,
-             lam_ins=10,
+             ins_len_lo=100,
+             ins_len_hi=10000,
              ins_loc_rng_seed=1,
              ins_len_rng_seed=2,
              base_sel_rng_seed=3,
@@ -44,21 +46,20 @@ def variants(ref_fp=None,
   Inputs:
     ref_seq              - The reference sequence
     ref_seq_len          - length of whole sequence (needed to compute start and stop)
+    p                    - probability of inserts
     phet                 - probability of having heterozygous mutation
-    p_ins                - probability of inserts
-    lam_ins              - mean length of poisson distributed insert lengths
-    start_ins_frac       - start generating inserts from here (0.0, 1.0)
-    stop_ins_frac        - stop generating inserts after this (0.0, 1.0) stop_ins_frac > start_ins_frac
-    het_rng_seed         - rng used to decide if genotype is heterozygous or not (0/1 or 1/0  vs 1/1)
-    strand_rng_seed      - rng used to decide which het type 0/1 or 1/0
+    dist                 - The kind of distribution for inserts
+                 {'type': 'uniform', 'low': 100, 'high': 10000} generate insertions uniformly between these lengths
+                 {'type': 'geometric', 'a': 0.1}
+    copy_rng_seed        - rng used to decide which het type 0/1 or 1/0
     ins_loc_rng_seed     - INS locator rng -> numpy.random.RandomState(seed)
     ins_len_rng_seed     - rng used to determine length of insert
     base_sel_rng_seed    - seed for rng used to determine bases to insert
-    block_size           - how many random numbers should we geenrate at a time
+    het_rng_seed         - rng used to decide if genotype is heterozygous or not (0/1 or 1/0  vs 1/1)
     kwargs               - absorbs any other parameters it does not use
 
   Outputs:
-    variant              - (POS, REF, ALT, GT, skip, list(footprints))
+    variant              - description, footprint, vcf_line
 
 
   Test with 'N' regions. There should be no insertions after an 'N'
@@ -135,7 +136,7 @@ def variants(ref_fp=None,
   for chrom in chromosome:
     ref_seq = ref_fp['sequence/{:d}/1'.format(chrom)][:].tostring()  # Very cheap operation
     ins_locs, = numpy.nonzero(ins_loc_rng.rand(len(ref_seq)) < p)
-    ins_lens = ins_len_rng.geometric(p=1.0/lam_ins, size=ins_locs.size)
+    ins_lens = ins_len_rng.randint(low=ins_len_lo, high=ins_len_hi+1, size=ins_locs.size)
     het_type = numpy.empty((ins_locs.size,), dtype='u1')
     het_type.fill(3)  # Homozygous
     idx_het, = numpy.nonzero(het_rng.rand(het_type.size) < phet)  # Heterozygous locii
@@ -146,7 +147,7 @@ def variants(ref_fp=None,
       if ref == 'N':
         continue  # Not valid, skip to next
       else:
-        alt = ref + base_sel_rng.choice(['A','C','G','T'], size=10, replace=True, p=[.3, .2, .2, .3]).tostring()
+        alt = ref + base_sel_rng.choice(['A','C','G','T'], size=ins_len, replace=True, p=[.3, .2, .2, .3]).tostring()
         gt = gt_string[het]
 
       description.append('Insert')
@@ -155,6 +156,6 @@ def variants(ref_fp=None,
       vcf_line.append([(chrom, pos+1, '.', ref, alt, 100, 'PASS', '.', 'GT', gt)])  # POS is VCF number starts from 1
       # CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample
 
-  logger.debug('Generated {:d} insertions with min={:d},mean={:f},max={:d}'.
-               format(ins_lens.size, int(ins_lens.min()), ins_lens.mean(), int(ins_lens.max())))
+    logger.debug('Generated {:d} insertions with min={:d},mean={:f},max={:d}'.
+                 format(ins_lens.size, int(ins_lens.min()), ins_lens.mean(), int(ins_lens.max())))
   return description, footprint, vcf_line
