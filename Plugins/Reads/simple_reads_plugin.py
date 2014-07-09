@@ -28,12 +28,6 @@ Example parameter file
 import numpy
 import logging
 logger = logging.getLogger(__name__)
-# base_sub_mat = {  # GATC For base errors
-#                   'G': 'ATC',
-#                   'A': 'TCG',
-#                   'T': 'CGA',
-#                   'C': 'GAT',
-# }
 
 
 def average_read_len(read_len=None, **kwargs):
@@ -176,87 +170,6 @@ def corrupt_reads(reads, error_profile, error_loc_rng_rand, base_chose_rng_choic
     corrupted_reads.append(corrupted_template)
   return corrupted_reads
 
-
-
-# def corrupt_reads(reads, read_len=100,
-#                   error_rng_seed=1,
-#                   base_chose_rng_seed=2,
-#                   max_p_error=.8,
-#                   k=.1,
-#                   **kwargs):
-#   """Simple exponential error model for reads.
-#   Inputs:
-#     reads        - perfect reads as produced by the read_generator
-#     read_len     - the (fixed) length of the reads
-#     max_p_error  - error probability for last base of read
-#                    (0.0 is perfect reads, 1.0 -> every base is guaranteed to be wrong)
-#     k            - exponential factor. 0 < k < 1 The closer this is to 0 the quicker the base error rate drops
-#     error_loc_rng  - from generate_reads, contains the 2 RNGs we need
-#     base_chose_rng - we don't need to return them as they are passed by reference and the state is propagated
-#                      back up to caller.
-#
-#   Outputs:
-#                                   _________ ( seq_str, quality_str, coordinate)
-#     corrupt_reads  -             /
-#                  [
-#                   [[ ... ], [ ... ]],
-#                   [[ ... ], [ ... ]], -> inner list = 2 elements if paired reads, 1 otherwise
-#                        .
-#                        .
-#                        .
-#                  ] -> outer list = number of reads
-#
-#   Notes:
-#   1. The only tricky thing about this function is that it has a state (stored as an attribute): We need to carry the
-#   state of the random number generators from call to call. We use try: except: for the initialization of the generators
-#   as this is slightly faster than if hasattr ... You will note that read_generator also stores the state of its rngs,
-#   but because it is structured as a generator, we don't think twice about this.
-#
-#   """
-#   if len(reads) == 0: return reads  # We return `reads` so we match the shape (paired or not paired)
-#
-#
-#   # A little sleight of hand here. We store state in a function attribute. The only caveat here is that we can't use
-#   # reuse this function expecting to be able to store separate states.
-#   # It is faster to ask for forgiveness, than permission
-#   # (http://assorted-experience.blogspot.com/2014/05/storing-state-in-python-function.html)
-#   try:
-#     base_errors = corrupt_reads.error_loc_rng.rand(len(reads[0]), len(reads), read_len)  # Coin toss to see if we error the base call
-#     base_subs = corrupt_reads.base_chose_rng.randint(3, size=(len(reads[0]), len(reads), read_len))  # If so, what base will be call it
-#     error_profile = corrupt_reads.error_profile
-#   except AttributeError:
-#     corrupt_reads.error_loc_rng = numpy.random.RandomState(seed=error_rng_seed)
-#     corrupt_reads.base_chose_rng = numpy.random.RandomState(base_chose_rng_seed)
-#     corrupt_reads.error_profile = [max_p_error * k ** n for n in range(read_len)][::-1]
-#
-#     base_errors = corrupt_reads.error_loc_rng.rand(len(reads[0]), len(reads), read_len)  # Coin toss to see if we error the base call
-#     base_subs = corrupt_reads.base_chose_rng.randint(3, size=(len(reads[0]), len(reads), read_len))  # If so, what base will be call it
-#
-#   rev_error_profile = [max_p_error * k ** n for n in range(read_len)]  # For the second of the pair
-#
-#
-#
-#
-#   rev_error_profile = [max_p_error * k ** n for n in range(read_len)]  # For the second of the pair
-#   error_profile = [rev_error_profile[::-1], rev_error_profile]
-#   # error_profile[0] -> base call error curve for forward read (5' end more error prone)
-#   # error_profile[1] -> base call error curve for backward read (3' end more error prone)
-#   qual = [''.join([chr(int(126-(126-33)*ep)) for ep in error_profile[n]]) for n in [0,1]]
-#   corrupted_reads = []
-#
-#   for n in range(len(reads)):
-#     these_reads = [[None]]*len(reads[0])
-#     for p in range(len(reads[0])):
-#       this_read = bytearray(reads[n][p][0])
-#       for m in range(read_len):
-#         if base_errors[0, n, m] < error_profile[p][m]:
-#           ref = reads[n][p][0][m]
-#           this_read[m] = base_sub_mat.get(ref,'NNN')[base_subs[0, n, m]]  # The 'NNN' ensures we return an N for
-#                                                                           # any ambiguous bases
-#       these_reads[p] = [this_read.__str__(), qual[p], reads[n][p][2]]
-#     corrupted_reads.append(these_reads)
-#
-#   return corrupted_reads
 
 if __name__ == "__main__":
   import sys
