@@ -1,8 +1,6 @@
-## This function is the bottleneck, taking 1ms to run per call
-import numpy as np
+## This function is the bottleneck, taking 600us to run per call in pure python
+## pyrexing it takes it to 60us/call
 cimport numpy as np
-#DTYPE = np.uint
-#ctypedef np.uint_t DTYPE_t
 def roll_cigar(this_read, np.ndarray[np.uint32_t, ndim=1] p_arr):
   """
   You can 'read along' with these tests from the Readme developers section
