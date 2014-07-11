@@ -4,27 +4,28 @@ from .. import vcf2seq
 from nose.tools import assert_equals
 
 
-def assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, var_seq_2, pos_2):
+def assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, variant_coords_1, var_seq_2, pos_2, variant_coords_2):
   def check(a1, a2):
-    copy_a, pos_a = a1
-    copy_b, pos_b = a2
+    copy_1, p_1, vc_dict_1 = a1
+    copy_2, p_2, vc_dict_2 = a2
     for n in [0,1]:
-      assert_equals(len(copy_a[n]), len(copy_b[n]))
-      assert_equals(len(pos_a[n]), len(pos_b[n]))
+      assert_equals(len(copy_1[n]), len(copy_2[n]))
+      assert_equals(len(p_1[n]), len(p_2[n]))
 
-    for n in [0,1]:
-      for x, y in zip(copy_a[n], copy_b[n]):
+      for x, y in zip(copy_1[n], copy_2[n]):
         assert_equals(x, y)
 
-      for x, y in zip(pos_a[n], pos_b[n]):
+      for x, y in zip(p_1[n], p_2[n]):
         assert_equals(x, y)
 
-  a2 = ([var_seq_1, var_seq_2], [pos_1, pos_2])
+      assert_equals(vc_dict_1[n], vc_dict_2[n])
+
+  a2 = ([var_seq_1, var_seq_2], [pos_1, pos_2], [variant_coords_1, variant_coords_2])
   a1 = vcf2seq.assemble_sequences(ref_seq, vcf.Reader(fsock=io.BytesIO(vcf_str)))
   check(a1, a2)
 
 
-def test_assemble_sequences_1():
+def test_assemble_sequences_homo_snp():
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -32,13 +33,15 @@ def test_assemble_sequences_1():
   )
   var_seq_1 = 'ATTG'
   pos_1 = [1, 2, 3, 4, 5]
+  vc_1 = {'ins': []}
   var_seq_2 = 'ATTG'
   pos_2 = [1, 2, 3, 4, 5]
+  vc_2 = {'ins': []}
 
-  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, var_seq_2, pos_2)
+  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, vc_1, var_seq_2, pos_2, vc_2)
 
 
-def test_assemble_sequences_2():
+def test_assemble_sequences_hetero_snp():
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -46,13 +49,15 @@ def test_assemble_sequences_2():
   )
   var_seq_1 = 'ATTG'
   pos_1 = [1, 2, 3, 4, 5]
+  vc_1 = {'ins': []}
   var_seq_2 = 'ACTG'
   pos_2 = [1, 2, 3, 4, 5]
+  vc_2 = {'ins': []}
 
-  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, var_seq_2, pos_2)
+  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, vc_1, var_seq_2, pos_2, vc_2)
 
 
-def test_assemble_sequences_3():
+def test_assemble_sequences_hetero_ins():
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -60,13 +65,15 @@ def test_assemble_sequences_3():
   )
   var_seq_1 = 'ACCTG'
   pos_1 = [1, 2, 3, 3, 4, 5]
+  vc_1 = {'ins': [[1, 3]]}
   var_seq_2 = 'ACTG'
   pos_2 = [1, 2, 3, 4, 5]
+  vc_2 = {'ins': []}
 
-  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, var_seq_2, pos_2)
+  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, vc_1, var_seq_2, pos_2, vc_2)
 
 
-def test_assemble_sequences_4():
+def test_assemble_sequences_hetero_del():
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -74,13 +81,15 @@ def test_assemble_sequences_4():
   )
   var_seq_1 = 'ACTG'
   pos_1 = [1, 2, 3, 4, 5]
+  vc_1 = {'ins': []}
   var_seq_2 = 'ATG'
   pos_2 = [1, 3, 4, 5]
+  vc_2 = {'ins': []}
 
-  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, var_seq_2, pos_2)
+  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, vc_1, var_seq_2, pos_2, vc_2)
 
 
-def test_assemble_sequences_5():
+def test_assemble_sequences_hetero_del2():
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -88,13 +97,15 @@ def test_assemble_sequences_5():
   )
   var_seq_1 = 'ACTG'
   pos_1 = [1, 2, 3, 4, 5]
+  vc_1 = {'ins': []}
   var_seq_2 = 'ACG'
   pos_2 = [1, 2, 4, 5]
+  vc_2 = {'ins': []}
 
-  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, var_seq_2, pos_2)
+  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, vc_1, var_seq_2, pos_2, vc_2)
 
 
-def test_assemble_sequences_6():
+def test_assemble_sequences_hetero_same_locus_del():
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -103,13 +114,15 @@ def test_assemble_sequences_6():
   )
   var_seq_1 = 'ATG'
   pos_1 = [1, 3, 4, 5]
+  vc_1 = {'ins': []}
   var_seq_2 = 'ATG'
   pos_2 = [1, 3, 4, 5]
+  vc_2 = {'ins': []}
 
-  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, var_seq_2, pos_2)
+  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, vc_1, var_seq_2, pos_2, vc_2)
 
 
-def test_assemble_sequences_7():
+def test_assemble_sequences_hetero_same_locus_ins_del():
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -118,13 +131,15 @@ def test_assemble_sequences_7():
   )
   var_seq_1 = 'ACTTG'
   pos_1 = [1, 2, 3, 3, 4, 5]
+  vc_1 = {'ins': [[1,3]]}
   var_seq_2 = 'ATG'
   pos_2 = [1, 3, 4, 5]
+  vc_2 = {'ins': []}
 
-  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, var_seq_2, pos_2)
+  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, vc_1, var_seq_2, pos_2, vc_2)
 
 
-def test_assemble_sequences_8():
+def test_assemble_sequences_hetero_same_locus_ins_del2():
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -133,13 +148,15 @@ def test_assemble_sequences_8():
   )
   var_seq_1 = 'ACTTG'
   pos_1 = [1, 2, 3, 3, 4, 5]
+  vc_1 = {'ins': [[1,3]]}
   var_seq_2 = 'A'
   pos_2 = [1, 5]
+  vc_2 = {'ins': []}
 
-  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, var_seq_2, pos_2)
+  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, vc_1, var_seq_2, pos_2, vc_2)
 
 
-def test_assemble_sequences_9():
+def test_assemble_sequences_hetero_same_locus_inv_del():
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -148,13 +165,34 @@ def test_assemble_sequences_9():
   )
   var_seq_1 = 'ATG'
   pos_1 = [1, 3, 4, 5]
+  vc_1 = {'ins': []}
   var_seq_2 = 'AGAG'
   pos_2 = [1, 2, 3, 4, 5]
+  vc_2 = {'ins': [[1, 3]]}  # This is interesting, because vcf flags this as an insertion
 
-  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, var_seq_2, pos_2)
+  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, vc_1, var_seq_2, pos_2, vc_2)
 
 
-def test_assemble_sequences_10():
+def test_assemble_sequences_hetero_same_locus_longer_ins():
+  ref_seq = 'ACTG'
+  vcf_str = (
+    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
+    "1\t2\t.\tC\tCAA\t100\tPASS\t.\tGT\t0/1\n"
+    "1\t2\t.\tC\tCGG\t100\tPASS\t.\tGT\t1/0\n"
+    "1\t4\t.\tG\tGAA\t100\tPASS\t.\tGT\t0/1\n"
+    "1\t4\t.\tG\tGTT\t100\tPASS\t.\tGT\t1/0\n"
+  )
+  var_seq_1 = 'ACGGTGTT'
+  pos_1 = [1, 2, 3, 3, 3, 4, 5, 5, 5]
+  vc_1 = {'ins': [[1,4], [5, 8]]}
+  var_seq_2 = 'ACAATGAA'
+  pos_2 = [1, 2, 3, 3, 3, 4, 5, 5, 5]
+  vc_2 = {'ins': [[1, 4], [5, 8]]}
+
+  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, vc_1, var_seq_2, pos_2, vc_2)
+
+
+def test_assemble_sequences_misc():
   ref_seq = 'ACTGACTGACTG'
   vcf_str = (
     "##fileformat=VCFv4.1\n"
@@ -173,7 +211,11 @@ def test_assemble_sequences_10():
   )
   var_seq_1 = 'ATGGATGGACTG'
   pos_1 = [1,2,3,4,5,7,8,9,9,10,11,12, 13]
+  vc_1 = {'ins': [[6, 8]]}
   var_seq_2 = 'TCGACGCACTG'
   pos_2 = [1,2,3,5,6,8,9,9,10,11,12, 13]
+  vc_2 = {'ins': [[5, 7]]}
 
-  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, var_seq_2, pos_2)
+  assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, vc_1, var_seq_2, pos_2, vc_2)
+
+
