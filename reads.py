@@ -3,9 +3,12 @@ useful for creating test data for MGR algorithms/data formats
 
 Usage:
 reads --paramfile=PFILE  [--corrupt]  [--fastq] [--reads_per_block=BL]  [-v]
+reads localreads  [--read_border_size=RBS] --paramfile=PFILE  [--corrupt]  [--fastq] [--reads_per_block=BL]  [-v]
 reads explain
 
 Options:
+  localreads              Take reads around insertions, only
+  --read_border_size=RBS  How many bases before and after the insertion do we include in our window [default: 500]
   --paramfile=PFILE       Name for parameter file
   --corrupt               Write out corrupted reads too.
   --fastq                 Write as FASTQ instead of BAM (simulated_reads.fastq)
@@ -18,6 +21,11 @@ Options:
    The perfect reads will be saved to sim_reads.bam (or sim_reads.fastq). If we ask for corrupted reads
    we will get the corrupted reads in the file sim_reads_c.fastq.
    A text sidecar file sim_reads.info will always be saved with simulation parameters.
+
+3 *** Can probably refactor the whole file for better readability **
+  *** see if we can write shorter functions, see if we can reduce the number of parameters/bundle them ***
+  *** further efficiency gains will probably be minimal - the bottle neck function has been cythonized ***
+
 """
 
 __explain__ = """
@@ -130,12 +138,24 @@ def open_reads_files(out_prefix, corrupted_reads=False, save_as_bam=True):
       corrupted_reads_fname = out_prefix + '_c.fastq'
       file_handles['corrupted'] = open(corrupted_reads_fname, 'w')
 
+  file_handles['bam_file?'] = save_as_bam
   logger.debug('Saving perfect reads to {:s}'.format(perfect_reads_fname))
   try:
     logger.debug('Saving corrupted reads to {:s}'.format(corrupted_reads_fname))
   except NameError:
     pass
   return file_handles
+
+
+def close_reads_files(file_handles):
+  file_handles['perfect'].close()
+  try:
+    file_handles['corrupted'].close()
+  except KeyError:
+    pass
+  #for k, v in file_handles.iteritems():
+  #  v.close()
+
 
 # ## This function is the bottleneck, taking 1ms to run per call
 # def roll_cigar(this_read, p_arr):
@@ -350,67 +370,98 @@ def save_reads_to_fastq(fastq_file_handle, these_reads, chrom_key, first_read_se
       fastq_file_handle.write('@{:s}\n{:s}\n+\n{:s}\n'.format(qname, seq, qual))
 
 
-def add_reads_to_file(chrom='1', ref_fp=None,
-                      coverage=5.0,
-                      read_model=None, model_params=None,
-                      reads_per_call=1000,
-                      write_corrupted=True, save_as_bam=True,
-                      reads_file_handles=None):
-  #Figure out how many genome copies we have
-  chrom_copies = ref_fp['sequence/{:s}'.format(chrom)].keys()
-  nominal_seq_size = ref_fp['sequence/{:s}/{:s}'.format(chrom, chrom_copies[0])].size
-  total_reads = int(nominal_seq_size * coverage / read_model.average_read_len(**model_params))
-  reads_per_copy = total_reads / len(chrom_copies)
-  logger.debug('For {:1.1f}x we need {:d} total reads ({:d} reads per chrom copy)'.format(coverage, total_reads, reads_per_copy))
+def add_reads_to_file(chrom=1,
+                      cpy=1,
+                      seq=[None,None],
+                      seq_pos=None,
+                      read_start=0,
+                      read_stop=None,
+                      num_reads=1000,
+                      reads_per_call=100000,
+                      generate_corrupt_reads=False,
+                      read_model=None,
+                      model_params={},
+                      file_handles={}):
+
+  reads = read_model.read_generator(seq=seq,
+                                    read_start=read_start,
+                                    read_stop=read_stop,
+                                    num_reads=num_reads,
+                                    reads_per_call=reads_per_call,
+                                    generate_corrupt_reads=generate_corrupt_reads,
+                                    **model_params)
+  logger.debug('Generating reads')
+  chrom_key = '{:d}:{:d}'.format(chrom, cpy)
   current_template_count = 0
-  for cpy in chrom_copies:
-    logger.debug('Loading sequence')
-    seq = ref_fp['sequence/{:s}/{:s}'.format(chrom, cpy)][:].tostring()
-    logger.debug('Computing complement')
-    complement_seq = seq.translate(DNA_complement)
-    seq_len = len(seq)
-    try:
-      seq_pos = ref_fp['pos/{:s}/{:s}'.format(chrom, cpy)][:]
-    except KeyError:
-      logger.debug('Chrom {:s}:{:s} is same as reference'.format(chrom, cpy))
-      seq_pos = None
-    reads = read_model.read_generator(seq=[seq, complement_seq],
-                                      chrom_copy=int(cpy),
-                                      read_start=0,
-                                      read_stop=seq_len,
-                                      num_reads=reads_per_copy,
-                                      reads_per_call=reads_per_call,
-                                      generate_corrupt_reads=write_corrupted,
-                                      **model_params)
-    chrom_key = '{:s}:{:s}'.format(chrom, cpy)
-    logger.debug('Generating reads from {:s}'.format(chrom_key))
-    for perfect_reads, corrupt_reads in reads:
-      roll(perfect_reads, seq_pos)  # The function modifies reads in place to fill out the POS and CIGAR
-      logger.debug('Computed POS and CIGARs')
-      save_reads(reads_file_handles['perfect'], perfect_reads, chrom_key, current_template_count, save_as_bam)
-      #save_reads needs current_template_count because we put in a read serial number in the qname
-      logger.debug('Saved perfect reads')
-      if write_corrupted:
-        for c_template, p_template in zip(corrupt_reads, perfect_reads):
-          for c_read in c_template:
-            c_read[2] = p_template[0][2]  # Copy over the qname
-        save_reads(reads_file_handles['corrupted'], corrupt_reads, chrom_key, current_template_count, save_as_bam)
-        logger.debug('Saved corrupted reads')
-      current_template_count += len(perfect_reads)
-      generated_reads = current_template_count * len(perfect_reads[0])  # This last gives us reads per template
-      logger.debug('{:d} reads of {:d} done ({:d}%)'.
-                   format(generated_reads, total_reads, int(100 * generated_reads / float(total_reads))))
+  for perfect_reads, corrupt_reads in reads:
+    roll(perfect_reads, seq_pos)  # The function modifies reads in place to fill out the POS and CIGAR
+    logger.debug('Computed POS and CIGARs')
+    save_reads(file_handles['perfect'], perfect_reads, chrom_key, current_template_count, file_handles['bam_file?'])
+    #save_reads needs current_template_count because we put in a read serial number in the qname
+    logger.debug('Saved perfect reads')
+    if generate_corrupt_reads:
+      for c_template, p_template in zip(corrupt_reads, perfect_reads):
+        for c_read in c_template:
+          c_read[2] = p_template[0][2]  # Copy over the qname
+      save_reads(file_handles['corrupted'], corrupt_reads, chrom_key, current_template_count, file_handles['bam_file?'])
+      logger.debug('Saved corrupted reads')
+    current_template_count += len(perfect_reads)
+    generated_reads = current_template_count * len(perfect_reads[0])  # This last gives us reads per template
+    logger.debug('{:d} reads of {:d} done ({:d}%)'.
+                 format(generated_reads, num_reads, int(100 * generated_reads / float(num_reads))))
 
 
-def main(args):
-  # Load parameter file
-  params = json.load(open(args['--paramfile'], 'r'))
+def get_sequence_and_complement(ref_fp, chrom, cpy):
+  logger.debug('Loading sequence')
+  seq = ref_fp['sequence/{:d}/{:d}'.format(chrom, cpy)][:].tostring()
+  logger.debug('Computing complement')
+  complement_seq = seq.translate(DNA_complement)
+  seq_len = len(seq)
+  try:
+    seq_pos = ref_fp['pos/{:d}/{:d}'.format(chrom, cpy)][:]
+  except KeyError:
+    logger.debug('Chrom {:d}:{:d} is same as reference'.format(chrom, cpy))
+    seq_pos = None
+  return seq, complement_seq, seq_len, seq_pos
 
-  # Load the read model from the plugins directory
-  plugin_dir = os.path.join(os.path.dirname(__file__), 'Plugins', 'Reads')
-  fp, pathname, description = imp.find_module(params['read_model'] + '_plugin', [plugin_dir])
-  read_model = imp.load_module('readmodel', fp, pathname, description)
 
+def reads_around_insertions(args, params, read_model):
+  """Generate reads only around insertions.
+
+  We take the list of chromosomes
+  chromosomes = [(chrom, (cpy,cpy ...)) ...] telling us which chromosomes and copies to do
+  Numbering starts from 1
+
+  """
+  save_as_bam = not args['--fastq']
+  write_corrupted = args['--corrupt']  # If True, corrupted reads will be written out
+  read_border_size = int(args['--read_border_size'])
+  coverage = params['coverage']
+  output_file_prefix = params['output_file_prefix']
+  model_params = params['model_params']
+  with h5py.File(params['whole genome file'], 'r') as ref_fp:
+    chrom_list = params["take reads from"] or ref_fp['sequence'].keys()
+    for chrom in chrom_list:
+      for cpy in ref_fp['sequence/{:d}'.format(chrom)].keys():
+        seq, complement_seq, seq_len, seq_pos = get_sequence_and_complement(ref_fp, chrom, int(cpy))
+        for ins in ref_fp['variant_pos/ins/{:d}/{:d}'.format(chrom, int(cpy))][:]:
+          read_start = max(0, ins[0] - read_border_size)
+          read_stop = min(seq_len, ins[1] + read_border_size)
+          total_reads = int((read_stop - read_start) * coverage / read_model.average_read_len(**model_params))
+          this_output_file_prefix = '{:s}_chrom{:d}_cpy{:d}_inspos{:d}'.format(output_file_prefix, chrom, int(cpy), ins[0])
+          reads_file_handles = open_reads_files(this_output_file_prefix, write_corrupted, save_as_bam)
+          add_reads_to_file(chrom=chrom, cpy=int(cpy), seq=[seq, complement_seq], seq_pos=seq_pos, read_start=read_start, read_stop=read_stop,
+                            num_reads=total_reads,
+                            reads_per_call=int(args['--reads_per_block']),
+                            generate_corrupt_reads=write_corrupted,
+                            read_model=read_model,
+                            model_params=model_params,
+                            file_handles=reads_file_handles)
+          close_reads_files(reads_file_handles)
+
+
+def whole_genome_reads(args, params, read_model):
+  """Generate reads from the whole genome."""
   # Generate a dictionary of file handles for perfect and corrupted reads (if needed)
   save_as_bam = not args['--fastq']
   write_corrupted = args['--corrupt']  # If True, corrupted reads will be written out
@@ -424,12 +475,27 @@ def main(args):
         continue
       logger.debug('Generating reads from chromosome {:s}'.format(chrom))
       #We send in the chrom and the ref_fp and let the read model decide which copy to read from etc.
-      add_reads_to_file(chrom=chrom, ref_fp=ref_fp,
-                        coverage=params['coverage'],
-                        read_model=read_model, model_params=params['model_params'],
-                        reads_per_call=int(args['--reads_per_block']),
-                        write_corrupted=write_corrupted, save_as_bam=save_as_bam,
-                        reads_file_handles=reads_file_handles)
+      # add_reads_to_file(chrom=chrom, ref_fp=ref_fp,
+      #                   coverage=params['coverage'],
+      #                   read_model=read_model, model_params=params['model_params'],
+      #                   reads_per_call=int(args['--reads_per_block']),
+      #                   write_corrupted=write_corrupted, save_as_bam=save_as_bam,
+      #                   reads_file_handles=reads_file_handles)
+
+
+def main(args):
+  # Load parameter file
+  params = json.load(open(args['--paramfile'], 'r'))
+
+  # Load the read model from the plugins directory
+  plugin_dir = os.path.join(os.path.dirname(__file__), 'Plugins', 'Reads')
+  fp, pathname, description = imp.find_module(params['read_model'] + '_plugin', [plugin_dir])
+  read_model = imp.load_module('readmodel', fp, pathname, description)
+
+  if args['localreads']:
+    reads_around_insertions(args, params, read_model)
+  else:
+    whole_genome_reads(args, params, read_model)
 
   with open(params['output_file_prefix'] + '.info', 'w') as f:
     f.write('Command line\n-------------\n')
