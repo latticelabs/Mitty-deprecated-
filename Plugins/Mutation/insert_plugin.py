@@ -136,6 +136,7 @@ def variants(ref_fp=None,
   for chrom in chromosome:
     ref_seq = ref_fp['sequence/{:d}/1'.format(chrom)][:].tostring()  # Very cheap operation
     ins_locs, = numpy.nonzero(ins_loc_rng.rand(len(ref_seq)) < p)
+    if ins_locs.size == 0: continue  # No variants here
     ins_lens = ins_len_rng.randint(low=ins_len_lo, high=ins_len_hi+1, size=ins_locs.size)
     het_type = numpy.empty((ins_locs.size,), dtype='u1')
     het_type.fill(3)  # Homozygous
