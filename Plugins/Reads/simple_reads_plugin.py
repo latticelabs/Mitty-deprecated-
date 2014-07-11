@@ -42,7 +42,6 @@ def max_read_len(read_len=None, **kwarg):
 
 
 def read_generator(seq=None,
-                   chrom_copy=0,
                    read_start=0,
                    read_stop=0,
                    reads_per_call=1000,
@@ -58,7 +57,8 @@ def read_generator(seq=None,
                    max_p_error=.8,
                    k=.1,
                    **kwargs):
-  """Given a sequence generate reads with the given characteristics
+  """Given a sequence generate reads with the given characteristics. See note about RNG states. The RNGs are
+  initialized only on the first call to the generator. New calls to the generator will keep the same RNGs
 
   Inputs:
     seq              - pair of seq and complement_seq (stringlike) containing the DNA sequence to generate reads from
@@ -97,6 +97,8 @@ def read_generator(seq=None,
   2. Quality: Sanger scale 33-126
   3. The number of reads returned on each iteration can be less than reads_per_call because we toss out reads with Ns
      in them
+  4. The only tricky thing is we store the rng state in a function attribute, so that with repeated calls to reads we
+     get fresh random numbers
 
   Read corruption
 
@@ -105,24 +107,33 @@ def read_generator(seq=None,
 
   """
   assert k <= 1.0
-  # We need to initialize the rngs and a bunch of other stuff
-  read_loc_rng_randint = numpy.random.RandomState(seed=read_loc_rng_seed + int(chrom_copy)).randint
-  read_strand_rng_randint = numpy.random.RandomState(seed=read_strand_rng_seed + int(chrom_copy)).randint
-  error_loc_rng_rand = numpy.random.RandomState(seed=error_rng_seed + int(chrom_copy)).rand
-  base_chose_rng_choice = numpy.random.RandomState(base_chose_rng_seed + int(chrom_copy)).choice
+  #'tis better to ask for forgiveness
+  try:
+    read_loc_rng_randint = read_generator.read_loc_rng_randint
+    read_strand_rng_randint = read_generator.read_strand_rng_randint
+    error_loc_rng_rand = read_generator.error_loc_rng_rand
+    base_chose_rng_choice = read_generator.base_chose_rng_choice
+    logger.debug('Initialized RNGs')
+  except AttributeError:
+    # We need to initialize the rngs and a bunch of other stuff
+    read_loc_rng_randint = numpy.random.RandomState(seed=read_loc_rng_seed).randint
+    read_strand_rng_randint = numpy.random.RandomState(seed=read_strand_rng_seed).randint
+    error_loc_rng_rand = numpy.random.RandomState(seed=error_rng_seed).rand
+    base_chose_rng_choice = numpy.random.RandomState(base_chose_rng_seed).choice
+
   error_profile = [max_p_error * k ** n for n in range(read_len)][::-1]
 
   rl = read_len
   tl = template_len if paired else rl
-  if read_start + tl >= read_stop:
-    logger.error('Template len too large for given sequence.')
-    read_count = num_reads
 
   if paired:
     num_reads = max(1, num_reads / 2)
     reads_per_call = max(1, reads_per_call / 2)
 
   read_count = 0
+  if read_start + tl >= read_stop:  # We should raise StopIteration and quit
+    logger.error('Template len too large for given sequence.')
+    read_count = num_reads
   while read_count < num_reads:
     nominal_read_count = min(reads_per_call, num_reads - read_count)
     rd_st = read_loc_rng_randint(low=read_start, high=read_stop - tl, size=nominal_read_count)
@@ -154,21 +165,70 @@ def read_generator(seq=None,
 
 def corrupt_reads(reads, error_profile, error_loc_rng_rand, base_chose_rng_choice):
   if len(reads) == 0: return reads
-  phred_scores = [-10. * numpy.log10(ep) for ep in error_profile]
+  reads_per_template = 1 if len(reads[0]) == 1 else 2
+  phred_scores = -10. * numpy.log10(error_profile)
   qual_str = ''.join([chr(int(min(ep, 93)) + 33) for ep in phred_scores])
-  read_len = len(reads[0][0][0])
+  read_len = phred_scores.size
 
-  # Generate a mirror set of nonsense reads, and then pick from the good read vs bad read depending on
+  # Generate a mirror set of nonsense reads, and then pick from the good read vs bad read depending on a coin toss
+  nonsense_bases = base_chose_rng_choice(['A','C','G','T'], size=len(reads) * reads_per_template * read_len, replace=True, p=[.3, .2, .2, .3])
+  repeated_error_profile = numpy.tile(error_profile, len(reads) * reads_per_template)
+  coin_flip = (error_loc_rng_rand(nonsense_bases.size) < repeated_error_profile).astype('u1')
+
   corrupted_reads = []
-  for template in reads:
+  for t, template in enumerate(reads):
     corrupted_template = []
-    for read in template:
-      nonsense_read = base_chose_rng_choice(['A','C','G','T'], size=read_len, replace=True, p=[.3, .2, .2, .3]).tostring()
-      coin_flip = (error_loc_rng_rand(read_len) < error_profile).astype('u1')
+    for m, read in enumerate(template):
+      idx_st = t * reads_per_template * read_len + read_len * m
       # Recall a read is a tuple (seq_str, quality_str, coordinate)
-      corrupted_template.append([''.join([base[cf] for cf, base in zip(coin_flip, zip(read[0], nonsense_read))]), qual_str, read[2]])
+      corrupted_template.append([''.join([base[cf] for cf, base in zip(coin_flip[idx_st:idx_st + read_len], zip(read[0], nonsense_bases[idx_st:idx_st + read_len]))]), qual_str, read[2]])
     corrupted_reads.append(corrupted_template)
   return corrupted_reads
+
+
+# 30 us/read
+# def corrupt_reads(reads, error_profile, error_loc_rng_rand, base_chose_rng_choice):
+#   if len(reads) == 0: return reads
+#   reads_per_template = 1 if len(reads[0]) == 1 else 2
+#   phred_scores = -10. * numpy.log10(error_profile)
+#   qual_str = ''.join([chr(int(min(ep, 93)) + 33) for ep in phred_scores])
+#   read_len = phred_scores.size
+#
+#   # Generate a mirror set of nonsense reads, and then pick from the good read vs bad read depending on a coin toss
+#   nonsense_bases = base_chose_rng_choice(['A','C','G','T'], size=len(reads) * reads_per_template * read_len, replace=True, p=[.3, .2, .2, .3])
+#   repeated_error_profile = numpy.tile(error_profile, len(reads) * reads_per_template)
+#   coin_flip = (error_loc_rng_rand(nonsense_bases.size) < repeated_error_profile).astype('u1')
+#
+#   corrupted_reads = []
+#   for t, template in enumerate(reads):
+#     corrupted_template = []
+#     for m, read in enumerate(template):
+#       idx_st = t * reads_per_template * read_len + read_len * m
+#       # Recall a read is a tuple (seq_str, quality_str, coordinate)
+#       corrupted_template.append([''.join([base[cf] for cf, base in zip(coin_flip[idx_st:idx_st + read_len], zip(read[0], nonsense_bases[idx_st:idx_st + read_len]))]), qual_str, read[2]])
+#     corrupted_reads.append(corrupted_template)
+#   return corrupted_reads
+
+
+# # This is inefficently written 46 us/read
+# def corrupt_reads(reads, error_profile, error_loc_rng_rand, base_chose_rng_choice):
+#   if len(reads) == 0: return reads
+#   reads_per_template = 1 if len(reads[0]) == 1 else 2
+#   phred_scores = -10. * numpy.log10(error_profile)
+#   qual_str = ''.join([chr(int(min(ep, 93)) + 33) for ep in phred_scores])
+#   read_len = phred_scores.size
+#   # Generate a mirror set of nonsense reads, and then pick from the good read vs bad read depending on
+#   corrupted_reads = []
+#   for template in reads:
+#     corrupted_template = []
+#     for read in template:
+#       #nonsense_read = base_chose_rng_choice(['A','C','G','T'], size=read_len, replace=True, p=[.3, .2, .2, .3]).tostring()
+#       nonsense_read = base_chose_rng_choice(['A','C','G','T'], size=read_len, replace=True, p=[.3, .2, .2, .3])
+#       coin_flip = (error_loc_rng_rand(read_len) < error_profile).astype('u1')
+#       # Recall a read is a tuple (seq_str, quality_str, coordinate)
+#       corrupted_template.append([''.join([base[cf] for cf, base in zip(coin_flip, zip(read[0], nonsense_read))]), qual_str, read[2]])
+#     corrupted_reads.append(corrupted_template)
+#   return corrupted_reads
 
 
 if __name__ == "__main__":
