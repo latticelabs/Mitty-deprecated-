@@ -444,7 +444,12 @@ def reads_around_insertions(args, params, read_model):
     for chrom in chrom_list:
       for cpy in ref_fp['sequence/{:d}'.format(chrom)].keys():
         seq, complement_seq, seq_len, seq_pos = get_sequence_and_complement(ref_fp, chrom, int(cpy))
-        for ins in ref_fp['variant_pos/ins/{:d}/{:d}'.format(chrom, int(cpy))][:]:
+        if 'variant_pos/ins/{:d}/{:d}'.format(chrom, int(cpy)) not in ref_fp:
+          logger.error('Local reads around insertions requested, but no insertions detected. Perhaps you are using a reference sequence?')
+          continue
+        insertion_count = len(ref_fp['variant_pos/ins/{:d}/{:d}'.format(chrom, int(cpy))])
+        for n, ins in enumerate(ref_fp['variant_pos/ins/{:d}/{:d}'.format(chrom, int(cpy))][:]):
+          logger.debug('Generating reads from insertion {:d} of {:d}, len {:d}'.format(n, insertion_count, ins[1] - ins[0]))
           read_start = max(0, ins[0] - read_border_size)
           read_stop = min(seq_len, ins[1] + read_border_size)
           total_reads = int((read_stop - read_start) * coverage / read_model.average_read_len(**model_params))
