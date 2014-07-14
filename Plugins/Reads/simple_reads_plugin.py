@@ -8,11 +8,11 @@ TODO: Fix the corruption algorithm
 
 """
 __explain__ = """
-Example parameter file
+Example parameter file fragment for reads.py to use this reads plugin
 
 {
-    "model": "simple_reads",
-    "args": {
+    "read_model": "simple_reads",
+    "model_params": {
         "paired": false,
         "read_len": 100,
         "template_len": 250,
