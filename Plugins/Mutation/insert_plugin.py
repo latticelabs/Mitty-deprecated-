@@ -158,5 +158,5 @@ def variants(ref_fp=None,
       # CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample
 
     logger.debug('Generated {:d} insertions with min={:d},mean={:f},max={:d}'.
-                 format(ins_lens.size, int(ins_lens.min()), ins_lens.mean(), int(ins_lens.max())))
+                 format(len(vcf_line), int(ins_lens.min()), ins_lens.mean(), int(ins_lens.max())))
   return description, footprint, vcf_line
