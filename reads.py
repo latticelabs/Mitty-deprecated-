@@ -442,6 +442,10 @@ def reads_around_insertions(args, params, read_model):
   with h5py.File(params['whole genome file'], 'r') as ref_fp:
     chrom_list = params["take reads from"] or ref_fp['sequence'].keys()
     for chrom in chrom_list:
+      if chrom not in ref_fp['sequence'].keys():
+        logger.warning('Chromosome #{:s} not in file'.format(chrom))
+        continue
+      logger.debug('Generating reads from chromosome {:s}'.format(chrom))
       for cpy in ref_fp['sequence/{:d}'.format(chrom)].keys():
         seq, complement_seq, seq_len, seq_pos = get_sequence_and_complement(ref_fp, chrom, int(cpy))
         if 'variant_pos/ins/{:d}/{:d}'.format(chrom, int(cpy)) not in ref_fp:
@@ -471,21 +475,28 @@ def whole_genome_reads(args, params, read_model):
   save_as_bam = not args['--fastq']
   write_corrupted = args['--corrupt']  # If True, corrupted reads will be written out
   reads_file_handles = open_reads_files(params['output_file_prefix'], write_corrupted, save_as_bam)
-
+  coverage = params['coverage']
+  model_params = params['model_params']
   with h5py.File(params['whole genome file'], 'r') as ref_fp:
     chrom_list = params["take reads from"] or ref_fp['sequence'].keys()
     for chrom in [str(c) for c in chrom_list]:
       if chrom not in ref_fp['sequence'].keys():
-        logger.warning('No chromosome {:s}'.format(chrom))
+        logger.warning('Chromosome #{:s} not in file'.format(chrom))
         continue
       logger.debug('Generating reads from chromosome {:s}'.format(chrom))
-      #We send in the chrom and the ref_fp and let the read model decide which copy to read from etc.
-      # add_reads_to_file(chrom=chrom, ref_fp=ref_fp,
-      #                   coverage=params['coverage'],
-      #                   read_model=read_model, model_params=params['model_params'],
-      #                   reads_per_call=int(args['--reads_per_block']),
-      #                   write_corrupted=write_corrupted, save_as_bam=save_as_bam,
-      #                   reads_file_handles=reads_file_handles)
+      for cpy in ref_fp['sequence/{:d}'.format(chrom)].keys():
+        seq, complement_seq, seq_len, seq_pos = get_sequence_and_complement(ref_fp, chrom, int(cpy))
+        read_start = 0
+        read_stop = seq_len
+        total_reads = int((read_stop - read_start) * coverage / read_model.average_read_len(**model_params))
+        add_reads_to_file(chrom=chrom, cpy=int(cpy), seq=[seq, complement_seq], seq_pos=seq_pos, read_start=read_start, read_stop=read_stop,
+                          num_reads=total_reads,
+                          reads_per_call=int(args['--reads_per_block']),
+                          generate_corrupt_reads=write_corrupted,
+                          read_model=read_model,
+                          model_params=model_params,
+                          file_handles=reads_file_handles)
+  close_reads_files(reads_file_handles)
 
 
 def main(args):
