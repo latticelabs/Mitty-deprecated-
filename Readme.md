@@ -49,26 +49,98 @@ perfectly align them back onto the original genome.
 different conditions and data set characteristics.**
 
 Mitty, at its heart, is a set of Python programs that can be run from the commandline. Mitty has, additionally, been
-wrapped for the Seven Bridges Genomics computation platform (IGOR). We will start with a conceptual overview of Mitty
-components which closely mirrors how you would graphically create a data simulation pipeline on IGOR. After that we will
-go over how to run Mitty components directly from the commandline.
+wrapped for the Seven Bridges Genomics computation platform (IGOR).
+
+**Each module is designed to run as a script. Typing `python mutate.py -h` or simply `python mutate.py` etc. will list
+usage and input requirements. Most scripts have built in tests which can be run by typing `test` or `test -v` after
+command invocation, like `python mutate.py test -v`. For **
+
+
+Test as you read
+----------------
+
+**This document contains doctest strings! Running `python -m doctest -v Readme.md` will run all the code snippets you
+see here and make sure Mitty is doing what it is supposed to be. All the generated data files are left under README-DATA**
+
+In order to run the command line code within the examples, without getting messy, we define a function `shell` that
+gets python to properly call the shell command we would have used. It is a bit like IPython's `%run` magic command.
+
+    >>> import shlex, subprocess
+    >>> def shell(command): subprocess.call(shlex.split(command))
+    >>> def shelly(command): _ = subprocess.call(command, shell=True)  # This second version is for when we need pipes
+
+We also don't want to clutter up our workspace with a [plethora][pleth] of generated files, so we create a temporary directory to
+store created data files in. We don't delete this directory at the end, in case you want to take a look at the files at
+your leisure. **We do clear out this directory every time we run.**
+
+    >>> shell('mkdir -p README-DATA')
+    >>> shell('rm README-DATA/*')
+
+[pleth]: https://www.youtube.com/watch?v=tyBUMntP6DI
+
+
 
 Quickstart: Running Mitty on the Seven Bridges Platform
 =======================================================
 
-The process for running Mitty components to create reads from a mutated genome starting from only a reference
-sequence is illustrated schematically below.
+The process for running Mitty components to create reads from a mutated genome starting from a set of reference
+sequences is illustrated schematically below.
+
+We assume that we have a set of N fasta files corresponding to chromosomes 1...N of some organism. We need to do a one
+time conversion of these individual fasta files into a .smalla file that Mitty uses. The .smalla file is organized so
+that Mitty components can access each copy of each chromosome of an organism efficiently.
+
+_When population reference data is stored as a DAG `converta dag` is used to extract individual genomes before taking
+reads etc._
+
+                     ----------
+         fasta  --->|          |---> smalla file (Used by mitty)
+         files      | converta |
+                    |          |---> combined fasta file (useful for feeding to BWA/other aligners)
+         desc   --->|          |
+         file       |          |
+                     ----------
+
+A description file (.json) is used to fill in the human readable entries of the smalla file and order the chromosomes.
+If a fasta file contains more than one sequence the sequences will be associated in order of the entries in the
+description file (which have the same file name).
 
 
-                    ----------
-         fasta     |          |---> smalla file
-          file --->| converta |
-                   |          |---> heada file
-                    ----------
 
-We start with reference sequence data stored in a fasta file. For efficiency purposes we strip the header and all new lines
-out of the original .fasta file. The resulting file is called a .smalla file and is what the rest of the tools
-use. This conversion can be done easily using the converta.py script. The header is saved into a .smalla.heada file.
+    {
+    }
+
+
+Notes:
+1. The chromosomes can appear in any order ()
+2. Chromosome count is limited to 255
+3.
+
+### Smalla file format:
+(This can also be obtained by typing `python converta.py explain`)
+
+    Header-----------------------------------------------
+    [char10]  - version string of smalla format
+    [char255] - Human readable species name (string)
+    [uint16]   - number of chromosomes max 65535
+    [uint8]   - ploidy of the *data* (1,2,3 ...)
+
+    Index-------------------------------------------------
+    For each chromosome--------------------------
+        [uint8]   - chromosome number (1,2,3,4 ...)
+        [char255] - Human readable description
+        [char255] - NCBI accession string (if any)
+        For each copy------------------------------
+            [uint32]  - start byte of data in this file
+            [uint32]  - length of sequence
+
+    Data--------------------------------------------------
+    For each chromosome--------------------------
+        For each copy------------------------------
+            [uchar]   - Nucleotide data
+              ...
+
+
 
 
                     mutation
@@ -128,42 +200,10 @@ the qname field to generate a perfectly aligned BAM file.
 Mitty on the commandline
 ========================
 
-**Each module is designed to run as a script. Typing `python mutate.py -h` or simply `python mutate.py` etc. will list
-usage and input requirements. Most scripts have built in tests which can be run by typing `test` or `test -v` after
-command invocation, like `python mutate.py test -v`**
-
-
-Test as you read
-----------------
-
-**This document contains doctest strings! Running `python -m doctest -v Readme.md` will run all the code snippets you
-see here and make sure Mitty is doing what it is supposed to be. All the generated data files are left under README-DATA**
-
-In order to run the command line code within the examples, without getting messy, we define a function `shell` that
-gets python to properly call the shell command we would have used. It is a bit like IPython's `%run` magic command.
-
-    >>> import shlex, subprocess
-    >>> def shell(command): subprocess.call(shlex.split(command))
-    >>> def shelly(command): _ = subprocess.call(command, shell=True)
-
-We also don't want to clutter up our workspace with a [plethora][pleth] of generated files, so we create a temporary directory to
-store created data files in. We don't delete this directory at the end, in case you want to take a look at the files at
-your leisure. **We do clear out this directory every time we run.**
-
-    >>> shell('mkdir -p README-DATA')
-    >>> shell('rm README-DATA/*')
-
-[pleth]: https://www.youtube.com/watch?v=tyBUMntP6DI
 
 Generating simulated variations
 ===============================
 
-In the following examples we will use the porcine circovirus sequence ([porcine_circovirus.fa][1]), which is 702b long,
-as a reference sequence. In some experiments we may use the adenovirus sequence ([adenovirus.fa][2]), which is slightly
-longer at 34094b. Both the sequences are found under the `Data` directory.
-
-[1]: http://www.ncbi.nlm.nih.gov/nuccore/AY735451.1
-[2]: http://www.ncbi.nlm.nih.gov/nuccore/AB026117.1
 
 Converta
 --------
@@ -810,7 +850,13 @@ You can "read along" to these examples by running `python reads.py test -v` and 
 
 
 Misc design choices
---------------
+===================
+Whole genome file
+-----------------
+I went from complete block processing of reading fasta files to reading in whole sequences. This is because for our use
+case (Human) the individual chromosomes are small enough to fit even on modest machines.
+
+
 ### Choice to output a mutated sequence as a whole
 Though generating a whole mutated sequence uses a lot of disk space, I chose this approach as it ended up being simpler
 than coming up with an algorithm for generating reads on the fly based ona  VCF file. In the future the code may be
@@ -832,31 +878,30 @@ for human genome sizes, though if we ever work on heavily mutated specimens of t
 go to 8 byte ints ...
 
 
-Whole genome file
------------------
 
-    Header-----------------------------------------------
-    [char10]  - version of whole genome file
-    [char255] - Human readable species etc
-    [uint8]   - number of chromosomes
-    [uint8]   - ploidy of the *data* (1,2,3 ...)
-
-    Index-------------------------------------------------
-    For each chromosome--------------------------
-        [uint8]   - chromosome number
-        [char255] - Human readable description
-        [char255] - NCBI accession string (if any)
-        For each copy------------------------------
-            [uint32]  - start of data in this file
-            [uint32]  - length of sequence
-
-    Data--------------------------------------------------
-    For each chromosome--------------------------
-        For each copy------------------------------
-            [uchar]   - Nucleotide data
-              ...
 
 Python's native mmap can't do proper offsets ... should we use numpy?
+
+
+
+Notes:
+======
+
+Sequence data
+-------------
+Sequence data used as examples are from the NIH:
+
+1. `porcine_circovirus.fa` [porcine circovirus sequence][porcine] (702 b)
+1. `altered_porcine.fa` taken from above but with 'N's and lowercase bases inserted to test converters
+1. `adenovirus.fa` [Porcine adenovirus 3 DNA, complete genome][adeno] (34094 b))
+1. `herpes.fa` [Human herpes virus 1 GenBank: KC140233.1][herpes] (717 b)
+1. `parvovirus.fa` [Parvovirus H1, complete genome NC_001358.1][parvovirus]
+
+
+[porcine]: http://www.ncbi.nlm.nih.gov/nuccore/AY735451.1
+[adeno]: http://www.ncbi.nlm.nih.gov/nuccore/AB026117.1
+[herpes]: http://www.ncbi.nlm.nih.gov/nuccore/448872318
+[parvovirus]: http://www.ncbi.nlm.nih.gov/nuccore/NC_001358.1
 
 
 Trivia
