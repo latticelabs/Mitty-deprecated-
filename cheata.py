@@ -1,23 +1,25 @@
 """In default mode, this script reads in a BAM file created by `reads.py` and aligns the reads by using the coordinates
-stored in the seq id string. This aligned file can be read in using a visualizer to debug the simulation chain.
+stored in the seq id string. The whole genome file used to generate the reads OR the reference whole genome file is also
+required. If the actual genome is given then exact alignments will be generated based on the actual POS data. If the
+reference genome is given then all mappable reads will be aligned with the encoded POS and CIGAR strings. This aligned
+bam file can be read in using a visualizer to debug the simulation chain.
 
-Using the `split` option treats the input file as an BAM produced by an aligner and splits the reads into
-correctly aligned, incorrectly aligned and unmapped (_correct.bam, _wrong.bam, _unmapped.bam).
+If we use the 'analyze' option then the input BAM file is treated as the output of an aligner and the reads are organized
+into a table that allows us to analyze the performance of the aligner.
 
 Usage:
-cheata  --inbam=INBAM  --outbam=OUTBAM  --heada=HD  [-v]
-cheata split --inbam=INBAM  --wg=WG [-v]
+cheata  --inbam=INBAM  --outbam=OUTBAM  --wg=WG  [-v]
+cheata  analyze --inbam=INBAM  --wg=WG [-v]
 
 Options:
-  --inbam=INBAM           Input (unaligned) bam file name of reads from reads.py
+  analyze                 Instead of aligning the BAM file, analyze its alignment
+  --inbam=INBAM           Input bam file name of reads
   --outbam=OUTBAM         Output (perfectly aligned) bam file name
   --wg=WG                 Whole genome file. Needed for the index, to match BAM seq ids to chrom_key in read qname
-  --heada=HD              Heada file produced by converta. Contains sequence name and len. These are put into the
-                          cheat aligned BAM file header as they are needed by some tools such as Tablet
   -v                      Dump detailed logger messages
 
 Notes:
-1. Recall that the seq id of each read is the string 'chrom:copy:rN:POS1:CIGAR1:POS2:CIGAR2'.
+1. Recall that the seq id of each read is the string 'ch:cp|rN|POS1|CIGAR1|PABS1|POS2|CIGAR2|PABS2'
    Unpaired reads have no POS2, CIGAR2
 2. As of v 0.2.0 there is a quirk with pysam writing BAM files where alignments have some hidden problem when written as
    BAM from cheata. My work around is to save as SAM and then convert to BAM which seems to not create any problems.
@@ -32,8 +34,7 @@ import pysam  # Needed to read/write BAM files
 import numpy
 import cPickle
 import docopt
-import genome
-#import reads
+import h5py
 from reads import interpret_read_qname
 import logging
 logger = logging.getLogger(__name__)
@@ -46,48 +47,43 @@ def sort_and_index_bam(bamfile):
   pysam.index(bamfile)
 
 
-def align(inbam, outbam, seq_name, seq_len):
-  logger.error('Not updated yet')
-  raise RuntimeError
-
+def align(inbam, outbam, ref_seqs=[], absolute=True):
+  """ref_seqs - [(seq_id, seq_len) ...]  in correct order so they can be recovered from correct_chrom_no"""
   in_bamfile = pysam.Samfile(inbam, 'rb')
   out_hdr = in_bamfile.header
-  out_hdr['SQ'][0]['SN'] = seq_name.split(' ')[0].strip()  # Some programs, like tablet, can't handle seq names with spaces
-  out_hdr['SQ'][0]['LN'] = int(seq_len)
+  out_hdr['SQ'] = [{'SN': seq_id.split(' ')[0].strip(), 'LN': seq_len} for (seq_id, seq_len) in ref_seqs]
   out_bamfile = pysam.Samfile(outbam, 'wb', header=out_hdr)
 
-  cnt = 0
-  blk = 0
-  for read in in_bamfile:
-    parts = read.qname.split(':')
+  for cnt, read in enumerate(in_bamfile):
+    correct_chrom_no, correct_chrom_copy, correct_pos, correct_cigar, absolute_pos = interpret_read_qname(read)
     read.mapq = 100  # It's better to set this
-    read.pos = int(parts[1])-1  # 0-indexed
-    read.cigarstring = parts[2]
-    if read.flag & 0x01:  # Paired reads
-      if read.flag & 0x80:  # Second end (mate)
-        read.pos = int(parts[3])-1
-        read.cigarstring = parts[4]
+    read.tid = correct_chrom_no - 1
+    if absolute:
+      read.pos = absolute_pos
+      read.cigarstring = '{:d}M'.format(len(read.sequence))
+    else:
+      read.pos = correct_pos  # 0-indexed
+      read.cigarstring = correct_cigar
     out_bamfile.write(read)
 
-    blk += 1
-    if blk == 100000:
-      cnt += blk
+    if cnt % 100000:
       logger.debug('{:d} reads done'.format(cnt))
-      blk = 0
 
   logger.debug('{:d} reads done'.format(cnt))
   out_bamfile.close()
   sort_and_index_bam(outbam)
 
 
-def split(wg, in_bam, correct_bam, wrong_bam, unmapped_bam, data_save_fp):
+def analyze(inbam, ref_seqs=[], data_save_fp):
   """Split the aligned BAM file into three sets of reads - properly aligned, misaligned and unmapped - and save them in
   separate bam files
   """
+  logger.error('Not updated yet')
+  raise RuntimeError
+
   #The rname in the aligned read corresponds to the sequence in the list in_bam.header['SQ']
   #We need to match that up with the chromosome code we have in the wg file
   seq_name_list = in_bam.references
-  rev_idx = wg.reverse_index
 
   total_reads = in_bam.mapped + in_bam.unmapped   #total_reads = int(pysam.view('-c', in_bam.filename)[0].strip())
   logger.debug('Total reads: {:d}'.format(total_reads))
@@ -104,11 +100,12 @@ def split(wg, in_bam, correct_bam, wrong_bam, unmapped_bam, data_save_fp):
   read_analysis = numpy.recarray(shape=(total_reads,),
                                  dtype=[('correct_chrom_no', '<i1'), ('correct_chrom_copy', '<i1'), ('correct_pos', '<u4'),
                                         ('aligned_chrom_no', '<i1'), ('aligned_chrom_copy', '<i1'), ('aligned_pos', '<u4'),
+                                        ('absolute_pos', 'u4'),
                                         ('mapped', bool), ('correctly_aligned', bool),
                                         ('mapping_qual', '<i1')])
 
   for n, read in enumerate(in_bam):
-    correct_chrom_no, correct_chrom_copy, correct_pos, correct_cigar = interpret_read_qname(read)#reads.interpret_read_qname(read)
+    correct_chrom_no, correct_chrom_copy, correct_pos, correct_cigar, absolute_pos = interpret_read_qname(read)#reads.interpret_read_qname(read)
     read_analysis[n].correct_chrom_no = correct_chrom_no
     read_analysis[n].correct_chrom_copy = correct_chrom_copy
     read_analysis[n].correct_pos = correct_pos
@@ -154,6 +151,9 @@ if __name__ == "__main__":
   level = logging.DEBUG if args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
 
+  with h5py.File(args['--wg'], 'r') as ref_fp:
+    align(inbam, outbam, ref_seqs=[], absolute=True)
+
   if args['split']:  # We are in split_good_bad mode
     inbam_name = args['--inbam']
     correct_bam_name = os.path.splitext(inbam_name)[0] + '_correct.bam'
@@ -169,6 +169,9 @@ if __name__ == "__main__":
             data_save_fp=open(data_file_name, 'wb'))
       logger.debug('Saved data to:\n{:s}\n{:s}\n{:s}\n{:s}'.format(correct_bam_name, wrong_bam_name, unmapped_bam_name, data_file_name))
   else:  # We are in align mode
+
+
+
     seq_name, seq_len = open(args['--heada']).readlines()
     align(args['--inbam'], args['--outbam'], seq_name, seq_len)
 
