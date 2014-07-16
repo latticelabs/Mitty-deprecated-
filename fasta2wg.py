@@ -43,8 +43,6 @@ Index file example:
         ["Data/parvovirus.fa.gz"]
     ]
 }
-
-f['sequence/1/1'][:30].tostring()
 """
 
 
@@ -94,7 +92,6 @@ def describe(h5_fp):
     for cpy, seq in v.iteritems():
       mutated = '(reference)' if seq.attrs['reference'] else '(mutated)'
       print '\tCopy {:s} {:d}bp {:s}'.format(cpy, seq.size, mutated)
-
 
 
 if __name__ == "__main__":
