@@ -65,8 +65,9 @@ def save_genome_to_hdf5(index, h5_fp):
         seq_id = fasta_fp.readline()[1:-1]
         if 'seq_id' not in chrom_grp.attrs:
           chrom_grp.attrs['seq_id'] = seq_id
-        h5_fp.create_dataset('{:s}/{:d}/{:d}'.format(grp.name, n + 1, m + 1),
+        dset = h5_fp.create_dataset('{:s}/{:d}/{:d}'.format(grp.name, n + 1, m + 1),
                                     data=numpy.fromstring(fasta_fp.read().replace('\n', '').upper(), dtype='u1'))
+        dset.attrs['reference'] = True
         logger.debug('Inserted chromosome {:d}, copy {:d} ({:s})'.format(n + 1, m + 1, seq_id))
 
 
@@ -91,8 +92,9 @@ def describe(h5_fp):
   for chrom, v in h5_fp['sequence'].iteritems():
     print 'Chrom {:s} ({:s})'.format(chrom, v.attrs['seq_id'])
     for cpy, seq in v.iteritems():
-      mutated = '(mutated)' if 'pos/{:s}/{:s}'.format(chrom, cpy) in h5_fp else '(reference)'
+      mutated = '(reference)' if seq.attrs['reference'] else '(mutated)'
       print '\tCopy {:s} {:d}bp {:s}'.format(cpy, seq.size, mutated)
+
 
 
 if __name__ == "__main__":
