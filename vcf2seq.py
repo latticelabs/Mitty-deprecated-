@@ -86,10 +86,13 @@ def main(args):
   with h5py.File(args['--ref'], 'r') as ref_fp, h5py.File(args['--var'], 'w') as var_fp:
     logger.debug('Writing to {:s}'.format(var_fp.filename))
     var_fp.attrs['species'] = ref_fp.attrs['species']
+    var_fp.create_group('sequence')
     for chrom in [int(c) for c in ref_fp['sequence']]:  #h5 keys are unicode
       logger.debug('Assembling chromosome {:d}'.format(chrom))
       # We assume the reference is haploid
       ref_seq = ref_fp['sequence/{:d}/1'.format(chrom)][:].tostring()  # Very cheap operation
+      chrom_grp = var_fp['sequence'].create_group(str(chrom))
+      chrom_grp.attrs['seq_id'] = ref_fp['sequence/{:d}'.format(chrom)].attrs['seq_id']
       try:
         copy, pos, var_coords = assemble_sequences(ref_seq, vcf_reader.fetch(chrom=chrom, start=0, end=len(ref_seq)))
       except KeyError:  # No mutations for this chromosome
@@ -98,10 +101,10 @@ def main(args):
         pos = [None, None]
         var_coords = [None, None]
       for n, (this_copy, this_pos, this_vc) in enumerate(zip(copy, pos, var_coords)):
-        dset = var_fp.create_dataset('sequence/{:d}/{:d}'.format(chrom, n+1), data=numpy.fromstring(this_copy, dtype='u1'))
-        dset.attrs['seq id'] = ref_fp['sequence/{:d}/1'.format(chrom)].attrs['seq id']
+        dset = chrom_grp.create_dataset('{:d}'.format(n+1), data=numpy.fromstring(this_copy, dtype='u1'))
+        dset.attrs['reference'] = True
         if this_pos is not None:  # We have variants
-          dset.attrs['seq id'] += ' (mutated) '
+          dset.attrs['reference'] = False
           var_fp.create_dataset('pos/{:d}/{:d}'.format(chrom, n+1), data=this_pos)
           for k, v in this_vc.iteritems():
             var_fp.create_dataset('variant_pos/{:s}/{:d}/{:d}'.format(k, chrom, n+1), data=numpy.array(v, dtype='u4'))
