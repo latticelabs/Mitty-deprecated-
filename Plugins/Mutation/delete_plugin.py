@@ -11,28 +11,14 @@ Example parameter snippet:
         "model": "deletion",
         "phet": 0.5,
         "p": 0.01,
-        "lam_del": 10,
+        "del_len_lo": 100,
+        "del_len_hi": 10000,
         "del_loc_rng_seed": 1,
         "del_len_rng_seed": 2,
-        "het_rng_seed": 3,
-        "copy_rng_seed": 4
-    }
-
-    {
-        "chromosome": [1],
-        "model": "deletion",
-        "phet": 0.5,
-        "p": 0.01,
-        "ins_len_lo": 100,
-        "ins_len_hi": 10000,
-        "ins_loc_rng_seed": 1,
-        "ins_len_rng_seed": 2,
         "base_sel_rng_seed": 3,
         "het_rng_seed": 4,
         "copy_rng_seed": 5
     }
-
-
 """
 import numpy
 import logging
@@ -157,10 +143,10 @@ def variants(ref_fp=None,
     for het, pos, del_len in zip(het_type, del_locs, del_lens):
       if pos + del_len >= len(ref_seq):
         continue  # Deletion beyond the sequence, just drop it
+      ref = ref_seq[pos:pos + del_len]
       if 'N' in ref:
         continue  # Don't do deletions in the middle of 'N's
       else:
-        ref = ref_seq[pos:pos + del_len]
         alt = '.'
         gt = gt_string[het]
 
