@@ -164,3 +164,6 @@ def variants(ref_fp=None,
       vcf_line.append([(chrom, pos+1, '.', ref, alt, 100, 'PASS', '.', 'GT', gt)])  # POS is VCF number starts from 1
       # CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample
   return description, footprint, vcf_line
+
+if __name__ == "__main__":
+  print __explain__
