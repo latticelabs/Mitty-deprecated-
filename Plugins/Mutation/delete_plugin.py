@@ -15,9 +15,8 @@ Example parameter snippet:
         "del_len_hi": 10000,
         "del_loc_rng_seed": 1,
         "del_len_rng_seed": 2,
-        "base_sel_rng_seed": 3,
-        "het_rng_seed": 4,
-        "copy_rng_seed": 5
+        "het_rng_seed": 3,
+        "copy_rng_seed": 4
     }
 """
 import numpy
