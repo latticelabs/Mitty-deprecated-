@@ -17,6 +17,22 @@ Example parameter snippet:
         "het_rng_seed": 3,
         "copy_rng_seed": 4
     }
+
+    {
+        "chromosome": [1],
+        "model": "deletion",
+        "phet": 0.5,
+        "p": 0.01,
+        "ins_len_lo": 100,
+        "ins_len_hi": 10000,
+        "ins_loc_rng_seed": 1,
+        "ins_len_rng_seed": 2,
+        "base_sel_rng_seed": 3,
+        "het_rng_seed": 4,
+        "copy_rng_seed": 5
+    }
+
+
 """
 import numpy
 import logging
@@ -30,7 +46,8 @@ def variants(ref_fp=None,
              chromosome=None,
              p=0.01,
              phet=0.5,
-             lam_del=10,
+             del_len_lo=10,
+             del_len_hi=100,
              del_loc_rng_seed=1,
              del_len_rng_seed=2,
              het_rng_seed=3,
@@ -131,7 +148,7 @@ def variants(ref_fp=None,
   for chrom in chromosome:
     ref_seq = ref_fp['sequence/{:d}/1'.format(chrom)][:].tostring()  # Very cheap operation
     del_locs, = numpy.nonzero(del_loc_rng.rand(len(ref_seq)) < p)
-    del_lens = del_len_rng.poisson(lam=lam_del, size=del_locs.size)
+    del_lens = del_len_rng.randint(low=del_len_lo, high=del_len_hi+1, size=del_locs.size)
     het_type = numpy.empty((del_locs.size,), dtype='u1')
     het_type.fill(3)  # Homozygous
     idx_het, = numpy.nonzero(het_rng.rand(het_type.size) < phet)  # Heterozygous locii
@@ -140,10 +157,10 @@ def variants(ref_fp=None,
     for het, pos, del_len in zip(het_type, del_locs, del_lens):
       if pos + del_len >= len(ref_seq):
         continue  # Deletion beyond the sequence, just drop it
-      ref = ref_seq[pos:pos + del_len]
       if 'N' in ref:
         continue  # Don't do deletions in the middle of 'N's
       else:
+        ref = ref_seq[pos:pos + del_len]
         alt = '.'
         gt = gt_string[het]
 
@@ -153,3 +170,6 @@ def variants(ref_fp=None,
       vcf_line.append([(chrom, pos+1, '.', ref, alt, 100, 'PASS', '.', 'GT', gt)])  # POS is VCF number starts from 1
       # CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample
   return description, footprint, vcf_line
+
+if __name__ == "__main__":
+  print __explain__
