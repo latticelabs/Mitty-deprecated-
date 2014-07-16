@@ -232,7 +232,4 @@ def corrupt_reads(reads, error_profile, error_loc_rng_rand, base_chose_rng_choic
 
 
 if __name__ == "__main__":
-  import sys
-  if len(sys.argv) == 2:  # Print explain
-    if sys.argv[1] == 'explain':
-      print __explain__
+  print __explain__
