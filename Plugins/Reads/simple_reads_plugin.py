@@ -123,10 +123,15 @@ def read_generator(seq=None,
       logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}'.
                    format(read_loc_rng_seed, read_strand_rng_seed, error_loc_rng_seed, base_choice_rng_seed))
 
-    read_loc_rng_randint = numpy.random.RandomState(seed=read_loc_rng_seed).randint
-    read_strand_rng_randint = numpy.random.RandomState(seed=read_strand_rng_seed).randint
-    error_loc_rng_rand = numpy.random.RandomState(seed=error_rng_seed).rand
-    base_chose_rng_choice = numpy.random.RandomState(base_chose_rng_seed).choice
+    read_generator.read_loc_rng_randint = numpy.random.RandomState(seed=read_loc_rng_seed).randint
+    read_generator.read_strand_rng_randint = numpy.random.RandomState(seed=read_strand_rng_seed).randint
+    read_generator.error_loc_rng_rand = numpy.random.RandomState(seed=error_rng_seed).rand
+    read_generator.base_chose_rng_choice = numpy.random.RandomState(base_chose_rng_seed).choice
+
+    read_loc_rng_randint = read_generator.read_loc_rng_randint
+    read_strand_rng_randint = read_generator.read_strand_rng_randint
+    error_loc_rng_rand = read_generator.error_loc_rng_rand
+    base_chose_rng_choice = read_generator.base_chose_rng_choice
 
   error_profile = [max_p_error * k ** n for n in range(read_len)][::-1]
 
