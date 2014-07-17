@@ -3,15 +3,15 @@ as a script as well. This is useful for creating test data for MGR algorithms/da
 VCF file(s).
 
 Usage:
-mutate --paramfile=PFILE  [-v]
+mutate --wg=WG  --vcf=VCF  --paramfile=PFILE  [--master_seed=SEED] [-v]
 
 Options:
+  --wg=WG                 Whole genome reference file
+  --vcf=VCF               Output VCF file
   --paramfile=PFILE       Name for parameter file
+  --master_seed=SEED      If this is specified, this generates and passes master seeds to all the plugins.
+                          This overrides any individual seeds specified by the parameter file.
   -v                      Dump detailed logger messages
-
-Notes:
-1. Running the code without any arguments will print this help string and exit
-2. The VCF file copies the chromosome number given in the file
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
@@ -21,8 +21,6 @@ __explain__ = """
 Example json parameter file
 
 {
-    "reference": "chimera.h5",
-    "output_vcf": "chimera_var.vcf",
     "variant_models": [
         {
             "chromosome": [1],
@@ -106,14 +104,13 @@ mutate.py is responsible for arbitrating between variants that clash by using a 
 __version__ = '0.4.0'
 
 import h5py
-import subprocess
+import numpy
 import scipy.sparse as sparse
 import os
 import imp
 import json
 import docopt
 import datetime
-import pysam  # For the tabix functions
 import logging
 
 logger = logging.getLogger(__name__)
@@ -234,17 +231,24 @@ def write_vcf_mutations(fp, variants):
 
 def main(args):
   """variants take the form of ."""
-  params = json.load(open(args['--paramfile'], 'r'))
-  model_list = load_models(params['variant_models'])
+  wg_file_name = args['--wg']
+  vcf_file_name = args['--vcf']
 
-  v_file_name = params['output_vcf'].encode('ascii')
-  logger.debug('Output file name: ' + v_file_name)
+  with h5py.File(wg_file_name, 'r') as ref_fp, open(vcf_file_name, 'w') as vcf_fp:
 
-  with h5py.File(params['reference'], 'r') as ref_fp, open(v_file_name, 'w') as vcf_fp:
+    params = json.load(open(args['--paramfile'], 'r'))
+    model_list = load_models(params['variant_models'])
+    ms_rng = numpy.random.RandomState(seed=int(args['--master_seed'])) if args['--master_seed'] else None
     mask = initialize_mask(ref_fp)
+
     write_vcf_header(vcf_fp, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(),
-                     os.path.basename(params['reference']))
+                     os.path.basename(wg_file_name))
     for model, model_params in zip(model_list, params['variant_models']):
+      logger.debug('Running {:s}'.format(model_params['model']))
+      if ms_rng:
+        model_params['master_seed'] = ms_rng.randint(100000000)
+        logger.debug('Sending master seed of {:d}'.format(model_params['master_seed']))
+
       description, footprint, vcf_line = model.variants(ref_fp, **model_params)
       logger.debug('{:d} {:s} generated'.format(len(vcf_line), model_params['model']))
       idx = filter_variants(mask, footprint)
