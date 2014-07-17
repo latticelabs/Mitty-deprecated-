@@ -31,6 +31,7 @@ def variants(ref_fp=None,
              phet=0.5,
              inv_len_lo=10,
              inv_len_hi=100,
+             master_seed=None,
              inv_loc_rng_seed=1,
              inv_len_rng_seed=2,
              het_rng_seed=3,
@@ -121,6 +122,12 @@ def variants(ref_fp=None,
   None
   None
   """
+  if master_seed:
+    inv_loc_rng_seed, inv_len_rng_seed, het_rng_seed, copy_rng_seed = \
+      numpy.random.RandomState(seed=master_seed).randint(100000000, size=4)
+    logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}'.
+                 format(inv_loc_rng_seed, inv_len_rng_seed, het_rng_seed, copy_rng_seed))
+
   inv_loc_rng = numpy.random.RandomState(seed=inv_loc_rng_seed)
   inv_len_rng = numpy.random.RandomState(seed=inv_len_rng_seed)
   het_rng = numpy.random.RandomState(seed=het_rng_seed)
