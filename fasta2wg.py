@@ -43,6 +43,30 @@ Index file example:
         ["Data/parvovirus.fa.gz"]
     ]
 }
+
+Mitty stores sequences from a genome in a whole genome file. This is a standard [HDF5][w5] file with datasets corresponding
+to chromosome sequences with associated metadata.
+
+[w5]: http://en.wikipedia.org/wiki/Hierarchical_Data_Format
+
+1. The HDF5 file is gzip compressed, so it is the same size as a comparable multi-fasta file,
+1. Any sequence in th file can be accessed directly, rather than via sequential access
+1. It can hold metadata about the genome and the individual chromosomes in a natural, well defined manner
+1. Sequences are organized into chromosomes and copies of chromosomes, allowing us to store simulated genomes with
+special characteristics such as [polysomies][wp].
+1. Extra data can be stored that is used further down the simulation chain
+(e.g. for generating proper CIGAR and POS values for simulated reads)
+
+[wp]: http://en.wikipedia.org/wiki/Polysomy
+
+The structure of the whole genome file is as follows
+
+    /sequence/<chrom>.attrs['seq_id'] -> sequence id e.g. NIH accession number
+    /sequence/<chrom>/<cpy>  -> sequence data for this chromosome and copy
+    /sequence/<chrom>/<cpy>.attrs['reference']  -> boolean. True if this is copied from the reference genome
+
+    pos/<chrom>/<cpy>  -> pos array of u4 (see reads section for its utility)
+
 """
 
 
