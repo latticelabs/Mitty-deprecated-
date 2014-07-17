@@ -1,7 +1,7 @@
 #!/bin/bash
 : File to generate a set of simple insertions
 
-set -x
+set -xe
 DIR=Examples/Mutations
 DATADIR=${DIR}/Out
 
@@ -11,7 +11,7 @@ python fasta2wg.py --index=${DIR}/wg_chimera.json --wg=${DATADIR}/chimera.h5 --f
 python fasta2wg.py describe --wg=${DATADIR}/chimera.h5
 
 : Generate mutations
-python mutate.py  --paramfile ${DIR}/simple_insert.json -v
+python mutate.py  --wg=${DATADIR}/chimera.h5 --vcf=${DATADIR}/chimera_simple_insert_var.vcf --paramfile ${DIR}/simple_insert.json -v
 : Sort, compress and index the VCF file
 vcf-sort ${DATADIR}/chimera_simple_insert_var.vcf > ${DATADIR}/chimera_simple_insert_var_srt.vcf
 bgzip -c ${DATADIR}/chimera_simple_insert_var_srt.vcf > ${DATADIR}/chimera_simple_insert_var_srt.vcf.gz
