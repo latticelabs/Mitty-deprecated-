@@ -2,17 +2,21 @@
 useful for creating test data for MGR algorithms/data formats
 
 Usage:
-reads --paramfile=PFILE  [--corrupt]  [--fastq] [--reads_per_block=BL]  [-v]
-reads localreads  [--read_border_size=RBS] --paramfile=PFILE  [--corrupt]  [--fastq] [--reads_per_block=BL]  [-v]
+reads --wg=WG  --out=OUT --paramfile=PFILE  [--corrupt]  [--fastq] [--reads_per_block=BL] [--master_seed=MS] [-v]
+reads localreads  [--read_border_size=RBS] --paramfile=PFILE  [--corrupt]  [--fastq] [--reads_per_block=BL] [--master_seed=MS] [-v]
 reads explain
 
 Options:
-  localreads              Take reads around insertions, only
+  localreads              Take reads around insertions only
+  --wg=WG                 Whole genome file
+  --out=OUT               Output file name prefix
   --read_border_size=RBS  How many bases before and after the insertion do we include in our window [default: 500]
   --paramfile=PFILE       Name for parameter file
   --corrupt               Write out corrupted reads too.
   --fastq                 Write as FASTQ instead of BAM (simulated_reads.fastq)
   --reads_per_block=BL    Generate these many reads at a time (Adjust to machine resources). [default: 100000]
+  --master_seed=MS        If this is specified this passes a master seed to the read plugin.
+                          This overrides any individual seeds specified by the parameter file.
   -v                      Dump detailed logger messages
   explain                 Print json file format and explain read qname format
 
@@ -427,9 +431,9 @@ def reads_around_insertions(args, params, read_model):
   write_corrupted = args['--corrupt']  # If True, corrupted reads will be written out
   read_border_size = int(args['--read_border_size'])
   coverage = params['coverage']
-  output_file_prefix = params['output_file_prefix']
+  output_file_prefix = args['--out']
   model_params = params['model_params']
-  with h5py.File(params['whole genome file'], 'r') as ref_fp:
+  with h5py.File(args['--wg'], 'r') as ref_fp:
     chrom_list = params["take reads from"] or ref_fp['sequence'].keys()
     for chrom in chrom_list:
       if str(chrom) not in ref_fp['sequence'].keys():
@@ -464,10 +468,10 @@ def whole_genome_reads(args, params, read_model):
   # Generate a dictionary of file handles for perfect and corrupted reads (if needed)
   save_as_bam = not args['--fastq']
   write_corrupted = args['--corrupt']  # If True, corrupted reads will be written out
-  reads_file_handles = open_reads_files(params['output_file_prefix'], write_corrupted, save_as_bam)
+  reads_file_handles = open_reads_files(args['--out'], write_corrupted, save_as_bam)
   coverage = params['coverage']
   model_params = params['model_params']
-  with h5py.File(params['whole genome file'], 'r') as ref_fp:
+  with h5py.File(args['--wg'], 'r') as ref_fp:
     chrom_list = params["take reads from"] or ref_fp['sequence'].keys()
     for chrom in chrom_list:
       if str(chrom) not in ref_fp['sequence'].keys():
@@ -497,6 +501,9 @@ def main(args):
   plugin_dir = os.path.join(os.path.dirname(__file__), 'Plugins', 'Reads')
   fp, pathname, description = imp.find_module(params['read_model'] + '_plugin', [plugin_dir])
   read_model = imp.load_module('readmodel', fp, pathname, description)
+
+  if args['--master_seed']:
+    params['model_params']['master_seed'] = int(args['--master_seed'])
 
   if args['localreads']:
     reads_around_insertions(args, params, read_model)

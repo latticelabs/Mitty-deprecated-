@@ -50,6 +50,7 @@ def read_generator(seq=None,
                    paired=False,
                    read_len=None,
                    template_len=None,
+                   master_seed=None,
                    read_loc_rng_seed=0,
                    read_strand_rng_seed=1,
                    error_rng_seed=1,
@@ -116,6 +117,12 @@ def read_generator(seq=None,
     logger.debug('Initialized RNGs')
   except AttributeError:
     # We need to initialize the rngs and a bunch of other stuff
+    if master_seed:
+      read_loc_rng_seed, read_strand_rng_seed, error_loc_rng_seed, base_choice_rng_seed = \
+        numpy.random.RandomState(seed=master_seed).randint(100000000, size=4)
+      logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}'.
+                   format(read_loc_rng_seed, read_strand_rng_seed, error_loc_rng_seed, base_choice_rng_seed))
+
     read_loc_rng_randint = numpy.random.RandomState(seed=read_loc_rng_seed).randint
     read_strand_rng_randint = numpy.random.RandomState(seed=read_strand_rng_seed).randint
     error_loc_rng_rand = numpy.random.RandomState(seed=error_rng_seed).rand
