@@ -1,6 +1,4 @@
 {
-    "reference": "Examples/Mutations/Out/chimera.h5",
-    "output_vcf": "Examples/Mutations/Out/chimera_simple_insert_var.vcf",
     "variant_models": [
         {
         "chromosome": [1],
