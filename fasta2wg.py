@@ -64,7 +64,8 @@ def save_genome_to_hdf5(index, h5_fp):
         if 'seq_id' not in chrom_grp.attrs:
           chrom_grp.attrs['seq_id'] = seq_id
         dset = h5_fp.create_dataset('{:s}/{:d}/{:d}'.format(grp.name, n + 1, m + 1),
-                                    data=numpy.fromstring(fasta_fp.read().replace('\n', '').upper(), dtype='u1'))
+                                    data=numpy.fromstring(fasta_fp.read().replace('\n', '').upper(), dtype='u1'),
+                                    compression='gzip')
         dset.attrs['reference'] = True
         logger.debug('Inserted chromosome {:d}, copy {:d} ({:s})'.format(n + 1, m + 1, seq_id))
 
