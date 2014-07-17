@@ -12,11 +12,16 @@ Example parameter snippet:
         "model": "snp",
         "phet": 0.5,
         "p": 0.01,
+        "master_seed": 0,
         "base_loc_rng_seed": 1,
         "base_sub_rng_seed": 2,
         "het_rng_seed": 3,
         "copy_rng_seed": 4
     }
+
+Notes:
+1. If you add a master_seed the other seeds are not used. Supplying a master seed to mutate will override this
+
 
 In order to work with mutate.py the model needs a method called variants that returns three lists
 
@@ -48,6 +53,7 @@ def variants(ref_fp=None,
              chromosome=None,
              phet=0.5,
              p=0.01,
+             master_seed=None,
              base_loc_rng_seed=1,
              base_sub_rng_seed=2,
              het_rng_seed=3,
@@ -133,6 +139,12 @@ def variants(ref_fp=None,
   None
   None
   """
+  if master_seed:
+    base_loc_rng_seed, base_sub_rng_seed, het_rng_seed, copy_rng_seed = \
+      numpy.random.RandomState(seed=master_seed).randint(100000000, size=4)
+    logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}'.
+                 format(base_loc_rng_seed, base_sub_rng_seed, het_rng_seed, copy_rng_seed))
+
   base_loc_rng = numpy.random.RandomState(seed=base_loc_rng_seed)
   base_sub_rng = numpy.random.RandomState(seed=base_sub_rng_seed)
   het_rng = numpy.random.RandomState(seed=het_rng_seed)
