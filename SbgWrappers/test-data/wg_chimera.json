@@ -1,0 +1,13 @@
+{
+    "header": {
+        "species": "Test Chimera",
+        "chromosome count": 5
+    },
+    "chromosomes": {
+        "1:1": "porcine_circovirus.fa.gz",
+        "2:1": "adenovirus.fa.gz",
+        "1:2": "altered_porcine.fa.gz",
+        "2:2": "herpes.fa.gz",
+        "3:1": "parvovirus.fa.gz"
+    }
+}

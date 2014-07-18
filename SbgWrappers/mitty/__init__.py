@@ -1,9 +1,10 @@
-from .converta_wrapper import Converta
+from .fasta2wg_wrapper import WholeGenomeCompactor
 from .mutate_wrapper import Mutate
 from .vcf2seq_wrapper import Vcf2Seq
 from .reads_wrapper import Reads
 from .cheata_wrapper import Cheata
 from .cheata_split_wrapper import SplitGoodBadAlignments
+#from .kmer_wrapper import Kmer
 
 from .plugins.mutation.snp_wrapper import SNP
 from .plugins.mutation.insert_wrapper import Insert
