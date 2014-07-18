@@ -1,0 +1,18 @@
+{
+    "whole genome file": "Examples/Reads/Out/chimera_complex.h5",
+    "take reads from": [1],
+    "coverage": 30.0,
+    "output_file_prefix": "Examples/Reads/Out/chimera_complex_reads",
+    "read_model": "simple_reads",
+    "model_params": {
+        "paired": true,
+        "read_len": 100,
+        "template_len": 250,
+        "read_loc_rng_seed": 0,
+        "read_strand_rng_seed": 1,
+        "error_rng_seed": 2,
+        "base_chose_rng_seed": 3,
+        "max_p_error": 0.01,
+        "k": 0.1
+    }
+}
