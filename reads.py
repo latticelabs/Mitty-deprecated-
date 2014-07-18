@@ -510,7 +510,7 @@ def main(args):
   else:
     whole_genome_reads(args, params, read_model)
 
-  with open(params['output_file_prefix'] + '.info', 'w') as f:
+  with open(args['--out'] + '.info', 'w') as f:
     f.write('Command line\n-------------\n')
     f.write(json.dumps(args, indent=4))
     f.write('\n\nParameters\n------------\n')
