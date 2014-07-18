@@ -136,8 +136,6 @@ if __name__ == "__main__":
     with h5py.File(args['--wg'], 'r') as fp:
       describe(fp)
   else:
-    if not os.path.isdir(os.path.dirname(args['--wg'])):  # Not handling race conditions
-        os.makedirs(os.path.dirname(args['--wg']))
     with h5py.File(args['--wg'], 'w') as fp:
       idx = json.load(open(args['--index'], 'r'))
       save_genome_to_hdf5(idx, fp)
