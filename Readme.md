@@ -34,7 +34,7 @@ sequence/genome.
                  -_ -_- - _ - _ - - -    -
                           /
                          /
-                     qname = 'r22:23:25M25I25M'
+                     qname = 'r22:23:25M25I25M:45'
                          \
                          \
       ----------------------------------------------
@@ -51,94 +51,38 @@ different conditions and data set characteristics.**
 Mitty, at its heart, is a set of Python programs that can be run from the commandline. Mitty has, additionally, been
 wrapped for the Seven Bridges Genomics computation platform (IGOR).
 
-**Each module is designed to run as a script. Typing `python mutate.py -h` or simply `python mutate.py` etc. will list
-usage and input requirements. Most scripts have built in tests which can be run by typing `test` or `test -v` after
-command invocation, like `python mutate.py test -v`. For **
+**Each module is designed to run as a script. For example, typing `python mutate.py -h` or simply `python mutate.py` will list
+usage and input requirements. **
+
+Quickstart
+==========
+**There are several example shell scripts and parameter files under the Examples directory, which are often referred
+to in this readme**
+
+Creating whole genome files
+---------------------------
+Mitty stores sequences from a genome in a whole genome file. This is a standard [HDF5][w5] file with datasets corresponding 
+to chromosome sequences with associated metadata. 
+
+[w5]: http://en.wikipedia.org/wiki/Hierarchical_Data_Format
+
+The `fasta2wg.py` script allows us to take in a list of fasta files and store them as a genome file usable by the rest of
+mitty.
+
+    python fasta2wg.py --index=Examples/Genome/wg_chimera.json --wg=Examples/Genome/Out/chimera.h5 --fa=Examples/Genome/Out/chimera.fa.gz -v
+
+Use the `describe` command to reveal the contents of the genome file
+    
+    python fasta2wg.py describe --wg=Examples/Genome/Out/chimera.h5
+
+Use the `explain` command for further details including the format of the `.json` index file
+
+    python fasta2wg.py explain
 
 
-Test as you read
-----------------
-
-**This document contains doctest strings! Running `python -m doctest -v Readme.md` will run all the code snippets you
-see here and make sure Mitty is doing what it is supposed to be. All the generated data files are left under README-DATA**
-
-In order to run the command line code within the examples, without getting messy, we define a function `shell` that
-gets python to properly call the shell command we would have used. It is a bit like IPython's `%run` magic command.
-
-    >>> import shlex, subprocess
-    >>> def shell(command): subprocess.call(shlex.split(command))
-    >>> def shelly(command): _ = subprocess.call(command, shell=True)  # This second version is for when we need pipes
-
-We also don't want to clutter up our workspace with a [plethora][pleth] of generated files, so we create a temporary directory to
-store created data files in. We don't delete this directory at the end, in case you want to take a look at the files at
-your leisure. **We do clear out this directory every time we run.**
-
-    >>> shell('mkdir -p README-DATA')
-    >>> shell('rm README-DATA/*')
-
-[pleth]: https://www.youtube.com/watch?v=tyBUMntP6DI
-
-
-
-Quickstart: Running Mitty on the Seven Bridges Platform
-=======================================================
-
-The process for running Mitty components to create reads from a mutated genome starting from a set of reference
-sequences is illustrated schematically below.
-
-We assume that we have a set of N fasta files corresponding to chromosomes 1...N of some organism. We need to do a one
-time conversion of these individual fasta files into a .smalla file that Mitty uses. The .smalla file is organized so
-that Mitty components can access each copy of each chromosome of an organism efficiently.
-
-_When population reference data is stored as a DAG `converta dag` is used to extract individual genomes before taking
-reads etc._
-
-                     ----------
-         fasta  --->|          |---> smalla file (Used by mitty)
-         files      | converta |
-                    |          |---> combined fasta file (useful for feeding to BWA/other aligners)
-         desc   --->|          |
-         file       |          |
-                     ----------
-
-A description file (.json) is used to fill in the human readable entries of the smalla file and order the chromosomes.
-If a fasta file contains more than one sequence the sequences will be associated in order of the entries in the
-description file (which have the same file name).
-
-
-
-    {
-    }
-
-
-Notes:
-1. The chromosomes can appear in any order ()
-2. Chromosome count is limited to 255
-3.
-
-### Smalla file format:
-(This can also be obtained by typing `python converta.py explain`)
-
-    Header-----------------------------------------------
-    [char10]  - version string of smalla format
-    [char255] - Human readable species name (string)
-    [uint16]   - number of chromosomes max 65535
-    [uint8]   - ploidy of the *data* (1,2,3 ...)
-
-    Index-------------------------------------------------
-    For each chromosome--------------------------
-        [uint8]   - chromosome number (1,2,3,4 ...)
-        [char255] - Human readable description
-        [char255] - NCBI accession string (if any)
-        For each copy------------------------------
-            [uint32]  - start byte of data in this file
-            [uint32]  - length of sequence
-
-    Data--------------------------------------------------
-    For each chromosome--------------------------
-        For each copy------------------------------
-            [uchar]   - Nucleotide data
-              ...
+Generating mutations
+-------------------
+Mitty can generate VCF files that indicate mutations with respect to a reference genome. This is done via
 
 
 
@@ -851,8 +795,13 @@ You can "read along" to these examples by running `python reads.py test -v` and 
 
 Misc design choices
 ===================
-Whole genome file
------------------
+
+HDF5 for Whole genome file
+--------------------------
+
+
+
+
 I went from complete block processing of reading fasta files to reading in whole sequences. This is because for our use
 case (Human) the individual chromosomes are small enough to fit even on modest machines.
 
