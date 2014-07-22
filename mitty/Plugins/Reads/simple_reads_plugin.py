@@ -114,7 +114,7 @@ def read_generator(seq=None,
     read_strand_rng_randint = read_generator.read_strand_rng_randint
     error_loc_rng_rand = read_generator.error_loc_rng_rand
     base_chose_rng_choice = read_generator.base_chose_rng_choice
-    logger.debug('Initialized RNGs')
+    logger.debug('Using previously initialized RNGs')
   except AttributeError:
     # We need to initialize the rngs and a bunch of other stuff
     if master_seed:
