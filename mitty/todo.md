@@ -12,13 +12,14 @@ List of Mitty tasks in order of priority
 ========================================
 Definitely email kaushik.ghose@sbgenomics.com if you have a suggestion/feature request to be added
 
+1. Convert mutate + plugins to be generators, generating batches of variants to avoid hogging memory
 1. Efficiency: make roll cigar cython accept list of reads - will save on the function call overhead!
 1. Mutate flag move to chromosome rather than sequence?
-1. RNGs - option to autogen seeds from single master seed
-1. all programs - move I/O (file names) to command line
 
 DONE
 ====
+1. RNGs - option to autogen seeds from single master seed (DONE: 7/21/2014)
+1. all programs - move I/O (file names) to command line (DONE: 7/21/2014)
 1. Create lock for delete length to make sure it does not exceed sequence length (DONE: 7/16/2014)
 1. Stock insert plugin - have base frequency match nature? (DONE: 7/1/2014)
 1. Test het reads with inserts/deletes and see if the chain makes sense. (DONE: 7/1/2014)
