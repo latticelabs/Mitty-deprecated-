@@ -2,9 +2,7 @@
 useful for creating test data for MGR algorithms/data formats
 
 Usage:
-reads --wg=WG  --out=OUT --paramfile=PFILE  [--corrupt]  [--fastq] [--reads_per_block=BL] [--master_seed=MS] [-v]
-reads localreads  [--read_border_size=RBS] --paramfile=PFILE  [--corrupt]  [--fastq] [--reads_per_block=BL] [--master_seed=MS] [-v]
-reads explain
+reads [localreads] --wg=WG  --out=OUT --paramfile=PFILE  [--corrupt]  [--fastq] [--read_border_size=RBS] [--reads_per_block=BL] [--master_seed=MS] [-v]
 
 Options:
   localreads              Take reads around insertions only
@@ -18,7 +16,6 @@ Options:
   --master_seed=MS        If this is specified this passes a master seed to the read plugin.
                           This overrides any individual seeds specified by the parameter file.
   -v                      Dump detailed logger messages
-  explain                 Print json file format and explain read qname format
 
 1. The quality scores are in Phred scale (as specified in the SAM spec)
 2. We supply the prefix of output file name in the parameter file . Say we set this as sim_reads.
@@ -437,9 +434,9 @@ def reads_around_insertions(args, params, read_model):
     chrom_list = params["take reads from"] or ref_fp['sequence'].keys()
     for chrom in chrom_list:
       if str(chrom) not in ref_fp['sequence'].keys():
-        logger.warning('Chromosome #{:s} not in file'.format(chrom))
+        logger.warning('Chromosome #{:d} not in file'.format(chrom))
         continue
-      logger.debug('Generating reads from chromosome {:s}'.format(chrom))
+      logger.debug('Generating reads from chromosome {:d}'.format(chrom))
       for cpy in ref_fp['sequence/{:d}'.format(chrom)].keys():
         seq, complement_seq, seq_len, seq_pos = get_sequence_and_complement(ref_fp, chrom, int(cpy))
         if 'variant_pos/ins/{:d}/{:d}'.format(chrom, int(cpy)) not in ref_fp:
@@ -522,10 +519,6 @@ if __name__ == "__main__":
     docopt.docopt(__doc__, ['-h'])
   else:
     cmd_args = docopt.docopt(__doc__, version=__version__)
-
-  if cmd_args['explain']:
-    print __explain__
-    exit(0)
 
   level = logging.DEBUG if cmd_args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
