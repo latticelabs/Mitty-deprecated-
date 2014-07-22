@@ -34,7 +34,7 @@ Example json parameter file
             "chromosome": [1],
             "model": "delete",
             "phet": 0.5,
-            "p_del": 0.01,
+            "p_del": 0.01,Re
             "lam_del": 10,
             "del_loc_rng_seed": 10,
             "del_len_rng_seed": 1
