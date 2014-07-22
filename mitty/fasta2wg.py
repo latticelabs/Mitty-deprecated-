@@ -1,10 +1,11 @@
-"""Given a list of fasta files, each containing one fasta sequence we compact this into a whole genome file.
-list of files is given in the index file (.json)
+"""In Mitty, each genome sample is represented as a collection of copies of chromosomes. The sequence data are stored in
+a compressed HDF5 file for easy access. Given a list of fasta files, each containing one fasta sequence, this script
+will compact the sequences into a whole genome HDF5 file. Use the 'explain' mode in combination with its options to
+get more information.
 
 Usage:
 fasta2wg  --index=IDX  --wg=WG  [--fa=FA] [-v]
 fasta2wg  describe  --wg=WG
-fasta2wg  explain
 
 Options:
   --index=IDX       Index file (.json) listing fasta files to be inserted into whole genome
@@ -12,13 +13,11 @@ Options:
   --fa=FA           If set, will also dump a fa.gz file (by simply concatenating the files together) for use by BWA
   -v                Be verbose when you do things
   describe          Take the indicated whole genome file as input and print a summary of what it contains
-  explain           Print index file format and exit
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
 import h5py
-import os
 import numpy
 import json
 import gzip
@@ -28,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 __version__ = '0.2.0'
 
-__explain__ = """
+"""
 Index file example:
 
 {
@@ -43,30 +42,6 @@ Index file example:
         ["Data/parvovirus.fa.gz"]
     ]
 }
-
-Mitty stores sequences from a genome in a whole genome file. This is a standard [HDF5][w5] file with datasets corresponding
-to chromosome sequences with associated metadata.
-
-[w5]: http://en.wikipedia.org/wiki/Hierarchical_Data_Format
-
-1. The HDF5 file is gzip compressed, so it is the same size as a comparable multi-fasta file,
-1. Any sequence in th file can be accessed directly, rather than via sequential access
-1. It can hold metadata about the genome and the individual chromosomes in a natural, well defined manner
-1. Sequences are organized into chromosomes and copies of chromosomes, allowing us to store simulated genomes with
-special characteristics such as [polysomies][wp].
-1. Extra data can be stored that is used further down the simulation chain
-(e.g. for generating proper CIGAR and POS values for simulated reads)
-
-[wp]: http://en.wikipedia.org/wiki/Polysomy
-
-The structure of the whole genome file is as follows
-
-    /sequence/<chrom>.attrs['seq_id'] -> sequence id e.g. NIH accession number
-    /sequence/<chrom>/<cpy>  -> sequence data for this chromosome and copy
-    /sequence/<chrom>/<cpy>.attrs['reference']  -> boolean. True if this is copied from the reference genome
-
-    pos/<chrom>/<cpy>  -> pos array of u4 (see reads section for its utility)
-
 """
 
 
@@ -124,10 +99,6 @@ if __name__ == "__main__":
     docopt.docopt(__doc__, ['-h'])
   else:
     args = docopt.docopt(__doc__, version=__version__)
-
-  if args['explain']:
-    print __explain__
-    exit(0)
 
   level = logging.DEBUG if args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
