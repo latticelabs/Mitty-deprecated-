@@ -1,1 +1,2 @@
-__author__ = 'kghose'
+import sys
+sys.path.append('../mitty')
