@@ -31,3 +31,4 @@ def write_test():
     assert h5_fp['sequence/2/1'].size == h5_fp['sequence/2/2'].size
     assert h5_fp['sequence/3/1'].attrs['reference']
 
+  os.remove(fname)  # Be neat
