@@ -1,13 +1,14 @@
 import vcf
 import io
-from .. import vcf2seq
+from mitty import vcf2seq
 from nose.tools import assert_equals
 
 
 def assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, variant_coords_1, var_seq_2, pos_2, variant_coords_2):
-  def check(a1, a2):
-    copy_1, p_1, vc_dict_1 = a1
-    copy_2, p_2, vc_dict_2 = a2
+  """Utility function to test if two sequence assemblies and their pos vectors are the same."""
+  def check(tup1, tup2):
+    copy_1, p_1, vc_dict_1 = tup1
+    copy_2, p_2, vc_dict_2 = tup2
     for n in [0,1]:
       assert_equals(len(copy_1[n]), len(copy_2[n]))
       assert_equals(len(p_1[n]), len(p_2[n]))
@@ -26,6 +27,7 @@ def assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, variant_coords_1, var_seq
 
 
 def test_assemble_sequences_homo_snp():
+  """Testing homozygous SNP assembly"""
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -42,6 +44,7 @@ def test_assemble_sequences_homo_snp():
 
 
 def test_assemble_sequences_hetero_snp():
+  """Testing heterozygous SNP assembly"""
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -58,6 +61,7 @@ def test_assemble_sequences_hetero_snp():
 
 
 def test_assemble_sequences_hetero_ins():
+  """Testing heterozygous insertion assembly"""
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -74,6 +78,7 @@ def test_assemble_sequences_hetero_ins():
 
 
 def test_assemble_sequences_hetero_del():
+  """Testing heterozygous deletion assembly C -> ."""
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -90,6 +95,7 @@ def test_assemble_sequences_hetero_del():
 
 
 def test_assemble_sequences_hetero_del2():
+  """Testing heterozygous deletion assembly CT -> C"""
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -106,6 +112,7 @@ def test_assemble_sequences_hetero_del2():
 
 
 def test_assemble_sequences_hetero_same_locus_del():
+  """Testing repeated VCF entries (same location, same type - SNP - different chromosome copies)"""
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -123,6 +130,7 @@ def test_assemble_sequences_hetero_same_locus_del():
 
 
 def test_assemble_sequences_hetero_same_locus_ins_del():
+  """Testing repeated VCF entries (same location, same type - SNP, different formats - different chromosome copies)"""
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -140,6 +148,7 @@ def test_assemble_sequences_hetero_same_locus_ins_del():
 
 
 def test_assemble_sequences_hetero_same_locus_ins_del2():
+  """Testing repeated VCF entries (same location, one del, one ins, different chromosome copies)"""
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -157,6 +166,7 @@ def test_assemble_sequences_hetero_same_locus_ins_del2():
 
 
 def test_assemble_sequences_hetero_same_locus_inv_del():
+  """Testing repeated VCF entries (same location, deletion and inversion, different chromosome copies)"""
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -174,6 +184,7 @@ def test_assemble_sequences_hetero_same_locus_inv_del():
 
 
 def test_assemble_sequences_hetero_same_locus_longer_ins():
+  """Testing multiple repeated VCF entries (heterozygous insertions)"""
   ref_seq = 'ACTG'
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
@@ -193,6 +204,7 @@ def test_assemble_sequences_hetero_same_locus_longer_ins():
 
 
 def test_assemble_sequences_misc():
+  """Testing a more comprehensive VCF file"""
   ref_seq = 'ACTGACTGACTG'
   vcf_str = (
     "##fileformat=VCFv4.1\n"
