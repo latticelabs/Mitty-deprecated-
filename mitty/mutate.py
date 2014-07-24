@@ -238,7 +238,7 @@ def main(args):
 
     params = json.load(open(args['--paramfile'], 'r'))
     model_list = load_models(params['variant_models'])
-    ms_rng = numpy.random.RandomState(seed=int(args['--master_seed'])) if args['--master_seed'] else None
+    ms_rng = numpy.random.RandomState(seed=int(args['--master_seed'])) if args['--master_seed'] is not None else None
     mask = initialize_mask(ref_fp)
 
     write_vcf_header(vcf_fp, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(),
