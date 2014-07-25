@@ -3,7 +3,8 @@ import tempfile
 import h5py
 from mitty.fasta2wg import save_genome_to_hdf5
 
-fname = tempfile.gettempdir() + '/test.h5'
+tempdir = tempfile.mkdtemp()
+fname = os.path.join(tempdir, 'fasta2wg_test.h5')
 
 
 def write_test():
@@ -32,3 +33,4 @@ def write_test():
     assert h5_fp['sequence/3/1'].attrs['reference']
 
   os.remove(fname)  # Be neat
+  os.removedirs(tempdir)
