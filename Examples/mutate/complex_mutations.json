@@ -1,0 +1,62 @@
+{
+    "variant_models": [
+        {
+            "chromosome": [3],
+            "model": "snp",
+            "phet": 0.0,
+            "p": 0.01,
+            "base_loc_rng_seed": 1,
+            "base_sub_rng_seed": 2,
+            "het_rng_seed": 3,
+            "copy_rng_seed": 4
+        },
+        {
+            "chromosome": [1,2],
+            "model": "snp",
+            "phet": 0.5,
+            "p": 0.002,
+            "poisson_rng_seed": 5,
+            "base_sub_rng_seed": 6,
+            "het_rng_seed": 7,
+            "copy_rng_seed": 8
+        },
+        {
+            "chromosome": [1],
+            "model": "insert",
+            "phet": 0.5,
+            "p": 0.002,
+            "ins_len_lo": 10,
+            "ins_len_hi": 100,
+            "ins_loc_rng_seed": 9,
+            "ins_len_rng_seed": 10,
+            "base_sel_rng_seed": 11,
+            "het_rng_seed": 12,
+            "copy_rng_seed": 13
+        },
+        {
+            "chromosome": [1],
+            "model": "delete",
+            "phet": 0.5,
+            "p": 0.002,
+            "del_len_lo": 10,
+            "del_len_hi": 100,
+            "del_loc_rng_seed": 14,
+            "del_len_rng_seed": 15,
+            "het_rng_seed": 16,
+            "copy_rng_seed": 17
+        },
+        {
+            "chromosome": [1],
+            "model": "inversion",
+            "phet": 0.5,
+            "p": 0.002,
+            "inv_len_lo": 10,
+            "inv_len_hi": 100,
+            "inv_loc_rng_seed": 18,
+            "inv_len_rng_seed": 19,
+            "het_rng_seed": 20,
+            "copy_rng_seed": 21
+        }
+
+    ]
+}

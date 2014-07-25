@@ -1,0 +1,10 @@
+{
+    "header": {
+        "species": "Test Chimera"
+    },
+    "chromosomes": [
+        ["Data/adenovirus.fa.gz"],
+        ["Data/parvovirus.fa.gz"],
+        ["Data/altered_porcine.fa.gz"]
+    ]
+}
