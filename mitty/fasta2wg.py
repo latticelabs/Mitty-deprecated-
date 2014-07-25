@@ -1,18 +1,34 @@
 """In Mitty, each genome sample is represented as a collection of copies of chromosomes. The sequence data are stored in
 a compressed HDF5 file for easy access. Given a list of fasta files, each containing one fasta sequence, this script
-will compact the sequences into a whole genome HDF5 file. Use the 'explain' mode in combination with its options to
-get more information.
+will compact the sequences into a whole genome HDF5 file.
 
-Usage:
-fasta2wg  --index=IDX  --wg=WG  [--fa=FA] [-v]
-fasta2wg  describe  --wg=WG
+Command line::
 
-Options:
-  --index=IDX       Index file (.json) listing fasta files to be inserted into whole genome
-  --wg=WG           Name of whole genome file
-  --fa=FA           If set, will also dump a fa.gz file (by simply concatenating the files together) for use by BWA
-  -v                Be verbose when you do things
-  describe          Take the indicated whole genome file as input and print a summary of what it contains
+  Usage:
+    fasta2wg  --index=IDX  --wg=WG  [--fa=FA] [-v]
+    fasta2wg  describe  --wg=WG
+
+  Options:
+    --index=IDX       Index file (.json) listing fasta files to be inserted into whole genome
+    --wg=WG           Name of whole genome file
+    --fa=FA           If set, will also dump a fa.gz file (by simply concatenating the files together) for use by BWA
+    -v                Be verbose when you do things
+    describe          Take the indicated whole genome file as input and print a summary of what it contains
+
+Index file example::
+
+  {
+    "header": {
+      "species": "Test Chimera",
+    },
+    "chromosomes": [
+      ["Data/porcine_circovirus.fa.gz"],
+      ["Data/adenovirus.fa.gz"],
+      ["Data/altered_porcine.fa.gz"],
+      ["Data/herpes.fa.gz"],
+      ["Data/parvovirus.fa.gz"]
+    ]
+  }
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
@@ -26,23 +42,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 __version__ = '0.2.0'
-
-"""
-Index file example:
-
-{
-    "header": {
-        "species": "Test Chimera",
-    },
-    "chromosomes": [
-        ["Data/porcine_circovirus.fa.gz"],
-        ["Data/adenovirus.fa.gz"],
-        ["Data/altered_porcine.fa.gz"],
-        ["Data/herpes.fa.gz"],
-        ["Data/parvovirus.fa.gz"]
-    ]
-}
-"""
 
 
 def save_genome_to_hdf5(index, h5_fp):
