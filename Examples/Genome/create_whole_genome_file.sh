@@ -1,6 +1,14 @@
 #!/bin/bash
-set -x
+set -xe
+
+pushd `dirname $0`
+
+PROGDIR=../../mitty
+OUTDIR=$(mktemp -d -t WG)
+
 : Create whole genome file from fasta files
-python fasta2wg.py --index=Examples/Genome/wg_chimera.json --wg=Examples/Genome/Out/chimera.h5 --fa=Examples/Genome/Out/chimera.fa.gz -v
+python ${PROGDIR}/fasta2wg.py --index=wg_chimera.json --wg=${OUTDIR}/chimera.h5 --fa=${OUTDIR}/chimera.fa.gz -v
 : Use the describe command to reveal the contents of the genome file
-python fasta2wg.py describe --wg=Examples/Genome/Out/chimera.h5
+python ${PROGDIR}/fasta2wg.py describe --wg=${OUTDIR}/chimera.h5
+
+popd
