@@ -7,7 +7,7 @@ param_file = data_dir + '/low_entropy_test.json'
 
 
 def test():
-  """Simple execution test."""
+  """Testing low entropy mutations"""
   params = {
     "variant_models": [
       {
