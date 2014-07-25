@@ -1,6 +1,6 @@
 import json
 import mitty.mutate
-from . import *
+from ... import *
 
 vcf_name = data_dir + '/low_entropy_test.vcf'
 param_file = data_dir + '/low_entropy_test.json'
