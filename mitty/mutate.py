@@ -2,105 +2,61 @@
 as a script as well. This is useful for creating test data for MGR algorithms/data formats. The script will output
 VCF file(s).
 
-Usage:
-mutate --wg=WG  --vcf=VCF  --paramfile=PFILE  [--master_seed=SEED] [-v]
+Commandline::
 
-Options:
-  --wg=WG                 Whole genome reference file
-  --vcf=VCF               Output VCF file
-  --paramfile=PFILE       Name for parameter file
-  --master_seed=SEED      If this is specified, this generates and passes master seeds to all the plugins.
-                          This overrides any individual seeds specified by the parameter file.
-  -v                      Dump detailed logger messages
+  Usage:
+    mutate --wg=WG  --vcf=VCF  --paramfile=PFILE  [--master_seed=SEED] [-v]
+
+  Options:
+    --wg=WG                 Whole genome reference file
+    --vcf=VCF               Output VCF file
+    --paramfile=PFILE       Name for parameter file
+    --master_seed=SEED      If this is specified, this generates and passes master seeds to all the plugins.
+                            This overrides any individual seeds specified by the parameter file.
+    -v                      Dump detailed logger messages
+
+Parameter file example::
+
+  {
+    "variant_models": [
+      {
+        "chromosome": [1],
+        "model": "snp",
+        "phet": 0.5,
+        "p": 0.01,
+        "poisson_rng_seed": 1,
+        "base_sub_rng_seed": 2
+      },
+      {
+        "chromosome": [1],
+        "model": "delete",
+        "phet": 0.5,
+        "p_del": 0.01,Re
+        "lam_del": 10,
+        "del_loc_rng_seed": 10,
+        "del_len_rng_seed": 1
+      },
+      {
+        "chromosome": [1],
+        "model": "insert",
+        "start_ins_frac": 0.7,
+        "stop_ins_frac":  0.9,
+        "phet": 0,
+        "p_ins": 0.01,
+        "lam_ins": 10,
+        "ins_loc_rng_seed": 0,
+        "ins_len_rng_seed": 1,
+        "base_sel_rng_seed": 2
+      }
+    ]
+  }
+
+The file contains a list of parameter dictionaries, one for each instance of the model we wish to use. Models can be
+repeated. To see the parameter list for each model use the explain function (or read the docs)
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
-
-__explain__ = """
-Example json parameter file
-
-{
-    "variant_models": [
-        {
-            "chromosome": [1],
-            "model": "snp",
-            "phet": 0.5,
-            "p": 0.01,
-            "poisson_rng_seed": 1,
-            "base_sub_rng_seed": 2
-        },
-        {
-            "chromosome": [1],
-            "model": "delete",
-            "phet": 0.5,
-            "p_del": 0.01,Re
-            "lam_del": 10,
-            "del_loc_rng_seed": 10,
-            "del_len_rng_seed": 1
-        },
-        {
-            "chromosome": [1],
-            "model": "insert",
-            "start_ins_frac": 0.7,
-            "stop_ins_frac":  0.9,
-            "phet": 0,
-            "p_ins": 0.01,
-            "lam_ins": 10,
-            "ins_loc_rng_seed": 0,
-            "ins_len_rng_seed": 1,
-            "base_sel_rng_seed": 2
-        }
-    ]
-}
-
-Internally, Mitty stores each variant as a group of operations
-
-(type, het, footprint)
-()
-
-
-
-The reference is assumed to be haploid (we always use copy 1)
-
-Mitty stores the actual generated variant in a systematic format in a hdf5 file. Conceptually, each variant is stored
-as follows:
-
-   _ type name
-  /
-(type, het, footprint, )
-        \            \
-         \            \_ list of variant description tuples
-          \
-              0 -> no variant (due to arbitration, see below)
-              1 -> variant on copy 1
-              2 -> variant on copy 2
-              3 -> variant on both copies
-
-Most commonly, there is only one element in the list of variant descriptions and this corresponds exactly with a VCF
-file entry. Complicated variants are expressed as a sequence of insertions and deletions.
-
-Each variant model returns a variant file of proposed variants in this format. Mitty then arbitrates between all the
-variants to make sure they don't clash.
-
-Variant types:
-
-SNP             - footprint is 1
-Insert          - footprint is 0
-Delete          - footprint is N
-Inversion       - footprint is N
-Repeat          - footprint is N
-Translocation   - foorprint is N
-
-Mitty writes out variants in VCF format (using the variant2vcf tool).
-
-Each model should have a .variant method that is passed the reference genome data and any general and specific
-parameters it needs. Each model's .variant method is called in turn and it fills out the variant data structure
-(on an hdf5 file, due to the potential size of the data) and returns it to mutate.py
-
-mutate.py is responsible for arbitrating between variants that clash by using a genome-wide mask.
-"""
-
 __version__ = '0.4.0'
 
 import h5py
