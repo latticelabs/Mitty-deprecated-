@@ -7,8 +7,8 @@ import h5py
 from mitty.fasta2wg import save_genome_to_hdf5
 
 # These need to be available to the rest of the test suite for the mutations module
-data_dir = tempfile.gettempdir() + '/'
-wg_name = data_dir + '/test.h5'
+data_dir = tempfile.gettempdir()
+wg_name = os.path.join(data_dir, 'test.h5')
 
 
 def setup_package():
