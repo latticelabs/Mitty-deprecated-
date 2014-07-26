@@ -9,13 +9,13 @@ to chromosome sequences with associated metadata.
 .. _HDF5: http://en.wikipedia.org/wiki/Hierarchical_Data_Format
 
 * The HDF5 file is gzip compressed, so it is the same size as a comparable multi-fasta file,
-* Any sequence in the file can be accessed directly, rather than via sequential access [1]_
+* Any sequence in the file can be accessed directly, rather than via sequential access [#block]_
 * It can hold metadata about the genome and the individual chromosomes in a natural, well defined manner
 * Sequences are organized into chromosomes and copies of chromosomes, allowing us to store simulated genomes with special characteristics such as polysomies_.
 * Extra data can be stored that is used further down the simulation chain (e.g. POS arrays for generating proper CIGAR and POS values for simulated reads)
 
 .. _polysomies: http://en.wikipedia.org/wiki/Polysomy
-.. [1] Early versions of Mitty used block processing for everything. I changed this to whole chromosome based processing because for Human use cases individual chromosomes are small enough to fit even on modest machines. This considerably simplifies the code and concepts.
+.. [#block] Early versions of Mitty used block processing for everything. I changed this to whole chromosome based processing because for Human use cases individual chromosomes are small enough to fit even on modest machines. This considerably simplifies the code and concepts.
 
 Whole genome file structure
 ---------------------------
@@ -26,6 +26,56 @@ The structure of the whole genome file is as follows::
     /sequence/<chrom>/<cpy>.attrs['reference']  -> boolean. True if this is copied from the reference genome
 
     pos/<chrom>/<cpy>  -> pos array of u4 (see reads.py for its utility)
+
+
+mutate.py
+---------
+Internally, Mitty stores each variant as a group of operations
+
+(type, het, footprint)
+()
+
+
+
+The reference is assumed to be haploid (we always use copy 1)
+
+Mitty stores the actual generated variant in a systematic format in a hdf5 file. Conceptually, each variant is stored
+as follows:
+
+   _ type name
+  /
+(type, het, footprint, )
+        \            \
+         \            \_ list of variant description tuples
+          \
+              0 -> no variant (due to arbitration, see below)
+              1 -> variant on copy 1
+              2 -> variant on copy 2
+              3 -> variant on both copies
+
+Most commonly, there is only one element in the list of variant descriptions and this corresponds exactly with a VCF
+file entry. Complicated variants are expressed as a sequence of insertions and deletions.
+
+Each variant model returns a variant file of proposed variants in this format. Mitty then arbitrates between all the
+variants to make sure they don't clash.
+
+Variant types:
+
+SNP             - footprint is 1
+Insert          - footprint is 0
+Delete          - footprint is N
+Inversion       - footprint is N
+Repeat          - footprint is N
+Translocation   - foorprint is N
+
+Mitty writes out variants in VCF format (using the variant2vcf tool).
+
+Each model should have a .variant method that is passed the reference genome data and any general and specific
+parameters it needs. Each model's .variant method is called in turn and it fills out the variant data structure
+(on an hdf5 file, due to the potential size of the data) and returns it to mutate.py
+
+mutate.py is responsible for arbitrating between variants that clash by using a genome-wide mask.
+
 
 
 Passing whole genome file to mutation plugins
@@ -43,6 +93,13 @@ VCF files (especially with the literal phase information as used by Mitty) form 
 Random number seeds
 -------------------
 All stock plugins employ explicit random number seeds. Random number generators for different parameters of the simulation are decoupled (independent) from each other and each takes its own seed (Though all plugins can take a single master seed which they use to generate the required number of individual seeds). This is an important design choice that allows exact reproducibility of simulations and allows us to avoid couplings between parameters which might otherwise crop up if the same random number generator was used for all the simulation variables.
+
+
+vcf2seq - why we store VCF details
+----------------------------------
+In some use cases [#localreads]_ we need to know which parts of the mutated genome are mutated. For this reason we store the positions of mutations (in `/variants/pos/`) and the details of the variant (`/variants/codes/`).
+
+.. [#localreads] The `reads.py` program's `localreads` option uses this, for example, to generate reads from only the insertions.
 
 
 Algorithms for computing correct CIGAR and POS values for simulated reads
@@ -241,10 +298,22 @@ Python's native mmap can't do proper offsets ... should we use numpy?
 Running tests
 -------------
 
-::
+Running all tests::
+
+    nosetests tests  -v
+
+
+Including the few doctests there are::
+
+    nosetests mitty --with-doctest -v
+
+Including specific doctests::
 
     nosetests mitty/Plugins/Mutation --with-doctest -v
 
+Running specific tests::
+
+    nosetests tests.vcf2seq_test:test_assemble_sequences_hetero_same_locus_del -v
 
 
 Generating documentation
