@@ -5,7 +5,7 @@ import numpy.testing
 from . import *
 from mitty import vcf2seq
 from nose.tools import assert_equals, ok_
-from shutil import rmtree
+
 
 def assembly_check(ref_seq, vcf_str,
                    var_seq_1, pos_1, var_seq_2, pos_2,
@@ -210,7 +210,7 @@ def test_assemble_sequences_hetero_same_locus_longer_ins():
 
 
 def test_script():
-  """vcf2seq  command line program"""
+  """vcf2seq command line program"""
 
   ok_(os.path.exists(wg_name),
       msg='No whole genome file ({:s}). This should be created by package test setup in tests/__init__.py'.format(wg_name))

@@ -5,6 +5,7 @@ import tempfile
 import os
 import h5py
 from mitty.fasta2wg import save_genome_to_hdf5
+from shutil import rmtree
 
 # These need to be available to the rest of the test suite for the mutations module
 data_dir = tempfile.gettempdir()
@@ -33,4 +34,4 @@ def setup_package():
 
 
 def teardown_package():
-  os.remove(wg_name)
+  rmtree(data_dir)
