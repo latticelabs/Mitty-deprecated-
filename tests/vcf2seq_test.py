@@ -1,9 +1,11 @@
 import vcf
+import pysam
 import io
 import numpy.testing
+from . import *
 from mitty import vcf2seq
-from nose.tools import assert_equals
-
+from nose.tools import assert_equals, ok_
+from shutil import rmtree
 
 def assembly_check(ref_seq, vcf_str,
                    var_seq_1, pos_1, var_seq_2, pos_2,
@@ -206,3 +208,46 @@ def test_assemble_sequences_hetero_same_locus_longer_ins():
 
   assembly_check(ref_seq, vcf_str, var_seq_1, pos_1, var_seq_2, pos_2, v_coords, v_codes)
 
+
+def test_script():
+  """vcf2seq  command line program"""
+
+  ok_(os.path.exists(wg_name),
+      msg='No whole genome file ({:s}). This should be created by package test setup in tests/__init__.py'.format(wg_name))
+
+  tempdir = tempfile.mkdtemp()
+  vcf_name = os.path.join(tempdir, 'vcf2seq_test.vcf')
+  var_name = os.path.join(tempdir, 'vcf2seq_test_var.h5')
+
+  args = {
+    '--ref': wg_name,  # Our package wide setup as generated this
+    '--vcf': vcf_name + '.gz',
+    '--var': var_name
+  }
+
+  # Insert in copy 2, delete in copy 1
+  vcf_str = (
+    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
+    "1\t71\t.\tG\tGCAT\t100\tPASS\t.\tGT\t0/1\n"
+    "1\t71\t.\tGGCG\tG\t100\tPASS\t.\tGT\t1/0\n"
+  )
+
+  with open(vcf_name, 'w') as fp:
+    fp.write(vcf_str)
+
+  pysam.tabix_compress(vcf_name, vcf_name + '.gz', force=True)
+  pysam.tabix_index(vcf_name + '.gz', force=True, preset='vcf')
+
+  vcf2seq.main(args)
+
+  ok_(os.path.exists(var_name), msg='Output file was not created')
+
+  #Now check some details of the file that convinces us vcf2seq is working as expected
+  with h5py.File(var_name, 'r') as h5_fp:
+    assert not h5_fp['sequence/1/1'].attrs['reference']
+    assert not h5_fp['sequence/1/2'].attrs['reference']
+    assert h5_fp['sequence/2/2'].attrs['reference']
+    assert_equals(h5_fp['sequence/1/2'][70:74].tostring(), 'GCAT')
+    assert_equals(h5_fp['sequence/1/1'][70:74].tostring(), 'GGCG')
+
+  rmtree(tempdir)  # Be neat
