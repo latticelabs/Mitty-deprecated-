@@ -1,21 +1,39 @@
 """This module contains functions that generate simulated reads. The module can be called as a script as well. This is
 useful for creating test data for MGR algorithms/data formats
 
-Usage:
-reads [localreads] --wg=WG  --out=OUT --paramfile=PFILE  [--corrupt]  [--fastq] [--read_border_size=RBS] [--reads_per_block=BL] [--master_seed=MS] [-v]
+Commandline::
 
-Options:
-  localreads              Take reads around insertions only
-  --wg=WG                 Whole genome file
-  --out=OUT               Output file name prefix
-  --read_border_size=RBS  How many bases before and after the insertion do we include in our window [default: 500]
-  --paramfile=PFILE       Name for parameter file
-  --corrupt               Write out corrupted reads too.
-  --fastq                 Write as FASTQ instead of BAM (simulated_reads.fastq)
-  --reads_per_block=BL    Generate these many reads at a time (Adjust to machine resources). [default: 100000]
-  --master_seed=MS        If this is specified this passes a master seed to the read plugin.
-                          This overrides any individual seeds specified by the parameter file.
-  -v                      Dump detailed logger messages
+  Usage:
+    reads [localreads]  --wg=WG  --out=OUT  --paramfile=PFILE  [--corrupt]  [--fastq] [--read_border_size=RBS] [--reads_per_block=BL] [--master_seed=MS] [-v]
+
+  Options:
+    localreads              Take reads around insertions only
+    --wg=WG                 Whole genome file
+    --out=OUT               Output file name prefix
+    --read_border_size=RBS  How many bases before and after the insertion do we include in our window [default: 500]
+    --paramfile=PFILE       Name for parameter file
+    --corrupt               Write out corrupted reads too.
+    --fastq                 Write as FASTQ instead of BAM (simulated_reads.fastq)
+    --reads_per_block=BL    Generate these many reads at a time (Adjust to machine resources). [default: 100000]
+    --master_seed=MS        If this is specified this passes a master seed to the read plugin.
+                            This overrides any individual seeds specified by the parameter file.
+    -v                      Dump detailed logger messages
+
+Parameter file example::
+
+  {
+    "take reads from": [1,2],
+    "coverage": 5.0,
+    "output_file_prefix": "sim_reads",
+    "read_model": "simple_reads",
+    "model_params": {
+      "paired": false,
+      "read_len": 100,
+      "template_len": 250
+    }
+  }
+
+
 
 1. The quality scores are in Phred scale (as specified in the SAM spec)
 2. We supply the prefix of output file name in the parameter file . Say we set this as sim_reads.
@@ -437,18 +455,24 @@ def reads_around_insertions(args, params, read_model):
         logger.warning('Chromosome #{:d} not in file'.format(chrom))
         continue
       logger.debug('Generating reads from chromosome {:d}'.format(chrom))
-      for cpy in ref_fp['sequence/{:d}'.format(chrom)].keys():
-        seq, complement_seq, seq_len, seq_pos = get_sequence_and_complement(ref_fp, chrom, int(cpy))
-        if 'variant_pos/ins/{:d}/{:d}'.format(chrom, int(cpy)) not in ref_fp:
-          logger.error('Local reads around insertions requested, but no insertions detected. Perhaps you are using a reference sequence?')
+      try:
+        vp = ref_fp['variants/pos/{:d}'.format(chrom)]
+      except KeyError:
+        vp = None
+
+      for cpy in [int(c) for c in ref_fp['sequence/{:d}'.format(chrom)].keys()]:
+        seq, complement_seq, seq_len, seq_pos = get_sequence_and_complement(ref_fp, chrom, cpy)
+        if vp is None:
+          logger.warning('Local reads around variants requested, but no variants detected')
           continue
-        insertion_count = len(ref_fp['variant_pos/ins/{:d}/{:d}'.format(chrom, int(cpy))])
-        for n, ins in enumerate(ref_fp['variant_pos/ins/{:d}/{:d}'.format(chrom, int(cpy))][:]):
-          logger.debug('Generating reads from insertion {:d} of {:d}, len {:d}'.format(n, insertion_count, ins[1] - ins[0]))
-          read_start = max(0, ins[0] - read_border_size)
-          read_stop = min(seq_len, ins[1] + read_border_size)
+        tvp = vp[:, cpy - 1, :]
+        insertion_count = tvp.shape[0]
+        for n in range(insertion_count):
+          logger.debug('Generating reads from insertion {:d} of {:d}, len {:d}'.format(n, insertion_count, tvp[n, 1] - tvp[n, 0]))
+          read_start = max(0, tvp[n, 0] - read_border_size)
+          read_stop = min(seq_len, tvp[n, 1] + read_border_size)
           total_reads = int((read_stop - read_start) * coverage / read_model.average_read_len(**model_params))
-          this_output_file_prefix = '{:s}_chrom{:d}_cpy{:d}_inspos{:d}'.format(output_file_prefix, chrom, int(cpy), ins[0])
+          this_output_file_prefix = '{:s}_chrom{:d}_cpy{:d}_vn{:d}'.format(output_file_prefix, chrom, int(cpy), n)
           reads_file_handles = open_reads_files(this_output_file_prefix, write_corrupted, save_as_bam)
           add_reads_to_file(chrom=chrom, cpy=int(cpy), seq=[seq, complement_seq], seq_pos=seq_pos, read_start=read_start, read_stop=read_stop,
                             num_reads=total_reads,
