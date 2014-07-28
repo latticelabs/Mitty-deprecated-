@@ -4,14 +4,12 @@ import tempfile
 import h5py
 from mitty.fasta2wg import save_genome_to_hdf5
 
-tempdir = tempfile.mkdtemp()
-fname = os.path.join(tempdir, 'fasta2wg_test.h5')
-
 
 def write_test():
-  """Testing creation of WG file from index and verifying its contents."""
+  """fasta2wg: Creating WG file from index and verifying its contents."""
+  tempdir = tempfile.mkdtemp()
+  fname = os.path.join(tempdir, 'fasta2wg_test.h5')
 
-  # This setup only works when called from the project root directory such that Data is accessible
   index = {
     "header": {
         "species": "Test Chimera"
@@ -33,5 +31,4 @@ def write_test():
     assert h5_fp['sequence/2/1'].size == h5_fp['sequence/2/2'].size
     assert h5_fp['sequence/3/1'].attrs['reference']
 
-  os.remove(fname)  # Be neat
-  os.removedirs(tempdir)
+  rmtree(tempdir)  # Be neat
