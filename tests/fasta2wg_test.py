@@ -1,3 +1,4 @@
+from . import *
 import os
 import tempfile
 import h5py
@@ -16,9 +17,9 @@ def write_test():
         "species": "Test Chimera"
     },
     "chromosomes": [
-        ["Data/adenovirus.fa.gz"],
-        ["Data/porcine_circovirus.fa.gz", "Data/porcine_circovirus.fa.gz"],
-        ["Data/altered_porcine.fa.gz"]
+        [source_tree_root + "/Data/adenovirus.fa.gz"],
+        [source_tree_root + "/Data/porcine_circovirus.fa.gz", source_tree_root + "/Data/porcine_circovirus.fa.gz"],
+        [source_tree_root + "/Data/altered_porcine.fa.gz"]
     ]
   }
   with h5py.File(fname, 'w') as h5_fp:
