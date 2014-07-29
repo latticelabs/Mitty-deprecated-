@@ -1,5 +1,43 @@
 """This generates insertions that consist of repeated copies of the same subsequence. The subsequence can be generated
 de novo, or can be copied over from the neighborhood.
+
+Example parameter snippet::
+
+    "variant_models": [
+      {
+        "chromosome": [2],
+        "model": "low_entropy_insert",
+        "phet": 0.9,
+        "p": 0.01,
+        "ins_len_lo": 10,
+        "ins_len_hi": 20,
+        "sub_seq_len": 5,
+        "copy_from_neighborhood": False,
+        "master_seed": 0,
+        "ins_loc_rng_seed": 1,
+        "ins_len_rng_seed": 2,
+        "base_sel_rng_seed": 3,
+        "het_rng_seed": 4,
+        "copy_rng_seed": 5
+      },
+      {
+        "chromosome": [2],
+        "model": "low_entropy_insert",
+        "phet": 0.9,
+        "p": 0.01,
+        "ins_len_lo": 10,
+        "ins_len_hi": 20,
+        "sub_seq_len": 10,
+        "copy_from_neighborhood": True,
+        "master_seed": 0,
+        "ins_loc_rng_seed": 1,
+        "ins_len_rng_seed": 2,
+        "base_sel_rng_seed": 3,
+        "het_rng_seed": 4,
+        "copy_rng_seed": 5
+      }
+    ]
+
 """
 import numpy
 import logging
@@ -47,6 +85,47 @@ def _repeat_sequence(seq_len=100, subseq=None, subseq_len=10, base_sel_rng=None,
   subseq = subseq or base_sel_rng.choice(alphabet, size=subseq_len, replace=True, p=[.3, .2, .2, .3]).tostring()
   subseq_len = len(subseq)
   return subseq * (seq_len / subseq_len) + subseq[:seq_len % subseq_len]
+
+
+def _example_params():
+  """This is used for the integration test."""
+  return {
+    "variant_models": [
+      {
+        "chromosome": [2],
+        "model": "low_entropy_insert",
+        "phet": 0.9,
+        "p": 0.01,
+        "ins_len_lo": 10,
+        "ins_len_hi": 20,
+        "sub_seq_len": 5,
+        "copy_from_neighborhood": False,
+        "master_seed": 0,
+        "ins_loc_rng_seed": 1,
+        "ins_len_rng_seed": 2,
+        "base_sel_rng_seed": 3,
+        "het_rng_seed": 4,
+        "copy_rng_seed": 5
+      },
+      {
+        "chromosome": [2],
+        "model": "low_entropy_insert",
+        "phet": 0.9,
+        "p": 0.01,
+        "ins_len_lo": 10,
+        "ins_len_hi": 20,
+        "sub_seq_len": 10,
+        "copy_from_neighborhood": True,
+        "master_seed": 0,
+        "ins_loc_rng_seed": 1,
+        "ins_len_rng_seed": 2,
+        "base_sel_rng_seed": 3,
+        "het_rng_seed": 4,
+        "copy_rng_seed": 5
+      }
+
+    ]
+  }
 
 
 def variants(ref_fp=None,
@@ -151,24 +230,6 @@ def variants(ref_fp=None,
   return description, footprint, vcf_line
 
 if __name__ == "__main__":
-  print """
-Example parameter snippet:
-
-    {
-        "chromosome": [1],
-        "model": "low_entropy_insert",
-        "phet": 0.9,
-        "p": 0.01,
-        "ins_len_lo": 100,
-        "ins_len_hi": 10000,
-        "sub_seq_len": 10,
-        "copy_from_neighborhood": false,
-        "master_seed": 0,
-        "ins_loc_rng_seed": 1,
-        "ins_len_rng_seed": 2,
-        "base_sel_rng_seed": 3,
-        "het_rng_seed": 4,
-        "copy_rng_seed": 5
-    }
-"""
+  import pprint
+  pprint.pprint(_example_params(), indent=1)
   print variants.__doc__
