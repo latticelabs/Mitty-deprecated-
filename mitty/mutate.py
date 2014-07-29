@@ -192,6 +192,8 @@ def write_vcf_mutations(fp, variants):
 
 
 def create_and_save_mutations(vcf_file_name, wg_file_name, params, master_seed=None):
+  logger.debug('Reference file {:s}\nVCF file {:s}'.format(wg_file_name, vcf_file_name))
+
   with h5py.File(wg_file_name, 'r') as ref_fp, open(vcf_file_name, 'w') as vcf_fp:
     model_list = load_models(params['variant_models'])
     if master_seed is None:
@@ -235,7 +237,7 @@ def main(args):
   vcf_gz_name = args['--vcf']
   vcf_name, ext = os.path.splitext(vcf_gz_name)
   if ext != '.gz':
-    vcf_name = os.path.join(vcf_name, '_srt.vcf')
+    vcf_name += '_srt.vcf'
 
   temp_vcf_fp, temp_vcf_name = tempfile.mkstemp(suffix='.vcf')
   params = json.load(open(args['--paramfile'], 'r'))
@@ -248,9 +250,6 @@ def main(args):
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
-  elif docopt.sys.argv[1] == 'explain':
-    print __explain__
-    exit(0)
   else:
     cmd_args = docopt.docopt(__doc__, version=__version__)
 
