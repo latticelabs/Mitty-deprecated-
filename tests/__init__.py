@@ -10,12 +10,7 @@ data_dir = tempfile.gettempdir()
 wg_name = os.path.join(data_dir, 'test.h5')
 
 
-def setup_package():
-  """In order to speed up tests we create a complete chain of data starting from a whole genome file and ending at
-  simulated reads. If this function fails it means Mitty is broken in some fundamental way."""
-  if not os.path.exists(data_dir):
-    os.makedirs(data_dir)
-
+def create_wg():
   index = {
     "header": {
         "species": "Test Chimera"
@@ -28,6 +23,14 @@ def setup_package():
   }
   with h5py.File(wg_name, 'w') as h5_fp:
     save_genome_to_hdf5(index, h5_fp)
+
+
+def setup_package():
+  """In order to speed up tests we create a complete chain of data starting from a whole genome file and ending at
+  simulated reads. If this function fails it means Mitty is broken in some fundamental way."""
+  if not os.path.exists(data_dir):
+    os.makedirs(data_dir)
+  create_wg()
 
 
 def teardown_package():
