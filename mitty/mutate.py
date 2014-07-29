@@ -9,7 +9,10 @@ Commandline::
 
   Options:
     --wg=WG                 Whole genome reference file
-    --vcf=VCF               Output VCF file
+    --vcf=VCF               Output VCF file. mutate expects the file to end in .vcf.gz
+                            It saves this file as a sorted and compressed vcf file with the uncompressed version
+                            available as .vcf. If the file does not end in .vcf.gz the uncompressed version will
+                            be of the form <basename>_srt.vcf
     --paramfile=PFILE       Name for parameter file
     --master_seed=SEED      If this is specified, this generates and passes master seeds to all the plugins.
                             This overrides any individual seeds specified by the parameter file.
@@ -59,6 +62,9 @@ Current contact: kaushik.ghose@sbgenomics.com
 """
 __version__ = '0.4.0'
 
+import subprocess
+import pysam
+import tempfile
 import h5py
 import numpy
 import scipy.sparse as sparse
@@ -185,16 +191,13 @@ def write_vcf_mutations(fp, variants):
     fp.write("{:d}\t{:d}\t{:s}\t{:s}\t{:s}\t{:d}\t{:s}\t{:s}\t{:s}\t{:s}\n".format(*var))
 
 
-def main(args):
-  """variants take the form of ."""
-  wg_file_name = args['--wg']
-  vcf_file_name = args['--vcf']
-
+def create_and_save_mutations(vcf_file_name, wg_file_name, params, master_seed=None):
   with h5py.File(wg_file_name, 'r') as ref_fp, open(vcf_file_name, 'w') as vcf_fp:
-
-    params = json.load(open(args['--paramfile'], 'r'))
     model_list = load_models(params['variant_models'])
-    ms_rng = numpy.random.RandomState(seed=int(args['--master_seed'])) if args['--master_seed'] is not None else None
+    if master_seed is None:
+      ms_rng = None
+    else:
+      ms_rng = numpy.random.RandomState(seed=int(master_seed))
     mask = initialize_mask(ref_fp)
 
     write_vcf_header(vcf_fp, datetime.datetime.now().isoformat(), docopt.sys.argv.__str__(),
@@ -211,21 +214,36 @@ def main(args):
       logger.debug('{:d} {:s} placed without collision'.format(len(idx), model_params['model']))
       write_vcf_mutations(vcf_fp, [vl for n in idx for vl in vcf_line[n]])
 
-  #For further use, this vcf file usually needs to be sorted and then compressed and indexed
+
+def sort_vcf(in_vcf_name, out_vcf_name):
   #vcf-sort the.vcf > sorted.vcf
+  logger.debug('Sorting {:s}'.format(in_vcf_name))
+  with open(out_vcf_name, 'w') as fp:
+    subprocess.call(['vcf-sort', in_vcf_name], stdout=fp)
+
+
+def compress_and_index_vcf(in_vcf_name, out_vcf_name):
   #bgzip -c sorted.vcf > sorted.vcf.gz
   #tabix sorted.vcf.gz
+  logger.debug('Compressing and indexing {:s}'.format(in_vcf_name))
+  pysam.tabix_compress(in_vcf_name, out_vcf_name, force=True)
+  pysam.tabix_index(out_vcf_name, force=True, preset='vcf')
 
-  # logger.debug('Sorting VCF file')
-  # print v_file_name
-  # ps = subprocess.Popen(('vcf-sort', v_file_name), stdout=subprocess.PIPE)
-  # output = subprocess.check_output(('temp.vcf'), stdin=ps.stdout)
-  # ps.wait()
-  #
-  # #subprocess.call(['vcf-sort', v_file_name, '>', 'temp.vcf'], shell=True)
-  # logger.debug('Compressing and indexing VCF file')
-  # pysam.tabix_compress('temp.vcf', v_file_name + '.gz', force=True)
-  # pysam.tabix_index(v_file_name + '.gz', force=True, preset='vcf')
+
+def main(args):
+  """variants take the form of ."""
+  vcf_gz_name = args['--vcf']
+  vcf_name, ext = os.path.splitext(vcf_gz_name)
+  if ext != '.gz':
+    vcf_name = os.path.join(vcf_name, '_srt.vcf')
+
+  temp_vcf_fp, temp_vcf_name = tempfile.mkstemp(suffix='.vcf')
+  params = json.load(open(args['--paramfile'], 'r'))
+  create_and_save_mutations(temp_vcf_name, args['--wg'], params, args['--master_seed'])
+  sort_vcf(temp_vcf_name, vcf_name)
+  compress_and_index_vcf(vcf_name, vcf_gz_name)
+  os.remove(temp_vcf_name)
+
 
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
