@@ -2,12 +2,12 @@ import json
 import mitty.mutate
 from ... import *
 
-vcf_name = data_dir + '/low_entropy_test.vcf'
-param_file = data_dir + '/low_entropy_test.json'
 
+def integration_test():
+  """Testing if low_entropy_insert works with mutate"""
+  vcf_name = os.path.join(data_dir , 'low_entropy_test.vcf.gz')
+  param_file = os.path.join(data_dir, 'low_entropy_test.json')
 
-def test():
-  """Testing low entropy mutations"""
   params = {
     "variant_models": [
       {
