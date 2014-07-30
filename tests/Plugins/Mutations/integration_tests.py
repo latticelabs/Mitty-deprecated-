@@ -17,8 +17,8 @@ def check_plugin(model):
   if not hasattr(model, '_example_params'):
     #http://stackoverflow.com/questions/1120148/disabling-python-nosetests
     raise SkipTest('{:s} has no _example_params method. Can not test automatically'.format(model.__name__))
-  vcf_name = glob.os.path.join(data_dir , 'low_entropy_test.vcf.gz')
-  param_file = glob.os.path.join(data_dir, 'low_entropy_test.json')
+  vcf_name = glob.os.path.join(data_dir , 'mutate_plugin_test.vcf.gz')
+  param_file = glob.os.path.join(data_dir, 'mutate_plugin_test.json')
   params = model._example_params()
   json.dump(params, open(param_file, 'w'), indent=2)
   args = {
@@ -30,6 +30,9 @@ def check_plugin(model):
   }
   mitty.mutate.main(args)
   assert os.path.exists(vcf_name)  # A very simple test to see if the plugin doesn't crash
+
+  os.remove(vcf_name)  # Be neat
+  os.remove(param_file)
 
 
 #http://stackoverflow.com/questions/19071601/how-do-i-run-multiple-python-test-cases-in-a-loop
