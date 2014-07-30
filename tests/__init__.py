@@ -6,7 +6,7 @@ from shutil import rmtree
 
 # These need to be available to the rest of the test suite for the mutations module
 source_tree_root = os.path.join(os.path.dirname(__file__), os.path.pardir)
-data_dir = tempfile.gettempdir()
+data_dir = tempfile.mkdtemp()
 wg_name = os.path.join(data_dir, 'test.h5')
 
 
