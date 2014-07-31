@@ -5,7 +5,9 @@ set -xe
 pushd `dirname $0`
 
 PROGDIR=../../mitty
-OUTDIR=$(mktemp -d -t WG)
+#OUTDIR=$(mktemp -d -t WG)
+OUTDIR="Out/"
+mkdir ${OUTDIR}
 
 : Create whole genome file from fasta files
 python ${PROGDIR}/fasta2wg.py --index=../fasta2wg/wg_chimera.json --wg=${OUTDIR}/chimera.h5 --fa=${OUTDIR}/chimera.fa.gz -v
