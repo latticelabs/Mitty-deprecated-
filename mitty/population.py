@@ -120,11 +120,11 @@ def parse_vcf(vcf_rdr, chrom_list):
   return g1
 
 
-def chrom_crossover(c1, cross_over_idx):
+def chrom_crossover(c1, crossover_idx):
   """cross_over_idx is a list the same size as c1 with a 1 (indicating a crossover should be done) or 0 (no crossover).
   """
   c2 = []
-  for c, idx in zip(c1, cross_over_idx):
+  for c, idx in zip(c1, crossover_idx):
     if idx == 0:
       c2 += [c]
     elif c[4] == HOMOZYGOUS:
@@ -145,7 +145,7 @@ def chrom_crossover_test():
       (13, 16, 'GTT', 'TTG', HOMOZYGOUS),
       (23, 26, 'GTT', 'TTG', HOMOZYGOUS)
     ]
-  cross_over_idx = [1, 1, 1, 0, 1, 0]
+  crossover_idx = [1, 1, 1, 0, 1, 0]
   correct_chrom = [
       (1, 2, 'C', 'CAA', HET1),
       (3, 6, 'CAG', 'C', HET2),
@@ -154,9 +154,41 @@ def chrom_crossover_test():
       (13, 16, 'GTT', 'TTG', HOMOZYGOUS),
       (23, 26, 'GTT', 'TTG', HOMOZYGOUS)
     ]
-  c1_c = chrom_crossover(c1, cross_over_idx)
+  c1_c = chrom_crossover(c1, crossover_idx)
   assert correct_chrom == c1_c, c1_c
   assert c1[0] == (1, 2, 'C', 'CAA', HET2)  # We shouldn't be changing our original
+
+
+def crossover_event(g1, crossover_idx):
+  return {chrom: chrom_crossover(c1, c_idx) for (chrom, c1), c_idx in zip(g1.iteritems(), crossover_idx)}
+
+
+def crossover_event_test():
+  c1 = [
+    (1, 2, 'C', 'CAA', HET2),
+    (3, 6, 'CAG', 'C', HET1),
+    (7, 8, 'G', 'T', HET2)
+  ]
+  c2 = [
+    (2, 5, 'CAG', 'C', HET1),
+    (7, 8, 'G', 'T', HET2)
+  ]
+  g1 = {1: c1, 2: c2}
+  crossover_idx = [[1, 0, 1], [0, 1]]
+
+  correct_g = {
+    1: [
+      (1, 2, 'C', 'CAA', HET1),
+      (3, 6, 'CAG', 'C', HET1),
+      (7, 8, 'G', 'T', HET1)
+    ],
+    2: [
+      (2, 5, 'CAG', 'C', HET1),
+      (7, 8, 'G', 'T', HET1)
+    ]
+  }
+  assert correct_g == crossover_event(g1, crossover_idx)
+
 
 
 def pair_one_chrom(c1, c2, which_copy):
@@ -201,22 +233,68 @@ def pair_one_chrom(c1, c2, which_copy):
 
   # Now pick up any slack
   while l1 is not None:
-    c3 += [l1[:4] + (HET1,)]
+    if (l1[4] == HET1 and which_copy[0] == 1) or (l1[4] == HET2 and which_copy[0] == 0):
+      pass
+    else:
+      c3 += [l1[:4] + (HET1,)]
     l1 = next(c1_iter, None)
 
   while l2 is not None:
-    c3 += [l2[:4] + (HET2,)]
+    if (l2[4] == HET1 and which_copy[1] == 1) or (l2[4] == HET2 and which_copy[1] == 0):
+      pass
+    else:
+      c3 += [l2[:4] + (HET2,)]
     l2 = next(c2_iter, None)
 
   return c3
 
 
 def pair_one_chrom_test():
+  """Merging: test c1 longer than c2"""
+  c1 = [
+    (1, 2, 'C', 'CAA', HET2),
+    (3, 6, 'CAG', 'C', HET1),
+    (17, 18, 'G', 'T', HET2),
+    (23, 26, 'GTT', 'TTG', HOMOZYGOUS),
+  ]
+  c2 = [
+    (7, 8, 'G', 'T', HET2),
+  ]
+  which_copy = (1, 0)
+  correct_pairing = [
+    (1, 2, 'C', 'CAA', HET1),
+    (17, 18, 'G', 'T', HET1),
+    (23, 26, 'GTT', 'TTG', HET1),
+  ]
+  assert correct_pairing == pair_one_chrom(c1, c2, which_copy), pair_one_chrom(c1, c2, which_copy)
+
+
+def pair_one_chrom_test2():
+  """Merging: test c2 longer than c1"""
+  c1 = [
+    (1, 2, 'C', 'CAA', HET2)
+  ]
+  c2 = [
+    (7, 8, 'G', 'T', HET1),
+    (17, 18, 'G', 'T', HET1),
+  ]
+  which_copy = (1, 0)
+  correct_pairing = [
+    (1, 2, 'C', 'CAA', HET1),
+    (7, 8, 'G', 'T', HET2),
+    (17, 18, 'G', 'T', HET2),
+  ]
+  assert correct_pairing == pair_one_chrom(c1, c2, which_copy), pair_one_chrom(c1, c2, which_copy)
+
+
+def pair_one_chrom_test3():
+  """Merging: Comprehensive test"""
   c1 = [
     (1, 2, 'C', 'CAA', HET2),  # Tests homozygosity
     (3, 6, 'CAG', 'C', HET1),  # Tests both variants are not on the copies chosen
     (17, 18, 'G', 'T', HET2),  # Test zipper (several variants should come from c2 before we get to this)
-    (23, 26, 'GTT', 'TTG', HOMOZYGOUS)  # Tests handling of homozygous variants
+    (23, 26, 'GTT', 'TTG', HOMOZYGOUS),  # Tests handling of homozygous variants
+    (29, 30, 'T', 'G', HOMOZYGOUS)  # Tests unequal var list lengths
   ]
   c2 = [
     (1, 2, 'C', 'CAA', HET1),
@@ -233,36 +311,47 @@ def pair_one_chrom_test():
     (15, 18, 'GTT', 'G', HET2),  # Test partial overlap on different copies (should not affect each other)
     (17, 18, 'G', 'T', HET1),  # Test zipper (several variants should come from c2 before we get to this)
     (23, 26, 'GTT', 'TTG', HOMOZYGOUS),  # Tests handling of homozygous variants
+    (29, 30, 'T', 'G', HET1)  # Tests unequal var list lengths
   ]
   assert correct_pairing == pair_one_chrom(c1, c2, which_copy)
 
 
 def fertilize_one(g1, g2, which_copy):
-  return {chrom: [g1[chrom][p[0]], g2[chrom][p[1]]] for chrom, p in zip(sorted(g1.keys()), which_copy)}
+  return {chrom: pair_one_chrom(c1, c2, wc) for (chrom, c1), (_, c2), wc in zip(g1.iteritems(), g2.iteritems(), which_copy)}
 
 
 def fertilize_one_test():
-  g1 = {
-    '1': [[(1, 2, 'C', 'CA')], [(4, 5, 'G', 'T')]],
-    '2': [[(3, 6, 'CAG', 'C')], [(8, 9, 'A', 'T')]]
-  }
-  g2 = {
-    '1': [[(2, 5, 'CTT', 'C')], [(8, 11, 'GTT', 'G')]],
-    '2': [[(3, 4, 'C', 'T')], [(7, 10, 'GAA', 'G')]]
-  }
-  g3 = one_pairing(g1, g2, [(0, 0), (1, 1)])
-  correct_g3 = {
-    '1': [[(1, 2, 'C', 'CA')], [(2, 5, 'CTT', 'C')]],
-    '2': [[(8, 9, 'A', 'T')], [(7, 10, 'GAA', 'G')]]
-  }
-  assert g3 == correct_g3
+  c11 = [
+    (1, 2, 'C', 'CAA', HET1)
+  ]
+  c12 = [
+    (7, 8, 'G', 'T', HET2),
+    (17, 18, 'G', 'T', HET2),
+  ]
+  g1 = {1: c11, 2: c12}
 
-  g3 = one_pairing(g1, g2, [(0, 1), (1, 0)])
+  c21 = [
+    (1, 2, 'C', 'CAA', HET2)
+  ]
+  c22 = [
+    (7, 8, 'G', 'T', HET1),
+    (17, 18, 'G', 'T', HET1),
+  ]
+  g2 = {1: c21, 2: c22}
+  which_copy = [(0, 1), (1, 0)]
+
   correct_g3 = {
-    '1': [[(1, 2, 'C', 'CA')], [(8, 11, 'GTT', 'G')]],
-    '2': [[(8, 9, 'A', 'T')], [(3, 4, 'C', 'T')]]
+    1: [
+      (1, 2, 'C', 'CAA', HOMOZYGOUS)
+    ],
+    2: [
+      (7, 8, 'G', 'T', HOMOZYGOUS),
+      (17, 18, 'G', 'T', HOMOZYGOUS),
+    ]
   }
-  assert g3 == correct_g3
+  assert correct_g3 == fertilize_one(g1, g2, which_copy)
+
+
 
 
 def place_crossovers(g1, hot_spots, rng):
@@ -296,90 +385,16 @@ def place_crossovers(g1, hot_spots, rng):
   # rng.poisson(lam, 2)
 
 
-
-
-def chrom_merge(cpy1, cpy2):
-  """Same as merge sort BUT ON GENOMIC VARIANTS!
-  This returns a sorted list ready to go into a vcf file
-
-  Returns
-  -------
-  (POS, POS2, REF, ALT, HET)
-  """
-  c1, c2 = sorted(cpy1), sorted(cpy2)
-  len_c1, len_c2 = len(c1), len(c2)
-  vcf_lines = []
-
-  p1, p2 = 0, 0
-
-  while p1 < len_c1 and p2 < len_c2:
-    if c1[p1] == c2[p2]:  # Homozygous
-      vcf_lines.append(c1[p1] + ('1/1',))
-      p1 += 1
-      p2 += 1
-      continue
-
-    if c1[p1][0] <= c2[p2][0]:
-      vcf_lines.append(c1[p1] + ('1/0',))
-      p1 += 1
-    elif c2[p2][0] < c1[p1][0]:
-      vcf_lines.append(c2[p2] + ('0/1',))
-      p2 += 1
-
-  while p1 < len_c1:
-    vcf_lines.append(c1[p1] + ('1/0',))
-    p1 += 1
-
-  while p2 < len_c2:
-    vcf_lines.append(c2[p2] + ('0/1',))
-    p2 += 1
-
-  return vcf_lines
-
-
-def chrom_merge_test():
-  cpy1 = [
-    (1, 2, 'C', 'CA'),
-    (3, 6, 'CAG', 'C'),
-    (13, 16, 'GTT', 'TTG'),
-    (9, 12, 'GTT', ''),
-    (20, 23, 'GTT', 'TTG'),
-  ]
-  cpy2 = [
-    (20, 21, 'T', 'G'),
-    (1, 2, 'C', 'CAA'),
-    (13, 16, 'GTT', 'TTG'),
-    (7, 8, 'G', 'T')
-  ]
-
-  correct_vcf = [
-    (1, 2, 'C', 'CA', '1/0'),
-    (1, 2, 'C', 'CAA', '0/1'),
-    (3, 6, 'CAG', 'C', '1/0'),
-    (7, 8, 'G', 'T', '0/1'),
-    (9, 12, 'GTT', '', '1/0'),
-    (13, 16, 'GTT', 'TTG', '1/1'),
-    (20, 23, 'GTT', 'TTG', '1/0'),
-    (20, 21, 'T', 'G', '0/1')
-  ]
-
-  assert correct_vcf == merge(cpy1, cpy2)
-
-
 def get_rngs(seed):
   return [numpy.random.RandomState(seed=sub_seed) for sub_seed in numpy.random.RandomState(seed=seed).randint(100000000, size=3)]
-
-
 
 
 def pairing(g1, g2, rng, num_children=2):
   if g1.keys() != g2.keys():
     raise RuntimeError('Two genomes have unequal chromosomes')
+  for _ in range(num_children):
+    pass
   return [one_pairing(g1, g2, rng.randint(2, size=(len(g1), 2))) for _ in range(num_children)]
-
-
-
-
 
 
 def gen2vcf(g1):
