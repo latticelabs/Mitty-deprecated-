@@ -1,4 +1,7 @@
 """
+This will gradually replace mutate, since it is effectively a superset of mutate. Mutate has a cooler name tho - maybe
+mutate will be the command line script that wraps population functions ...
+
 This module implements a haploid genome as a diff with respect to a reference (which never needs to be explicitly set).
 The contents of the class, therefore, correspond directly to a very strict version of the VCF and each genome can be
 written out as a VCF file.
@@ -43,48 +46,7 @@ Though we could have written a class called genome, I prefer to write in as func
 code quality.
 """
 import numpy
-from variation import Variation, HOMOZYGOUS, HET1, HET2
-
-
-def vcf2chrom(vcf_rdr):
-  """Given a vcf reader corresponding to one chromosome, read in the variant descriptions into our format. The result is
-  sorted if the vcf file is sorted.
-  """
-  chrom = []
-
-  for variant in vcf_rdr:
-    alt = variant.ALT[0].sequence if variant.ALT[0] is not None else ''
-    ref = variant.REF or ''
-    start = variant.POS  # Note, we are in VCF coordinates!
-    stop = variant.POS + len(ref)
-    het = HOMOZYGOUS
-
-    try:
-      if variant.samples[0].gt_nums[0] == '0':
-        het = HET2
-      if variant.samples[0].gt_nums[2] == '0':
-        if het == HET2:  # 0/0 means this does not exist in this sample
-          continue
-        else:
-          het = HET1
-    except IndexError:  # No genotype info, will assume homozygous
-        pass
-
-    chrom += [Variation(start, stop, ref, alt, het)]
-
-  return chrom
-
-
-def parse_vcf(vcf_rdr, chrom_list):
-  """Given a vcf reader load in all the chromosomes."""
-  g1 = {}
-  for chrom in chrom_list:
-    try:
-      g1[chrom] = vcf2chrom(vcf_rdr.fetch(chrom, start=0))
-    except KeyError:
-      g1[chrom] = []
-
-  return g1
+from variation import Variation, HOMOZYGOUS, HET1, HET2, GT
 
 
 def chrom_crossover(c1, crossover_idx):
@@ -140,7 +102,7 @@ def pair_one_chrom(c1, c2, which_copy):
       l1, l2 = next(c1_iter, None), next(c2_iter, None)
       continue
 
-    if l1.start <= l2.start:
+    if l1.POS <= l2.POS:
       c3 += [l1._replace(het=HET1)]
       l1 = next(c1_iter, None)
     else:
@@ -193,7 +155,7 @@ def place_crossovers_on_chrom(c1, hot_spots, rng):
   if hot_spots.shape[0] == 0:
     return [0] * len(c1)  # No hotspots, no crossovers
   #x = numpy.array(c1, dtype=[('st', float), ('a', 'c'), ('b', 'c'), ('c', 'c'), ('d', 'c')])['st']
-  x = [v.start for v in c1]
+  x = [v.POS for v in c1]
   X, C = numpy.meshgrid(x, hot_spots[:, 0])
   _, A = numpy.meshgrid(x, hot_spots[:, 1])
   _, W = numpy.meshgrid(x, hot_spots[:, 2])
