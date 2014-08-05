@@ -42,8 +42,8 @@ merge(c1, c2) -> c3  merge the descriptions of the two chromosomes
 Though we could have written a class called genome, I prefer to write in as functional a style as possible for better
 code quality.
 """
-import blist
 import numpy
+import numpy.testing
 
 HOMOZYGOUS = 0
 HET1 = 1
@@ -115,7 +115,7 @@ def parse_vcf(vcf_rdr, chrom_list):
     try:
       g1[chrom] = vcf2chrom(vcf_rdr.fetch(chrom, start=0))
     except KeyError:
-      g1[chrom] = None
+      g1[chrom] = []
 
   return g1
 
@@ -160,7 +160,7 @@ def chrom_crossover_test():
 
 
 def crossover_event(g1, crossover_idx):
-  return {chrom: chrom_crossover(c1, c_idx) for (chrom, c1), c_idx in zip(g1.iteritems(), crossover_idx)}
+  return {chrom: chrom_crossover(g1[chrom], crossover_idx[chrom]) for chrom in g1}
 
 
 def crossover_event_test():
@@ -174,7 +174,7 @@ def crossover_event_test():
     (7, 8, 'G', 'T', HET2)
   ]
   g1 = {1: c1, 2: c2}
-  crossover_idx = [[1, 0, 1], [0, 1]]
+  crossover_idx = {1: [1, 0, 1], 2: [0, 1]}
 
   correct_g = {
     1: [
@@ -188,7 +188,6 @@ def crossover_event_test():
     ]
   }
   assert correct_g == crossover_event(g1, crossover_idx)
-
 
 
 def pair_one_chrom(c1, c2, which_copy):
@@ -317,7 +316,8 @@ def pair_one_chrom_test3():
 
 
 def fertilize_one(g1, g2, which_copy):
-  return {chrom: pair_one_chrom(c1, c2, wc) for (chrom, c1), (_, c2), wc in zip(g1.iteritems(), g2.iteritems(), which_copy)}
+  #return {chrom: pair_one_chrom(c1, c2, wc) for (chrom, c1), (_, c2), wc in zip(g1.iteritems(), g2.iteritems(), which_copy)}
+  return {chrom: pair_one_chrom(g1[chrom], g2[chrom], which_copy[chrom]) for chrom in g1}
 
 
 def fertilize_one_test():
@@ -338,7 +338,7 @@ def fertilize_one_test():
     (17, 18, 'G', 'T', HET1),
   ]
   g2 = {1: c21, 2: c22}
-  which_copy = [(0, 1), (1, 0)]
+  which_copy = {1: (0, 1), 2: (1, 0)}
 
   correct_g3 = {
     1: [
@@ -352,51 +352,96 @@ def fertilize_one_test():
   assert correct_g3 == fertilize_one(g1, g2, which_copy)
 
 
-
-
-def place_crossovers(g1, hot_spots, rng):
-  """Stock cross over generator. Place segments based on gaussian distribution around hotspots
+def place_crossovers_on_chrom(c1, hot_spots, rng):
+  """Stock cross over generator. Place segments based on gaussian distribution around hot_spots
+  The model is a mixture-gaussian model: the hotspot has an amplitude and a width (sd of the gaussian). The amplitude of
+  the gaussian at a certain locus determines the probability of the variants there crossing over. The probability of
+  crossover at any point is the sum of all Gaussians clipped at +1.0
 
   Parameters
   ----------
-  g1               : list of tuples
+  c1               : list of tuples
                      [(start, stop, <any other payload>) ...]. Should be sorted
-  hot_spots        : list
+  hot_spots        : numpy array
+                     n x 3
+                     [(center, max_p, width) ... ] 0 <= max_p <= 1
   rng              : random number generator
 
   Returns
   -------
-  idx              : list
+  idx              : numpy array
                      As used by chrom_crossover
   """
-  idx = sorted([i + r for r, i in zip(rng.randn(len(hot_spots)), hot_spots)])
-  for i in idx:
-    pass
+  if hot_spots.shape[0] == 0:
+    return [0] * len(c1)  # No hotspots, no crossovers
+  x = numpy.array(c1, dtype=[('st', float), ('a', 'c'), ('b', 'c'), ('c', 'c'), ('d', 'c')])['st']
+  X, C = numpy.meshgrid(x, hot_spots[:, 0])
+  _, A = numpy.meshgrid(x, hot_spots[:, 1])
+  _, W = numpy.meshgrid(x, hot_spots[:, 2])
+  p = (A * numpy.exp(-(((X - C) / W) ** 2))).sum(axis=0).clip(0, 1.0)
+  #return numpy.nonzero(rng.uniform(size=p.size) < p)[0]
+  return rng.uniform(size=p.size) < p
 
 
-  min_coord = min(cpy1[0][0], cpy2[0][0])
-  max_coord = max(cpy1[-1][1], cpy2[-1][1])
-  x_over_pts = rng.uniform(low=min_coord, high=max_coord, size=2 * cnt)
-  x_over_pts.sort()
+def place_crossovers_on_chrom_test():
+  """Cross over location generator"""
+  c1 = [
+    (1, 2, 'C', 'CAA', HET2),  # Tests homozygosity
+    (3, 6, 'CAG', 'C', HET1),  # Tests both variants are not on the copies chosen
+    (17, 18, 'G', 'T', HET2),  # Test zipper (several variants should come from c2 before we get to this)
+    (23, 26, 'GTT', 'TTG', HOMOZYGOUS),  # Tests handling of homozygous variants
+    (29, 30, 'T', 'G', HOMOZYGOUS)  # Tests unequal var list lengths
+  ]
 
-  # st, nd = 0
-  # while nd <
-  #
-  # rng.poisson(lam, 2)
+  hot_spots = numpy.array([[1, 1, .5]])
+  numpy.testing.assert_array_equal(numpy.array([1, 0, 0, 0, 0]),  # Hot spot is narrow and over first variant
+                                   place_crossovers_on_chrom(c1, hot_spots, numpy.random.RandomState(seed=1)))
+
+  hot_spots = numpy.array([[17, 1, .5]])
+  numpy.testing.assert_array_equal(numpy.array([0, 0, 1, 0, 0]),  # Hot spot is narrow and over third variant
+                                   place_crossovers_on_chrom(c1, hot_spots, numpy.random.RandomState(seed=1)))
+
+  hot_spots = numpy.array([[1, 1, .5], [17, 1, .5]])
+  numpy.testing.assert_array_equal(numpy.array([1, 0, 1, 0, 0]),  # Two narrow hot spots over first and third variants
+                                   place_crossovers_on_chrom(c1, hot_spots, numpy.random.RandomState(seed=1)))
+
+  hot_spots = numpy.array([[23, 1, 100], [17, 1, 100]])
+  numpy.testing.assert_array_equal(numpy.array([1, 1, 1, 1, 1]),  # Super broad hotspots, covers all
+                                   place_crossovers_on_chrom(c1, hot_spots, numpy.random.RandomState(seed=1)))
+
+  # A proper test is actually to do something like this (with c1 set as above)
+  # import pylab
+  # hot_spots = numpy.array([[3, 1, 2], [23, 1, 5]])
+  # rng = numpy.random.RandomState(seed=1)
+  # data = numpy.concatenate([numpy.nonzero(place_crossovers_on_chrom(c1, hot_spots, rng))[0] for n in range(100)])
+  # pylab.hist(data)
+  # pylab.plot()
+  # The denser your variant structure, the clearer is the sum of gaussian model
+
+
+def place_crossovers(g1, hot_spots, rng):
+  return {chrom: place_crossovers_on_chrom(g1[chrom], hot_spots[chrom], rng) for chrom in g1}
+
+
+def which_copies(g1, rng):
+  """Simple 50/50 coin toss to decide which chromosome copy gets picked during fertilization."""
+  return {chrom: wc for chrom, wc in zip(g1, rng.randint(0, 2, size=(len(g1), 2)))}
 
 
 def get_rngs(seed):
-  return [numpy.random.RandomState(seed=sub_seed) for sub_seed in numpy.random.RandomState(seed=seed).randint(100000000, size=3)]
+  """There are two rngs needed, one for the cross over hot spots and the other to decide which copy of a chromosome
+   goes to a gamete."""
+  return [numpy.random.RandomState(seed=sub_seed) for sub_seed in numpy.random.RandomState(seed=seed).randint(100000000, size=2)]
 
 
-def pairing(g1, g2, rng, num_children=2):
+def spawn(g1, g2, hot_spots={}, rngs=[], num_children=2):
   if g1.keys() != g2.keys():
     raise RuntimeError('Two genomes have unequal chromosomes')
+  children = []
   for _ in range(num_children):
-    pass
-  return [one_pairing(g1, g2, rng.randint(2, size=(len(g1), 2))) for _ in range(num_children)]
+    g1_cross = crossover_event(g1, place_crossovers(g1, hot_spots, rngs[0]))
+    g2_cross = crossover_event(g2, place_crossovers(g2, hot_spots, rngs[0]))
+    children.append(fertilize_one(g1_cross, g2_cross, which_copies(g1, rngs[1])))
+  return children
 
-
-def gen2vcf(g1):
-  pass
 
