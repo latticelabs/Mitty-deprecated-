@@ -1,7 +1,4 @@
 """
-This will gradually replace mutate, since it is effectively a superset of mutate. Mutate has a cooler name tho - maybe
-mutate will be the command line script that wraps population functions ...
-
 This module implements a haploid genome as a diff with respect to a reference (which never needs to be explicitly set).
 The contents of the class, therefore, correspond directly to a very strict version of the VCF and each genome can be
 written out as a VCF file.
@@ -46,7 +43,7 @@ Though we could have written a class called genome, I prefer to write in as func
 code quality.
 """
 import numpy
-from variation import Variation, HOMOZYGOUS, HET1, HET2, GT
+from variation import HOMOZYGOUS, HET1, HET2
 
 
 def chrom_crossover(c1, crossover_idx):
@@ -190,5 +187,10 @@ def spawn(g1, g2, hot_spots={}, rngs=[], num_children=2):
   return children
 
 
+def de_novo_genome(ref, variants):
+  """This uses variant plugins to generate a new highly differentiated individual"""
+
+
+
 def de_novo_population():
-  """This uses routines in mutate to introduce denovo mutations ."""
+  """This uses variant plugins to generate a """

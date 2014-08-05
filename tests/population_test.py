@@ -1,4 +1,5 @@
 import numpy.testing
+from mitty.variation import Variation
 from mitty.population import *
 
 
