@@ -43,10 +43,7 @@ Though we could have written a class called genome, I prefer to write in as func
 code quality.
 """
 import numpy
-
-HOMOZYGOUS = 0
-HET1 = 1
-HET2 = 2
+from variation import Variation, HOMOZYGOUS, HET1, HET2
 
 
 def vcf2chrom(vcf_rdr):
@@ -73,7 +70,7 @@ def vcf2chrom(vcf_rdr):
     except IndexError:  # No genotype info, will assume homozygous
         pass
 
-    chrom += [(start, stop, ref, alt, het)]
+    chrom += [Variation(start, stop, ref, alt, het)]
 
   return chrom
 
@@ -97,12 +94,12 @@ def chrom_crossover(c1, crossover_idx):
   for c, idx in zip(c1, crossover_idx):
     if idx == 0:
       c2 += [c]
-    elif c[4] == HOMOZYGOUS:
+    elif c.het == HOMOZYGOUS:
       c2 += [c]
-    elif c[4] == HET1:
-      c2 += [c[:4] + (HET2,)]
+    elif c.het == HET1:
+      c2 += [c._replace(het=HET2)]
     else:
-      c2 += [c[:4] + (HET1,)]
+      c2 += [c._replace(het=HET1)]
   return c2
 
 
@@ -130,39 +127,39 @@ def pair_one_chrom(c1, c2, which_copy):
   l1, l2 = next(c1_iter, None), next(c2_iter, None)
   while l1 is not None and l2 is not None:
 
-    if (l1[4] == HET1 and which_copy[0] == 1) or (l1[4] == HET2 and which_copy[0] == 0):
+    if (l1.het == HET1 and which_copy[0] == 1) or (l1.het == HET2 and which_copy[0] == 0):
       l1 = next(c1_iter, None)
       continue
 
-    if (l2[4] == HET1 and which_copy[1] == 1) or (l2[4] == HET2 and which_copy[1] == 0):
+    if (l2.het == HET1 and which_copy[1] == 1) or (l2.het == HET2 and which_copy[1] == 0):
       l2 = next(c2_iter, None)
       continue
 
-    if l1[:4] == l2[:4]:  # Homozygous
-      c3 += [l1[:4] + (HOMOZYGOUS,)]
+    if l1._replace(het=HOMOZYGOUS) == l2._replace(het=HOMOZYGOUS):  # Homozygous
+      c3 += [l1._replace(het=HOMOZYGOUS)]
       l1, l2 = next(c1_iter, None), next(c2_iter, None)
       continue
 
-    if l1[0] <= l2[0]:
-      c3 += [l1[:4] + (HET1,)]
+    if l1.start <= l2.start:
+      c3 += [l1._replace(het=HET1)]
       l1 = next(c1_iter, None)
     else:
-      c3 += [l2[:4] + (HET2,)]
+      c3 += [l2._replace(het=HET2)]
       l2 = next(c2_iter, None)
 
   # Now pick up any slack
   while l1 is not None:
-    if (l1[4] == HET1 and which_copy[0] == 1) or (l1[4] == HET2 and which_copy[0] == 0):
+    if (l1.het == HET1 and which_copy[0] == 1) or (l1.het == HET2 and which_copy[0] == 0):
       pass
     else:
-      c3 += [l1[:4] + (HET1,)]
+      c3 += [l1._replace(het=HET1)]
     l1 = next(c1_iter, None)
 
   while l2 is not None:
-    if (l2[4] == HET1 and which_copy[1] == 1) or (l2[4] == HET2 and which_copy[1] == 0):
+    if (l2.het == HET1 and which_copy[1] == 1) or (l2.het == HET2 and which_copy[1] == 0):
       pass
     else:
-      c3 += [l2[:4] + (HET2,)]
+      c3 += [l2._replace(het=HET2)]
     l2 = next(c2_iter, None)
 
   return c3
@@ -195,7 +192,8 @@ def place_crossovers_on_chrom(c1, hot_spots, rng):
   """
   if hot_spots.shape[0] == 0:
     return [0] * len(c1)  # No hotspots, no crossovers
-  x = numpy.array(c1, dtype=[('st', float), ('a', 'c'), ('b', 'c'), ('c', 'c'), ('d', 'c')])['st']
+  #x = numpy.array(c1, dtype=[('st', float), ('a', 'c'), ('b', 'c'), ('c', 'c'), ('d', 'c')])['st']
+  x = [v.start for v in c1]
   X, C = numpy.meshgrid(x, hot_spots[:, 0])
   _, A = numpy.meshgrid(x, hot_spots[:, 1])
   _, W = numpy.meshgrid(x, hot_spots[:, 2])
@@ -228,3 +226,7 @@ def spawn(g1, g2, hot_spots={}, rngs=[], num_children=2):
     g2_cross = crossover_event(g2, place_crossovers(g2, hot_spots, rngs[0]))
     children.append(fertilize_one(g1_cross, g2_cross, which_copies(g1, rngs[1])))
   return children
+
+
+def de_novo_population():
+  """This uses routines in mutate to introduce denovo mutations ."""
