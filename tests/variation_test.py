@@ -64,3 +64,8 @@ def vcf_round_trip_test():
   fp.seek(0)
   ln = fp.readlines()[1:]  # The first line is the VCF version which we ignore
   assert original == ln, [original, ln]
+
+  temp_vcf_fp, temp_vcf_name = tempfile.mkstemp(suffix='.vcf')  # No .gz extension on purpose
+  vcf_save_gz(g1, temp_vcf_name)
+  g1_load = parse_vcf(vcf.Reader(filename=temp_vcf_name + '.gz'), [1, 2])
+  assert g1 == g1_load
