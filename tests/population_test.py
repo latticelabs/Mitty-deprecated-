@@ -162,6 +162,10 @@ def place_crossovers_on_chrom_test():
     Variation(29, 30, 'T', 'G', HOMOZYGOUS)
   ]
 
+  hot_spots = numpy.array([])  # No hotspots, no crossover
+  numpy.testing.assert_array_equal(numpy.array([0, 0, 0, 0, 0]),  # Hot spot is narrow and over first variant
+                                   place_crossovers_on_chrom(c1, hot_spots, numpy.random.RandomState(seed=1)))
+
   hot_spots = numpy.array([[1, 1, .5]])
   numpy.testing.assert_array_equal(numpy.array([1, 0, 0, 0, 0]),  # Hot spot is narrow and over first variant
                                    place_crossovers_on_chrom(c1, hot_spots, numpy.random.RandomState(seed=1)))
