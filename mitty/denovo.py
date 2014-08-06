@@ -196,7 +196,7 @@ def main(wg_file_name, vcf_file_name, param_file_name, master_seed=None):
     models = load_variant_models(params)
     if master_seed is not None:
       for model in models:
-        model["params"]["master_seed"] = numpy.random.RandomState(seed=int(master_seed))
+        model["params"]["master_seed"] = numpy.random.RandomState(seed=int(master_seed)).randint(100000000, size=4)
     variant_generator_list = [model["model"].variant_generator(ref_fp, **model["params"]) for model in models]
     variation.vcf_save_gz(create_denovo_genome(ref_fp, variant_generator_list), vcf_file_name)
 
