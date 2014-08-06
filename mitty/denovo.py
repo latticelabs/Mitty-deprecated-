@@ -140,6 +140,7 @@ def arbitrate_variant_collisions(g1, mask):
       if v.het != HET1:  # Either HOMOZYGOUS or HET2
         this_mask[1, x0:x1] = 1
     g2[chrom] = this_g
+  logger.debug('{:d} of {:d} variants placed'.format(sum([len(c) for c in g2.values()]), sum([len(c) for c in g1.values()])))
   return g2
 
 
