@@ -108,16 +108,12 @@ def pair_one_chrom(c1, c2, which_copy):
 
   # Now pick up any slack
   while l1 is not None:
-    if (l1.het == HET1 and which_copy[0] == 1) or (l1.het == HET2 and which_copy[0] == 0):
-      pass
-    else:
+    if (l1.het == HOMOZYGOUS) or (l1.het == HET1 and which_copy[0] == 0) or (l1.het == HET2 and which_copy[0] == 1):
       c3 += [l1._replace(het=HET1)]
     l1 = next(c1_iter, None)
 
   while l2 is not None:
-    if (l2.het == HET1 and which_copy[1] == 1) or (l2.het == HET2 and which_copy[1] == 0):
-      pass
-    else:
+    if (l2.het == HOMOZYGOUS) or (l2.het == HET1 and which_copy[1] == 0) or (l2.het == HET2 and which_copy[1] == 1):
       c3 += [l2._replace(het=HET2)]
     l2 = next(c2_iter, None)
 
