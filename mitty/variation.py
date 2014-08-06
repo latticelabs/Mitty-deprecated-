@@ -20,7 +20,7 @@ Variation = namedtuple('Variation', 'POS, stop, REF, ALT, het')
 
 def sort_vcf(in_vcf_name, out_vcf_name):
   #vcf-sort the.vcf > sorted.vcf
-  logger.debug('Sorting {:s}'.format(in_vcf_name))
+  logger.debug('Sorting {:s} to {:s}'.format(in_vcf_name, out_vcf_name))
   with open(out_vcf_name, 'w') as fp:
     subprocess.call(['vcf-sort', in_vcf_name], stdout=fp)
 
@@ -28,7 +28,7 @@ def sort_vcf(in_vcf_name, out_vcf_name):
 def compress_and_index_vcf(in_vcf_name, out_vcf_name):
   #bgzip -c sorted.vcf > sorted.vcf.gz
   #tabix sorted.vcf.gz
-  logger.debug('Compressing and indexing {:s}'.format(in_vcf_name))
+  logger.debug('Compressing and indexing {:s} to {:s}'.format(in_vcf_name, out_vcf_name))
   pysam.tabix_compress(in_vcf_name, out_vcf_name, force=True)
   pysam.tabix_index(out_vcf_name, force=True, preset='vcf')
 
@@ -97,12 +97,11 @@ def vcf_save_gz(g1, vcf_gz_name):
   vcf_name, ext = os.path.splitext(vcf_gz_name)
   if ext != '.gz':  # Like I said, not a drama
     vcf_name += '_srt.vcf'
+    vcf_gz_name += '.gz'
 
   temp_vcf_fp, temp_vcf_name = tempfile.mkstemp(suffix='.vcf')
-  vcf_save(g1, temp_vcf_fp)
-
-  #with open(temp_vcf_name, 'w') as fp:
-  #  vcf_save(g1, fp)
+  with open(temp_vcf_name, 'w') as fp:
+    vcf_save(g1, fp)
 
   sort_vcf(temp_vcf_name, vcf_name)
   compress_and_index_vcf(vcf_name, vcf_gz_name)
