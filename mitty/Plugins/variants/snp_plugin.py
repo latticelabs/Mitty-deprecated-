@@ -87,6 +87,7 @@ def variant_generator(ref_fp=None,
 
     yield {chrom: [Variation(pos + 1, pos + 2, ref, alt, het) for pos, ref, alt, het, valid in zip(snp_locs, refs_s, alts_s, het_type, alts) if valid]}
     # +1 because VCF files are 1 indexed
+    #alts will be 0 if ref is not one of ACTG
 
 if __name__ == "__main__":
   print __explain__
