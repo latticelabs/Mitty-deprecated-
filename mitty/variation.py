@@ -23,6 +23,11 @@ class Variation(Structure):
               ("ALT", c_char_p),
               ("het", c_uint8)]
 
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+      return not self.__eq__(other)
 
 def sort_vcf(in_vcf_name, out_vcf_name):
   #vcf-sort the.vcf > sorted.vcf

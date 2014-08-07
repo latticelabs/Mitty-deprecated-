@@ -1,9 +1,10 @@
+import vcf
+import io
 from mitty.variation import *
 from . import *
 
 
 def vcf2chrom_test():
-  import vcf, io
 
   #
   #  INS     DEL--     SNP      DEL---     INV-----
@@ -32,7 +33,6 @@ def vcf2chrom_test():
 
 def vcf2chrom_test2():
   """Read VCF file with no sample/genotype information."""
-  import vcf, io
 
   vcf_str = (
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
@@ -56,7 +56,7 @@ def vcf2chrom_test2():
 
 def vcf_round_trip_test():
   """VCF round trip (load and then save)."""
-  import io
+
   original = open(small_vcf_name, 'r').readlines()
   g1 = parse_vcf(vcf.Reader(filename=small_vcf_name + '.gz'), [1, 2])
   fp = io.BytesIO()
