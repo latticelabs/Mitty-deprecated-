@@ -43,7 +43,7 @@ Though we could have written a class called genome, I prefer to write in as func
 code quality.
 """
 import numpy
-from variation import HOMOZYGOUS, HET1, HET2
+from variation import vcopy, HOMOZYGOUS, HET1, HET2
 
 
 def chrom_crossover(c1, crossover_idx):
@@ -51,14 +51,13 @@ def chrom_crossover(c1, crossover_idx):
   """
   c2 = []
   for c, idx in zip(c1, crossover_idx):
-    if idx == 0:
-      c2 += [c]
-    elif c.het == HOMOZYGOUS:
-      c2 += [c]
-    elif c.het == HET1:
-      c2 += [c._replace(het=HET2)]
-    else:
-      c2 += [c._replace(het=HET1)]
+    new_c = vcopy(c)  # Valid for no crossover or HOMOZYGOUS
+    if idx == 1 and c.het != HOMOZYGOUS:
+      if c.het == HET1:
+        new_c.het = HET2
+      else:
+        new_c.het = HET1
+    c2 += [new_c]
   return c2
 
 
@@ -94,27 +93,27 @@ def pair_one_chrom(c1, c2, which_copy):
       l2 = next(c2_iter, None)
       continue
 
-    if l1._replace(het=HOMOZYGOUS) == l2._replace(het=HOMOZYGOUS):  # Homozygous
-      c3 += [l1._replace(het=HOMOZYGOUS)]
+    if vcopy(l1, het=HOMOZYGOUS) == vcopy(l2, het=HOMOZYGOUS):  # Homozygous
+      c3 += [vcopy(l1, het=HOMOZYGOUS)]
       l1, l2 = next(c1_iter, None), next(c2_iter, None)
       continue
 
     if l1.POS <= l2.POS:
-      c3 += [l1._replace(het=HET1)]
+      c3 += [vcopy(l1, het=HET1)]
       l1 = next(c1_iter, None)
     else:
-      c3 += [l2._replace(het=HET2)]
+      c3 += [vcopy(l2, het=HET2)]
       l2 = next(c2_iter, None)
 
   # Now pick up any slack
   while l1 is not None:
     if (l1.het == HOMOZYGOUS) or (l1.het == HET1 and which_copy[0] == 0) or (l1.het == HET2 and which_copy[0] == 1):
-      c3 += [l1._replace(het=HET1)]
+      c3 += [vcopy(l1, het=HET1)]
     l1 = next(c1_iter, None)
 
   while l2 is not None:
     if (l2.het == HOMOZYGOUS) or (l2.het == HET1 and which_copy[1] == 0) or (l2.het == HET2 and which_copy[1] == 1):
-      c3 += [l2._replace(het=HET2)]
+      c3 += [vcopy(l2, het=HET2)]
     l2 = next(c2_iter, None)
 
   return c3
