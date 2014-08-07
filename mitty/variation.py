@@ -4,10 +4,9 @@ all the mutation plugins
 (start, stop, REF, ALT, het)
 
 """
-import vcf
+from ctypes import *
 import pysam
 import subprocess
-from collections import namedtuple
 import logging
 logger = logging.getLogger(__name__)
 # Types of het
@@ -15,7 +14,14 @@ HOMOZYGOUS = 0
 HET1 = 1
 HET2 = 2
 GT = ['1/1', '1/0', '0/1']  # This needs to match rev 3 definitions
-Variation = namedtuple('Variation', 'POS, stop, REF, ALT, het')
+
+
+class Variation(Structure):
+  _fields_ = [("POS", c_int32),
+              ("stop", c_int32),
+              ("REF", c_char_p),
+              ("ALT", c_char_p),
+              ("het", c_uint8)]
 
 
 def sort_vcf(in_vcf_name, out_vcf_name):
@@ -82,12 +88,15 @@ def vcf_save(g1, fp):
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
   )
   # Write lines
+  wr = fp.write
   for chrom, variants in g1.iteritems():  # We don't bother sorting - we do that when we bgzip and index it
+    ch = str(chrom)
     for var in variants:
       # In the VCF file no REF or ALT is indicated by a .
-      var_ = var._replace(REF=var.REF or '.', ALT=var.ALT or '.')
+      var.REF = var.REF or '.'
+      var.ALT = var.ALT or '.'
       #  CHROM    POS   ID   REF   ALT   QUAL FILTER INFO FORMAT tsample
-      fp.write("{chrom}\t{POS}\t.\t{REF}\t{ALT}\t100\tPASS\t.\tGT\t{gt}\n".format(chrom=chrom, gt=GT[var.het], **var_.__dict__))
+      wr(ch + "\t" + str(var.POS) + "\t.\t" + var.REF + "\t" + var.ALT + "\t100\tPASS\t.\tGT\t" + GT[var.het] + "\n")
 
 
 def vcf_save_gz(g1, vcf_gz_name):
