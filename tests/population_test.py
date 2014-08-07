@@ -23,7 +23,7 @@ def chrom_crossover_test():
   ]
   c1_c = chrom_crossover(c1, crossover_idx)
   assert correct_chrom == c1_c, c1_c
-  assert c1[0] == (1, 2, 'C', 'CAA', HET2)  # We shouldn't be changing our original
+  assert c1[0] == Variation(1, 2, 'C', 'CAA', HET2)  # We shouldn't be changing our original
 
 
 def crossover_event_test():
