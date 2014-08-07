@@ -88,7 +88,9 @@ def initialize_mask(seq_fp, g1=None):
   g1 is optional and indicates existing variants which should be placed on the mask. No checking is done to see if these
   variants collide (that's the caller's job)
   """
+  # sparse matrix is 5x slower than ordinary matrix, but is the only way to handle human genome sized data
   mask = {int(c): sparse.lil_matrix((2, seq_fp['sequence/{:s}/1'.format(str(c))].size + 1), dtype='i1') for c in seq_fp['sequence']}
+  #mask = {int(c): numpy.zeros((2, seq_fp['sequence/{:s}/1'.format(str(c))].size + 1), dtype='i1') for c in seq_fp['sequence']}
   if g1 is not None:
     fill_mask(mask, g1)
   return mask
@@ -122,8 +124,10 @@ def arbitrate_variant_collisions(g1, mask):
     for v in variants:
       x0 = v.POS
       x1 = v.stop
-      copy_1 = this_mask[0, x0 - 1:x1 + 1].getnnz()
-      copy_2 = this_mask[1, x0 - 1:x1 + 1].getnnz()  # We use a 1 base buffer around variants
+      # copy_1 = this_mask[0][0, x0 - 1:x1 + 1].getnnz()
+      # copy_2 = this_mask[1][0, x0 - 1:x1 + 1].getnnz()  # We use a 1 base buffer around variants
+      copy_1 = numpy.count_nonzero(this_mask[0, x0 - 1:x1 + 1])
+      copy_2 = numpy.count_nonzero(this_mask[1, x0 - 1:x1 + 1])  # We use a 1 base buffer around variants
 
       # If there are collisions, simply skip this variant
       if copy_1 and v.het != HET2:
@@ -189,7 +193,7 @@ def create_denovo_genome(seq_fp, variant_generator_list):
   return g1
 
 
-def main(wg_file_name, vcf_file_name, param_file_name, master_seed=None):
+def main(wg_file_name, vcf_file_name=None, param_file_name='', master_seed=None):
   """This does what the old mutate.py script used to do."""
   logger.debug('Reference file {:s}'.format(wg_file_name))
   with h5py.File(wg_file_name, 'r') as ref_fp:
@@ -199,7 +203,10 @@ def main(wg_file_name, vcf_file_name, param_file_name, master_seed=None):
       for model in models:
         model["params"]["master_seed"] = numpy.random.RandomState(seed=int(master_seed)).randint(100000000, size=4)
     variant_generator_list = [model["model"].variant_generator(ref_fp, **model["params"]) for model in models]
-    variation.vcf_save_gz(create_denovo_genome(ref_fp, variant_generator_list), vcf_file_name)
+    g1 = create_denovo_genome(ref_fp, variant_generator_list)
+    if vcf_file_name is not None:
+      variation.vcf_save_gz(g1, vcf_file_name)
+  return g1
 
 
 if __name__ == "__main__":
