@@ -73,6 +73,7 @@ import h5py
 import numpy
 import scipy.sparse as sparse
 import bitarray
+import blist
 import importlib
 import json
 import docopt
@@ -89,9 +90,6 @@ def initialize_mask(seq_fp, g1=None):
   g1 is optional and indicates existing variants which should be placed on the mask. No checking is done to see if these
   variants collide (that's the caller's job)
   """
-  # sparse matrix is 5x slower than ordinary matrix, and it turns out genome sized masks are not a problem
-  # mask = {int(c): sparse.lil_matrix((2, seq_fp['sequence/{:s}/1'.format(str(c))].size + 1), dtype='i1') for c in seq_fp['sequence']}
-  #mask = {int(c): numpy.zeros((2, seq_fp['sequence/{:s}/1'.format(str(c))].size + 1), dtype='i1') for c in seq_fp['sequence']}
   mask = {int(c): [bitarray.bitarray(seq_fp['sequence/{:s}/1'.format(str(c))].size + 1) for _ in [0, 1]]
           for c in seq_fp['sequence']}
   for c in seq_fp['sequence']:
@@ -108,12 +106,7 @@ def fill_mask(mask, g1):
   for chrom, variants in g1.iteritems():
     this_mask = mask[chrom]
     for v in variants:
-      x0 = v.POS
-      x1 = v.stop
-      # if v.het == HOMOZYGOUS or v.het == HET1:
-      #   this_mask[0, x0:x1] = 1
-      # if v.het == HOMOZYGOUS or v.het == HET2:
-      #   this_mask[1, x0:x1] = 1
+      x0, x1 = v.POS, v.stop
       if v.het == HOMOZYGOUS or v.het == HET1:
         this_mask[0][x0:x1] = 1
       if v.het == HOMOZYGOUS or v.het == HET2:
@@ -127,18 +120,12 @@ def arbitrate_variant_collisions(g1, mask):
   Mask is modified in place. The order of the variants determines their priority - earlier variants get preference
   in case of collisions
   """
-  cnz = numpy.count_nonzero
   g2 = {}
   for chrom, variants in g1.iteritems():
     this_mask = mask[chrom]
     this_g = []
     for v in variants:
-      x0 = v.POS
-      x1 = v.stop
-      # copy_1 = this_mask[0, x0 - 1:x1 + 1].getnnz()
-      # copy_2 = this_mask[1, x0 - 1:x1 + 1].getnnz()  # We use a 1 base buffer around variants
-      # copy_1 = cnz(this_mask[0, x0 - 1:x1 + 1])
-      # copy_2 = cnz(this_mask[1, x0 - 1:x1 + 1])  # We use a 1 base buffer around variants
+      x0, x1 = v.POS, v.stop
       copy_1 = this_mask[0][x0 - 1:x1 + 1].any()
       copy_2 = this_mask[1][x0 - 1:x1 + 1].any()  # We use a 1 base buffer around variants
 
@@ -152,10 +139,6 @@ def arbitrate_variant_collisions(g1, mask):
 
       # No collisions, valid variant, add to mask
       this_g += [v]
-      # if v.het != HET2:  # Either HOMOZYGOUS or HET1
-      #   this_mask[0, x0:x1] = 1
-      # if v.het != HET1:  # Either HOMOZYGOUS or HET2
-      #   this_mask[1, x0:x1] = 1
       if v.het != HET2:  # Either HOMOZYGOUS or HET1
         this_mask[0][x0:x1] = 1
       if v.het != HET1:  # Either HOMOZYGOUS or HET2
