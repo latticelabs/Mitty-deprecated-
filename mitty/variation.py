@@ -24,10 +24,25 @@ class Variation(Structure):
               ("het", c_uint8)]
 
   def __eq__(self, other):
-    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+    # This does not do a isinstance check for speed reasons.
+    if self.POS == other.POS and self.stop == other.stop and self.REF == other.REF and self.ALT == other.ALT and self.het == other.het:
+      return True
+    else:
+      return False
 
   def __ne__(self, other):
       return not self.__eq__(other)
+
+  def __repr__(self):
+    return '(POS={0},stop={1},REF={2},ALT={3},het={4})'.format(self.POS, self.stop, self.REF, self.ALT, GT[self.het])
+
+
+def vcopy(v, het=None):
+  if het is None:
+    return Variation(v.POS, v.stop, v.REF, v.ALT, v.het)
+  else:
+    return Variation(v.POS, v.stop, v.REF, v.ALT, het)
+
 
 def sort_vcf(in_vcf_name, out_vcf_name):
   #vcf-sort the.vcf > sorted.vcf
@@ -98,10 +113,10 @@ def vcf_save(g1, fp):
     ch = str(chrom)
     for var in variants:
       # In the VCF file no REF or ALT is indicated by a .
-      var.REF = var.REF or '.'
-      var.ALT = var.ALT or '.'
+      ref = var.REF if var.REF != '' else '.'
+      alt = var.ALT if var.ALT != '' else '.'
       #  CHROM    POS   ID   REF   ALT   QUAL FILTER INFO FORMAT tsample
-      wr(ch + "\t" + str(var.POS) + "\t.\t" + var.REF + "\t" + var.ALT + "\t100\tPASS\t.\tGT\t" + GT[var.het] + "\n")
+      wr(ch + "\t" + str(var.POS) + "\t.\t" + ref + "\t" + alt + "\t100\tPASS\t.\tGT\t" + GT[var.het] + "\n")
 
 
 def vcf_save_gz(g1, vcf_gz_name):
