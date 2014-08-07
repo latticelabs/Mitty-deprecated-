@@ -71,9 +71,7 @@ __version__ = '0.5.0'
 
 import h5py
 import numpy
-import scipy.sparse as sparse
 import bitarray
-import blist
 import importlib
 import json
 import docopt
