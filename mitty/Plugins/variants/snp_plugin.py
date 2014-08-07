@@ -75,7 +75,8 @@ def variant_generator(ref_fp=None,
 
   for chrom in chromosome:
     ref_seq = ref_fp['sequence/{:d}/1'.format(chrom)][:]
-    snp_locs, = numpy.nonzero(base_loc_rng.rand(len(ref_seq)) < p)
+    #snp_locs, = numpy.nonzero(base_loc_rng.rand(len(ref_seq)) < p)
+    snp_locs = util.place_poisson(base_loc_rng, p, ref_seq.size)
     het_type = util.het(snp_locs.size, phet, het_rng, copy_rng)
     base_subs = base_sub_rng.randint(3, size=snp_locs.size)
 
