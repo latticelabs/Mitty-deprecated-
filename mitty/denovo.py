@@ -124,17 +124,15 @@ def arbitrate_variant_collisions(g1, mask):
     for v in variants:
       x0 = v.POS
       x1 = v.stop
-      # copy_1 = this_mask[0][0, x0 - 1:x1 + 1].getnnz()
-      # copy_2 = this_mask[1][0, x0 - 1:x1 + 1].getnnz()  # We use a 1 base buffer around variants
-      copy_1 = numpy.count_nonzero(this_mask[0, x0 - 1:x1 + 1])
-      copy_2 = numpy.count_nonzero(this_mask[1, x0 - 1:x1 + 1])  # We use a 1 base buffer around variants
+      copy_1 = this_mask[0, x0 - 1:x1 + 1].getnnz()
+      copy_2 = this_mask[1, x0 - 1:x1 + 1].getnnz()  # We use a 1 base buffer around variants
 
       # If there are collisions, simply skip this variant
       if copy_1 and v.het != HET2:
-        logger.debug('Collision at {:d}:1 {:d} - {:d}'.format(x0, x0, x1))
+        #logger.debug('Collision at {:d}:1 {:d} - {:d}'.format(x0, x0, x1))
         continue
       if copy_2 and v.het != HET1:
-        logger.debug('Collision at {:d}:2 {:d} - {:d}'.format(x0, x0, x1))
+        #logger.debug('Collision at {:d}:2 {:d} - {:d}'.format(x0, x0, x1))
         continue
 
       # No collisions, valid variant, add to mask
