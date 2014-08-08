@@ -4,7 +4,7 @@ from . import *
 
 
 def arbitrate_variant_collisions_test():
-  mask = {c: sparse.lil_matrix((2, 1000), dtype='i1') for c in [1, 2]}
+  mask = init_mask({c: 1000 for c in [1, 2]})
   g1 = {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)],
         2: [Variation(7, 10, 'CAA', 'C', HET2)]}  # This should be placed with no problems
   g2 = {1: [Variation(1, 2, 'C', 'CAA', HET2)],  # This will collide
@@ -18,7 +18,7 @@ def arbitrate_variant_collisions_test():
 
 
 def add_variants_to_genome_test():
-  mask = {c: sparse.lil_matrix((2, 1000), dtype='i1') for c in [1, 2]}
+  mask = init_mask({c: 1000 for c in [1, 2]})
   g1 = {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)],
         2: [Variation(7, 10, 'CAA', 'C', HET2)]}  # This should be placed with no problems
   fill_mask(mask, g1)
@@ -32,8 +32,7 @@ def add_variants_to_genome_test():
 
   correct_final_g = {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)],
                      2: [Variation(7, 10, 'CAA', 'C', HET2), Variation(7, 8, 'G', 'T', HET1),
-                         Variation(17, 18, 'G', 'T', HET1)]
-                    }
+                         Variation(17, 18, 'G', 'T', HET1)]}
 
   vg = variant_generator()
   add_variants_to_genome(g1, mask, vg)

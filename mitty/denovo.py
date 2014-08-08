@@ -88,13 +88,18 @@ def initialize_mask(seq_fp, g1=None):
   g1 is optional and indicates existing variants which should be placed on the mask. No checking is done to see if these
   variants collide (that's the caller's job)
   """
-  mask = {int(c): [bitarray.bitarray(seq_fp['sequence/{:s}/1'.format(str(c))].size + 1) for _ in [0, 1]]
-          for c in seq_fp['sequence']}
-  for c in seq_fp['sequence']:
-    mask[int(c)][0][:], mask[int(c)][1][:] = 0, 0
-
+  m_def = {c: seq_fp['sequence/{:s}/1'.format(str(c))].size for c in seq_fp['sequence']}
+  mask = init_mask(m_def)
   if g1 is not None:
     fill_mask(mask, g1)
+  return mask
+
+
+def init_mask(m_def):
+  """We broke out this part from initialize_mask to help with testing."""
+  mask = {int(c): [bitarray.bitarray(seq_len + 1) for _ in [0, 1]] for c, seq_len in m_def.iteritems()}
+  for c in m_def:
+    mask[int(c)][0][:], mask[int(c)][1][:] = 0, 0
   return mask
 
 
