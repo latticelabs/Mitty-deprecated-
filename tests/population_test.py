@@ -1,7 +1,9 @@
+from . import *
+import h5py
 import numpy.testing
 from mitty.variation import Variation
 from mitty.population import *
-
+import mitty.denovo as denovo
 
 def chrom_crossover_test():
   c1 = [
@@ -193,6 +195,7 @@ def place_crossovers_on_chrom_test():
 
 
 def spawn_test():
+  """Spawn from parents."""
   c11 = [
     Variation(1, 2, 'C', 'CAA', HET1)
   ]
@@ -222,3 +225,26 @@ def spawn_test():
            2: [Variation(POS=7, stop=8, REF='G', ALT='T', het=HET2),
                Variation(POS=17, stop=18, REF='G', ALT='T', het=HET1)]}] == spawn(g1, g2, hot_spots, rngs)
 
+
+# This test uses the stock SNP which must exist for this test to pass
+def de_novo_population_test():
+  """Create de novo population (stock SNPs)."""
+  param_json = {
+    "variant_models": [
+        {
+          "snp": {
+            "chromosome": [2],
+            "phet": 0.5,
+            "p": 0.01,
+            "master_seed": 1
+          }
+        }
+    ]
+  }
+  models = denovo.load_variant_models(param_json)
+  with h5py.File(wg_name, 'r') as ref_fp:
+    #variant_generator_list = [model["model"].variant_generator(ref_fp, **model["params"]) for model in models]
+    pop = de_novo_population(ref_fp, models, size=10)
+
+  assert len(pop) == 10
+  assert isinstance(pop[0][2][0], Variation)
