@@ -44,6 +44,7 @@ code quality.
 """
 import numpy
 from variation import vcopy, HOMOZYGOUS, HET1, HET2
+import mitty.denovo
 
 
 def chrom_crossover(c1, crossover_idx):
@@ -182,10 +183,13 @@ def spawn(g1, g2, hot_spots={}, rngs=[], num_children=2):
   return children
 
 
-def de_novo_genome(ref, variants):
-  """This uses variant plugins to generate a new highly differentiated individual"""
+def de_novo_population(ref_fp, models, size=10):
+  """This uses variant plugins and denovo.py functions to generate a population of highly differentiated individuals"""
+  pop = [None] * size
+  for n in range(size):
+    variant_generator_list = [model["model"].variant_generator(ref_fp, **model["params"]) for model in models]
+    pop[n] = mitty.denovo.create_denovo_genome(ref_fp, variant_generator_list)
+  return pop
 
 
-
-def de_novo_population():
-  """This uses variant plugins to generate a """
+#def one_generation(pop, hot_spots={}, rngs=[], num_children_per_couple=2):
