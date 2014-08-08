@@ -193,5 +193,32 @@ def place_crossovers_on_chrom_test():
 
 
 def spawn_test():
-  pass
+  c11 = [
+    Variation(1, 2, 'C', 'CAA', HET1)
+  ]
+  c12 = [
+    Variation(7, 8, 'G', 'T', HET2),
+    Variation(17, 18, 'G', 'T', HET2),
+  ]
+  g1 = {1: c11, 2: c12}
+
+  c21 = [
+    Variation(1, 2, 'C', 'CAA', HET2)
+  ]
+  c22 = [
+    Variation(7, 8, 'G', 'T', HET1),
+    Variation(17, 18, 'G', 'T', HET1),
+  ]
+  g2 = {1: c21, 2: c22}
+
+  # These hotspots ensure crossing over at these locii
+  hot_spots = {1: numpy.array([[1, 1, .5]]), 2: numpy.array([[7, 1, .5]])}
+
+  rngs = get_rngs(1)
+  assert [{1: [Variation(POS=1, stop=2, REF='C', ALT='CAA', het=HOMOZYGOUS)],
+           2: [Variation(POS=7, stop=8, REF='G', ALT='T', het=HET1),
+               Variation(POS=17, stop=18, REF='G', ALT='T', het=HET2)]},
+          {1: [Variation(POS=1, stop=2, REF='C', ALT='CAA', het=HET1)],
+           2: [Variation(POS=7, stop=8, REF='G', ALT='T', het=HET2),
+               Variation(POS=17, stop=18, REF='G', ALT='T', het=HET1)]}] == spawn(g1, g2, hot_spots, rngs)
 
