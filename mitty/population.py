@@ -167,23 +167,24 @@ def which_copies(g1, rng):
 
 
 def get_rngs(seed):
-  """There are two rngs needed, one for the cross over hot spots and the other to decide which copy of a chromosome
-   goes to a gamete."""
-  return [numpy.random.RandomState(seed=sub_seed) for sub_seed in numpy.random.RandomState(seed=seed).randint(100000000, size=2)]
+  """Creates independent RNGs for our random processes from the master seed given."""
+  rng_names = ['cross_over', 'chrom_copy', 'couple_chose']
+  return {k: numpy.random.RandomState(seed=sub_seed)
+          for k,sub_seed in zip(rng_names, numpy.random.RandomState(seed=seed).randint(100000000, size=len(rng_names)))}
 
 
-def spawn(g1, g2, hot_spots={}, rngs=[], num_children=2):
+def spawn(g1, g2, hot_spots={}, rngs={}, num_children=2):
   if g1.keys() != g2.keys():
     raise RuntimeError('Two genomes have unequal chromosomes')
   children = []
   for _ in range(num_children):
-    g1_cross = crossover_event(g1, place_crossovers(g1, hot_spots, rngs[0]))
-    g2_cross = crossover_event(g2, place_crossovers(g2, hot_spots, rngs[0]))
-    children.append(fertilize_one(g1_cross, g2_cross, which_copies(g1, rngs[1])))
+    g1_cross = crossover_event(g1, place_crossovers(g1, hot_spots, rngs['cross_over']))
+    g2_cross = crossover_event(g2, place_crossovers(g2, hot_spots, rngs['cross_over']))
+    children.append(fertilize_one(g1_cross, g2_cross, which_copies(g1, rngs['chrom_copy'])))
   return children
 
 
-def de_novo_population(ref_fp, models, size=10):
+def de_novo_population(ref_fp, models=[], size=10):
   """This uses variant plugins and denovo.py functions to generate a population of highly differentiated individuals"""
   pop = [None] * size
   for n in range(size):
@@ -192,4 +193,8 @@ def de_novo_population(ref_fp, models, size=10):
   return pop
 
 
-#def one_generation(pop, hot_spots={}, rngs=[], num_children_per_couple=2):
+def one_generation(pop, hot_spots={}, rngs=[], num_children_per_couple=2, ref_fp=None, models=[]):
+  """We take pairs from the population without replacement, cross over the chromosomes, sprinkle in denovo mutations
+  then shuffle the chromosomes during fertilization."""
+
+
