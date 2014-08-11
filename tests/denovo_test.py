@@ -17,7 +17,7 @@ def arbitrate_variant_collisions_test():
   assert {1: [], 2: [Variation(7, 8, 'G', 'T', HET1), Variation(17, 18, 'G', 'T', HET1)]} == g2_, g2_
 
 
-def add_variants_to_genome_test():
+def add_variant_model_to_genome_test():
   mask = init_mask({c: 1000 for c in [1, 2]})
   g1 = {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)],
         2: [Variation(7, 10, 'CAA', 'C', HET2)]}  # This should be placed with no problems
@@ -35,7 +35,7 @@ def add_variants_to_genome_test():
                          Variation(17, 18, 'G', 'T', HET1)]}
 
   vg = variant_generator()
-  add_variants_to_genome(g1, mask, vg)
+  add_variant_model_to_genome(g1, mask, vg)
 
   assert correct_final_g == g1, g1
 
