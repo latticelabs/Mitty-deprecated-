@@ -119,7 +119,7 @@ def vcf_save(g1, fp):
       wr(ch + "\t" + str(var.POS) + "\t.\t" + ref + "\t" + alt + "\t100\tPASS\t.\tGT\t" + GT[var.het] + "\n")
 
 
-def vcf_save_gz(g1, vcf_gz_name):
+def vcf_save_gz(g1, vcf_gz_name, sort=False):
   """Also sort it, bgzip and index it. File name should have .gz at the end, but it's not a drama if doesnt. Sigh"""
   import tempfile, os
 
@@ -132,6 +132,7 @@ def vcf_save_gz(g1, vcf_gz_name):
   with open(temp_vcf_name, 'w') as fp:
     vcf_save(g1, fp)
 
-  sort_vcf(temp_vcf_name, vcf_name)
+  if sort:
+    sort_vcf(temp_vcf_name, vcf_name)
   compress_and_index_vcf(vcf_name, vcf_gz_name)
   os.remove(temp_vcf_name)
