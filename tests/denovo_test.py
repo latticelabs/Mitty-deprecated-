@@ -43,8 +43,7 @@ def add_variant_model_to_genome_test():
 # This test uses the stock SNP which must exist for this test to pass
 def load_variant_models_test():
   """Loading SNP variant as a test."""
-  param_json = {
-    "variant_models": [
+  param_json = [
         {
           "snp": {
              "phet": 0.5,
@@ -60,7 +59,6 @@ def load_variant_models_test():
           }
         }
       ]
-  }
   mdl = load_variant_models(param_json)
   assert hasattr(mdl[0]["model"], 'variant_generator')
   assert 'master_seed' in mdl[1]["params"]
@@ -71,7 +69,7 @@ def load_variant_models_test():
 def main_test():
   import json, vcf
   param_json = {
-    "variant_models": [
+    "denovo_variant_models": [
       {
         "snp": {
            "chromosome": [1, 2],

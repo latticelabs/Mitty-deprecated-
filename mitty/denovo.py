@@ -177,27 +177,10 @@ def create_denovo_genome(ref_fp, models=[]):
   return g1
 
 
-def load_variant_models(param_json):
-  """Given a list of models and parameters load the models in.
-  {
-    "variant_models": [
-      {
-        "model_name": {
-            "param1": 1,
-            "param2": "Hi"
-        }
-      },
-      {
-        "model_name": {
-            "param1": 2,
-            "param2": "Bye"
-        }
-      },
-    ]
-  }
-  """
+def load_variant_models(model_param_json):
+  """Given a list of models and parameters load the models in"""
   return [{"model": importlib.import_module('mitty.Plugins.variants.' + k + '_plugin'), "params": v}
-          for model_json in param_json['variant_models']
+          for model_json in model_param_json
           for k, v in model_json.iteritems()]  # There really is only one key (the model name) and the value is the
                                                # parameter list
 
@@ -217,7 +200,7 @@ def main(wg_file_name, vcf_file_name=None, param_file_name='', master_seed=None)
   logger.debug('Reference file {:s}'.format(wg_file_name))
   with h5py.File(wg_file_name, 'r') as ref_fp:
     params = json.load(open(param_file_name, 'r'))
-    models = load_variant_models(params)
+    models = load_variant_models(params['denovo_variant_models'])
     apply_master_seed(models, master_seed)
     #variant_generator_list = create_variant_generator_list(models, ref_fp, master_seed)
     g1 = create_denovo_genome(ref_fp=ref_fp, models=models)
