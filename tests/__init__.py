@@ -12,6 +12,33 @@ wg_name = os.path.join(data_dir, 'test.h5')
 small_vcf_name = os.path.join(data_dir, 'small.vcf')
 
 
+class SimulatedHDF:
+  """We needed a class that pretended it is a HDF5 file for some of our tests."""
+
+  def __init__(self):
+    self.data = {}
+
+  def insert(self, path, value):
+    keys = path.split('/')
+    this = self.data
+    for key in keys[:-1]:
+      if key == '': continue
+      try:
+        this = this[key]
+      except KeyError:
+        this[key] = {}
+        this = this[key]
+    this[keys[-1]] = value
+
+  def __getitem__(self, item):
+    keys = item.split('/')
+    this = self.data
+    for key in keys:
+      if key == '': continue
+      this = this[key]  # Custom error handling here?
+    return this
+
+
 def create_wg():
   index = {
     "header": {
