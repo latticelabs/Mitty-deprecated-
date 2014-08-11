@@ -164,11 +164,18 @@ def add_variant_model_to_genome(g1, mask, variant_generator):
         g1[chrom] = variants
 
 
+def sort_genome(g1):
+  """In place sort."""
+  for c in g1.itervalues():
+    c.sort(key=lambda v: v.POS)
+
+
 def add_multiple_variant_models_to_genome(ref_fp, models=[], g1=None):
   """Modifies g1 in place. Recall that each variant generator has been initialized with genome information etc."""
   mask = initialize_mask(ref_fp, g1)
   for model in models:
     add_variant_model_to_genome(g1, mask, model["model"].variant_generator(ref_fp, **model["params"]))
+  sort_genome(g1)  # This is the only operation that might throw variations out of order
 
 
 def create_denovo_genome(ref_fp, models=[]):

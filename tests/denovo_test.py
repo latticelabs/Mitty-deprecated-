@@ -40,6 +40,29 @@ def add_variant_model_to_genome_test():
   assert correct_final_g == g1, g1
 
 
+def sort_genome_test():
+  """Sorting genome."""
+  g1 = {1: [Variation(5, 6, 'A', 'A', HOMOZYGOUS),
+            Variation(8, 9, 'C', 'T', HOMOZYGOUS),
+            Variation(1, 2, 'T', 'C', HOMOZYGOUS),
+            Variation(10, 11, 'T', 'A', HOMOZYGOUS)],
+        2: [Variation(10, 11, 'T', 'A', HOMOZYGOUS),
+            Variation(5, 6, 'A', 'A', HOMOZYGOUS),
+            Variation(8, 9, 'C', 'T', HOMOZYGOUS),
+            Variation(1, 2, 'T', 'C', HOMOZYGOUS)]}
+  sort_genome(g1)
+  correct_g1 = {1: [Variation(1, 2, 'T', 'C', HOMOZYGOUS),
+                    Variation(5, 6, 'A', 'A', HOMOZYGOUS),
+                    Variation(8, 9, 'C', 'T', HOMOZYGOUS),
+                    Variation(10, 11, 'T', 'A', HOMOZYGOUS)],
+                2: [Variation(1, 2, 'T', 'C', HOMOZYGOUS),
+                    Variation(5, 6, 'A', 'A', HOMOZYGOUS),
+                    Variation(8, 9, 'C', 'T', HOMOZYGOUS),
+                    Variation(10, 11, 'T', 'A', HOMOZYGOUS)]}
+
+  assert correct_g1 == g1, g1
+
+
 # This test uses the stock SNP which must exist for this test to pass
 def load_variant_models_test():
   """Loading SNP variant as a test."""
