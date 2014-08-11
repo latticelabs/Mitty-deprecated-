@@ -153,7 +153,7 @@ def arbitrate_variant_collisions(g1, mask):
   return g2
 
 
-def add_variants_to_genome(g1, mask, variant_generator):
+def add_variant_model_to_genome(g1, mask, variant_generator):
   """Given an original genome and its mask add any variants that come off the variant_generator"""
   for delta_g in variant_generator:
     filtered_delta_g = arbitrate_variant_collisions(delta_g, mask)
@@ -164,22 +164,16 @@ def add_variants_to_genome(g1, mask, variant_generator):
         g1[chrom] = variants
 
 
-def add_multiple_variants_to_genome(ref_fp, variant_generator_list, g1):
+def add_multiple_variant_models_to_genome(ref_fp, models=[], g1=None):
   """Modifies g1 in place. Recall that each variant generator has been initialized with genome information etc."""
   mask = initialize_mask(ref_fp, g1)
-  for vg in variant_generator_list:
-    add_variants_to_genome(g1, mask, vg)
-
-
-# Some convenience wrappers
-def add_denovo_variants_to_existing_genome(ref_fp, models=[], g1=None):
-  vgl = create_variant_generator_list(models, ref_fp)
-  add_multiple_variants_to_genome(ref_fp, vgl, g1)
+  for model in models:
+    add_variant_model_to_genome(g1, mask, model["model"].variant_generator(ref_fp, **model["params"]))
 
 
 def create_denovo_genome(ref_fp, models=[]):
   g1 = {}
-  add_denovo_variants_to_existing_genome(ref_fp=ref_fp, models=models, g1=g1)
+  add_multiple_variant_models_to_genome(ref_fp=ref_fp, models=models, g1=g1)
   return g1
 
 
