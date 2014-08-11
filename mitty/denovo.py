@@ -163,17 +163,22 @@ def add_variants_to_genome(g1, mask, variant_generator):
         g1[chrom] = variants
 
 
-def add_multiple_variants_to_genome(seq_fp, variant_generator_list, g1):
+def add_multiple_variants_to_genome(ref_fp, variant_generator_list, g1):
   """Modifies g1 in place. Recall that each variant generator has been initialized with genome information etc."""
-  mask = initialize_mask(seq_fp, g1)
+  mask = initialize_mask(ref_fp, g1)
   for vg in variant_generator_list:
     add_variants_to_genome(g1, mask, vg)
 
 
-def create_denovo_genome(seq_fp, variant_generator_list):
-  """Package functions together into a neat package."""
+# Some convenience wrappers
+def add_denovo_variants_to_existing_genome(ref_fp, models=[], master_seed=None, g1=None):
+  vgl = create_variant_generator_list(models, ref_fp, master_seed)
+  add_multiple_variants_to_genome(ref_fp, vgl, g1)
+
+
+def create_denovo_genome(ref_fp, models=[], master_seed=None):
   g1 = {}
-  add_multiple_variants_to_genome(seq_fp, variant_generator_list, g1)
+  add_denovo_variants_to_existing_genome(ref_fp=ref_fp, models=models, master_seed=master_seed, g1=g1)
   return g1
 
 
@@ -215,8 +220,8 @@ def main(wg_file_name, vcf_file_name=None, param_file_name='', master_seed=None)
   with h5py.File(wg_file_name, 'r') as ref_fp:
     params = json.load(open(param_file_name, 'r'))
     models = load_variant_models(params)
-    variant_generator_list = create_variant_generator_list(models, ref_fp, master_seed)
-    g1 = create_denovo_genome(ref_fp, variant_generator_list)
+    #variant_generator_list = create_variant_generator_list(models, ref_fp, master_seed)
+    g1 = create_denovo_genome(ref_fp=ref_fp, models=models, master_seed=master_seed)
     if vcf_file_name is not None:
       variation.vcf_save_gz(g1, vcf_file_name)
   return g1
