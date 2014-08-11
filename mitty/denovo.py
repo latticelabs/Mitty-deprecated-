@@ -99,7 +99,8 @@ def init_mask(m_def):
   """We broke out this part from initialize_mask to help with testing."""
   mask = {int(c): [bitarray.bitarray(seq_len + 1) for _ in [0, 1]] for c, seq_len in m_def.iteritems()}
   for c in m_def:
-    mask[int(c)][0][:], mask[int(c)][1][:] = 0, 0
+    mask[int(c)][0].setall(False)
+    mask[int(c)][1].setall(False)
   return mask
 
 
