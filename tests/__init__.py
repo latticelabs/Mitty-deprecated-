@@ -67,6 +67,12 @@ def create_small_vcf():
   mitty.variation.compress_and_index_vcf(small_vcf_name, small_vcf_name + '.gz')
 
 
+def reset_model(mod):
+  vg = mod['model'].variant_generator
+  for d in vg.__dict__.keys():
+    delattr(vg, d)
+
+
 def setup_package():
   """In order to speed up tests we create a complete chain of data starting from a whole genome file and ending at
   simulated reads. If this function fails it means Mitty is broken in some fundamental way."""
