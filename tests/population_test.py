@@ -4,6 +4,7 @@ import numpy.testing
 from mitty.variation import Variation
 from mitty.population import *
 import mitty.denovo as denovo
+from nose.tools import raises
 
 def chrom_crossover_test():
   c1 = [
@@ -195,29 +196,18 @@ def place_crossovers_on_chrom_test():
 
 
 def spawn_test():
-  """Spawn from parents."""
-  c11 = [
-    Variation(1, 2, 'C', 'CAA', HET1)
-  ]
-  c12 = [
-    Variation(7, 8, 'G', 'T', HET2),
-    Variation(17, 18, 'G', 'T', HET2),
-  ]
-  g1 = {1: c11, 2: c12}
-
-  c21 = [
-    Variation(1, 2, 'C', 'CAA', HET2)
-  ]
-  c22 = [
-    Variation(7, 8, 'G', 'T', HET1),
-    Variation(17, 18, 'G', 'T', HET1),
-  ]
-  g2 = {1: c21, 2: c22}
+  """Spawn from parents (No denovo)."""
+  g1 = {1: [Variation(1, 2, 'C', 'CAA', HET1)],
+        2: [Variation(7, 8, 'G', 'T', HET2),
+            Variation(17, 18, 'G', 'T', HET2)]}
+  g2 = {1: [Variation(1, 2, 'C', 'CAA', HET2)],
+        2: [Variation(7, 8, 'G', 'T', HET1),
+            Variation(17, 18, 'G', 'T', HET1)]}
 
   # These hotspots ensure crossing over at these locii
   hot_spots = {1: numpy.array([[1, 1, .5]]), 2: numpy.array([[7, 1, .5]])}
-
   rngs = get_rngs(1)
+
   assert [{1: [Variation(POS=1, stop=2, REF='C', ALT='CAA', het=HOMOZYGOUS)],
            2: [Variation(POS=7, stop=8, REF='G', ALT='T', het=HET1),
                Variation(POS=17, stop=18, REF='G', ALT='T', het=HET2)]},
@@ -226,25 +216,183 @@ def spawn_test():
                Variation(POS=17, stop=18, REF='G', ALT='T', het=HET1)]}] == spawn(g1, g2, hot_spots, rngs)
 
 
-# This test uses the stock SNP which must exist for this test to pass
-def de_novo_population_test():
-  """Create de novo population (stock SNPs)."""
-  param_json = {
-    "variant_models": [
-        {
-          "snp": {
-            "chromosome": [2],
-            "phet": 0.5,
-            "p": 0.01,
-            "master_seed": 1
-          }
+def spawn_test2():
+  """Spawn from parents (With denovo)."""
+  ref_fp = SimulatedHDF()
+  ref_fp.insert('sequence/1/1', numpy.array([ord(c) for c in 'CCTGACTGACTGACGTACGT'], dtype='u1'))
+  ref_fp.insert('sequence/2/1', numpy.array([ord(c) for c in 'CCTGACGGACTGACGTGCGT'], dtype='u1'))
+
+  g1 = {1: [Variation(1, 2, 'C', 'CAA', HET1)],
+        2: [Variation(7, 8, 'G', 'T', HET2),
+            Variation(17, 18, 'G', 'T', HET2)]}
+  g2 = {1: [Variation(1, 2, 'C', 'CAA', HET2)],
+        2: [Variation(7, 8, 'G', 'T', HET1),
+            Variation(17, 18, 'G', 'T', HET1)]}
+
+  # These hotspots ensure crossing over at these locii
+  hot_spots = {1: numpy.array([[1, 1, .5]]), 2: numpy.array([[7, 1, .5]])}
+  rngs = get_rngs(1)
+
+  params_json = {
+    "ss_variant_models": [
+      {
+        "snp": {
+           "chromosome": [1],
+           "phet": 1.0,
+           "p": 0.1,
+           "master_seed": 3
         }
+      }
     ]
   }
-  models = denovo.load_variant_models(param_json)
-  with h5py.File(wg_name, 'r') as ref_fp:
-    #variant_generator_list = [model["model"].variant_generator(ref_fp, **model["params"]) for model in models]
-    pop = de_novo_population(ref_fp, models, size=10)
+  models = denovo.load_variant_models(params_json['ss_variant_models'])
+  for m in models: reset_model(m)
+  ch = spawn(g1, g2, hot_spots, rngs, 2, ref_fp, models)
+  correct_ch = [{1: [Variation(POS=1,stop=2,REF='C',ALT='CAA',het=HOMOZYGOUS),
+                     Variation(POS=7,stop=8,REF='T',ALT='A',het=HET1),
+                     Variation(POS=9,stop=10,REF='A',ALT='G',het=HET2)],
+                 2: [Variation(POS=7,stop=8,REF='G',ALT='T',het=HET1),
+                     Variation(POS=17,stop=18,REF='G',ALT='T',het=HET2)]},
+                {1: [Variation(POS=1,stop=2,REF='C',ALT='CAA',het=HET1),
+                     Variation(POS=7,stop=8,REF='T',ALT='G',het=HET1),
+                     Variation(POS=16,stop=17,REF='T',ALT='A',het=HOMOZYGOUS)],
+                 2: [Variation(POS=7,stop=8,REF='G',ALT='T',het=HET2),
+                     Variation(POS=17,stop=18,REF='G',ALT='T',het=HET1)]}]
+  assert correct_ch == ch, ch
 
-  assert len(pop) == 10
-  assert isinstance(pop[0][2][0], Variation)
+
+def de_novo_population_test():
+  """Spawn from parents (with denovo)"""
+  params_json = {
+    "denovo_variant_models": [
+      {
+        "snp": {
+           "chromosome": [1],
+           "phet": 0.9,
+           "p": 0.1,
+           "master_seed": 1
+        }
+      },
+      {
+        "snp": {
+           "chromosome": [2],
+           "phet": 0.9,
+           "p": 0.1,
+           "master_seed": 2
+        }
+      }
+    ],
+    "ss_variant_models": [
+      {
+        "snp": {
+           "chromosome": [1],
+           "phet": 1.0,
+           "p": 0.075,
+           "master_seed": 3
+        }
+      }
+    ]
+  }
+  models = denovo.load_variant_models(params_json['denovo_variant_models'])
+  for m in models: reset_model(m)
+  ss_models = denovo.load_variant_models(params_json['ss_variant_models'])
+  for m in ss_models: reset_model(m)
+
+  ref_fp = SimulatedHDF()
+  ref_fp.insert('sequence/1/1', numpy.array([ord(c) for c in 'CCTGACTGACTGACGTACGT'], dtype='u1'))
+  ref_fp.insert('sequence/2/1', numpy.array([ord(c) for c in 'CCTGACGGACTGACGTGCGT'], dtype='u1'))
+
+  pop = de_novo_population(ref_fp, models, size=2)
+  assert pop[0][1][0].POS == 16, pop
+  assert pop[1][2][1].het == HOMOZYGOUS
+
+  # These hotspots ensure crossing over at these and only these locii
+  hot_spots = {1: numpy.array([[16, 1, .5]]), 2: numpy.array([[17, 1, 5]])}
+  rngs = get_rngs(1)
+
+  children, parents = one_generation(pop, hot_spots=hot_spots, rngs=rngs, num_children_per_couple=2, ref_fp=ref_fp, models=ss_models)
+  assert children[0][1][0].POS == 7, children
+  assert children[1][2][0].REF == 'G'
+  assert parents == [(1, 0)], parents
+
+
+@raises(AssertionError)
+def one_generation_assert_test():
+  """Odd sized population should not work"""
+  one_generation([1,2,3], hot_spots={}, rngs={}, num_children_per_couple=2, ref_fp=None, models=[])
+
+
+def one_generation_test():
+  params_json = {
+    "denovo_variant_models": [
+      {
+        "snp": {
+           "chromosome": [1],
+           "phet": 0.9,
+           "p": 0.1,
+           "master_seed": 1
+        }
+      },
+      {
+        "snp": {
+           "chromosome": [2],
+           "phet": 0.9,
+           "p": 0.1,
+           "master_seed": 2
+        }
+      }
+    ],
+    "ss_variant_models": [
+      {
+        "snp": {
+           "chromosome": [1],
+           "phet": 1.0,
+           "p": 0.075,
+           "master_seed": 3
+        }
+      }
+    ]
+  }
+  models = denovo.load_variant_models(params_json['denovo_variant_models'])
+  for m in models: reset_model(m)
+  ss_models = denovo.load_variant_models(params_json['ss_variant_models'])
+  for m in ss_models: reset_model(m)
+
+  ref_fp = SimulatedHDF()
+  ref_fp.insert('sequence/1/1', numpy.array([ord(c) for c in 'CCTGACTGACTGACGTACGT'], dtype='u1'))
+  ref_fp.insert('sequence/2/1', numpy.array([ord(c) for c in 'CCTGACGGACTGACGTGCGT'], dtype='u1'))
+
+  hot_spots = {1: numpy.array([[16, 1, .5]]), 2: numpy.array([[17, 1, 5]])}
+  rngs = get_rngs(1)
+
+  pop = de_novo_population(ref_fp, models, size=2)
+  children, parents = one_generation(pop, hot_spots=hot_spots, rngs=rngs, num_children_per_couple=2, ref_fp=ref_fp, models=ss_models)
+
+  assert children[0][1][0].POS == 7, children
+  assert children[1][2][0].REF == 'G'
+  assert parents == [(1, 0)], parents
+
+
+# This test uses the stock SNP which must exist for this test to pass
+# def de_novo_population_test():
+#   """Create de novo population (stock SNPs)."""
+#   param_json = {
+#     "variant_models": [
+#         {
+#           "snp": {
+#             "chromosome": [2],
+#             "phet": 0.5,
+#             "p": 0.01,
+#             "master_seed": 1
+#           }
+#         }
+#     ]
+#   }
+#   models = denovo.load_variant_models(param_json)
+#   with h5py.File(wg_name, 'r') as ref_fp:
+#     #variant_generator_list = [model["model"].variant_generator(ref_fp, **model["params"]) for model in models]
+#     pop = de_novo_population(ref_fp, models, size=10)
+#
+#   assert len(pop) == 10
+#   assert isinstance(pop[0][2][0], Variation)
+

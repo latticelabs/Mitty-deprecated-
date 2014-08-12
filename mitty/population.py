@@ -173,28 +173,39 @@ def get_rngs(seed):
           for k,sub_seed in zip(rng_names, numpy.random.RandomState(seed=seed).randint(100000000, size=len(rng_names)))}
 
 
-def spawn(g1, g2, hot_spots={}, rngs={}, num_children=2):
+def spawn(g1, g2, hot_spots={}, rngs={}, num_children=2, ref_fp=None, models=[]):
+  """If you don't want denovo mutations don't send in ref_fp and models"""
   if g1.keys() != g2.keys():
     raise RuntimeError('Two genomes have unequal chromosomes')
   children = []
   for _ in range(num_children):
     g1_cross = crossover_event(g1, place_crossovers(g1, hot_spots, rngs['cross_over']))
     g2_cross = crossover_event(g2, place_crossovers(g2, hot_spots, rngs['cross_over']))
+    if ref_fp is not None and len(models) > 0:  # We want denovo mutations
+      mitty.denovo.add_multiple_variant_models_to_genome(ref_fp, models, g1_cross)
+      mitty.denovo.add_multiple_variant_models_to_genome(ref_fp, models, g2_cross)
     children.append(fertilize_one(g1_cross, g2_cross, which_copies(g1, rngs['chrom_copy'])))
   return children
 
 
 def de_novo_population(ref_fp, models=[], size=10):
   """This uses variant plugins and denovo.py functions to generate a population of highly differentiated individuals"""
-  pop = [None] * size
-  for n in range(size):
-    variant_generator_list = [model["model"].variant_generator(ref_fp, **model["params"]) for model in models]
-    pop[n] = mitty.denovo.create_denovo_genome(ref_fp, variant_generator_list)
-  return pop
+  return [mitty.denovo.create_denovo_genome(ref_fp, models) for _ in range(size)]
 
 
-def one_generation(pop, hot_spots={}, rngs=[], num_children_per_couple=2, ref_fp=None, models=[]):
+def one_generation(pop, hot_spots={}, rngs={}, num_children_per_couple=2, ref_fp=None, models=[]):
   """We take pairs from the population without replacement, cross over the chromosomes, sprinkle in denovo mutations
   then shuffle the chromosomes during fertilization."""
+  assert not len(pop) % 2, 'Population needs even number so we can properly pair parents'
+  mates = rngs['couple_chose'].permutation(len(pop))  # This needs to be an even number
+  children = []
+  parents = []
+  for n in range(len(mates))[::2]:
+    children += spawn(pop[mates[n]], pop[mates[n + 1]], hot_spots=hot_spots, rngs=rngs, num_children=num_children_per_couple,
+                      ref_fp=ref_fp, models=models)
+    parents += [(mates[n], mates[n + 1])]
+  return children, parents
 
+
+#def save_population(pop, gen):
 
