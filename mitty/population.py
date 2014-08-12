@@ -195,8 +195,8 @@ def de_novo_population(ref_fp, models=[], size=10):
 
 def one_generation(pop, hot_spots={}, rngs={}, num_children_per_couple=2, ref_fp=None, models=[]):
   """We take pairs from the population without replacement, cross over the chromosomes, sprinkle in denovo mutations
-  then shuffle the chromosomes during fertilization."""
-  assert not len(pop) % 2, 'Population needs even number so we can properly pair parents'
+  then shuffle the chromosomes during fertilization. If the population size is odd, we discard one parent"""
+  assert len(pop) >= 2, 'Need at least two parents'
   mates = rngs['couple_chose'].permutation(len(pop))  # This needs to be an even number
   children = []
   parents = []
@@ -206,6 +206,27 @@ def one_generation(pop, hot_spots={}, rngs={}, num_children_per_couple=2, ref_fp
     parents += [(mates[n], mates[n + 1])]
   return children, parents
 
+
+def population_simulation(ref_fp, denovo_models=[], initial_size=10,
+                          hot_spots={}, rngs={}, num_children_per_couple=2, ss_models=[],
+                          generations=10,
+                          store_all_generations=True):
+  # The initial population
+  pop = de_novo_population(ref_fp, denovo_models, size=initial_size)
+
+  generations = [pop]
+  parent_list = []
+  # The generational loop
+  this_gen = pop
+  for n in range(generations):
+    children, parents = one_generation(this_gen, hot_spots=hot_spots, rngs=rngs,
+                                       num_children_per_couple=num_children_per_couple,
+                                       ref_fp=ref_fp, models=ss_models)
+    parent_list.append(parents)
+    if store_all_generations:
+      generations.append(children)
+    this_gen = children
+  return generations, parent_list
 
 #def save_population(pop, gen):
 
