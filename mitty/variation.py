@@ -100,12 +100,12 @@ def parse_vcf(vcf_rdr, chrom_list):
   return g1
 
 
-def vcf_save(g1, fp):
+def vcf_save(g1, fp, sample_name='sample'):
   """Given a genome save it to a VCF file."""
   # Write header
   fp.write(
     "##fileformat=VCFv4.1\n"
-    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tsample\n"
+    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{:s}\n".format(sample_name)
   )
   # Write lines
   wr = fp.write
@@ -119,7 +119,7 @@ def vcf_save(g1, fp):
       wr(ch + "\t" + str(var.POS) + "\t.\t" + ref + "\t" + alt + "\t100\tPASS\t.\tGT\t" + GT[var.het] + "\n")
 
 
-def vcf_save_gz(g1, vcf_gz_name, sort=False):
+def vcf_save_gz(g1, vcf_gz_name, sort=False, sample_name='sample'):
   """Also sort it, bgzip and index it. File name should have .gz at the end, but it's not a drama if doesnt. Sigh"""
   import tempfile, os
 
@@ -130,9 +130,11 @@ def vcf_save_gz(g1, vcf_gz_name, sort=False):
 
   temp_vcf_fp, temp_vcf_name = tempfile.mkstemp(suffix='.vcf')
   with open(temp_vcf_name, 'w') as fp:
-    vcf_save(g1, fp)
+    vcf_save(g1, fp, sample_name=sample_name)
 
   if sort:
     sort_vcf(temp_vcf_name, vcf_name)
+    os.remove(temp_vcf_name)
+  else:
+    os.rename(temp_vcf_name, vcf_name)
   compress_and_index_vcf(vcf_name, vcf_gz_name)
-  os.remove(temp_vcf_name)
