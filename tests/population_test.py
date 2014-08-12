@@ -306,23 +306,15 @@ def de_novo_population_test():
   assert pop[0][1][0].POS == 16, pop
   assert pop[1][2][1].het == HOMOZYGOUS
 
-  # These hotspots ensure crossing over at these and only these locii
-  hot_spots = {1: numpy.array([[16, 1, .5]]), 2: numpy.array([[17, 1, 5]])}
-  rngs = get_rngs(1)
-
-  children, parents = one_generation(pop, hot_spots=hot_spots, rngs=rngs, num_children_per_couple=2, ref_fp=ref_fp, models=ss_models)
-  assert children[0][1][0].POS == 7, children
-  assert children[1][2][0].REF == 'G'
-  assert parents == [(1, 0)], parents
-
 
 @raises(AssertionError)
 def one_generation_assert_test():
-  """Odd sized population should not work"""
-  one_generation([1,2,3], hot_spots={}, rngs={}, num_children_per_couple=2, ref_fp=None, models=[])
+  """Too small a population: should not work"""
+  one_generation([1], hot_spots={}, rngs={}, num_children_per_couple=2, ref_fp=None, models=[])
 
 
 def one_generation_test():
+  """Create de novo population, then one set of children."""
   params_json = {
     "denovo_variant_models": [
       {
@@ -373,26 +365,57 @@ def one_generation_test():
   assert parents == [(1, 0)], parents
 
 
-# This test uses the stock SNP which must exist for this test to pass
-# def de_novo_population_test():
-#   """Create de novo population (stock SNPs)."""
-#   param_json = {
-#     "variant_models": [
-#         {
-#           "snp": {
-#             "chromosome": [2],
-#             "phet": 0.5,
-#             "p": 0.01,
-#             "master_seed": 1
-#           }
-#         }
-#     ]
-#   }
-#   models = denovo.load_variant_models(param_json)
-#   with h5py.File(wg_name, 'r') as ref_fp:
-#     #variant_generator_list = [model["model"].variant_generator(ref_fp, **model["params"]) for model in models]
-#     pop = de_novo_population(ref_fp, models, size=10)
-#
-#   assert len(pop) == 10
-#   assert isinstance(pop[0][2][0], Variation)
+def population_simulation_test():
+  """Create de novo population, then ten generations of descendants."""
+  params_json = {
+    "denovo_variant_models": [
+      {
+        "snp": {
+           "chromosome": [1],
+           "phet": 0.9,
+           "p": 0.1,
+           "master_seed": 1
+        }
+      },
+      {
+        "snp": {
+           "chromosome": [2],
+           "phet": 0.9,
+           "p": 0.1,
+           "master_seed": 2
+        }
+      }
+    ],
+    "ss_variant_models": [
+      {
+        "snp": {
+           "chromosome": [1],
+           "phet": 1.0,
+           "p": 0.075,
+           "master_seed": 3
+        }
+      }
+    ]
+  }
+  models = denovo.load_variant_models(params_json['denovo_variant_models'])
+  for m in models: reset_model(m)
+  ss_models = denovo.load_variant_models(params_json['ss_variant_models'])
+  for m in ss_models: reset_model(m)
 
+  ref_fp = SimulatedHDF()
+  ref_fp.insert('sequence/1/1', numpy.array([ord(c) for c in 'CCTGACTGACTGACGTACGT'], dtype='u1'))
+  ref_fp.insert('sequence/2/1', numpy.array([ord(c) for c in 'CCTGACGGACTGACGTGCGT'], dtype='u1'))
+
+  hot_spots = {1: numpy.array([[16, 1, .5]]), 2: numpy.array([[17, 1, 5]])}
+  rngs = get_rngs(1)
+
+  generations, parent_list = \
+    population_simulation(ref_fp, denovo_models=models, initial_size=2,
+                          hot_spots=hot_spots, rngs=rngs, num_children_per_couple=2, ss_models=ss_models,
+                          num_generations=10,
+                          store_all_generations=True)
+
+  assert generations[1][0][1][0].POS == 7
+  assert generations[1][1][2][0].REF == 'G'
+  assert parent_list[0] == [(1, 0)]
+  assert len(generations) == 11
