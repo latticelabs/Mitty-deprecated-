@@ -209,24 +209,24 @@ def one_generation(pop, hot_spots={}, rngs={}, num_children_per_couple=2, ref_fp
 
 def population_simulation(ref_fp, denovo_models=[], initial_size=10,
                           hot_spots={}, rngs={}, num_children_per_couple=2, ss_models=[],
-                          generations=10,
+                          num_generations=10,
                           store_all_generations=True):
   # The initial population
   pop = de_novo_population(ref_fp, denovo_models, size=initial_size)
 
-  generations = [pop]
+  generation = [pop]
   parent_list = []
   # The generational loop
   this_gen = pop
-  for n in range(generations):
+  for n in range(num_generations):
     children, parents = one_generation(this_gen, hot_spots=hot_spots, rngs=rngs,
                                        num_children_per_couple=num_children_per_couple,
                                        ref_fp=ref_fp, models=ss_models)
     parent_list.append(parents)
     if store_all_generations:
-      generations.append(children)
+      generation.append(children)
     this_gen = children
-  return generations, parent_list
+  return generation, parent_list
 
 #def save_population(pop, gen):
 
