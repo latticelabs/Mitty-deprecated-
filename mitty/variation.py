@@ -105,6 +105,7 @@ def vcf_save(g1, fp, sample_name='sample'):
   # Write header
   fp.write(
     "##fileformat=VCFv4.1\n"
+    "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n"
     "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{:s}\n".format(sample_name)
   )
   # Write lines
