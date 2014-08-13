@@ -56,16 +56,7 @@ def vcf2chrom_test2():
 
 def vcf_round_trip_test():
   """VCF round trip (load and then save)."""
-
-  original = open(small_vcf_name, 'r').readlines()
   g1 = parse_vcf(vcf.Reader(filename=small_vcf_name + '.gz'), [1, 2])
-  fp = io.BytesIO()
-  vcf_save(g1, fp, sample_name='test1')
-  fp.seek(0)
-  ln = fp.readlines()[1:]  # The first line is the VCF version which we ignore
-  assert ln[0].endswith('test1\n'), ln[0]
-  assert original[1:] == ln[1:], [original, ln]  # We ignore the header line
-
   temp_vcf_fp, temp_vcf_name = tempfile.mkstemp(suffix='.vcf')  # No .gz extension on purpose
   vcf_save_gz(g1, temp_vcf_name)
   g1_load = parse_vcf(vcf.Reader(filename=temp_vcf_name + '.gz'), [1, 2])
