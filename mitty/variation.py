@@ -129,6 +129,8 @@ def vcf_save_gz(g1, vcf_gz_name, sort=False, sample_name='sample'):
     vcf_gz_name += '.gz'
 
   temp_vcf_fp, temp_vcf_name = tempfile.mkstemp(suffix='.vcf')
+  os.close(temp_vcf_fp)
+
   with open(temp_vcf_name, 'w') as fp:
     vcf_save(g1, fp, sample_name=sample_name)
 
