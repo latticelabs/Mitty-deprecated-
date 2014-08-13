@@ -1,4 +1,23 @@
 """
+Commandline::
+
+  Usage:
+    population --wg=WG  --hs=HS  [--init_size=IS]  [--children=CH] [--gens=G]  --paramfile=PFILE  [--master_seed=SEED]  [--outdir=OD]  [--outprefix=OP]  [-v]
+
+  Options:
+    --wg=WG                 Whole genome reference file
+    --hs=HS                 Crossover hotspot file
+    --init_size=IS          Size of initial population [default: 10]
+    --children=CH           Children per couple [default: 2]
+    --gens=G                Generations to run [default: 20]
+    --paramfile=PFILE       Name for parameter file
+    --master_seed=SEED      If this is specified, this generates and passes master seeds to all the plugins.
+                            This overrides any individual seeds specified by the parameter file.
+    --outdir=OD             Output directory [default: out]
+    --outprefix=OP          Output VCF file prefix [default: pop]
+    -v                      Dump detailed logger messages
+
+
 This module implements a haploid genome as a diff with respect to a reference (which never needs to be explicitly set).
 The contents of the class, therefore, correspond directly to a very strict version of the VCF and each genome can be
 written out as a VCF file.
@@ -43,9 +62,11 @@ Though we could have written a class called genome, I prefer to write in as func
 code quality.
 """
 import numpy
-from variation import vcopy, HOMOZYGOUS, HET1, HET2
+from variation import vcopy, HOMOZYGOUS, HET1, HET2, vcf_save_gz, vcf_save
 import mitty.denovo
-
+import logging
+logger = logging.getLogger(__name__)
+__version__ = '0.1.0'
 
 def chrom_crossover(c1, crossover_idx):
   """cross_over_idx is a list the same size as c1 with a 1 (indicating a crossover should be done) or 0 (no crossover).
@@ -200,7 +221,7 @@ def one_generation(pop, hot_spots={}, rngs={}, num_children_per_couple=2, ref_fp
   mates = rngs['couple_chose'].permutation(len(pop))  # This needs to be an even number
   children = []
   parents = []
-  for n in range(len(mates))[::2]:
+  for n in range(2*(len(mates)/2))[::2]:  #Todo fix handling of odd sizes
     children += spawn(pop[mates[n]], pop[mates[n + 1]], hot_spots=hot_spots, rngs=rngs, num_children=num_children_per_couple,
                       ref_fp=ref_fp, models=models)
     parents += [(mates[n], mates[n + 1])]
@@ -213,6 +234,7 @@ def population_simulation(ref_fp, denovo_models=[], initial_size=10,
                           store_all_generations=True):
   # The initial population
   pop = de_novo_population(ref_fp, denovo_models, size=initial_size)
+  logger.debug('Created de novo population of {:d} individuals'.format(len(pop)))
 
   generation = [pop]
   parent_list = []
@@ -222,11 +244,77 @@ def population_simulation(ref_fp, denovo_models=[], initial_size=10,
     children, parents = one_generation(this_gen, hot_spots=hot_spots, rngs=rngs,
                                        num_children_per_couple=num_children_per_couple,
                                        ref_fp=ref_fp, models=ss_models)
+    logger.debug('Created generation {:d} ({:d})'.format(n, len(children)))
+
     parent_list.append(parents)
     if store_all_generations:
       generation.append(children)
     this_gen = children
   return generation, parent_list
 
-#def save_population(pop, gen):
 
+def save_population(pop, generation=0, vcf_prefix='pop'):
+  """Given a population of genomes same them as a collection of vcf files with a prefix and sequential numbering."""
+  for n, p in enumerate(pop):
+    # vcf_save_gz(p, vcf_gz_name='{:s}_g{:d}_p{:d}.vcf.gz'.format(vcf_prefix, generation, n),
+    #             sample_name='g{:d}p{:d}'.format(generation, n))
+    vcf_name='{:s}_g{:d}_p{:d}.vcf'.format(vcf_prefix, generation, n)
+    with open(vcf_name, 'w') as fp:
+      vcf_save(p, fp, sample_name='g{:d}p{:d}'.format(generation, n))
+
+
+def save_generation(gen_pop, vcf_prefix='pop'):
+  for gen, pop in enumerate(gen_pop):
+    save_population(pop, generation=gen, vcf_prefix=vcf_prefix)
+
+
+def main(ref_fname='../../Data/ashbya_gossypii/ashbya.h5', hot_spots={}, params_json={}, master_seed=None,
+         initial_size=10, num_children_per_couple=2, num_generations=20,
+         store_all_generations=True,
+         out_dir='out',
+         out_prefix='pop'):
+  import mitty.denovo as denovo
+  import h5py
+  import shutil
+  import os
+  shutil.rmtree(out_dir)
+  os.makedirs(out_dir)
+
+  models = denovo.load_variant_models(params_json['denovo_variant_models'])
+  if master_seed is not None:
+    denovo.apply_master_seed(models, master_seed=int(master_seed))
+    rngs = get_rngs(seed=int(master_seed))
+  else:
+    rngs = get_rngs(seed=1)
+  ss_models = denovo.load_variant_models(params_json['ss_variant_models'])
+  with h5py.File(ref_fname, 'r') as ref_fp:
+    generations, parent_list = \
+      population_simulation(ref_fp, denovo_models=models, initial_size=initial_size,
+                            hot_spots=hot_spots, rngs=rngs, num_children_per_couple=num_children_per_couple,
+                            ss_models=ss_models,
+                            num_generations=num_generations,
+                            store_all_generations=store_all_generations)
+  save_generation(generations, vcf_prefix=os.path.join(out_dir, out_prefix))
+
+if __name__ == "__main__":
+  import json
+  import docopt
+
+  if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
+    docopt.docopt(__doc__, ['-h'])
+  else:
+    args = docopt.docopt(__doc__, version=__version__)
+
+  #  population --wg=WG  --hs=HS  [--init_size=IS]  --children=CH] [--gens=G]  --paramfile=PFILE  [--master_seed=SEED]  [--outdir=OD]  [--outprefix=OP]  [-v]
+
+  logging.basicConfig(level=logging.WARNING)
+  if args['-v']:
+    logger.setLevel(logging.DEBUG)
+
+  hs = json.load(open(args['--hs'], 'r'))
+  hot_spots = {int(c): numpy.array(v) for c, v in hs.iteritems()}
+  pj = json.load(open(args['--paramfile'], 'r'))
+  main(ref_fname=args['--wg'], hot_spots=hot_spots, params_json=pj, master_seed=args['--master_seed'],
+       initial_size=int(args['--init_size']), num_children_per_couple=int(args['--children']),
+       num_generations=int(args['--gens']), store_all_generations=True,
+       out_dir=args['--outdir'], out_prefix=args['--outprefix'])
