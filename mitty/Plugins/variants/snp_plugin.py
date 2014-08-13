@@ -79,11 +79,13 @@ def variant_generator(ref_fp=None,
     snp_locs = util.place_poisson(base_loc_rng, p, ref_seq.size)
     het_type = util.het(snp_locs.size, phet, het_rng, copy_rng)
     base_subs = base_sub_rng.randint(3, size=snp_locs.size)
-
-    refs = ref_seq[snp_locs]
-    refs_s = refs.tostring()
-    alts = base_sub_mat[refs, base_subs]
-    alts_s = alts.tostring()
+    if snp_locs.size:
+      refs = ref_seq[snp_locs]
+      refs_s = refs.tostring()
+      alts = base_sub_mat[refs, base_subs]
+      alts_s = alts.tostring()
+    else:
+      refs, refs_s, alts, alts_s = [], [], [], []
 
     yield {chrom: [Variation(pos + 1, pos + 2, ref, alt, het) for pos, ref, alt, het, valid in zip(snp_locs, refs_s, alts_s, het_type, alts) if valid]}
     # +1 because VCF files are 1 indexed

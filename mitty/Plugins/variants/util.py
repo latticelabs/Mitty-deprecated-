@@ -34,6 +34,8 @@ def het(num_vars=0, phet=0.5, het_rng=None, copy_rng=None):
   >>> het(num_vars=10, het_rng=numpy.random.RandomState(seed=1), copy_rng=numpy.random.RandomState(seed=2))
   array([2, 3, 2, 1, 2, 2, 2, 2, 1, 3], dtype=uint8)
   """
+  if num_vars == 0:
+    return numpy.array([])
   het_type = numpy.empty((num_vars,), dtype='u1')
   het_type.fill(HOMOZYGOUS)  # Homozygous
   idx_het, = numpy.nonzero(het_rng.rand(het_type.size) < phet)  # Heterozygous locii
@@ -45,6 +47,8 @@ def het(num_vars=0, phet=0.5, het_rng=None, copy_rng=None):
 def place_poisson(rng, p, end_x):
   """Given a random number generator, a probability and an end point, generate poisson distributed events. For short
   end_p this may, by chance, generate fewer locations that normal"""
+  if p == 0.0:
+    return numpy.array([])
   est_block_size = end_x * p * 1.2
   these_locs = rng.poisson(lam=1./p, size=est_block_size).cumsum()
   return these_locs[:numpy.searchsorted(these_locs, end_x)]
