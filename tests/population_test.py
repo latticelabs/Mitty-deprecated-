@@ -1,10 +1,10 @@
 from . import *
-import h5py
 import numpy.testing
 from mitty.variation import Variation
 from mitty.population import *
 import mitty.denovo as denovo
 from nose.tools import raises
+
 
 def chrom_crossover_test():
   c1 = [
@@ -218,9 +218,10 @@ def spawn_test():
 
 def spawn_test2():
   """Spawn from parents (With denovo)."""
-  ref_fp = SimulatedHDF()
-  ref_fp.insert('sequence/1/1', numpy.array([ord(c) for c in 'CCTGACTGACTGACGTACGT'], dtype='u1'))
-  ref_fp.insert('sequence/2/1', numpy.array([ord(c) for c in 'CCTGACGGACTGACGTGCGT'], dtype='u1'))
+  ref = {
+    1: 'CCTGACTGACTGACGTACGT',
+    2: 'CCTGACGGACTGACGTGCGT'
+  }
 
   g1 = {1: [Variation(1, 2, 'C', 'CAA', HET1)],
         2: [Variation(7, 8, 'G', 'T', HET2),
@@ -247,7 +248,7 @@ def spawn_test2():
   }
   models = denovo.load_variant_models(params_json['ss_variant_models'])
   for m in models: reset_model(m)
-  ch = spawn(g1, g2, hot_spots, rngs, 2, ref_fp, models)
+  ch = spawn(g1, g2, hot_spots, rngs, 2, ref, models)
   correct_ch = [{1: [Variation(POS=1,stop=2,REF='C',ALT='CAA',het=HOMOZYGOUS),
                      Variation(POS=7,stop=8,REF='T',ALT='A',het=HET1),
                      Variation(POS=9,stop=10,REF='A',ALT='G',het=HET2)],
@@ -298,11 +299,12 @@ def de_novo_population_test():
   ss_models = denovo.load_variant_models(params_json['ss_variant_models'])
   for m in ss_models: reset_model(m)
 
-  ref_fp = SimulatedHDF()
-  ref_fp.insert('sequence/1/1', numpy.array([ord(c) for c in 'CCTGACTGACTGACGTACGT'], dtype='u1'))
-  ref_fp.insert('sequence/2/1', numpy.array([ord(c) for c in 'CCTGACGGACTGACGTGCGT'], dtype='u1'))
+  ref = {
+    1: 'CCTGACTGACTGACGTACGT',
+    2: 'CCTGACGGACTGACGTGCGT'
+  }
 
-  pop = de_novo_population(ref_fp, models, size=2)
+  pop = de_novo_population(ref, models, size=2)
   assert pop[0][1][0].POS == 16, pop
   assert pop[1][2][1].het == HOMOZYGOUS
 
@@ -310,7 +312,7 @@ def de_novo_population_test():
 @raises(AssertionError)
 def one_generation_assert_test():
   """Too small a population: should not work"""
-  one_generation([1], hot_spots={}, rngs={}, num_children_per_couple=2, ref_fp=None, models=[])
+  one_generation([1], hot_spots={}, rngs={}, num_children_per_couple=2, ref=None, models=[])
 
 
 def one_generation_test():
@@ -350,15 +352,16 @@ def one_generation_test():
   ss_models = denovo.load_variant_models(params_json['ss_variant_models'])
   for m in ss_models: reset_model(m)
 
-  ref_fp = SimulatedHDF()
-  ref_fp.insert('sequence/1/1', numpy.array([ord(c) for c in 'CCTGACTGACTGACGTACGT'], dtype='u1'))
-  ref_fp.insert('sequence/2/1', numpy.array([ord(c) for c in 'CCTGACGGACTGACGTGCGT'], dtype='u1'))
+  ref = {
+    1: 'CCTGACTGACTGACGTACGT',
+    2: 'CCTGACGGACTGACGTGCGT'
+  }
 
   hot_spots = {1: numpy.array([[16, 1, .5]]), 2: numpy.array([[17, 1, 5]])}
   rngs = get_rngs(1)
 
-  pop = de_novo_population(ref_fp, models, size=2)
-  children, parents = one_generation(pop, hot_spots=hot_spots, rngs=rngs, num_children_per_couple=2, ref_fp=ref_fp, models=ss_models)
+  pop = de_novo_population(ref, models, size=2)
+  children, parents = one_generation(pop, hot_spots=hot_spots, rngs=rngs, num_children_per_couple=2, ref=ref, models=ss_models)
 
   assert children[0][1][0].POS == 7, children
   assert children[1][2][0].REF == 'G'
@@ -402,15 +405,16 @@ def population_simulation_test():
   ss_models = denovo.load_variant_models(params_json['ss_variant_models'])
   for m in ss_models: reset_model(m)
 
-  ref_fp = SimulatedHDF()
-  ref_fp.insert('sequence/1/1', numpy.array([ord(c) for c in 'CCTGACTGACTGACGTACGT'], dtype='u1'))
-  ref_fp.insert('sequence/2/1', numpy.array([ord(c) for c in 'CCTGACGGACTGACGTGCGT'], dtype='u1'))
+  ref = {
+    1: 'CCTGACTGACTGACGTACGT',
+    2: 'CCTGACGGACTGACGTGCGT'
+  }
 
   hot_spots = {1: numpy.array([[16, 1, .5]]), 2: numpy.array([[17, 1, 5]])}
   rngs = get_rngs(1)
 
   generations, parent_list = \
-    population_simulation(ref_fp, denovo_models=models, initial_size=2,
+    population_simulation(ref, denovo_models=models, initial_size=2,
                           hot_spots=hot_spots, rngs=rngs, num_children_per_couple=2, ss_models=ss_models,
                           num_generations=10,
                           store_all_generations=True)
