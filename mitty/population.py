@@ -1,4 +1,8 @@
 """
+This module implements methods to simulate populations of genomes, using the genome-as-list-of-variant-calls
+implemented by denovo.py. When called as a script this implements population simulations. Genomes are written out as
+VCF files.
+
 Commandline::
 
   Usage:
@@ -17,10 +21,17 @@ Commandline::
     --outprefix=OP          Output VCF file prefix [default: pop]
     -v                      Dump detailed logger messages
 
+Roadmap:
 
-This module implements a haploid genome as a diff with respect to a reference (which never needs to be explicitly set).
-The contents of the class, therefore, correspond directly to a very strict version of the VCF and each genome can be
-written out as a VCF file.
+1. Load reference only once and keep in memory - perhaps give warnings if genome too big for machine and fallback to a
+ slower load on demand model. This may mean writing a new class to handle genomes (like we did for variants)
+2. Don't keep population in memory - save as we go and remove to keep memory consumption low and to have partial
+ results in case of an abort.
+3. Finalize .json format for lineage and save that every generation
+4. Profile after optimizing reference loading - if needed get rid of bit mask and use a sorted list for genomes -
+implement collision detection based on the sorted vcf - this may be slightly slower than a bit mask, or may be not, if
+we have to repeatedly instantiate masks. This will certainly use less memory
+
 
 The internal structure of an attached pair of chromosomes is a list of tuples of the form:
 
@@ -64,9 +75,11 @@ code quality.
 import numpy
 from variation import vcopy, HOMOZYGOUS, HET1, HET2, vcf_save_gz, vcf_save
 import mitty.denovo
+from fasta2wg import load_reference
 import logging
 logger = logging.getLogger(__name__)
 __version__ = '0.1.0'
+
 
 def chrom_crossover(c1, crossover_idx):
   """cross_over_idx is a list the same size as c1 with a 1 (indicating a crossover should be done) or 0 (no crossover).
@@ -194,7 +207,7 @@ def get_rngs(seed):
           for k,sub_seed in zip(rng_names, numpy.random.RandomState(seed=seed).randint(100000000, size=len(rng_names)))}
 
 
-def spawn(g1, g2, hot_spots={}, rngs={}, num_children=2, ref_fp=None, models=[]):
+def spawn(g1, g2, hot_spots={}, rngs={}, num_children=2, ref=None, models=[]):
   """If you don't want denovo mutations don't send in ref_fp and models"""
   if g1.keys() != g2.keys():
     raise RuntimeError('Two genomes have unequal chromosomes')
@@ -202,9 +215,9 @@ def spawn(g1, g2, hot_spots={}, rngs={}, num_children=2, ref_fp=None, models=[])
   for _ in range(num_children):
     g1_cross = crossover_event(g1, place_crossovers(g1, hot_spots, rngs['cross_over']))
     g2_cross = crossover_event(g2, place_crossovers(g2, hot_spots, rngs['cross_over']))
-    if ref_fp is not None and len(models) > 0:  # We want denovo mutations
-      mitty.denovo.add_multiple_variant_models_to_genome(ref_fp, models, g1_cross)
-      mitty.denovo.add_multiple_variant_models_to_genome(ref_fp, models, g2_cross)
+    if ref is not None and len(models) > 0:  # We want denovo mutations
+      mitty.denovo.add_multiple_variant_models_to_genome(ref, models, g1_cross)
+      mitty.denovo.add_multiple_variant_models_to_genome(ref, models, g2_cross)
     children.append(fertilize_one(g1_cross, g2_cross, which_copies(g1, rngs['chrom_copy'])))
   return children
 
@@ -214,7 +227,7 @@ def de_novo_population(ref_fp, models=[], size=10):
   return [mitty.denovo.create_denovo_genome(ref_fp, models) for _ in range(size)]
 
 
-def one_generation(pop, hot_spots={}, rngs={}, num_children_per_couple=2, ref_fp=None, models=[]):
+def one_generation(pop, hot_spots={}, rngs={}, num_children_per_couple=2, ref=None, models=[]):
   """We take pairs from the population without replacement, cross over the chromosomes, sprinkle in denovo mutations
   then shuffle the chromosomes during fertilization. If the population size is odd, we discard one parent"""
   assert len(pop) >= 2, 'Need at least two parents'
@@ -223,17 +236,17 @@ def one_generation(pop, hot_spots={}, rngs={}, num_children_per_couple=2, ref_fp
   parents = []
   for n in range(2*(len(mates)/2))[::2]:  #Todo fix handling of odd sizes
     children += spawn(pop[mates[n]], pop[mates[n + 1]], hot_spots=hot_spots, rngs=rngs, num_children=num_children_per_couple,
-                      ref_fp=ref_fp, models=models)
+                      ref=ref, models=models)
     parents += [(mates[n], mates[n + 1])]
   return children, parents
 
 
-def population_simulation(ref_fp, denovo_models=[], initial_size=10,
+def population_simulation(ref, denovo_models=[], initial_size=10,
                           hot_spots={}, rngs={}, num_children_per_couple=2, ss_models=[],
                           num_generations=10,
                           store_all_generations=True):
   # The initial population
-  pop = de_novo_population(ref_fp, denovo_models, size=initial_size)
+  pop = de_novo_population(ref, denovo_models, size=initial_size)
   logger.debug('Created de novo population of {:d} individuals'.format(len(pop)))
 
   generation = [pop]
@@ -243,7 +256,7 @@ def population_simulation(ref_fp, denovo_models=[], initial_size=10,
   for n in range(num_generations):
     children, parents = one_generation(this_gen, hot_spots=hot_spots, rngs=rngs,
                                        num_children_per_couple=num_children_per_couple,
-                                       ref_fp=ref_fp, models=ss_models)
+                                       ref=ref, models=ss_models)
     logger.debug('Created generation {:d} ({:d})'.format(n, len(children)))
 
     parent_list.append(parents)
@@ -284,13 +297,13 @@ def main(ref_fname='../../Data/ashbya_gossypii/ashbya.h5', hot_spots={}, params_
   else:
     rngs = get_rngs(seed=1)
   ss_models = denovo.load_variant_models(params_json['ss_variant_models'])
-  with h5py.File(ref_fname, 'r') as ref_fp:
-    generations, parent_list = \
-      population_simulation(ref_fp, denovo_models=models, initial_size=initial_size,
-                            hot_spots=hot_spots, rngs=rngs, num_children_per_couple=num_children_per_couple,
-                            ss_models=ss_models,
-                            num_generations=num_generations,
-                            store_all_generations=store_all_generations)
+  ref = load_reference(ref_fname)
+  generations, parent_list = \
+    population_simulation(ref, denovo_models=models, initial_size=initial_size,
+                          hot_spots=hot_spots, rngs=rngs, num_children_per_couple=num_children_per_couple,
+                          ss_models=ss_models,
+                          num_generations=num_generations,
+                          store_all_generations=store_all_generations)
   save_generation(generations, vcf_prefix=os.path.join(out_dir, out_prefix))
 
 if __name__ == "__main__":
