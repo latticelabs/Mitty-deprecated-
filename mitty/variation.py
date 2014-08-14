@@ -4,11 +4,12 @@ all the mutation plugins
 (start, stop, REF, ALT, het)
 
 """
+from os.path import splitext
 from ctypes import *
 import pysam
-import subprocess
 import logging
 logger = logging.getLogger(__name__)
+
 # Types of het
 HOMOZYGOUS = 0
 HET1 = 1
@@ -42,13 +43,6 @@ def vcopy(v, het=None):
     return Variation(v.POS, v.stop, v.REF, v.ALT, v.het)
   else:
     return Variation(v.POS, v.stop, v.REF, v.ALT, het)
-
-
-def sort_vcf(in_vcf_name, out_vcf_name):
-  #vcf-sort the.vcf > sorted.vcf
-  logger.debug('Sorting {:s} to {:s}'.format(in_vcf_name, out_vcf_name))
-  with open(out_vcf_name, 'w') as fp:
-    subprocess.call(['vcf-sort', in_vcf_name], stdout=fp)
 
 
 def compress_and_index_vcf(in_vcf_name, out_vcf_name):
@@ -120,24 +114,14 @@ def vcf_save(g1, fp, sample_name='sample'):
       wr(ch + "\t" + str(var.POS) + "\t.\t" + ref + "\t" + alt + "\t100\tPASS\t.\tGT\t" + GT[var.het] + "\n")
 
 
-def vcf_save_gz(g1, vcf_gz_name, sort=False, sample_name='sample'):
-  """Also sort it, bgzip and index it. File name should have .gz at the end, but it's not a drama if doesnt. Sigh"""
-  import tempfile, os
-
-  vcf_name, ext = os.path.splitext(vcf_gz_name)
+def vcf_save_gz(g1, vcf_gz_name, sample_name='sample'):
+  """Save .vcf, bgzip and index it. File name should have .gz at the end, but it's not a drama if doesnt. Sigh"""
+  vcf_name, ext = splitext(vcf_gz_name)
   if ext != '.gz':  # Like I said, not a drama
     vcf_name += '_srt.vcf'
     vcf_gz_name += '.gz'
 
-  temp_vcf_fp, temp_vcf_name = tempfile.mkstemp(suffix='.vcf')
-  os.close(temp_vcf_fp)
-
-  with open(temp_vcf_name, 'w') as fp:
+  with open(vcf_name, 'w') as fp:
     vcf_save(g1, fp, sample_name=sample_name)
 
-  if sort:
-    sort_vcf(temp_vcf_name, vcf_name)
-    os.remove(temp_vcf_name)
-  else:
-    os.rename(temp_vcf_name, vcf_name)
   compress_and_index_vcf(vcf_name, vcf_gz_name)
