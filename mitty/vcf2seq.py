@@ -102,8 +102,8 @@ def main(args):
       chrom_grp = var_fp['sequence'].create_group(str(chrom))
       chrom_grp.attrs['seq_id'] = ref_fp['sequence/{:d}'.format(chrom)].attrs['seq_id']
       try:
-        copy, pos, var_coords, var_codes = assemble_sequences(ref_seq, vcf_reader.fetch(chrom=chrom, start=0, end=len(ref_seq)))
-      except KeyError:  # No mutations for this chromosome
+        copy, pos, var_coords, var_codes = assemble_sequences(ref_seq, vcf_reader.fetch(chrom=chrom, start=0))
+      except ValueError:  # No mutations for this chromosome (New version of pysam raises ValueError)
         logger.debug('Chromosome {:d} is unaltered, copying reference'.format(chrom))
         copy = [ref_seq, ref_seq]  # Same as reference
         pos = [None, None]
