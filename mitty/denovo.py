@@ -77,18 +77,19 @@ import json
 import docopt
 from variation import HOMOZYGOUS, HET1, HET2
 import variation
+from fasta2wg import load_reference
 import logging
 logger = logging.getLogger(__name__)
 
 
-def initialize_mask(seq_fp, g1=None):
+def initialize_mask(seq, g1=None):
   """Given the sequence hdf5 file create a list of sparse arrays that represent the collision mask. This is a diplod
   mask assuming a haploid reference. Note that, for convenience we actually use 1 indexing. So our array is + 1 of the
   sequence length and element 0 is unused
   g1 is optional and indicates existing variants which should be placed on the mask. No checking is done to see if these
   variants collide (that's the caller's job)
   """
-  m_def = {c: seq_fp['sequence/{:s}/1'.format(str(c))].size for c in seq_fp['sequence']}
+  m_def = {c: len(v) for c, v in seq.iteritems()}
   mask = init_mask(m_def)
   if g1 is not None:
     fill_mask(mask, g1)
@@ -170,17 +171,17 @@ def sort_genome(g1):
     c.sort(key=lambda v: v.POS)
 
 
-def add_multiple_variant_models_to_genome(ref_fp, models=[], g1=None):
+def add_multiple_variant_models_to_genome(ref, models=[], g1=None):
   """Modifies g1 in place. Recall that each variant generator has been initialized with genome information etc."""
-  mask = initialize_mask(ref_fp, g1)
+  mask = initialize_mask(ref, g1)
   for model in models:
-    add_variant_model_to_genome(g1, mask, model["model"].variant_generator(ref_fp, **model["params"]))
+    add_variant_model_to_genome(g1, mask, model["model"].variant_generator(ref, **model["params"]))
   sort_genome(g1)  # This is the only operation that might throw variations out of order
 
 
-def create_denovo_genome(ref_fp, models=[]):
+def create_denovo_genome(ref, models=[]):
   g1 = {}
-  add_multiple_variant_models_to_genome(ref_fp=ref_fp, models=models, g1=g1)
+  add_multiple_variant_models_to_genome(ref=ref, models=models, g1=g1)
   return g1
 
 
@@ -205,14 +206,13 @@ def create_variant_generator_list(models, ref_fp):
 def main(wg_file_name, vcf_file_name=None, param_file_name='', master_seed=None):
   """This does what the old mutate.py script used to do."""
   logger.debug('Reference file {:s}'.format(wg_file_name))
-  with h5py.File(wg_file_name, 'r') as ref_fp:
-    params = json.load(open(param_file_name, 'r'))
-    models = load_variant_models(params['denovo_variant_models'])
-    apply_master_seed(models, master_seed)
-    #variant_generator_list = create_variant_generator_list(models, ref_fp, master_seed)
-    g1 = create_denovo_genome(ref_fp=ref_fp, models=models)
-    if vcf_file_name is not None:
-      variation.vcf_save_gz(g1, vcf_file_name)
+  ref = load_reference(wg_file_name)
+  params = json.load(open(param_file_name, 'r'))
+  models = load_variant_models(params['denovo_variant_models'])
+  apply_master_seed(models, master_seed)
+  g1 = create_denovo_genome(ref=ref, models=models)
+  if vcf_file_name is not None:
+    variation.vcf_save_gz(g1, vcf_file_name)
   return g1
 
 
