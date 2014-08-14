@@ -44,6 +44,15 @@ logger = logging.getLogger(__name__)
 __version__ = '0.2.0'
 
 
+def load_reference(ref_fname):
+  """This is used to load the whole reference into memory at one time. It's not as scary as it sounds.
+  Returns a dictionary with sequences.
+  """
+  with h5py.File(ref_fname, 'r') as fp:
+    ref = {int(chrom): fp['sequence/{:s}/1/'.format(chrom)][:].tostring() for chrom in fp['sequence']}
+  return ref
+
+
 def save_genome_to_hdf5(index, h5_fp):
   """Store all the fasta sequences in the appropriate places in the hdf5 file.
   Chromosomes are stored under 'sequence/1' 'sequence/2' ....
