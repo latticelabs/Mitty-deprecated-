@@ -256,11 +256,8 @@ def population_simulation(ref_fp, denovo_models=[], initial_size=10,
 def save_population(pop, generation=0, vcf_prefix='pop'):
   """Given a population of genomes same them as a collection of vcf files with a prefix and sequential numbering."""
   for n, p in enumerate(pop):
-    # vcf_save_gz(p, vcf_gz_name='{:s}_g{:d}_p{:d}.vcf.gz'.format(vcf_prefix, generation, n),
-    #             sample_name='g{:d}p{:d}'.format(generation, n))
-    vcf_name='{:s}_g{:d}_p{:d}.vcf'.format(vcf_prefix, generation, n)
-    with open(vcf_name, 'w') as fp:
-      vcf_save(p, fp, sample_name='g{:d}p{:d}'.format(generation, n))
+    vcf_save_gz(p, vcf_gz_name='{:s}_g{:d}_p{:d}.vcf.gz'.format(vcf_prefix, generation, n),
+                sample_name='g{:d}p{:d}'.format(generation, n))
 
 
 def save_generation(gen_pop, vcf_prefix='pop'):
