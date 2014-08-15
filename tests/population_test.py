@@ -1,6 +1,6 @@
-from . import *
+from tests import *
 import numpy.testing
-from mitty.variation import Variation
+from mitty.variation import Variation, parse_vcf
 from mitty.population import *
 import mitty.denovo as denovo
 from nose.tools import raises
@@ -413,13 +413,23 @@ def population_simulation_test():
   hot_spots = {1: numpy.array([[16, 1, .5]]), 2: numpy.array([[17, 1, 5]])}
   rngs = get_rngs(1)
 
-  generations, parent_list = \
+  pop_sim_data_dir = tempfile.mkdtemp()
+
+  parent_list, children = \
     population_simulation(ref, denovo_models=models, initial_size=2,
                           hot_spots=hot_spots, rngs=rngs, num_children_per_couple=2, ss_models=ss_models,
                           num_generations=10,
-                          store_all_generations=True)
+                          store_all_generations=True,
+                          vcf_prefix=os.path.join(pop_sim_data_dir, 'pop_sim_test'))
 
-  assert generations[1][0][1][0].POS == 7
-  assert generations[1][1][2][0].REF == 'G'
-  assert parent_list[0] == [(1, 0)]
-  assert len(generations) == 11
+  assert os.path.exists(os.path.join(pop_sim_data_dir, 'pop_sim_test_g0_p0.vcf'))
+  assert os.path.exists(os.path.join(pop_sim_data_dir, 'pop_sim_test_g1_p1.vcf.gz'))
+  assert os.path.exists(os.path.join(pop_sim_data_dir, 'pop_sim_test_g2_p0.vcf.gz.tbi'))
+  assert os.path.exists(os.path.join(pop_sim_data_dir, 'pop_sim_test_g9_p1.vcf'))
+  assert len(parent_list) == 10
+
+  import vcf
+  assert children[0] == parse_vcf(vcf.Reader(filename=os.path.join(pop_sim_data_dir, 'pop_sim_test_g10_p0.vcf.gz')), [1, 2])
+
+  from shutil import rmtree
+  rmtree(pop_sim_data_dir)  # Clean up after ourselves
