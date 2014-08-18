@@ -1,27 +1,73 @@
+from blist import sortedlist as sl
 from mitty.variation import Variation
 from mitty.denovo import *
 from . import *
 
 
-def arbitrate_variant_collisions_test():
-  mask = init_mask({c: 1000 for c in [1, 2]})
-  g1 = {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)],
-        2: [Variation(7, 10, 'CAA', 'C', HET2)]}  # This should be placed with no problems
-  g2 = {1: [Variation(1, 2, 'C', 'CAA', HET2)],  # This will collide
-        2: [Variation(7, 8, 'G', 'T', HET1),  # This will pass
-            Variation(17, 18, 'G', 'T', HET1)]}  # This will pass
-  g1_ = arbitrate_variant_collisions(g1, mask)
-  assert g1 == g1_, g1_
+def merge_test1():
+  """Merge variants, non overlapping, existing first (ED)."""
+  c1 = [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)]
+  dnv = [Variation(10, 13, 'CAA', 'C', HOMOZYGOUS)]
+  c2 = merge_variants_with_chromosome(c1, dnv)
+  assert c2 == [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS), Variation(10, 13, 'CAA', 'C', HOMOZYGOUS)]
 
-  g2_ = arbitrate_variant_collisions(g2, mask)
-  assert {1: [], 2: [Variation(7, 8, 'G', 'T', HET1), Variation(17, 18, 'G', 'T', HET1)]} == g2_, g2_
+
+def merge_test2():
+  """Merge variants, non overlapping, denovo first (DE)."""
+  dnv = [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)]
+  c1 = [Variation(10, 13, 'CAA', 'C', HOMOZYGOUS)]
+  c2 = merge_variants_with_chromosome(c1, dnv)
+  assert c2 == [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS), Variation(10, 13, 'CAA', 'C', HOMOZYGOUS)]
+
+
+def merge_test3():
+  """Merge variants, non overlapping (EDED)"""
+  c1 = [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS), Variation(13, 16, 'CTT', 'C', HOMOZYGOUS)]
+  dnv = [Variation(8, 11, 'CCC', 'C', HOMOZYGOUS), Variation(20, 23, 'CAA', 'C', HOMOZYGOUS)]
+  c2 = merge_variants_with_chromosome(c1, dnv)
+  assert c2 == [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS),
+                Variation(8, 11, 'CCC', 'C', HOMOZYGOUS),
+                Variation(13, 16, 'CTT', 'C', HOMOZYGOUS),
+                Variation(20, 23, 'CAA', 'C', HOMOZYGOUS),]
+
+
+def merge_test4():
+  """Merge variants, overlapping (E-D). D will collide and will be rejected"""
+  c1 = [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)]
+  dnv = [Variation(2, 5, 'CCC', 'C', HOMOZYGOUS)]
+  c2 = merge_variants_with_chromosome(c1, dnv)
+  assert c2 == [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)]
+
+
+def merge_test5():
+  """Merge variants, overlapping (D-E). D will collide and will be rejected"""
+  dnv = [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)]
+  c1 = [Variation(2, 5, 'CCC', 'C', HOMOZYGOUS)]
+  c2 = merge_variants_with_chromosome(c1, dnv)
+  assert c2 == [Variation(2, 5, 'CCC', 'C', HOMOZYGOUS)]
+
+
+def merge_test6():
+  """Merge variants, overlapping heterozygous. Overlapping but with mixed zygosity"""
+  c1 = [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS),
+        Variation(13, 16, 'CTT', 'C', HET1),
+        Variation(20, 23, 'CAA', 'C', HET1),
+        Variation(26, 29, 'CGG', 'C', HOMOZYGOUS)]
+  dnv = [Variation(5, 8, 'CCC', 'C', HOMOZYGOUS),  # Will collide out
+         Variation(13, 16, 'CAA', 'C', HET2),  # Will pass
+         Variation(20, 23, 'CAA', 'C', HOMOZYGOUS),  # Will collide out
+         Variation(26, 29, 'CCC', 'C', HET2)]  # Will collide out
+  c2 = merge_variants_with_chromosome(c1, dnv)
+  assert c2 == [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS),
+                Variation(13, 16, 'CTT', 'C', HET1),
+                Variation(13, 16, 'CAA', 'C', HET2),
+                Variation(20, 23, 'CAA', 'C', HET1),
+                Variation(26, 29, 'CGG', 'C', HOMOZYGOUS)], c2
 
 
 def add_variant_model_to_genome_test():
-  mask = init_mask({c: 1000 for c in [1, 2]})
   g1 = {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)],
         2: [Variation(7, 10, 'CAA', 'C', HET2)]}  # This should be placed with no problems
-  fill_mask(mask, g1)
 
   def variant_generator():
     g2 = [{1: [Variation(1, 2, 'C', 'CAA', HET2)]},  # This will collide
@@ -31,36 +77,14 @@ def add_variant_model_to_genome_test():
       yield g
 
   correct_final_g = {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)],
-                     2: [Variation(7, 10, 'CAA', 'C', HET2), Variation(7, 8, 'G', 'T', HET1),
+                     2: [Variation(7, 10, 'CAA', 'C', HET2),
+                         Variation(7, 8, 'G', 'T', HET1),
                          Variation(17, 18, 'G', 'T', HET1)]}
 
   vg = variant_generator()
-  add_variant_model_to_genome(g1, mask, vg)
+  g2 = merge_variants_with_genome(g1, vg)
 
-  assert correct_final_g == g1, g1
-
-
-def sort_genome_test():
-  """Sorting genome."""
-  g1 = {1: [Variation(5, 6, 'A', 'A', HOMOZYGOUS),
-            Variation(8, 9, 'C', 'T', HOMOZYGOUS),
-            Variation(1, 2, 'T', 'C', HOMOZYGOUS),
-            Variation(10, 11, 'T', 'A', HOMOZYGOUS)],
-        2: [Variation(10, 11, 'T', 'A', HOMOZYGOUS),
-            Variation(5, 6, 'A', 'A', HOMOZYGOUS),
-            Variation(8, 9, 'C', 'T', HOMOZYGOUS),
-            Variation(1, 2, 'T', 'C', HOMOZYGOUS)]}
-  sort_genome(g1)
-  correct_g1 = {1: [Variation(1, 2, 'T', 'C', HOMOZYGOUS),
-                    Variation(5, 6, 'A', 'A', HOMOZYGOUS),
-                    Variation(8, 9, 'C', 'T', HOMOZYGOUS),
-                    Variation(10, 11, 'T', 'A', HOMOZYGOUS)],
-                2: [Variation(1, 2, 'T', 'C', HOMOZYGOUS),
-                    Variation(5, 6, 'A', 'A', HOMOZYGOUS),
-                    Variation(8, 9, 'C', 'T', HOMOZYGOUS),
-                    Variation(10, 11, 'T', 'A', HOMOZYGOUS)]}
-
-  assert correct_g1 == g1, g1
+  assert correct_final_g == g2, g2
 
 
 # This test uses the stock SNP which must exist for this test to pass

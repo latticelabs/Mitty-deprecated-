@@ -69,120 +69,91 @@ Current contact: kaushik.ghose@sbgenomics.com
 """
 __version__ = '0.5.0'
 
-import h5py
 import numpy
-import bitarray
 import importlib
 import json
 import docopt
-from variation import HOMOZYGOUS, HET1, HET2
+from variation import HOMOZYGOUS, HET1, HET2, vcopy
 import variation
 from fasta2wg import load_reference
 import logging
 logger = logging.getLogger(__name__)
 
 
-def initialize_mask(seq, g1=None):
-  """Given the sequence hdf5 file create a list of sparse arrays that represent the collision mask. This is a diplod
-  mask assuming a haploid reference. Note that, for convenience we actually use 1 indexing. So our array is + 1 of the
-  sequence length and element 0 is unused
-  g1 is optional and indicates existing variants which should be placed on the mask. No checking is done to see if these
-  variants collide (that's the caller's job)
+def merge_variants_with_chromosome(c1, dnv):
   """
-  m_def = {c: len(v) for c, v in seq.iteritems()}
-  mask = init_mask(m_def)
-  if g1 is not None:
-    fill_mask(mask, g1)
-  return mask
-
-
-def init_mask(m_def):
-  """We broke out this part from initialize_mask to help with testing."""
-  mask = {int(c): [bitarray.bitarray(seq_len + 1) for _ in [0, 1]] for c, seq_len in m_def.iteritems()}
-  for c in m_def:
-    mask[int(c)][0].setall(False)
-    mask[int(c)][1].setall(False)
-  return mask
-
-
-def fill_mask(mask, g1):
-  """Mark out the variants indicated by g1 into the mask. No checking is done to see if these variants collide
-  (that's the caller's job). Modifies mask in place"""
-  for chrom, variants in g1.iteritems():
-    this_mask = mask[chrom]
-    for v in variants:
-      x0, x1 = v.POS, v.stop
-      if v.het == HOMOZYGOUS or v.het == HET1:
-        this_mask[0][x0:x1] = 1
-      if v.het == HOMOZYGOUS or v.het == HET2:
-        this_mask[1][x0:x1] = 1
-
-
-def arbitrate_variant_collisions(g1, mask):
-  """Given mask and variant data, arbitrate collisions based on the footprint. The footprint is the POS and stop
-  attributes of the variant. Future expansion will use a priority attribute to arbitrate - currently variants that
-  are placed earlier get absolute priority and perhaps link variants entries for complex structural variants.
-  Mask is modified in place. The order of the variants determines their priority - earlier variants get preference
-  in case of collisions
+  Given an exiting chromosome (in variant format) merge new variants into it in zipper fashion
+  Args:
+    c1 (variant list)  - The original chromosome
+    dnv (variant list) - The proposed variants
+  Returns:
+    c2 (variant list)  - The resultant chromosome with variant collisions arbitrated
   """
-  g2 = {}
-  for chrom, variants in g1.iteritems():
-    this_mask = mask[chrom]
-    this_g = []
-    for v in variants:
-      x0, x1 = v.POS, v.stop
-      copy_1 = this_mask[0][x0 - 1:x1 + 1].any()
-      copy_2 = this_mask[1][x0 - 1:x1 + 1].any()  # We use a 1 base buffer around variants
+  c1_iter, dnv_iter = c1.__iter__(), dnv.__iter__()
+  c2 = []
+  append = c2.append
+  # Try the zipper
+  existing, denovo = next(c1_iter, None), next(dnv_iter, None)
+  while existing is not None and denovo is not None:
 
-      # If there are collisions, simply skip this variant
-      if copy_1 and v.het != HET2:
-        #logger.debug('Collision at {:d}:1 {:d} - {:d}'.format(x0, x0, x1))
-        continue
-      if copy_2 and v.het != HET1:
-        #logger.debug('Collision at {:d}:2 {:d} - {:d}'.format(x0, x0, x1))
-        continue
+    if existing.stop < denovo.POS - 1:  # Clearly non-interfering
+      append(vcopy(existing))
+      existing = next(c1_iter, None)
+      continue
 
-      # No collisions, valid variant, add to mask
-      this_g += [v]
-      if v.het != HET2:  # Either HOMOZYGOUS or HET1
-        this_mask[0][x0:x1] = 1
-      if v.het != HET1:  # Either HOMOZYGOUS or HET2
-        this_mask[1][x0:x1] = 1
+    if denovo.stop < existing.POS - 1:  # Clearly non-interfering
+      append(vcopy(denovo))
+      denovo = next(dnv_iter, None)
+      continue
 
-    g2[chrom] = this_g
-  logger.debug('{:d} of {:d} variants placed'.format(sum([len(c) for c in g2.values()]), sum([len(c) for c in g1.values()])))
+    # Potentially colliding, need to check zygosity
+    if existing.het == denovo.het or \
+       existing.het == HOMOZYGOUS or denovo.het == HOMOZYGOUS:  # This will collide, resolve in favor of existing
+      append(vcopy(existing))
+    else:  # Won't collide, simply need to resolve who comes first
+      if existing.POS <= denovo.POS:
+        append(vcopy(existing))
+        append(vcopy(denovo))
+      else:
+        append(vcopy(denovo))
+        append(vcopy(existing))
+    existing, denovo = next(c1_iter, None), next(dnv_iter, None)  # Conflict resolved, both need to move on
+
+  # Now pick up any slack
+  while existing is not None:
+    append(vcopy(existing))
+    existing = next(c1_iter, None)
+
+  while denovo is not None:
+    append(vcopy(denovo))
+    denovo = next(dnv_iter, None)
+
+  return c2
+
+
+def merge_variants_with_genome(g1, variant_generator):
+  """Given an original genome add any variants that come off the variant_generator"""
+  g2 = g1
+  for delta_g in variant_generator:
+    for chrom, dnv in delta_g.iteritems():
+      try:
+        g2[chrom] = merge_variants_with_chromosome(g2[chrom], dnv)
+      except KeyError:  # This is the first time we are seeing variants on this chromosome
+        g2[chrom] = dnv
   return g2
 
 
-def add_variant_model_to_genome(g1, mask, variant_generator):
-  """Given an original genome and its mask add any variants that come off the variant_generator"""
-  for delta_g in variant_generator:
-    filtered_delta_g = arbitrate_variant_collisions(delta_g, mask)
-    for chrom, variants in filtered_delta_g.iteritems():
-      try:
-        g1[chrom].extend(variants)
-      except KeyError:  # This is the first time we are seeing variants on this chromosome
-        g1[chrom] = variants
-
-
-def sort_genome(g1):
-  """In place sort."""
-  for c in g1.itervalues():
-    c.sort(key=lambda v: v.POS)
-
-
-def add_multiple_variant_models_to_genome(ref, models=[], g1=None):
-  """Modifies g1 in place. Recall that each variant generator has been initialized with genome information etc."""
-  mask = initialize_mask(ref, g1)
+def apply_variant_models_to_genome(g1={}, ref=None, models=[]):
+  """Return a copy of g1 with the denovo variants from the models merged in"""
+  g2 = g1
   for model in models:
-    add_variant_model_to_genome(g1, mask, model["model"].variant_generator(ref, **model["params"]))
-  sort_genome(g1)  # This is the only operation that might throw variations out of order
+    g2 = merge_variants_with_genome(g2, model["model"].variant_generator(ref, **model["params"]))
+  return g2
 
 
 def create_denovo_genome(ref, models=[]):
-  g1 = {}
-  add_multiple_variant_models_to_genome(ref=ref, models=models, g1=g1)
-  return g1
+  """Simply a convenience function that creates a genome from scratch."""
+  return apply_variant_models_to_genome(ref=ref, models=models)
 
 
 def load_variant_models(model_param_json):
