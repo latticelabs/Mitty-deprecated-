@@ -85,6 +85,7 @@ def add_variant_model_to_genome_test():
   g2 = merge_variants_with_genome(g1, vg)
 
   assert correct_final_g == g2, g2
+  assert g1 == {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)], 2: [Variation(7, 10, 'CAA', 'C', HET2)]}  # Must not change original
 
 
 # This test uses the stock SNP which must exist for this test to pass

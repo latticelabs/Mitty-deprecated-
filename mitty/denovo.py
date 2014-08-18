@@ -69,6 +69,7 @@ Current contact: kaushik.ghose@sbgenomics.com
 """
 __version__ = '0.5.0'
 
+from copy import copy
 import numpy
 import importlib
 import json
@@ -133,7 +134,7 @@ def merge_variants_with_chromosome(c1, dnv):
 
 def merge_variants_with_genome(g1, variant_generator):
   """Given an original genome add any variants that come off the variant_generator"""
-  g2 = g1
+  g2 = copy(g1)
   for delta_g in variant_generator:
     for chrom, dnv in delta_g.iteritems():
       try:
@@ -145,9 +146,9 @@ def merge_variants_with_genome(g1, variant_generator):
 
 def apply_variant_models_to_genome(g1={}, ref=None, models=[]):
   """Return a copy of g1 with the denovo variants from the models merged in"""
-  g2 = g1
+  g2 = None
   for model in models:
-    g2 = merge_variants_with_genome(g2, model["model"].variant_generator(ref, **model["params"]))
+    g2 = merge_variants_with_genome(g2 or g1, model["model"].variant_generator(ref, **model["params"]))
   return g2
 
 
