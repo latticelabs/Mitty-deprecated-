@@ -1,4 +1,4 @@
-from . import *
+from tests import *
 import os
 import tempfile
 import h5py
