@@ -58,7 +58,7 @@ def vcf2chrom(vcf_rdr):
   sorted if the vcf file is sorted.
   """
   chrom = []
-
+  append = chrom.append
   for variant in vcf_rdr:
     alt = variant.ALT[0].sequence if variant.ALT[0] is not None else ''
     ref = variant.REF or ''
@@ -77,7 +77,7 @@ def vcf2chrom(vcf_rdr):
     except IndexError:  # No genotype info, will assume homozygous
         pass
 
-    chrom += [Variation(start, stop, ref, alt, het)]
+    append(Variation(start, stop, ref, alt, het))
 
   return chrom
 
