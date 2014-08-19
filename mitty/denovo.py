@@ -184,7 +184,7 @@ def main(wg_file_name, vcf_file_name=None, param_file_name='', master_seed=None)
   return g1
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
   else:
