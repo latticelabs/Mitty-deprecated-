@@ -23,9 +23,9 @@ Commandline::
 
 Roadmap:
 
-1. Load reference only once and keep in memory - perhaps give warnings if genome too big for machine and fallback to a
+1. [DONE] Load reference only once and keep in memory - perhaps give warnings if genome too big for machine and fallback to a
  slower load on demand model. This may mean writing a new class to handle genomes (like we did for variants)
-2. Don't keep population in memory - save as we go and remove to keep memory consumption low and to have partial
+2. [DONE] Don't keep population in memory - save as we go and remove to keep memory consumption low and to have partial
  results in case of an abort.
 3. Finalize .json format for lineage and save that every generation
 4. Profile after optimizing reference loading - if needed get rid of bit mask and use a sorted list for genomes -
@@ -216,8 +216,8 @@ def spawn(g1, g2, hot_spots={}, rngs={}, num_children=2, ref=None, models=[]):
     g1_cross = crossover_event(g1, place_crossovers(g1, hot_spots, rngs['cross_over']))
     g2_cross = crossover_event(g2, place_crossovers(g2, hot_spots, rngs['cross_over']))
     if ref is not None and len(models) > 0:  # We want denovo mutations
-      mitty.denovo.add_multiple_variant_models_to_genome(ref, models, g1_cross)
-      mitty.denovo.add_multiple_variant_models_to_genome(ref, models, g2_cross)
+      g1_cross = mitty.denovo.apply_variant_models_to_genome(g1_cross, ref, models)
+      g2_cross = mitty.denovo.apply_variant_models_to_genome(g2_cross, ref, models)
     children.append(fertilize_one(g1_cross, g2_cross, which_copies(g1, rngs['chrom_copy'])))
   return children
 
@@ -227,11 +227,26 @@ def de_novo_population(ref_fp, models=[], size=10):
   return [mitty.denovo.create_denovo_genome(ref_fp, models) for _ in range(size)]
 
 
+# def find_mates(pop, related_level=0, parent_list=[]):
+#   """Related level is the number of generations we need to go back to ensure they are not related."""
+#   our_pop = list(pop)
+#   pairs = []
+#   n = 0
+#   while n < len(our_pop):
+#     if our_pop[n] is None:
+#       n += 1
+#       continue
+#     m = 0
+#     while m < len(pop):
+#
+#     this_pair = [n]
+
+
 def one_generation(pop, hot_spots={}, rngs={}, num_children_per_couple=2, ref=None, models=[]):
   """We take pairs from the population without replacement, cross over the chromosomes, sprinkle in denovo mutations
   then shuffle the chromosomes during fertilization. If the population size is odd, we discard one parent"""
   assert len(pop) >= 2, 'Need at least two parents'
-  mates = rngs['couple_chose'].permutation(len(pop))  # This needs to be an even number
+  mates = rngs['couple_chose'].permutation(len(pop))
   children = []
   parents = []
   for n in range(2*(len(mates)/2))[::2]:  #Todo fix handling of odd sizes
@@ -244,38 +259,38 @@ def one_generation(pop, hot_spots={}, rngs={}, num_children_per_couple=2, ref=No
 def population_simulation(ref, denovo_models=[], initial_size=10,
                           hot_spots={}, rngs={}, num_children_per_couple=2, ss_models=[],
                           num_generations=10,
-                          store_all_generations=True):
+                          store_all_generations=True,
+                          vcf_prefix=''):
   # The initial population
   pop = de_novo_population(ref, denovo_models, size=initial_size)
   logger.debug('Created de novo population of {:d} individuals'.format(len(pop)))
+  save_one_generation(pop, generation=0, vcf_prefix=vcf_prefix)
 
-  generation = [pop]
   parent_list = []
   # The generational loop
-  this_gen = pop
-  for n in range(num_generations):
+  this_gen = children = pop
+  for n in range(1, num_generations + 1):
     children, parents = one_generation(this_gen, hot_spots=hot_spots, rngs=rngs,
                                        num_children_per_couple=num_children_per_couple,
                                        ref=ref, models=ss_models)
     logger.debug('Created generation {:d} ({:d})'.format(n, len(children)))
-
     parent_list.append(parents)
     if store_all_generations:
-      generation.append(children)
+      save_one_generation(children, generation=n, vcf_prefix=vcf_prefix)
     this_gen = children
-  return generation, parent_list
+  return parent_list, children
 
 
-def save_population(pop, generation=0, vcf_prefix='pop'):
+def save_one_generation(pop, generation=0, vcf_prefix='pop'):
   """Given a population of genomes same them as a collection of vcf files with a prefix and sequential numbering."""
   for n, p in enumerate(pop):
     vcf_save_gz(p, vcf_gz_name='{:s}_g{:d}_p{:d}.vcf.gz'.format(vcf_prefix, generation, n),
                 sample_name='g{:d}p{:d}'.format(generation, n))
 
 
-def save_generation(gen_pop, vcf_prefix='pop'):
+def save_multiple_generations(gen_pop, vcf_prefix='pop'):
   for gen, pop in enumerate(gen_pop):
-    save_population(pop, generation=gen, vcf_prefix=vcf_prefix)
+    save_one_generation(pop, generation=gen, vcf_prefix=vcf_prefix)
 
 
 def main(ref_fname='../../Data/ashbya_gossypii/ashbya.h5', hot_spots={}, params_json={}, master_seed=None,
@@ -284,7 +299,6 @@ def main(ref_fname='../../Data/ashbya_gossypii/ashbya.h5', hot_spots={}, params_
          out_dir='out',
          out_prefix='pop'):
   import mitty.denovo as denovo
-  import h5py
   import shutil
   import os
   shutil.rmtree(out_dir)
@@ -298,13 +312,13 @@ def main(ref_fname='../../Data/ashbya_gossypii/ashbya.h5', hot_spots={}, params_
     rngs = get_rngs(seed=1)
   ss_models = denovo.load_variant_models(params_json['ss_variant_models'])
   ref = load_reference(ref_fname)
-  generations, parent_list = \
+  parent_list, _ = \
     population_simulation(ref, denovo_models=models, initial_size=initial_size,
                           hot_spots=hot_spots, rngs=rngs, num_children_per_couple=num_children_per_couple,
                           ss_models=ss_models,
                           num_generations=num_generations,
-                          store_all_generations=store_all_generations)
-  save_generation(generations, vcf_prefix=os.path.join(out_dir, out_prefix))
+                          store_all_generations=store_all_generations,
+                          vcf_prefix=os.path.join(out_dir, out_prefix))
 
 if __name__ == "__main__":
   import json
@@ -314,9 +328,6 @@ if __name__ == "__main__":
     docopt.docopt(__doc__, ['-h'])
   else:
     args = docopt.docopt(__doc__, version=__version__)
-
-  #  population --wg=WG  --hs=HS  [--init_size=IS]  --children=CH] [--gens=G]  --paramfile=PFILE  [--master_seed=SEED]  [--outdir=OD]  [--outprefix=OP]  [-v]
-
   logging.basicConfig(level=logging.WARNING)
   if args['-v']:
     logger.setLevel(logging.DEBUG)
