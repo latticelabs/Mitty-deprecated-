@@ -3,7 +3,7 @@ import numpy.testing
 from mitty.variation import Variation, parse_vcf
 from mitty.population import *
 import mitty.denovo as denovo
-from nose.tools import raises
+from nose.tools import raises, assert_equal
 
 
 def chrom_crossover_test():
@@ -259,11 +259,11 @@ def spawn_test2():
                      Variation(POS=16,stop=17,REF='T',ALT='A',het=HOMOZYGOUS)],
                  2: [Variation(POS=7,stop=8,REF='G',ALT='T',het=HET2),
                      Variation(POS=17,stop=18,REF='G',ALT='T',het=HET1)]}]
-  assert correct_ch == ch, ch
+  assert_equal(correct_ch, ch)
 
 
 def de_novo_population_test():
-  """Spawn from parents (with denovo)"""
+  """De novo population"""
   params_json = {
     "denovo_variant_models": [
       {
@@ -429,7 +429,8 @@ def population_simulation_test():
   assert len(parent_list) == 10
 
   import vcf
-  assert children[0] == parse_vcf(vcf.Reader(filename=os.path.join(pop_sim_data_dir, 'pop_sim_test_g10_p0.vcf.gz')), [1, 2])
+  read_genome = parse_vcf(vcf.Reader(filename=os.path.join(pop_sim_data_dir, 'pop_sim_test_g10_p0.vcf.gz')), [1, 2])
+  assert children[0] == read_genome, [children[0], read_genome]
 
   from shutil import rmtree
   rmtree(pop_sim_data_dir)  # Clean up after ourselves
