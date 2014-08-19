@@ -1,7 +1,6 @@
-from blist import sortedlist as sl
 from mitty.variation import Variation
 from mitty.denovo import *
-from . import *
+from tests import *
 
 
 def merge_test1():
@@ -29,6 +28,34 @@ def merge_test3():
                 Variation(8, 11, 'CCC', 'C', HOMOZYGOUS),
                 Variation(13, 16, 'CTT', 'C', HOMOZYGOUS),
                 Variation(20, 23, 'CAA', 'C', HOMOZYGOUS),]
+
+
+def merge_test4a():
+  """Merge variants, full overlapping (E-D-)"""
+  c1 = [Variation(2, 5, 'CAA', 'C', HOMOZYGOUS)]
+  dnv = [Variation(2, 5, 'CAA', 'T', HOMOZYGOUS)]
+  c2 = merge_variants_with_chromosome(c1, dnv)
+  assert c2 == [Variation(2, 5, 'CAA', 'C', HOMOZYGOUS)]
+
+
+def merge_test4b():
+  """Merge variants, full overlapping, SNP (D-E-)."""
+  c1 = [Variation(2, 3, 'C', 'G', HET1)]
+  dnv = [Variation(2, 3, 'C', 'T', HET1)]
+  c2 = merge_variants_with_chromosome(c1, dnv)
+  assert c2 == [Variation(2, 3, 'C', 'G', HET1)]
+
+
+# Important test - killed a nasty logic bug
+def merge_test4c():
+  """Merge variants, full overlapping, with non-colliding preceder"""
+  c1 = [Variation(1, 2, 'G', 'C', HET2),
+        Variation(2, 3, 'A', 'C', HET1)]
+  dnv = [Variation(2, 3, 'A', 'T', HET1)]
+  correct_final_c = [Variation(1, 2, 'G', 'C', HET2),
+                     Variation(2, 3, 'A', 'C', HET1)]
+  c2 = merge_variants_with_chromosome(c1, dnv)
+  assert c2 == correct_final_c, c2
 
 
 def merge_test4():
@@ -65,7 +92,43 @@ def merge_test6():
                 Variation(26, 29, 'CGG', 'C', HOMOZYGOUS)], c2
 
 
-def add_variant_model_to_genome_test():
+def add_variant_model_to_genome_test1():
+  g1 = {1: [Variation(12, 13, 'G', 'C', HET2),
+            Variation(13, 14, 'A', 'C', HET1),
+            Variation(19, 20, 'G', 'A', HET1)]}  # This should be placed with no problems
+
+  def variant_generator():
+    g2 = [{1: [Variation(13, 14, 'A', 'T', HET1)]}]  # This will pass
+    for g in g2:
+      yield g
+
+  correct_final_g = {1: [Variation(12, 13, 'G', 'C', HET2),
+                         Variation(13, 14, 'A', 'C', HET1),
+                         Variation(19, 20, 'G', 'A', HET1)]}
+
+  vg = variant_generator()
+  g2 = merge_variants_with_genome(g1, vg)
+
+  assert correct_final_g == g2, g2
+
+
+def add_variant_model_to_genome_test1a():
+  g1 = {1: [Variation(13, 14, 'A', 'C', HET1)]}  # This should be placed with no problems
+
+  def variant_generator():
+    g2 = [{1: [Variation(13, 14, 'A', 'T', HET1)]}]  # This will pass
+    for g in g2:
+      yield g
+
+  correct_final_g = {1: [Variation(13, 14, 'A', 'C', HET1)]}
+
+  vg = variant_generator()
+  g2 = merge_variants_with_genome(g1, vg)
+
+  assert correct_final_g == g2, g2
+
+
+def add_variant_model_to_genome_test2():
   g1 = {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)],
         2: [Variation(7, 10, 'CAA', 'C', HET2)]}  # This should be placed with no problems
 

@@ -111,14 +111,14 @@ def merge_variants_with_chromosome(c1, dnv):
     if existing.het == denovo.het or \
        existing.het == HOMOZYGOUS or denovo.het == HOMOZYGOUS:  # This will collide, resolve in favor of existing
       append(vcopy(existing))
+      existing, denovo = next(c1_iter, None), next(dnv_iter, None)  # Conflict resolved, both need to move on
     else:  # Won't collide, simply need to resolve who comes first
       if existing.POS <= denovo.POS:
         append(vcopy(existing))
-        append(vcopy(denovo))
+        existing = next(c1_iter, None)
       else:
         append(vcopy(denovo))
-        append(vcopy(existing))
-    existing, denovo = next(c1_iter, None), next(dnv_iter, None)  # Conflict resolved, both need to move on
+        denovo = next(dnv_iter, None)
 
   # Now pick up any slack
   while existing is not None:
