@@ -171,10 +171,6 @@ def apply_master_seed(models, master_seed=None):
       model["params"]["master_seed"] = numpy.random.RandomState(seed=int(master_seed)).randint(100000000, size=4)
 
 
-def create_variant_generator_list(models, ref_fp):
-  return [model["model"].variant_generator(ref_fp, **model["params"]) for model in models]
-
-
 def main(wg_file_name, vcf_file_name=None, param_file_name='', master_seed=None):
   """This does what the old mutate.py script used to do."""
   logger.debug('Reference file {:s}'.format(wg_file_name))
