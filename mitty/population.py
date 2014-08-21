@@ -6,7 +6,7 @@ VCF files.
 Commandline::
 
   Usage:
-    population --wg=WG  --hs=HS  [--init_size=IS]  [--children=CH] [--gens=G]  --paramfile=PFILE  [--master_seed=SEED]  [--outdir=OD]  [--outprefix=OP]  [-v]
+    population --wg=WG  --hs=HS  [--init_size=IS]  [--children=CH] [--gens=G]  --paramfile=PFILE  [--master_seed=SEED]  [--outdir=OD]  [--outprefix=OP]  [--dont_store_all] [-v]
 
   Options:
     --wg=WG                 Whole genome reference file
@@ -19,16 +19,18 @@ Commandline::
                             This overrides any individual seeds specified by the parameter file.
     --outdir=OD             Output directory [default: out]
     --outprefix=OP          Output VCF file prefix [default: pop]
+    --dont_store_all        If set, don't store all generations - just first and last
     -v                      Dump detailed logger messages
 
 Roadmap:
 
-1. [DONE] Load reference only once and keep in memory - perhaps give warnings if genome too big for machine and fallback to a
+* Rework crossover model to match that in text book (current model does not correctly reflect effects on copies
+* [DONE] Load reference only once and keep in memory - perhaps give warnings if genome too big for machine and fallback to a
  slower load on demand model. This may mean writing a new class to handle genomes (like we did for variants)
-2. [DONE] Don't keep population in memory - save as we go and remove to keep memory consumption low and to have partial
+* [DONE] Don't keep population in memory - save as we go and remove to keep memory consumption low and to have partial
  results in case of an abort.
-3. Finalize .json format for lineage and save that every generation
-4. Profile after optimizing reference loading - if needed get rid of bit mask and use a sorted list for genomes -
+* Finalize .json format for lineage and save that every generation
+* [DONE] Profile after optimizing reference loading - if needed get rid of bit mask and use a sorted list for genomes -
 implement collision detection based on the sorted vcf - this may be slightly slower than a bit mask, or may be not, if
 we have to repeatedly instantiate masks. This will certainly use less memory
 
@@ -278,6 +280,10 @@ def population_simulation(ref, denovo_models=[], initial_size=10,
     if store_all_generations:
       save_one_generation(children, generation=n, vcf_prefix=vcf_prefix)
     this_gen = children
+
+  if not store_all_generations:
+      save_one_generation(pop, generation=n, vcf_prefix=vcf_prefix)
+
   return parent_list, children
 
 
@@ -337,5 +343,5 @@ if __name__ == "__main__":
   pj = json.load(open(args['--paramfile'], 'r'))
   main(ref_fname=args['--wg'], hot_spots=hot_spots, params_json=pj, master_seed=args['--master_seed'],
        initial_size=int(args['--init_size']), num_children_per_couple=int(args['--children']),
-       num_generations=int(args['--gens']), store_all_generations=True,
+       num_generations=int(args['--gens']), store_all_generations=False,
        out_dir=args['--outdir'], out_prefix=args['--outprefix'])
