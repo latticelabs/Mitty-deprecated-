@@ -89,15 +89,16 @@ import string
 
 DNA_complement = string.maketrans('ATCGN', 'TAGCN')
 pos_null = numpy.empty((0,), dtype='u4')  # Convenient, used in apply_one_variant
-
+int2str = [str(n) for n in range(1001)]  # int2str[n] is faster than str(n). Watch out for reads longer than 1000!
 
 class Read(Structure):
   _fields_ = [("POS", c_int32),
               ("CIGAR", c_char_p),
               ("perfect_seq", c_char_p),
               ("corrupted_seq", c_char_p),
-              ("PHRED", c_char_p)]  # Refers to the corrupted sequence
-
+              ("PHRED", c_char_p),  # Refers to the corrupted sequence
+              ("_start_idx", c_int32),
+              ("_stop_idx", c_int32)]  # internal use, refers to the pos_array. Used by roll_cigar etc
   def __eq__(self, other):
     # This does not do an isinstance check for speed reasons.
     if self.POS == other.POS and self.CIGAR == other.CIGAR and self.seq == other.seq and self.PHRED == other.PHRED:
@@ -206,56 +207,59 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
       yield this_idx, this_seq_block, this_c_seq_block, this_arr
 
 
-def roll_cigar(pos_array, pos=0):
-  """Given a position array write out a POS and CIGAR value."""
-  if numpy.count_nonzero(pos_array[1]) == 0:  #This is a read from the middle of an insertion
-    align_pos = pos_array[0][0] - 1  # This assumes we use the A -> ATCG form for VCF lines
-    cigar = '>' + str(pos_array[2][0])  # The offset
-
-
-  mapped = False
+def roll_cigar(pos_array, start_idx, stop_idx):
   cigar = ''
   counter = 0
   cigar_fragment = None
-  for n in range(pos_array.size):
-    dp = pos_array[n+1] - pos_array[n]
+  for dp in pos_array[1][start_idx:stop_idx]:
     if dp == 1:
-      mapped = True  # As long as we have one M we are a mapped read
       if cigar_fragment != 'M':
         if counter > 0:  # Flush
-          cigar += '{:d}{:s}'.format(counter, cigar_fragment)
+          cigar += int2str[counter] + cigar_fragment  # '{:d}{:s}'.format(counter, cigar_fragment)
           counter = 0
       cigar_fragment = 'M'
       counter += 1
     elif dp == 0:
       if cigar_fragment != 'I':
         if counter > 0:  # Flush
-          cigar += '{:d}{:s}'.format(counter, cigar_fragment)
+          cigar += int2str[counter] + cigar_fragment  # '{:d}{:s}'.format(counter, cigar_fragment)
           counter = 0
       cigar_fragment = 'I'
       counter += 1
     elif dp > 1:
-      mapped = True  # As long as we have one M we are a mapped read
       if cigar_fragment != 'M':
         if counter > 0:  # Flush
-          cigar += '{:d}{:s}'.format(counter, cigar_fragment)
+          cigar += int2str[counter] + cigar_fragment  # '{:d}{:s}'.format(counter, cigar_fragment)
           counter = 0
       cigar_fragment = 'M'  # We need to set this because we could be at the start of a read and type = None still
       counter += 1
-      cigar += '{:d}{:s}'.format(counter, cigar_fragment)
+      cigar += int2str[counter] + cigar_fragment  # '{:d}{:s}'.format(counter, cigar_fragment)
       cigar_fragment = 'D'
       counter = dp - 1
 
-  if cigar_fragment != 'D':  # Flush all but 'D'. We only write D if we cross a D boundary
-    cigar += '{:d}{:s}'.format(counter, cigar_fragment)
+  # Flush all but 'D'. We only write D if we cross a D boundary
+  if cigar_fragment == 'M':
+    cigar += int2str[counter] + cigar_fragment  # '{:d}{:s}'.format(counter, cigar_fragment)
+  elif cigar_fragment == 'I':  # Ooh sophisticated - we write softclips now
+    cigar += int2str[counter] + 'S'
 
-  if mapped:
-    align_pos = pos_array[0]
-  else:
-    align_pos = pos  # Unmapped read, deep in the middle of an insert. This is where we are!
-    cigar = '>' + str(offset)  # A deep CIGAR, indicates last POS (has to be insert) and offset into insert
+  return cigar
 
-  return align_pos, cigar
+
+def package_reads(read_list, pos_array):
+  """Fills out POS and CIGAR in place"""
+  for read in read_list:
+    start_idx, stop_idx = read._start_idx, read._stop_idx
+    if numpy.any(pos_array[1][start_idx:stop_idx] != 1):  # Somewhere we have an indel
+      if numpy.count_nonzero(pos_array[1][start_idx:stop_idx]) == 0:  #This is a read from the middle of an insertion
+        align_pos = pos_array[0][start_idx] - 1  # This assumes we use the A -> ATCG form for VCF lines
+        cigar = '>' + str(pos_array[2][start_idx])  # The offset
+      else:  # Tough luck, gotta compute the CIGAR manually
+        align_pos, cigar = pos_array[0][start_idx], roll_cigar(pos_array, start_idx, stop_idx)
+    else:  # This is a perfect match
+      align_pos, cigar = pos_array[0][start_idx], str(stop_idx - start_idx) + 'M'
+    read.POS, read.CIGAR = align_pos, cigar
+
 
 
 # def perfect_reads_from_seq(ref=[], pos_array=None, offset_pos_array=None, offset_array=None, read_info=[], counts=[]):
