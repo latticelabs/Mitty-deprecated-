@@ -130,23 +130,24 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
   Returns:
     (start_idx      : (u4) in variant sequence coordinates - where does this block start
      seq, c_seq,    : (strings) variant sequence and complement
-     arr            : (numpy.array u4) 3 x n
-                      * position array used for POS
-                      * diff(p_arr) used for CIGARs
-                      * offset array used for offset calculation for reads deep in inserts
+     arr            : (list of numpy.array u4) [a1, a2, a3  ]
+                      a1 -  position array used for POS
+                      a2 -  diff(p_arr) used for CIGARs
+                      a3 -  offset array used for offset calculation for reads deep in inserts
   Raises:
     StopIteration   : When we are all done
 
   Notes:
-    This function has not been refactored to avoid function overhead
+    1. This function has not been refactored to avoid function overhead
+    2. We use a list of arrays for arr rather than a 2D array as 2D slicing turns out to be more expensive
   """
   l_ref_seq = len(ref_chrom_seq)
   cc = chrom_copy
 
   over_lap = 0
   seq_fragments = ['']
-  arr_null = numpy.empty((3, 0), dtype='u4')  # Convenient
-  arr_fragments = [arr_null]
+  arr_null = numpy.empty(0, dtype='u4')  # Convenient
+  arr_fragments = [[arr_null for _ in [0, 1, 2]]]
   ptr, var_ptr = 0, 0
   var_ptr_start = var_ptr
   var_ptr_finish = var_ptr + block_len
@@ -163,11 +164,11 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
         ptr = min(ptr + var_ptr_finish - var_ptr, variant.POS - 1)
         var_ptr += ptr - ref_ptr_start
       seq_fragments += [ref_chrom_seq[ref_ptr_start:ptr]]
-      arr_fragments += [numpy.vstack((
+      arr_fragments += [[
         numpy.arange(ref_ptr_start + 1, ptr + 1, dtype='u4'),
         numpy.empty(ptr - ref_ptr_start, dtype='u4'),
         numpy.zeros(ptr - ref_ptr_start, dtype='u4')
-      ))]
+      ]]
     else:  # variant exists and we are on it, expand it
       alt, ref = variant.ALT, variant.REF
       if (variant.het == HET1 and cc == 1) or (variant.het == HET2 and cc == 0):
@@ -180,11 +181,7 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
         pos_alt = numpy.concatenate((pos_alt, numpy.ones(l_alt - l_ref, dtype='u4') * variant.stop))
 
       seq_fragments += [alt]
-      arr_fragments += [numpy.vstack((
-        pos_alt,
-        numpy.empty(l_alt, dtype='u4'),
-        numpy.arange(l_alt, dtype='u4')
-      ))]
+      arr_fragments += [[pos_alt, numpy.empty(l_alt, dtype='u4'), numpy.arange(l_alt, dtype='u4')]]
 
       ptr += ptr_adv
       var_ptr += l_alt
@@ -195,23 +192,27 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
       this_idx = var_ptr_start - over_lap
       this_seq_block = ''.join(seq_fragments)
       this_c_seq_block = this_seq_block.translate(DNA_complement)
-      this_arr = numpy.concatenate(arr_fragments, axis=1)
-      this_arr[1, :-1] = numpy.diff(this_arr[0, :])
-      this_arr[1, -1] = (ptr + 1) - this_arr[0, -1]
+      this_arr = [numpy.concatenate([a_frag[n] for a_frag in arr_fragments]) for n in [0, 1, 2]]
+      this_arr[1][:-1] = numpy.diff(this_arr[0])
+      this_arr[1][-1] = (ptr + 1) - this_arr[0][-1]
 
       # Prep for next block before yield, there is no coming back
       var_ptr_start = var_ptr
       var_ptr_finish = var_ptr + block_len
       over_lap = min(over_lap_len, len(this_seq_block))
       seq_fragments = [this_seq_block[-over_lap:]]
-      arr_fragments = [this_arr[:, -over_lap:]]
+      arr_fragments = [[a_frag[-over_lap:] for a_frag in this_arr]]
 
       yield this_idx, this_seq_block, this_c_seq_block, this_arr
 
 
-def roll_cigar(pos_array, pos=0, offset=0):
-  """Given a position array write out a POS and CIGAR value. If the read is unmapped use the pos and offset to indicate
-  a 'deep cigar'"""
+def roll_cigar(pos_array, pos=0):
+  """Given a position array write out a POS and CIGAR value."""
+  if numpy.count_nonzero(pos_array[1]) == 0:  #This is a read from the middle of an insertion
+    align_pos = pos_array[0][0] - 1  # This assumes we use the A -> ATCG form for VCF lines
+    cigar = '>' + str(pos_array[2][0])  # The offset
+
+
   mapped = False
   cigar = ''
   counter = 0
