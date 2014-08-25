@@ -153,8 +153,10 @@ def read_generator(seq=None,
     reads = []
     if paired:
       for this_rd_st, this_rd_stand in zip(rd_st, rd_strand):
-        seq_1 = seq[this_rd_stand][this_rd_st:this_rd_st + rl]
-        seq_2 = seq[1 - this_rd_stand][this_rd_st + tl - 1:this_rd_st + tl - 1 - rl:-1]
+        # seq_1 = seq[this_rd_stand][this_rd_st:this_rd_st + rl]
+        # seq_2 = seq[1 - this_rd_stand][this_rd_st + tl - 1:this_rd_st + tl - 1 - rl:-1]
+        seq_1 = seq[0][this_rd_st:this_rd_st + rl]
+        seq_2 = seq[1][this_rd_st + tl - 1:this_rd_st + tl - 1 - rl:-1]
         if 'N' in seq_1 or 'N' in seq_2:  # read taken from a masked/unknown region
           continue
         reads.append([[seq_1, '~' * rl, this_rd_st],
