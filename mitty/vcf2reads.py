@@ -3,20 +3,18 @@
 Commandline::
 
   Usage:
-    vcf2reads [localreads]  --wg=WG  --vcf=VCF  --out=OUT  --paramfile=PFILE  [--corrupt]  [--fastq] [--read_border_size=RBS] [--reads_per_block=BL] [--master_seed=MS] [-v]
+    vcf2reads  --fa_dir=FADIR  [--vcf=VCF]  --out=OUT  --paramfile=PFILE  [--corrupt]  [--block_len=BL] [--master_seed=MS] [-v]
 
   Options:
-    localreads              Take reads around insertions only
-    --wg=WG                 Whole genome file
-    --vcf=VCF               VCF file
+    --fa_dir=FADIR          Directory where genome is located
+    --vcf=VCF               VCF file. If not given we will take reads from the reference genome
     --out=OUT               Output file name prefix
-    --read_border_size=RBS  How many bases before and after the insertion do we include in our window [default: 500]
     --paramfile=PFILE       Name for parameter file
     --corrupt               Write out corrupted reads too.
-    --fastq                 Write as FASTQ instead of BAM (simulated_reads.fastq)
-    --reads_per_block=BL    Generate these many reads at a time (Adjust to machine resources). [default: 100000]
+    --block_len=BL          Consider the sequence in chunks this big. See notes [default: 1000000]
     --master_seed=MS        If this is specified this passes a master seed to the read plugin.
                             This overrides any individual seeds specified by the parameter file.
+                            If this is not set the random number generator will be initialized via the default method
     -v                      Dump detailed logger messages
 
 Parameter file example::
@@ -46,7 +44,8 @@ Expanding the variant sequence takes a bunch of memory because we need 14 bytes 
 
 For this reason we adopt a just in time expansion where by we feed chunks of the variant sequence to the read plugin.
 The smaller the chunk size the less extra memory is needed but the chunk computation has an overhead. In general, you
-should make the chunk size as large as you can given your memory
+should make the chunk size as large as you can given your memory keeping in mind that each base takes 14 bytes of space
+when the variant sequence is expanded.
 
 
 Algorithm:
@@ -83,13 +82,29 @@ Roadmap
   *** further efficiency gains will probably be minimal - the bottle neck function has been cythonized ***
 
 """
+import docopt
 import numpy
 from mitty.variation import *  # Yes, it's THAT important
 import string
 
 DNA_complement = string.maketrans('ATCGN', 'TAGCN')
 pos_null = numpy.empty((0,), dtype='u4')  # Convenient, used in apply_one_variant
-int2str = [str(n) for n in range(1001)]  # int2str[n] is faster than str(n). Watch out for reads longer than 1000!
+int2str = [str(n) for n in range(1001)]  # int2str[n] is faster than str(n).
+# the read model should give max read length and we should use init_int2str to (re)generate an appropriately sized table
+# Leave this initialization in as it makes some testing easier
+
+
+def init_int2str(max_read_len):
+  global int2str
+  int2str = [str(n) for n in range(max_read_len + 1)]
+
+
+import logging
+logger = logging.getLogger(__name__)
+
+SEED_MAX = 10000000000  # For each call of the JIT expander we pass a random seed.
+                        # We generate these seeds from the given master seed and
+
 
 class Read(Structure):
   _fields_ = [("POS", c_int32),
@@ -115,10 +130,6 @@ class Read(Structure):
                                                       ' ... ' + self.seq[-20:])
 
 
-def init_read_model(read_model):
-  return None
-
-
 def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_len=10e6, over_lap_len=200):
   """Return the computed variant sequence in blocks
   Args:
@@ -129,7 +140,9 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
     overlap_len     : how many bases of the old sequence to include in the new block
                       This should be hinted by the expected template length of the read model
   Returns:
-    (start_idx      : (u4) in variant sequence coordinates - where does this block start
+    iter            : an iterator that yields tuples
+
+     start_idx      : (u4) in variant sequence coordinates - where does this block start
      seq, c_seq,    : (strings) variant sequence and complement
      arr            : (list of numpy.array u4) [a1, a2, a3  ]
                       a1 -  position array used for POS
@@ -207,6 +220,7 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
       yield this_idx, this_seq_block, this_c_seq_block, this_arr
 
 
+#TODO handle softclip at start of read
 def roll_cigar(pos_array, start_idx, stop_idx):
   cigar = ''
   counter = 0
@@ -246,155 +260,136 @@ def roll_cigar(pos_array, start_idx, stop_idx):
   return cigar
 
 
-def package_reads(read_list, pos_array):
+def package_reads(template_list, pos_array):
   """Fills out POS and CIGAR in place"""
-  for read in read_list:
-    start_idx, stop_idx = read._start_idx, read._stop_idx
-    if numpy.any(pos_array[1][start_idx:stop_idx] != 1):  # Somewhere we have an indel
-      if numpy.count_nonzero(pos_array[1][start_idx:stop_idx]) == 0:  #This is a read from the middle of an insertion
-        align_pos = pos_array[0][start_idx] - 1  # This assumes we use the A -> ATCG form for VCF lines
-        cigar = '>' + str(pos_array[2][start_idx])  # The offset
-      else:  # Tough luck, gotta compute the CIGAR manually
-        align_pos, cigar = pos_array[0][start_idx], roll_cigar(pos_array, start_idx, stop_idx)
-    else:  # This is a perfect match
-      align_pos, cigar = pos_array[0][start_idx], str(stop_idx - start_idx) + 'M'
-    read.POS, read.CIGAR = align_pos, cigar
+  for template in template_list:
+    for read in template:
+      start_idx, stop_idx = read._start_idx, read._stop_idx
+      if numpy.any(pos_array[1][start_idx:stop_idx] != 1):  # Somewhere we have an indel
+        if numpy.count_nonzero(pos_array[1][start_idx:stop_idx]) == 0:  #This is a read from the middle of an insertion
+          align_pos = pos_array[0][start_idx] - 1  # This assumes we use the A -> ATCG form for VCF lines
+          cigar = '>' + str(pos_array[2][start_idx])  # The offset
+        else:  # Tough luck, gotta compute the CIGAR manually
+          align_pos, cigar = pos_array[0][start_idx], roll_cigar(pos_array, start_idx, stop_idx)
+      else:  # This is a perfect match
+        align_pos, cigar = pos_array[0][start_idx], str(stop_idx - start_idx) + 'M'
+      read.POS, read.CIGAR = align_pos, cigar
 
 
-
-# def perfect_reads_from_seq(ref=[], pos_array=None, offset_pos_array=None, offset_array=None, read_info=[], counts=[]):
-#   """
-#   Args:
-#     read_info      : list of [(pos, len, dir, strand) ... ]
-#                       e.g [(pos, len, dir, strand), (pos2, len2, dir2, stand2)] if paired
-#                      pos = start of read
-#                      len = len of read
-#                      dir = +1 for forward, -1 for reverse
-#     counts         : How many of each template do we have
-#   """
-#   # phred = '~' * max_read_len
-#   # perfect_cigar = '{:d}M'.format(max_read_len)
-#   read_list = []
-#   #append = read_list.append
-#   for this_template_info, repeat_count in zip(read_info, counts):
-#     if repeat_count == 0: continue  # No reads here
-#     for (r_pos, r_len, r_dir, r_strand) in this_template_info:
-#       if pos_array is not None: # This sequence contains variants
-#         pos, cigar = roll_cigar(pos_array[r_pos:r_pos + r_len], offset=offset_array[x1])
-#       else:  # This is part of the reference sequence
-#         pos1, cigar1 = x1, perfect_cigar  # POS is 1 indexed
-#
-#     if paired:
-#       x1, x2 = ref_start + n + template_len - 1, ref_start + n + template_len - read_len - 1
-#       if pos_array is not None:
-#         pos2, cigar2 = roll_cigar(pos_array[x1:x2:-1], offset=offset_array[x2])
-#       else:
-#         pos2, cigar2 = x2 + 1, perfect_cigar
-#
-#     for strand in strands:
-#       this_read_seq = ref[strand][ref_start + n:ref_start + n + read_len]
-#       this_read = [[Read(pos1, cigar1, this_read_seq, phred)]]
-#       if paired:
-#         that_read_seq = ref[1 - strand][ref_start + n + template_len - 1:ref_start + n + template_len - read_len - 1:-1]
-#         this_read = [[this_read[0][0], Read(pos2, cigar2, that_read_seq, phred)]]
-#       read_list += this_read
-#   return read_list
-
-
-# def expand_variant_seq():
-#
-#
-#
-#
-# def perfect_reads_from_chrom_copy(ref_chrom_seq='', c1=[],
-#                                   template_len_hint=None,
-#                                   block_len_hint=None,
-#                                   read_pos_iter=None,
-#                                   read_iter=None):
-#   read_list = []
-#   ref_pointer = 0  # Where are we on the reference sequence
-#   alt_pointer = 0  # Where are we on the variant sequence
-#   c1_iter = c1.__iter__()
-#   alt_chrom_seq = ''
-#   variant = next(c1_iter, None)
-#   next_template_pos = next(read_pos_iter, None)
-#   while 1:
-#     while next_template_pos
-#
-#
-#
-#   for variant in c1:
-#     # Take reads up to this variant
-#     if ref_pointer + template_len_hint < variant.POS: #
-#
-#
-#
-#
-#
-#     copy[n].append(ref_seq[pointer[n]:variant.POS - 1])
-#     pos[n].append(numpy.arange(pointer[n] + 1, variant.POS, dtype='u4'))
-#     pointer[n] += max(0, variant.POS - 1 - pointer[n])
-#     mutated_pointer[n] += len(copy[n][-1])
-#
-#
-#     read_list += perfect_reads_from_ref_seq(chrom_seq[ref_pointer:variant.POS])
-#
-#
-#
-# def perfect_reads_from_genome(ref={}, g1={}, chrom_list=[], p=0.1, k=100):
-#   """
-#   Args:
-#     ref        : reference genome
-#     g1         : genome as retrieved from vcf file
-#     chrom_list : list of chromosomes to take reads from
-#     p          : probability of read per base (bernoulli parameters for reads)
-#     k          : number of 'tries' per base
-#
-#   Returns:
-#     read_list  : a list of Read values
-#   """
-#   read_list = []
-#   for chrom in chrom_list:
-#     read_list += perfect_reads_from_chrom(ref[chrom], g1[chrom], p=p, k=k)
-#   return read_list
-#
-#
-# def corrupt_reads(read_list, corruption_model={}):
-#   pass
-
-def generate_reads(ref={}, g1={}, chrom_list=[], read_model=None, block_size=100):
-  """This is written as a generator because we might have a lot of reads and we want to flush the reads to file as
-  we go.
-
+def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
+  """
   Args:
-    ref        : reference genome
-    g1         : genome as retrieved from vcf file
-    chrom_list : list of chromosomes to take reads from
-    read_model :
-    block_size : How many bases do we send to the read generator
+    ref          : reference genome
+    g1           : genome as retrieved from vcf file
+    chrom_list   : list of chromosomes to take reads from
+    read_model   : read model
+    model_params :
+    block_len    : expand block length
+    master_seed  :
 
   Returns:
-    read_gen   : A generator that will keep giving reads until we are done
+    iter         : a generator that returns
 
-  1. Read plugin gives us a list of read + template positions (sorted by position along the mutated sequence).
-  2. We start at the beginning of the reference sequence
-  3. The read reference is the reference sequence
-  4. If the template end is before the next variant position:
-     1. take reads, repeat 4.
-  5. If the template end crosses the next variant position:
-     1. If read reference is the reference sequence, start an alt sequence,
-        otherwise clip existing alt sequence (and pos_array)
-     2. Expand the variant, add it to alt seq
-     3. Repeat 2 as needed to go past template
-     4. Goto 4
-  6. Repeat all this until reads are exhausted
+    read_list    : a list of completed Read objects. Paired reads come sequentially
+    chrom        : chromosome the read was taken from [1,2....]
+    cc           : chromosome copy the read was taken from [0,1]
 
+  Raises:
+    StopIteration   : When we are all done
+
+  Notes:
+    This is written as a generator because we might have a lot of reads and we want to flush the reads to file as we go.
   """
-  read_iter = read_model.initialize(block_size=100)
-  for read in read_iter:
-    pass
+  seed_rng = numpy.random.RandState(seed=master_seed)
+
+  read_model_state = read_model.initialize(model_params, master_seed)
+  # This is meant for us to store any precomputed tables/constants. If we wish we can store RNGs here
+  max_read_len = read_model.max_read_len(read_model_state)
+  # This is used to determine the overlap for the blocks we feed to the read generator
+  init_int2str(max_read_len)  # And to compute this table, of course
+
+  for chrom in chrom_list:
+    if chrom not in ref: continue
+    for cc in [0, 1]:
+      vsg = get_variant_sequence_generator(ref_chrom_seq=ref[chrom], c1=g1.get(chrom, []), chrom_copy=cc,
+                                           block_len=block_len, over_lap_len=max_read_len)
+      for this_idx, this_seq_block, this_c_seq_block, this_arr in vsg:
+        tl, read_model_state = read_model.generate_reads(this_idx, this_seq_block, this_c_seq_block, this_arr,
+                                                         read_model_state, seed_rng.randint(SEED_MAX))
+        # Note that we reseed the generator each time. Each chunk is assumed to be independent of the last
+        # The model could ignore this independence by storing its RNGs in read_model_state
+        package_reads(tl, this_arr)
+        yield tl, chrom, cc
 
 
+def write_reads_to_file(fp, fp_c, template_list, chrom, cc, serial_no, write_corrupted=False):
+  """
+  Args:
+    fp           : file pointer
+    fp_c         : file pointer for corrupted reads
+    read_list    : a list of completed Read objects. Paired reads come sequentially
+    chrom        : chromosome the read was taken from [1,2....]
+    cc           : chromosome copy the read was taken from [0,1]
+    serial_no    : serial number of first read
+    corrupt      : write corrupted reads
+  """
+  # qname format is chrom:copy|rN|POS1|CIGAR1|POS2|CIGAR2
+  for n, template in enumerate(template_list):
+    paired = len(template) == 2
+    qname = chrom.__str__() + ':' + cc.__str__() + '|r' + (n + serial_no).__str__() + '|' + template[0].POS.__str__() \
+      + '|' + template[0].CIGAR
+    if paired:
+      qname += '|' + template[1].POS.__str__() + '|' + template[1].CIGAR
+
+    fp.write('@' + qname + '\n' + template[0].perfect_seq + '\n+\n' + '~' * len(template[0].perfect_seq))
+    if paired:
+      fp.write('@' + qname + '\n' + template[1].perfect_seq + '\n+\n' + '~' * len(template[1].perfect_seq))
+
+    if write_corrupted:
+      fp_c.write('@' + qname + '\n' + template[0].corrupted_seq + '\n+\n' + template[0].PHRED)
+      if paired:
+        fp_c.write('@' + qname + '\n' + template[1].corrupted_seq + '\n+\n' + template[1].PHRED)
 
 
+def main(fp, fp_c=None, ref={}, g1={}, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
+  read_gen = reads_from_genome(ref=ref, g1=g1, chrom_list=chrom_list,
+                               read_model=read_model, model_params=model_params,
+                               block_len=block_len, master_seed=master_seed)
+  write_corrupted = False if fp_c is None else True
+  serial_no = 0
+  for template_list, chrom, cc in read_gen:
+    write_reads_to_file(fp, fp_c, template_list=template_list, chrom=chrom, cc=cc,
+                        serial_no=serial_no, write_corrupted=write_corrupted)
+    serial_no += len(template_list)
+
+
+if __name__ == "__main__":
+  """
+  Usage:
+    vcf2reads  --wg=WG  --vcf=VCF  --out=OUT  --paramfile=PFILE  [--corrupt]  [--block_len=BL] [--master_seed=MS] [-v|-vv]
+
+  Options:
+    --wg=WG                 Whole genome file
+    --vcf=VCF               VCF file
+    --out=OUT               Output file name prefix
+    --paramfile=PFILE       Name for parameter file
+    --corrupt               Write out corrupted reads too.
+    --block_len=BL          Consider the sequence in chunks this big. See notes [default: 1000000]
+    --master_seed=MS        If this is specified this passes a master seed to the read plugin.
+                            This overrides any individual seeds specified by the parameter file.
+    -v                      Dump debug messages from this program
+    -vv                     Dump ALL debug messages
+  """
+  if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
+    docopt.docopt(__doc__, ['-h'])
+  else:
+    args = docopt.docopt(__doc__, version=__version__)
+
+  if args['-vv']:
+    logging.basicConfig(level=logging.DEBUG)
+  else:
+    logging.basicConfig(level=logging.WARNING)
+
+  if args['-v']:
+    logger.setLevel(logging.DEBUG)
 
