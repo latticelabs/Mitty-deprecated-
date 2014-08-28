@@ -7,8 +7,8 @@ from shutil import rmtree
 
 # These need to be available to the rest of the test suite
 source_tree_root = os.path.join(os.path.dirname(__file__), os.path.pardir)
+example_fasta_genome = os.path.join(source_tree_root, 'examples', 'data')
 data_dir = 'mitty_test_data_dir'  # tempfile.mkdtemp()
-wg_name = os.path.join(data_dir, 'test.h5')
 small_vcf_name = os.path.join(data_dir, 'small.vcf')
 
 
@@ -77,7 +77,7 @@ def setup_package():
   """In order to speed up tests we create a complete chain of data starting from a whole genome file and ending at
   simulated reads. If this function fails it means Mitty is broken in some fundamental way."""
   os.makedirs(data_dir)
-  create_wg()
+  #create_wg()
   create_small_vcf()
 
 

@@ -12,10 +12,10 @@ VCF file(s).
 Commandline::
 
   Usage:
-    denovo --wg=WG  --vcf=VCF  --param_file=PFILE  [--master_seed=SEED] [-v]
+    denovo --fa_dir=FADIR  --vcf=VCF  --param_file=PFILE  [--master_seed=SEED] [-v]
 
   Options:
-    --wg=WG                 Whole genome reference file
+    --fa_dir=FADIR          Directory where genome is located
     --vcf=VCF               Output VCF file. mutate expects the file to end in .vcf.gz
                             It saves this file as a sorted and compressed vcf file with the uncompressed version
                             available as .vcf. If the file does not end in .vcf.gz the uncompressed version will
@@ -74,9 +74,9 @@ import numpy
 import importlib
 import json
 import docopt
+from utility.genome import FastaGenome
 from variation import HOMOZYGOUS, HET1, HET2, vcopy
 import variation
-from fasta2wg import load_reference
 import logging
 logger = logging.getLogger(__name__)
 
@@ -171,10 +171,9 @@ def apply_master_seed(models, master_seed=None):
       model["params"]["master_seed"] = numpy.random.RandomState(seed=int(master_seed)).randint(100000000, size=4)
 
 
-def main(wg_file_name, vcf_file_name=None, param_file_name='', master_seed=None):
+def main(ref, vcf_file_name=None, param_file_name='', master_seed=None):
   """This does what the old mutate.py script used to do."""
-  logger.debug('Reference file {:s}'.format(wg_file_name))
-  ref = load_reference(wg_file_name)
+  logger.debug('Reference file {:s}'.format(ref.dir))
   params = json.load(open(param_file_name, 'r'))
   models = load_variant_models(params['denovo_variant_models'])
   apply_master_seed(models, master_seed)
@@ -193,4 +192,6 @@ if __name__ == "__main__": # pragma: no cover
   level = logging.DEBUG if cmd_args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
 
-  main(cmd_args['--wg'], cmd_args['--vcf'], cmd_args['--param_file'], cmd_args['--master_seed'])
+  ref_genome = FastaGenome(seq_dir=cmd_args['--fa_dir'])
+
+  main(ref_genome, cmd_args['--vcf'], cmd_args['--param_file'], cmd_args['--master_seed'])
