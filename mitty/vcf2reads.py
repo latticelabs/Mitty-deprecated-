@@ -3,13 +3,13 @@
 Commandline::
 
   Usage:
-    vcf2reads  --fa_dir=FADIR  [--vcf=VCF]  --out=OUT  --paramfile=PFILE  [--corrupt]  [--block_len=BL] [--master_seed=MS] [-v]
+    vcf2reads  --fa_dir=FADIR  [--vcf=VCF]  --out=OUT  --pfile=PFILE  [--corrupt]  [--block_len=BL] [--master_seed=MS] [-v]
 
   Options:
     --fa_dir=FADIR          Directory where genome is located
     --vcf=VCF               VCF file. If not given we will take reads from the reference genome
     --out=OUT               Output file name prefix
-    --paramfile=PFILE       Name for parameter file
+    --pfile=PFILE           Name for parameter file
     --corrupt               Write out corrupted reads too.
     --block_len=BL          Consider the sequence in chunks this big. See notes [default: 1000000]
     --master_seed=MS        If this is specified this passes a master seed to the read plugin.
@@ -84,9 +84,11 @@ Roadmap
 """
 import docopt
 import numpy
+import vcf
+import json
 from mitty.variation import *  # Yes, it's THAT important
+from mitty.utility.genome import FastaGenome
 import string
-
 DNA_complement = string.maketrans('ATCGN', 'TAGCN')
 pos_null = numpy.empty((0,), dtype='u4')  # Convenient, used in apply_one_variant
 int2str = [str(n) for n in range(1001)]  # int2str[n] is faster than str(n).
@@ -96,7 +98,8 @@ int2str = [str(n) for n in range(1001)]  # int2str[n] is faster than str(n).
 
 def init_int2str(max_read_len):
   global int2str
-  int2str = [str(n) for n in range(max_read_len + 1)]
+  if max_read_len >= len(int2str):
+    int2str = [str(n) for n in range(max_read_len + 1)]
 
 
 import logging
@@ -104,6 +107,10 @@ logger = logging.getLogger(__name__)
 
 SEED_MAX = 10000000000  # For each call of the JIT expander we pass a random seed.
                         # We generate these seeds from the given master seed and
+
+
+def _pp_seq(seq):
+  return seq if len(seq) < 40 else seq[:20] + ' ... ' + seq[-20:]
 
 
 class Read(Structure):
@@ -114,20 +121,19 @@ class Read(Structure):
               ("PHRED", c_char_p),  # Refers to the corrupted sequence
               ("_start_idx", c_int32),
               ("_stop_idx", c_int32)]  # internal use, refers to the pos_array. Used by roll_cigar etc
-  def __eq__(self, other):
-    # This does not do an isinstance check for speed reasons.
-    if self.POS == other.POS and self.CIGAR == other.CIGAR and self.seq == other.seq and self.PHRED == other.PHRED:
-      return True
-    else:
-      return False
 
-  def __ne__(self, other):
-      return not self.__eq__(other)
+  # def __eq__(self, other):
+  #   # This does not do an isinstance check for speed reasons.
+  #   if self.POS == other.POS and self.CIGAR == other.CIGAR and self.perfect_seq == other.perfect_seq and self.PHRED == other.PHRED:
+  #     return True
+  #   else:
+  #     return False
+  #
+  # def __ne__(self, other):
+  #     return not self.__eq__(other)
 
   def __repr__(self):
-    return '(POS={0}, CIGAR="{1}", seq="{2}")'.format(self.POS, self.CIGAR,
-                                                      self.seq if len(self.seq) < 40 else self.seq[:20] +
-                                                      ' ... ' + self.seq[-20:])
+    return '(POS={0}, CIGAR="{1}", seq="{2}")'.format(self.POS, self.CIGAR, _pp_seq(self.perfect_seq))
 
 
 def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_len=10e6, over_lap_len=200):
@@ -300,10 +306,11 @@ def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_param
   Notes:
     This is written as a generator because we might have a lot of reads and we want to flush the reads to file as we go.
   """
-  seed_rng = numpy.random.RandState(seed=master_seed)
+  seed_rng = numpy.random.RandomState(seed=master_seed)
 
   read_model_state = read_model.initialize(model_params, master_seed)
   # This is meant for us to store any precomputed tables/constants. If we wish we can store RNGs here
+  overlap_len = read_model.overlap_len(read_model_state)
   max_read_len = read_model.max_read_len(read_model_state)
   # This is used to determine the overlap for the blocks we feed to the read generator
   init_int2str(max_read_len)  # And to compute this table, of course
@@ -312,7 +319,7 @@ def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_param
     if chrom not in ref: continue
     for cc in [0, 1]:
       vsg = get_variant_sequence_generator(ref_chrom_seq=ref[chrom], c1=g1.get(chrom, []), chrom_copy=cc,
-                                           block_len=block_len, over_lap_len=max_read_len)
+                                           block_len=block_len, over_lap_len=overlap_len)
       for this_idx, this_seq_block, this_c_seq_block, this_arr in vsg:
         tl, read_model_state = read_model.generate_reads(this_idx, this_seq_block, this_c_seq_block, this_arr,
                                                          read_model_state, seed_rng.randint(SEED_MAX))
@@ -341,14 +348,14 @@ def write_reads_to_file(fp, fp_c, template_list, chrom, cc, serial_no, write_cor
     if paired:
       qname += '|' + template[1].POS.__str__() + '|' + template[1].CIGAR
 
-    fp.write('@' + qname + '\n' + template[0].perfect_seq + '\n+\n' + '~' * len(template[0].perfect_seq))
+    fp.write('@' + qname + '\n' + template[0].perfect_seq + '\n+\n' + '~' * len(template[0].perfect_seq) + '\n')
     if paired:
-      fp.write('@' + qname + '\n' + template[1].perfect_seq + '\n+\n' + '~' * len(template[1].perfect_seq))
+      fp.write('@' + qname + '\n' + template[1].perfect_seq + '\n+\n' + '~' * len(template[1].perfect_seq) + '\n')
 
     if write_corrupted:
-      fp_c.write('@' + qname + '\n' + template[0].corrupted_seq + '\n+\n' + template[0].PHRED)
+      fp_c.write('@' + qname + '\n' + template[0].corrupted_seq + '\n+\n' + template[0].PHRED + '\n')
       if paired:
-        fp_c.write('@' + qname + '\n' + template[1].corrupted_seq + '\n+\n' + template[1].PHRED)
+        fp_c.write('@' + qname + '\n' + template[1].corrupted_seq + '\n+\n' + template[1].PHRED + '\n')
 
 
 def main(fp, fp_c=None, ref={}, g1={}, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
@@ -364,22 +371,6 @@ def main(fp, fp_c=None, ref={}, g1={}, chrom_list=[], read_model=None, model_par
 
 
 if __name__ == "__main__":
-  """
-  Usage:
-    vcf2reads  --wg=WG  --vcf=VCF  --out=OUT  --paramfile=PFILE  [--corrupt]  [--block_len=BL] [--master_seed=MS] [-v|-vv]
-
-  Options:
-    --wg=WG                 Whole genome file
-    --vcf=VCF               VCF file
-    --out=OUT               Output file name prefix
-    --paramfile=PFILE       Name for parameter file
-    --corrupt               Write out corrupted reads too.
-    --block_len=BL          Consider the sequence in chunks this big. See notes [default: 1000000]
-    --master_seed=MS        If this is specified this passes a master seed to the read plugin.
-                            This overrides any individual seeds specified by the parameter file.
-    -v                      Dump debug messages from this program
-    -vv                     Dump ALL debug messages
-  """
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
   else:
@@ -393,3 +384,8 @@ if __name__ == "__main__":
   if args['-v']:
     logger.setLevel(logging.DEBUG)
 
+  fp = open(args['--out'] + '.fq')
+  fp_c = open(args['--out'] + '_c.fq') if args['--corrupt'] else None
+  ref_genome = FastaGenome(seq_dir=cmd_args['--fa_dir'])
+  params = json.load(open(args['--pfile'], 'r'))
+  g1 = parse_vcf(vcf.Reader(filename=args['--vcf']), chrom_list=range(1, 23) + ['X', 'Y'])

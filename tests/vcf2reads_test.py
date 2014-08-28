@@ -106,37 +106,37 @@ def roll_cigar_test():
                [0, 0, 0, 0, 0, 1, 2, 0, 0, 0]]
 
   # Fully matching reads
-  read_list = [Read(_start_idx=0, _stop_idx=4)]
+  read_list = [[Read(_start_idx=0, _stop_idx=4)]]
   package_reads(read_list, pos_array)
-  assert read_list[0].POS == 1
-  assert read_list[0].CIGAR == '4M'
+  assert read_list[0][0].POS == 1
+  assert read_list[0][0].CIGAR == '4M'
 
-  read_list = [Read(_start_idx=1, _stop_idx=5)]
+  read_list = [[Read(_start_idx=1, _stop_idx=5)]]
   package_reads(read_list, pos_array)
-  assert read_list[0].POS == 2
-  assert read_list[0].CIGAR == '4M'
+  assert read_list[0][0].POS == 2
+  assert read_list[0][0].CIGAR == '4M'
 
   # Reads with an insertion
-  read_list = [Read(_start_idx=2, _stop_idx=6)]
+  read_list = [[Read(_start_idx=2, _stop_idx=6)]]
   package_reads(read_list, pos_array)
-  assert read_list[0].POS == 3
-  assert read_list[0].CIGAR == '3M1S'
+  assert read_list[0][0].POS == 3
+  assert read_list[0][0].CIGAR == '3M1S'
 
-  read_list = [Read(_start_idx=3, _stop_idx=7)]
+  read_list = [[Read(_start_idx=3, _stop_idx=7)]]
   package_reads(read_list, pos_array)
-  assert read_list[0].POS == 4
-  assert read_list[0].CIGAR == '2M2S', read_list[0].CIGAR
+  assert read_list[0][0].POS == 4
+  assert read_list[0][0].CIGAR == '2M2S', read_list[0].CIGAR
 
-  read_list = [Read(_start_idx=4, _stop_idx=8)]
+  read_list = [[Read(_start_idx=4, _stop_idx=8)]]
   package_reads(read_list, pos_array)
-  assert read_list[0].POS == 5
-  assert read_list[0].CIGAR == '1M2I1M'
+  assert read_list[0][0].POS == 5
+  assert read_list[0][0].CIGAR == '1M2I1M'
 
   # Reads from inside an insertion
-  read_list = [Read(_start_idx=5, _stop_idx=6)]
+  read_list = [[Read(_start_idx=5, _stop_idx=6)]]
   package_reads(read_list, pos_array)
-  assert read_list[0].POS == 5
-  assert read_list[0].CIGAR == '>1'
+  assert read_list[0][0].POS == 5
+  assert read_list[0][0].CIGAR == '>1'
 
   # Deletion
   # seq    ACTG
@@ -147,10 +147,10 @@ def roll_cigar_test():
                [0, 0, 0]]
 
   # Read with deletion at very start
-  read_list = [Read(_start_idx=0, _stop_idx=3)]
+  read_list = [[Read(_start_idx=0, _stop_idx=3)]]
   package_reads(read_list, pos_array)
-  assert read_list[0].POS == 2
-  assert read_list[0].CIGAR == '3M'
+  assert read_list[0][0].POS == 2
+  assert read_list[0][0].CIGAR == '3M'
 
   # seq    ACTG
   #r_seq   A TG
@@ -160,11 +160,10 @@ def roll_cigar_test():
                [0, 0, 0]]
 
   # Read with deletion in middle
-  read_list = [Read(_start_idx=0, _stop_idx=3)]
+  read_list = [[Read(_start_idx=0, _stop_idx=3)]]
   package_reads(read_list, pos_array)
-  assert read_list[0].POS == 1
-  assert read_list[0].CIGAR == '1M1D2M', read_list[0].CIGAR
-
+  assert read_list[0][0].POS == 1
+  assert read_list[0][0].CIGAR == '1M1D2M', read_list[0][0].CIGAR
 
   # seq    ACTGA
   #r_seq   ACT A
@@ -174,41 +173,147 @@ def roll_cigar_test():
                [0, 0, 0, 0]]
 
   # Read with deletion right at the end
-  read_list = [Read(_start_idx=0, _stop_idx=3)]
+  read_list = [[Read(_start_idx=0, _stop_idx=3)]]
   package_reads(read_list, pos_array)
-  assert read_list[0].POS == 1
-  assert read_list[0].CIGAR == '3M', read_list[0].CIGAR
+  assert read_list[0][0].POS == 1
+  assert read_list[0][0].CIGAR == '3M', read_list[0][0].CIGAR
 
 
-def perfect_reads_from_seq_test():
-  """Perfect read generator, no variants"""
+# class Read_Module():
+#   """A simple read model simulator for testing purposes."""
+#   @staticmethod
+#   def initialize(model_params, master_seed):
+#     return {
+#       'max_read_len': model_params['max_read_len'],
+#       'read_advance': model_params['read_advance'],
+#       'last_idx': 0
+#     }
+#
+#   @staticmethod
+#   def max_read_len(read_model_state):
+#     return read_model_state['max_read_len']
+#
+#   @staticmethod
+#   def overlap_len(read_model_state):
+#     return read_model_state['max_read_len'] - 1
+#
+#
+#   @staticmethod
+#   def generate_reads(this_idx, this_seq_block, this_c_seq_block, this_arr, read_model_state):
+#     template_list = []
+#     lidx = read_model_state['last_idx']
+#     ra = read_model_state['read_advance']
+#     mrl = model_params['max_read_len']
+#     for n in range(lidx + ra - this_idx, len(this_seq_block) - mrl, ra):
+#       [Read(perfect_seq=this_seq_block[n:n+mrl], _start_idx=n, _stop_idx=n+mrl),
+#        Read(perfect_seq=this_c_seq_block[n+mrl:n-1:-1], _start_idx=n, _stop_idx=n+mrl)]
+#
+#
+#
+#
+#     return \
+#       [
+#       ]
 
-  # ACTGGACTTGACCTGACTGAACTT
-  # 012345678901234567890123
-  #           1         2
-  #     *          *
-  #
-  seq = 'ACTGGACTTGACCTGACTGAACTT'
-  c_seq = seq.translate(DNA_complement)
 
-  reads = perfect_reads_from_seq(ref=[seq, c_seq], ref_start=4, read_len=4, template_len=9, paired=True,
-                                 strand_values=[[0, 0]])
-  correct_reads = [
-    [Read(4, '4M', 'GACT', '~~~~'), Read(9, '4M', 'GGTC', '~~~~')],
-    [Read(4, '4M', 'GACT', '~~~~'), Read(9, '4M', 'GGTC', '~~~~')]
+class Read_Module():
+  """A simple read model simulator for testing purposes."""
+  @staticmethod
+  def initialize(model_params, master_seed):
+    return {
+      'read_len': model_params['read_len'],
+      'template_len': model_params['template_len'],
+      'read_advance': model_params['read_advance'],
+      'last_idx': -model_params['read_advance']
+    }
+
+  @staticmethod
+  def max_read_len(read_model_state):
+    return read_model_state['read_len']
+
+  @staticmethod
+  def overlap_len(read_model_state):
+    return read_model_state['template_len'] - 1
+
+
+  @staticmethod
+  def generate_reads(this_idx, this_seq_block, this_c_seq_block, this_arr, read_model_state, master_seed):
+    template_list = []
+    l_idx = read_model_state['last_idx']
+    ra = read_model_state['read_advance']
+    rl = read_model_state['read_len']
+    tl = read_model_state['template_len']
+    for n in range(l_idx + ra - this_idx, len(this_seq_block) - tl, ra):
+      template_list.append(
+      [Read(perfect_seq=this_seq_block[n:n+rl], _start_idx=n, _stop_idx=n+rl),
+       Read(perfect_seq=this_c_seq_block[n+tl-1:n+tl-rl-1:-1], _start_idx=n+tl-rl, _stop_idx=n+tl)]
+      )
+    read_model_state['last_idx'] = n
+    return template_list, read_model_state
+
+
+def reads_from_genome_test1():
+  """Read generator basic test"""
+  read_model = Read_Module()
+  model_params = {'read_len': 2, 'template_len': 5, 'read_advance': 2}
+  ref = {1: 'ACTGACTG'}
+  chrom_list = [1, 2]  # The '2' should return us no reads, as genome has no chromosome 2
+  # Generate variant sequence in one go
+  rg = reads_from_genome(ref=ref, g1={}, chrom_list=chrom_list,
+                         read_model=read_model, model_params=model_params,
+                         block_len=10, master_seed=1)
+  tl, chrom, cc = rg.next()
+  assert tl[0][0].POS == 1, tl
+  assert tl[0][1].perfect_seq == 'TC', tl
+
+  assert tl[1][0].POS == 3, tl
+  assert tl[1][1].perfect_seq == 'AG', tl
+
+  # Sequence in blocks, results should be the same
+  rg = reads_from_genome(ref=ref, g1={}, chrom_list=chrom_list,
+                         read_model=read_model, model_params=model_params,
+                         block_len=6, master_seed=1)
+  tl, chrom, cc = rg.next()
+  assert tl[0][0].POS == 1, tl
+  assert tl[0][1].perfect_seq == 'TC', tl
+
+  tl, chrom, cc = rg.next()
+  assert tl[0][0].POS == 3, tl
+  assert tl[0][1].perfect_seq == 'AG', tl
+
+
+def write_test():
+  import io
+  fp, fp_c = io.BytesIO(), io.BytesIO()
+  template_list = [  # Unpaired reads
+    [Read(1, '2M', 'AC', 'AT', '~~')],
+    [Read(10, '2M', 'AG', 'TG', '~!')]
   ]
-  assert reads == correct_reads, reads
+  chrom = 1
+  cc = 0
+  serial_no = 1
+  write_reads_to_file(fp, fp_c, template_list, chrom, cc, serial_no, write_corrupted=True)
 
-  reads = perfect_reads_from_seq(ref=[seq, c_seq], ref_start=4, read_len=4, template_len=9, paired=True,
-                                 strand_values=[[0, 0], [1], [], [0, 0, 0]])
-  correct_reads = [
-    [Read(4, '4M', 'GACT', '~~~~'), Read(9, '4M', 'GGTC', '~~~~')],  # x 2
-    [Read(4, '4M', 'GACT', '~~~~'), Read(9, '4M', 'GGTC', '~~~~')],
-    [Read(5, '4M', 'TGAA', '~~~~'), Read(10, '4M', 'TCCA', '~~~~')],  # x 1
-    [Read(7, '4M', 'TTGA', '~~~~'), Read(12, '4M', 'TCAG', '~~~~')],  # x 3
-    [Read(7, '4M', 'TTGA', '~~~~'), Read(12, '4M', 'TCAG', '~~~~')],
-    [Read(7, '4M', 'TTGA', '~~~~'), Read(12, '4M', 'TCAG', '~~~~')]
-  ]
-  assert reads == correct_reads, reads
+  fp.seek(0)
+  fastq = fp.read()
+  correct_fastq = """@1:0|r1|1|2M
+AC
++
+~~
+@1:0|r2|10|2M
+AG
++
+~~\n"""
+  assert fastq == correct_fastq, fastq
 
-generator_test2()
+  fp_c.seek(0)
+  fastq = fp_c.read()
+  correct_fastq = """@1:0|r1|1|2M
+AT
++
+~~
+@1:0|r2|10|2M
+TG
++
+~!\n"""
+  assert fastq == correct_fastq, fastq
