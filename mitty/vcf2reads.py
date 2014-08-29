@@ -3,7 +3,7 @@
 Commandline::
 
   Usage:
-    vcf2reads  --fa_dir=FADIR  [--vcf=VCF]  --out=OUT  --pfile=PFILE  [--corrupt]  [--block_len=BL] [--master_seed=MS] [-v]
+    vcf2reads  --fa_dir=FADIR  [--vcf=VCF]  --out=OUT  --pfile=PFILE  [--corrupt]  [--block_len=BL] [--master_seed=MS] [-v|-V]
 
   Options:
     --fa_dir=FADIR          Directory where genome is located
@@ -16,6 +16,7 @@ Commandline::
                             This overrides any individual seeds specified by the parameter file.
                             If this is not set the random number generator will be initialized via the default method
     -v                      Dump detailed logger messages
+    -V                      Dump very detailed logger messages
 
 Parameter file example::
 
@@ -82,7 +83,9 @@ Roadmap
   *** further efficiency gains will probably be minimal - the bottle neck function has been cythonized ***
 
 """
+__version__ = '0.1.0'
 import docopt
+import importlib
 import numpy
 import vcf
 import json
@@ -175,7 +178,7 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
   variant = next(c1_iter, None)
   while ptr < l_ref_seq:
     if variant is None or (ptr < variant.POS - 1):  # We should copy just the reference
-      if variant is None: # No more variants left
+      if variant is None:  # No more variants left
         ref_ptr_start = ptr
         ptr = min(ptr + var_ptr_finish - var_ptr, l_ref_seq)
         var_ptr += ptr - ref_ptr_start
@@ -316,9 +319,10 @@ def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_param
   init_int2str(max_read_len)  # And to compute this table, of course
 
   for chrom in chrom_list:
-    if chrom not in ref: continue
+    seq = ref[chrom]
+    if seq is None: continue
     for cc in [0, 1]:
-      vsg = get_variant_sequence_generator(ref_chrom_seq=ref[chrom], c1=g1.get(chrom, []), chrom_copy=cc,
+      vsg = get_variant_sequence_generator(ref_chrom_seq=seq, c1=g1.get(chrom, []), chrom_copy=cc,
                                            block_len=block_len, over_lap_len=overlap_len)
       for this_idx, this_seq_block, this_c_seq_block, this_arr in vsg:
         tl, read_model_state = read_model.generate_reads(this_idx, this_seq_block, this_c_seq_block, this_arr,
@@ -376,7 +380,7 @@ if __name__ == "__main__":
   else:
     args = docopt.docopt(__doc__, version=__version__)
 
-  if args['-vv']:
+  if args['-V']:
     logging.basicConfig(level=logging.DEBUG)
   else:
     logging.basicConfig(level=logging.WARNING)
@@ -384,8 +388,13 @@ if __name__ == "__main__":
   if args['-v']:
     logger.setLevel(logging.DEBUG)
 
-  fp = open(args['--out'] + '.fq')
-  fp_c = open(args['--out'] + '_c.fq') if args['--corrupt'] else None
-  ref_genome = FastaGenome(seq_dir=cmd_args['--fa_dir'])
+  fp = open(args['--out'] + '.fq', 'w')
+  fp_c = open(args['--out'] + '_c.fq', 'w') if args['--corrupt'] else None
+  ref_genome = FastaGenome(seq_dir=args['--fa_dir'])
   params = json.load(open(args['--pfile'], 'r'))
-  g1 = parse_vcf(vcf.Reader(filename=args['--vcf']), chrom_list=range(1, 23) + ['X', 'Y'])
+  g1 = parse_vcf(vcf.Reader(filename=args['--vcf']), chrom_list=range(1, 23) + ['X', 'Y']) if args['--vcf'] else {}
+  read_model = importlib.import_module('mitty.Plugins.Reads.' + params['read_model'] + '_plugin')
+  model_params = params['model_params']
+  main(fp, fp_c=fp_c, ref=ref_genome, g1=g1, chrom_list=params['take reads from'],
+       read_model=read_model, model_params=model_params, block_len=int(args['--block_len']),
+       master_seed=int(args['--master_seed']))
