@@ -332,6 +332,7 @@ def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_param
         # Note that we reseed the generator each time. Each chunk is assumed to be independent of the last
         # The model could ignore this independence by storing its RNGs in read_model_state
         package_reads(tl, this_arr)
+        logger.debug('Generated {:d} templates'.format(len(tl)))
         yield tl, chrom, cc
 
 
@@ -362,6 +363,8 @@ def write_reads_to_file(fastq_fp, fastq_c_fp, template_list, chrom, cc, serial_n
       fastq_c_fp.write('@' + qname + '\n' + template[0].corrupted_seq + '\n+\n' + template[0].PHRED + '\n')
       if paired:
         fastq_c_fp.write('@' + qname + '\n' + template[1].corrupted_seq + '\n+\n' + template[1].PHRED + '\n')
+
+  logger.debug('Wrote {:d} templates'.format(len(template_list)))
 
 
 def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
