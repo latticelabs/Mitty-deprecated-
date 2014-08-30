@@ -65,6 +65,7 @@ def align(in_fastq, out_bam, seq_dir = '', paired=False):
         # If we don't set template len and pnexts Tablet doesn't show us the mate pairs properly
         r1.tlen = r2.tlen = r2.pos + r2.rlen - r1.pos
         r1.pnext, r2.pnext = r2.pos, r1.pos
+        r1.rnext = r2.rnext = r1.tid
         yield [r1, r2]
       else:
         yield [process_read(fq.next(), 0)]
