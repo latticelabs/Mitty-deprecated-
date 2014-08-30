@@ -22,6 +22,9 @@ from mitty.utility.genome import FastaGenome
 import logging
 logger = logging.getLogger(__name__)
 
+import string
+DNA_complement = string.maketrans('ATCGN', 'TAGCN')
+
 
 def sort_and_index_bam(bamfile):
   """Do the filename gymnastics required to end up with a sorted, indexed, bam file."""
@@ -32,21 +35,92 @@ def sort_and_index_bam(bamfile):
   os.remove('temp.bam')
 
 
+# def align(in_fastq, out_bam, seq_dir = '', paired=False):
+#   """ref_seqs - [(seq_id, seq_len) ...]  in correct order so they can be recovered from correct_chrom_no"""
+#   def toggle(_paired=False):
+#     if _paired:
+#       while 1:
+#         yield 0
+#         yield 1
+#     else:
+#       while 1:
+#         yield 0
+#
+#   # TODO handle X, Y chromosomes
+#   def interpret_read_qname(qname, pair):
+#     qn = qname.split('|')
+#     return int(qn[0][:-2]), int(qn[2 if not pair else 4]), qn[3 if not pair else 5]
+#
+#   def get_read(fq, paired):
+#     if paired:
+#       yield [fq.next(), fq.next()]
+#     else:
+#       yield [fq.next()]
+#
+#   ref = FastaGenome(seq_dir=seq_dir)
+#   bam_hdr = {'HD': {'VN': '1.4'},
+#              'SQ': [{'LN': seq_len, 'SN': seq_id.split(' ')[0]} for seq_id, seq_len in ref.genome_header()]}
+#   #  Tablet and other viewers get confused by spaces in the seq_id. Losers
+#   fastq = pysam.Fastqfile(in_fastq)
+#   out_bamfile = pysam.Samfile(out_bam, 'wb', header=bam_hdr)
+#   from itertools import izip  # zip sucks
+#   for cnt, (read, pair) in enumerate(izip(fastq, toggle(paired))):
+#     correct_chrom_no, correct_pos, correct_cigar = interpret_read_qname(read.name, pair)
+#     a_read = pysam.AlignedRead()
+#     a_read.flag = 0
+#     if paired:  # 0b01 flag has to be set to indicate multiple segments
+#                 # 0b10 flag has to be set to indicate each segment mapped
+#       a_read.flag = 0x83 if pair else 0x43
+#       #             end2              end1
+#     a_read.pos = correct_pos - 1  # BAM files are zero indexed
+#     a_read.tid = correct_chrom_no - 1
+#     a_read.qname = read.name
+#     a_read.cigarstring = correct_cigar
+#     a_read.seq = read.sequence
+#     a_read.qual = read.quality
+#     a_read.mapq = 100  # It's better to set this
+#     out_bamfile.write(a_read)
+#
+#     if not cnt % 100000:
+#       logger.debug('{:d} reads done'.format(cnt))
+#
+#   logger.debug('{:d} reads done'.format(cnt))
+#   out_bamfile.close()
+#   sort_and_index_bam(out_bam)
+
+
 def align(in_fastq, out_bam, seq_dir = '', paired=False):
   """ref_seqs - [(seq_id, seq_len) ...]  in correct order so they can be recovered from correct_chrom_no"""
-  def toggle(_paired=False):
-    if _paired:
-      while 1:
-        yield 0
-        yield 1
-    else:
-      while 1:
-        yield 0
-
   # TODO handle X, Y chromosomes
-  def interpret_read_qname(qname, pair):
+  def interpret_read_qname(qname, template_order):
     qn = qname.split('|')
-    return int(qn[0][:-2]), int(qn[2 if not pair else 4]), qn[3 if not pair else 5]
+    return int(qn[0][:-2]), int(qn[2 if not template_order else 4]), qn[3 if not template_order else 5]
+
+  def process_read(read, template_order):
+    correct_chrom_no, correct_pos, correct_cigar = interpret_read_qname(read.name, template_order)
+    a_read = pysam.AlignedRead()
+    a_read.pos = correct_pos - 1  # BAM files are zero indexed
+    a_read.tid = correct_chrom_no - 1
+    a_read.qname = read.name
+    a_read.cigarstring = correct_cigar
+    a_read.seq = read.sequence[::-1].translate(DNA_complement) if template_order else read.sequence
+    a_read.qual = read.quality
+    a_read.mapq = 100  # It's better to set this
+    return a_read
+
+  def get_read(fq, _paired):
+    while 1:
+      if _paired:
+        r1, r2 = process_read(fq.next(), 0), process_read(fq.next(), 1)
+        # 0b01 flag has to be set to indicate multiple segments
+        # 0b10 flag has to be set to indicate each segment mapped
+        # 0x10 flag has to be set to indicate reverse complement
+        r1.flag, r2.flag = 0x43, 0x93  # end1, end2
+        r1.tlen = r2.tlen = r2.pos + r2.rlen - r1.pos
+        r1.pnext, r2.pnext = r2.pos, r1.pos
+        yield [r1, r2]
+      else:
+        yield [process_read(fq.next(), 0)]
 
   ref = FastaGenome(seq_dir=seq_dir)
   bam_hdr = {'HD': {'VN': '1.4'},
@@ -54,22 +128,10 @@ def align(in_fastq, out_bam, seq_dir = '', paired=False):
   #  Tablet and other viewers get confused by spaces in the seq_id. Losers
   fastq = pysam.Fastqfile(in_fastq)
   out_bamfile = pysam.Samfile(out_bam, 'wb', header=bam_hdr)
-  from itertools import izip
-  for cnt, (read, pair) in enumerate(izip(fastq, toggle(paired))):
-    correct_chrom_no, correct_pos, correct_cigar = interpret_read_qname(read.name, pair)
-    a_read = pysam.AlignedRead()
-    a_read.flag = 0
-    if paired:  # 0x01 flag has to be set to indicate multiple segments
-      a_read.flag = 0x81 if pair else 0x41
-      #             end2              end1
-    a_read.pos = correct_pos - 1  # BAM files are zero indexed
-    a_read.tid = correct_chrom_no - 1
-    a_read.qname = read.name
-    a_read.cigarstring = correct_cigar
-    a_read.seq = read.sequence
-    a_read.qual = read.quality
-    a_read.mapq = 100  # It's better to set this
-    out_bamfile.write(a_read)
+
+  for cnt, (reads) in enumerate(get_read(fastq, paired)):
+    for read in reads:
+      out_bamfile.write(read)
 
     if not cnt % 100000:
       logger.debug('{:d} reads done'.format(cnt))
@@ -77,6 +139,7 @@ def align(in_fastq, out_bam, seq_dir = '', paired=False):
   logger.debug('{:d} reads done'.format(cnt))
   out_bamfile.close()
   sort_and_index_bam(out_bam)
+
 
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
