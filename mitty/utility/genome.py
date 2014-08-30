@@ -6,6 +6,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+human_chromosomes = range(1, 23) + ['X', 'Y']
+
+
 def convert_fasta(fa_fname):
   """Read a fasta with newlines and lowercase letters. Strip out newlines and convert all to uppercase."""
   with open(fa_fname, 'r') as fasta_fp:
@@ -53,3 +56,21 @@ class FastaGenome():
 
   def get(self, item, default):
     return self.__getitem__(item) or default
+
+  def genome_header(self):
+    """Return a dictionary keyed to all the available chromosomes."""
+    def process_sequence(fname):
+      try:
+        with open(fname, 'r') as fasta_fp:
+          seq_id = fasta_fp.readline()[1:-1]
+          idx = fasta_fp.tell()
+          fasta_fp.seek(0, 2)
+          seq_len = fasta_fp.tell() - idx
+      except IOError:
+        seq_id, seq_len = None, None
+      return seq_id, seq_len
+
+    return filter(lambda x: x[0] is not None, [process_sequence(glob.os.path.join(self.dir, 'chr{:s}.fa'.format(str(chrom)))) for chrom in human_chromosomes])
+
+
+
