@@ -35,60 +35,6 @@ def sort_and_index_bam(bamfile):
   os.remove('temp.bam')
 
 
-# def align(in_fastq, out_bam, seq_dir = '', paired=False):
-#   """ref_seqs - [(seq_id, seq_len) ...]  in correct order so they can be recovered from correct_chrom_no"""
-#   def toggle(_paired=False):
-#     if _paired:
-#       while 1:
-#         yield 0
-#         yield 1
-#     else:
-#       while 1:
-#         yield 0
-#
-#   # TODO handle X, Y chromosomes
-#   def interpret_read_qname(qname, pair):
-#     qn = qname.split('|')
-#     return int(qn[0][:-2]), int(qn[2 if not pair else 4]), qn[3 if not pair else 5]
-#
-#   def get_read(fq, paired):
-#     if paired:
-#       yield [fq.next(), fq.next()]
-#     else:
-#       yield [fq.next()]
-#
-#   ref = FastaGenome(seq_dir=seq_dir)
-#   bam_hdr = {'HD': {'VN': '1.4'},
-#              'SQ': [{'LN': seq_len, 'SN': seq_id.split(' ')[0]} for seq_id, seq_len in ref.genome_header()]}
-#   #  Tablet and other viewers get confused by spaces in the seq_id. Losers
-#   fastq = pysam.Fastqfile(in_fastq)
-#   out_bamfile = pysam.Samfile(out_bam, 'wb', header=bam_hdr)
-#   from itertools import izip  # zip sucks
-#   for cnt, (read, pair) in enumerate(izip(fastq, toggle(paired))):
-#     correct_chrom_no, correct_pos, correct_cigar = interpret_read_qname(read.name, pair)
-#     a_read = pysam.AlignedRead()
-#     a_read.flag = 0
-#     if paired:  # 0b01 flag has to be set to indicate multiple segments
-#                 # 0b10 flag has to be set to indicate each segment mapped
-#       a_read.flag = 0x83 if pair else 0x43
-#       #             end2              end1
-#     a_read.pos = correct_pos - 1  # BAM files are zero indexed
-#     a_read.tid = correct_chrom_no - 1
-#     a_read.qname = read.name
-#     a_read.cigarstring = correct_cigar
-#     a_read.seq = read.sequence
-#     a_read.qual = read.quality
-#     a_read.mapq = 100  # It's better to set this
-#     out_bamfile.write(a_read)
-#
-#     if not cnt % 100000:
-#       logger.debug('{:d} reads done'.format(cnt))
-#
-#   logger.debug('{:d} reads done'.format(cnt))
-#   out_bamfile.close()
-#   sort_and_index_bam(out_bam)
-
-
 def align(in_fastq, out_bam, seq_dir = '', paired=False):
   """ref_seqs - [(seq_id, seq_len) ...]  in correct order so they can be recovered from correct_chrom_no"""
   # TODO handle X, Y chromosomes
@@ -116,6 +62,7 @@ def align(in_fastq, out_bam, seq_dir = '', paired=False):
         # 0b10 flag has to be set to indicate each segment mapped
         # 0x10 flag has to be set to indicate reverse complement
         r1.flag, r2.flag = 0x43, 0x93  # end1, end2
+        # If we don't set template len and pnexts Tablet doesn't show us the mate pairs properly
         r1.tlen = r2.tlen = r2.pos + r2.rlen - r1.pos
         r1.pnext, r2.pnext = r2.pos, r1.pos
         yield [r1, r2]
