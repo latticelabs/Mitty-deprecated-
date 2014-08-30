@@ -319,9 +319,11 @@ def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_param
   init_int2str(max_read_len)  # And to compute this table, of course
 
   for chrom in chrom_list:
+    logger.debug('Taking reads from chrom {:s}'.format(str(chrom)))
     seq = ref[chrom]
     if seq is None: continue
     for cc in [0, 1]:
+      logger.debug('Taking reads from copy {:d}'.format(cc))
       vsg = get_variant_sequence_generator(ref_chrom_seq=seq, c1=g1.get(chrom, []), chrom_copy=cc,
                                            block_len=block_len, over_lap_len=overlap_len)
       for this_idx, this_seq_block, this_c_seq_block, this_arr in vsg:
@@ -333,7 +335,7 @@ def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_param
         yield tl, chrom, cc
 
 
-def write_reads_to_file(fp, fp_c, template_list, chrom, cc, serial_no, write_corrupted=False):
+def write_reads_to_file(fastq_fp, fastq_c_fp, template_list, chrom, cc, serial_no, write_corrupted=False):
   """
   Args:
     fp           : file pointer
@@ -352,24 +354,24 @@ def write_reads_to_file(fp, fp_c, template_list, chrom, cc, serial_no, write_cor
     if paired:
       qname += '|' + template[1].POS.__str__() + '|' + template[1].CIGAR
 
-    fp.write('@' + qname + '\n' + template[0].perfect_seq + '\n+\n' + '~' * len(template[0].perfect_seq) + '\n')
+    fastq_fp.write('@' + qname + '\n' + template[0].perfect_seq + '\n+\n' + '~' * len(template[0].perfect_seq) + '\n')
     if paired:
-      fp.write('@' + qname + '\n' + template[1].perfect_seq + '\n+\n' + '~' * len(template[1].perfect_seq) + '\n')
+      fastq_fp.write('@' + qname + '\n' + template[1].perfect_seq + '\n+\n' + '~' * len(template[1].perfect_seq) + '\n')
 
     if write_corrupted:
-      fp_c.write('@' + qname + '\n' + template[0].corrupted_seq + '\n+\n' + template[0].PHRED + '\n')
+      fastq_c_fp.write('@' + qname + '\n' + template[0].corrupted_seq + '\n+\n' + template[0].PHRED + '\n')
       if paired:
-        fp_c.write('@' + qname + '\n' + template[1].corrupted_seq + '\n+\n' + template[1].PHRED + '\n')
+        fastq_c_fp.write('@' + qname + '\n' + template[1].corrupted_seq + '\n+\n' + template[1].PHRED + '\n')
 
 
-def main(fp, fp_c=None, ref={}, g1={}, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
+def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
   read_gen = reads_from_genome(ref=ref, g1=g1, chrom_list=chrom_list,
                                read_model=read_model, model_params=model_params,
                                block_len=block_len, master_seed=master_seed)
-  write_corrupted = False if fp_c is None else True
+  write_corrupted = False if fastq_c_fp is None else True
   serial_no = 0
   for template_list, chrom, cc in read_gen:
-    write_reads_to_file(fp, fp_c, template_list=template_list, chrom=chrom, cc=cc,
+    write_reads_to_file(fastq_fp, fastq_c_fp, template_list=template_list, chrom=chrom, cc=cc,
                         serial_no=serial_no, write_corrupted=write_corrupted)
     serial_no += len(template_list)
 
@@ -395,6 +397,6 @@ if __name__ == "__main__":
   g1 = parse_vcf(vcf.Reader(filename=args['--vcf']), chrom_list=range(1, 23) + ['X', 'Y']) if args['--vcf'] else {}
   read_model = importlib.import_module('mitty.Plugins.Reads.' + params['read_model'] + '_plugin')
   model_params = params['model_params']
-  main(fp, fp_c=fp_c, ref=ref_genome, g1=g1, chrom_list=params['take reads from'],
+  main(fp, fastq_c_fp=fp_c, ref=ref_genome, g1=g1, chrom_list=params['take reads from'],
        read_model=read_model, model_params=model_params, block_len=int(args['--block_len']),
        master_seed=int(args['--master_seed']))
