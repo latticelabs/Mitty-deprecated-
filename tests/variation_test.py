@@ -1,6 +1,6 @@
 import vcf
 import io
-from mitty.variation import *
+from mitty.lib.variation import *
 from . import *
 
 
@@ -56,6 +56,7 @@ def vcf2chrom_test2():
 
 def vcf_round_trip_test():
   """VCF round trip (load and then save)."""
+  import tempfile
   g1 = parse_vcf(vcf.Reader(filename=small_vcf_name + '.gz'), [1, 2])
   temp_vcf_fp, temp_vcf_name = tempfile.mkstemp(suffix='.vcf')  # No .gz extension on purpose
   vcf_save_gz(g1, temp_vcf_name)
