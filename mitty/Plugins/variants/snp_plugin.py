@@ -3,7 +3,7 @@ SNP a zygosity and assign an ALT base.
 """
 import numpy
 import mitty.Plugins.variants.util as util
-from mitty.variation import Variation
+from mitty.lib.variation import Variation
 import logging
 logger = logging.getLogger(__name__)
 
