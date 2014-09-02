@@ -1,4 +1,4 @@
-from mitty.variation import Variation
+from mitty.lib.variation import Variation
 from mitty.denovo import *
 from tests import *
 
@@ -178,7 +178,7 @@ def load_variant_models_test():
 # This test uses the stock SNP which must be functional for this test to pass as well as some files created during
 # test setup
 def main_test():
-  import json, vcf
+  import json, vcf, tempfile
   param_json = {
     "denovo_variant_models": [
       {

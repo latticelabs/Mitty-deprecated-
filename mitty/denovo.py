@@ -67,17 +67,16 @@ repeated. To see the parameter list for each model use the explain function (or 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
-__version__ = '0.5.0'
+__version__ = '1.0.0'
 
 from copy import copy
 import numpy
-import importlib
 import json
 import docopt
-from utility.genome import FastaGenome
-from variation import HOMOZYGOUS, HET1, HET2, vcopy
-import variation
+from lib.genome import FastaGenome
+from mitty.lib.variation import *
 import logging
+from Plugins import putil
 logger = logging.getLogger(__name__)
 
 
@@ -159,7 +158,7 @@ def create_denovo_genome(ref, models=[]):
 
 def load_variant_models(model_param_json):
   """Given a list of models and parameters load the models in"""
-  return [{"model": importlib.import_module('mitty.Plugins.variants.' + k + '_plugin'), "params": v}
+  return [{"model": putil.load_variant_plugin(k), "params": v}
           for model_json in model_param_json
           for k, v in model_json.iteritems()]  # There really is only one key (the model name) and the value is the
                                                # parameter list
@@ -179,7 +178,7 @@ def main(ref, vcf_file_name=None, param_file_name='', master_seed=None):
   apply_master_seed(models, master_seed)
   g1 = create_denovo_genome(ref=ref, models=models)
   if vcf_file_name is not None:
-    variation.vcf_save_gz(g1, vcf_file_name)
+    vcf_save_gz(g1, vcf_file_name)
   return g1
 
 
