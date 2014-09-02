@@ -84,14 +84,15 @@ Roadmap
 
 """
 __version__ = '0.1.0'
-import docopt
 import importlib
+import json
+import string
+import docopt
 import numpy
 import vcf
-import json
-from mitty.variation import *  # Yes, it's THAT important
-from mitty.utility.genome import FastaGenome
-import string
+from mitty.lib.variation import *  # Yes, it's THAT important
+from mitty.lib.genome import FastaGenome
+
 DNA_complement = string.maketrans('ATCGN', 'TAGCN')
 pos_null = numpy.empty((0,), dtype='u4')  # Convenient, used in apply_one_variant
 int2str = [str(n) for n in range(1001)]  # int2str[n] is faster than str(n).
@@ -110,33 +111,6 @@ logger = logging.getLogger(__name__)
 
 SEED_MAX = 10000000000  # For each call of the JIT expander we pass a random seed.
                         # We generate these seeds from the given master seed and
-
-
-def _pp_seq(seq):
-  return seq if len(seq) < 40 else seq[:20] + ' ... ' + seq[-20:]
-
-
-class Read(Structure):
-  _fields_ = [("POS", c_int32),
-              ("CIGAR", c_char_p),
-              ("perfect_seq", c_char_p),
-              ("corrupted_seq", c_char_p),
-              ("PHRED", c_char_p),  # Refers to the corrupted sequence
-              ("_start_idx", c_int32),
-              ("_stop_idx", c_int32)]  # internal use, refers to the pos_array. Used by roll_cigar etc
-
-  # def __eq__(self, other):
-  #   # This does not do an isinstance check for speed reasons.
-  #   if self.POS == other.POS and self.CIGAR == other.CIGAR and self.perfect_seq == other.perfect_seq and self.PHRED == other.PHRED:
-  #     return True
-  #   else:
-  #     return False
-  #
-  # def __ne__(self, other):
-  #     return not self.__eq__(other)
-
-  def __repr__(self):
-    return '(POS={0}, CIGAR="{1}", seq="{2}")'.format(self.POS, self.CIGAR, _pp_seq(self.perfect_seq))
 
 
 def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_len=10e6, over_lap_len=200):

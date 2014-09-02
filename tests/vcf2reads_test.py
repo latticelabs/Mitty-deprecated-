@@ -1,6 +1,7 @@
-from tests import *
+from mitty.lib.read import *
 from mitty.vcf2reads import *
 from numpy.testing import assert_equal
+
 
 def generator_test1():
   """Sequence expand no variants."""
