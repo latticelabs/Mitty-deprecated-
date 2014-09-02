@@ -1,6 +1,6 @@
 """Some functions commonly used by mutation plugins are refactored out here for convenience."""
 import numpy
-from mitty.variation import HOMOZYGOUS, HET1, HET2
+from mitty.lib.variation import HOMOZYGOUS, HET1, HET2
 
 
 def initialize_rngs(*seeds):
