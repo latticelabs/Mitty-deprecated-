@@ -7,19 +7,24 @@ from mitty.lib.variation import Variation
 import logging
 logger = logging.getLogger(__name__)
 
+__example_param_text = """
+{
+  "chromosome": [1],      # List of chromosomes to apply the variant to
+  "p": 0.001,             # probability that the SNP will happen at any given base
+  "phet": 0.5,            # probability that the variant will be heterozygous
+  "base_loc_rng_seed": 1, # Seeds for the RNGs
+  "base_sub_rng_seed": 2,
+  "het_rng_seed": 3,
+  "copy_rng_seed": 4
+}
+"""
 
-def _example_params():
-  return {
-    "denovo_variant_models": [
-      {
-        "snp": {
-          "chromosome": [1],
-          "phet": 0.5,
-          "p": 0.001
-        }
-      }
-    ]
-  }
+_description = """
+This is the stock SNP plugin. A typical parameter set resembles
+""" + __example_param_text
+
+_example_params = eval(__example_param_text)
+
 
 
 # This is a substitution base substitution table
@@ -79,4 +84,4 @@ def test():
     assert isinstance(v_list.values()[0][0], Variation), v_list
 
 if __name__ == "__main__":
-  print _example_params()
+  print _description

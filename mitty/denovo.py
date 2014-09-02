@@ -13,6 +13,8 @@ Commandline::
 
   Usage:
     denovo --fa_dir=FADIR  --vcf=VCF  --param_file=PFILE  [--master_seed=SEED] [-v]
+    denovo plugins
+    denovo explain <plugin>
 
   Options:
     --fa_dir=FADIR          Directory where genome is located
@@ -24,6 +26,10 @@ Commandline::
     --master_seed=SEED      If this is specified, this generates and passes master seeds to all the plugins.
                             This overrides any individual seeds specified by the parameter file.
     -v                      Dump detailed logger messages
+    plugins                 List the available denovo plugins
+    explain                 Explain details about the indicated plugin
+    <plugin>                The plugin to explain
+
 
 Parameter file example::
 
@@ -170,6 +176,21 @@ def apply_master_seed(models, master_seed=None):
       model["params"]["master_seed"] = numpy.random.RandomState(seed=int(master_seed)).randint(100000000, size=4)
 
 
+def print_plugin_list():
+  print 'Available plugins'
+  for plugin in putil.list_all_variant_plugins():
+    print plugin
+
+
+def explain_plugin(plugin):
+  if plugin not in putil.list_all_variant_plugins():
+    print 'No such plugin'
+  else:
+    mod = putil.load_variant_plugin(plugin)
+    print mod._description
+  return
+
+
 def main(ref, vcf_file_name=None, param_file_name='', master_seed=None):
   """This does what the old mutate.py script used to do."""
   logger.debug('Reference file {:s}'.format(ref.dir))
@@ -187,6 +208,12 @@ if __name__ == "__main__": # pragma: no cover
     docopt.docopt(__doc__, ['-h'])
   else:
     cmd_args = docopt.docopt(__doc__, version=__version__)
+  if cmd_args['plugins']:
+    print_plugin_list()
+    exit(0)
+  if cmd_args['explain']:
+    explain_plugin(cmd_args['<plugin>'])
+    exit(0)
 
   level = logging.DEBUG if cmd_args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
