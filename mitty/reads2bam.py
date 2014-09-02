@@ -18,7 +18,7 @@ __version__ = '0.1.0'
 import docopt
 import os
 import pysam
-from mitty.utility.genome import FastaGenome
+from lib.genome import FastaGenome
 import logging
 logger = logging.getLogger(__name__)
 
