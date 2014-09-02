@@ -74,13 +74,14 @@ merge(c1, c2) -> c3  merge the descriptions of the two chromosomes
 Though we could have written a class called genome, I prefer to write in as functional a style as possible for better
 code quality.
 """
+__version__ = '1.0.0'
+
 import numpy
-from variation import vcopy, HOMOZYGOUS, HET1, HET2, vcf_save_gz, vcf_save
+from mitty.lib.variation import vcopy, HOMOZYGOUS, HET1, HET2, vcf_save_gz
 import mitty.denovo
 from fasta2wg import load_reference
 import logging
 logger = logging.getLogger(__name__)
-__version__ = '0.1.0'
 
 
 def chrom_crossover(c1, crossover_idx):

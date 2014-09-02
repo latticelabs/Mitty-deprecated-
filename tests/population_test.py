@@ -1,9 +1,9 @@
-from tests import *
 import numpy.testing
-from mitty.variation import Variation, parse_vcf
+from nose.tools import raises, assert_equal
+from tests import *
+from mitty.lib.variation import Variation, parse_vcf
 from mitty.population import *
 import mitty.denovo as denovo
-from nose.tools import raises, assert_equal
 
 
 def chrom_crossover_test():
@@ -413,6 +413,7 @@ def population_simulation_test():
   hot_spots = {1: numpy.array([[16, 1, .5]]), 2: numpy.array([[17, 1, 5]])}
   rngs = get_rngs(1)
 
+  import tempfile
   pop_sim_data_dir = tempfile.mkdtemp()
 
   parent_list, children = \
