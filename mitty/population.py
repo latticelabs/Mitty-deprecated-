@@ -1,7 +1,5 @@
 """
-This module implements methods to simulate populations of genomes, using the genome-as-list-of-variant-calls
-implemented by denovo.py. When called as a script this implements population simulations. Genomes are written out as
-VCF files.
+This script simulates populations of genomes. Genomes are written out as VCF files.
 
 Commandline::
 
@@ -25,57 +23,10 @@ Commandline::
     --dont_store_all        If set, don't store all generations - just first and last
     -v                      Dump detailed logger messages
 
-Roadmap:
-
-* Rework crossover model to match that in text book (current model does not correctly reflect effects on copies
-* [DONE] Load reference only once and keep in memory - perhaps give warnings if genome too big for machine and fallback to a
- slower load on demand model. This may mean writing a new class to handle genomes (like we did for variants)
-* [DONE] Don't keep population in memory - save as we go and remove to keep memory consumption low and to have partial
- results in case of an abort.
-* Finalize .json format for lineage and save that every generation
-* [DONE] Profile after optimizing reference loading - if needed get rid of bit mask and use a sorted list for genomes -
-implement collision detection based on the sorted vcf - this may be slightly slower than a bit mask, or may be not, if
-we have to repeatedly instantiate masks. This will certainly use less memory
-
-
-The internal structure of an attached pair of chromosomes is a list of tuples of the form:
-
-(start, stop, REF, ALT, het)
-
-The module implements the following useful population functions and their supporting functions
-
-crossover(g1, rng, params) -> g2  simulating cross over between copies of chromosomes
-fertilization(g1, g2, rng)   -> g3  simulating creation of a child from parents
-denovo(g1, ref, rng, params)  -> g3  the only function that requires the original seq - generates denovo mutations
-
-The module implements and uses the following utility functions
-
-parse_vcf(vcf_reader)  -> g1 read in a VCF file and convert it to out haploid genome format
-vcf2chrom(vcf_reader)  -> c1 read in one chromosome from a VCF file
-write_to_vcf(fname, g1) write the data to a compressed, indexed VCF file
-
-Internally, the only operation that violates sorting order is denovo, so this uses a blist.sortedlist. For everything
-else we use a plain Python list as we only append items (and that is O(1) for a list)
-
-
-
-
-get_rngs(seed)  ->  rng  return a list of random number generators that are used by the different functions
-
-The internal genome format is a simple list of tuples almost corresponding to the VCF
-
-(start, stop, REF, ALT)
-
-The following worker functions operate on single copies of chromosomes
-
-merge(c1, c2) -> c3  merge the descriptions of the two chromosomes
-                     This figures out any het mutations. The output is sorted and is of the VCF format
-                    (POS, POS1, REF, ALT, HET) We only need this when saving back to VCF
-
-
-
-Though we could have written a class called genome, I prefer to write in as functional a style as possible for better
-code quality.
+The parameter file format is identical to that used by denovo.py, but there are two lists of variant plugins (as opposed
+to one). The first list has the same key as that for denovo ("denovo_variant_models") and is used to generate the
+initial ancestor population. The second list has the key "ss_variant_models". These models are applied to the genomes
+after crossover and fertilization as denovo mutations. Typically their parameters will be set to a very low rate.
 """
 __version__ = '1.0.0'
 
