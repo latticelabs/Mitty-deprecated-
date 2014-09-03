@@ -314,18 +314,21 @@ def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_param
         yield tl, chrom, cc
 
 
-def write_reads_to_file(fastq_fp, fastq_c_fp, template_list, chrom, cc, serial_no, write_corrupted=False):
+def write_reads_to_file(fastq_fp, fastq_c_fp, template_list, chrom, cc, serial_no):
   """
   Args:
-    fp           : file pointer
-    fp_c         : file pointer for corrupted reads
-    read_list    : a list of completed Read objects. Paired reads come sequentially
-    chrom        : chromosome the read was taken from [1,2....]
-    cc           : chromosome copy the read was taken from [0,1]
-    serial_no    : serial number of first read
-    corrupt      : write corrupted reads
+    fastq_fp         : file pointer
+    fastq_c_fp       : file pointer for corrupted reads
+    template_list    : a list of completed Read objects. Paired reads come sequentially
+    chrom            : chromosome the read was taken from [1,2....]
+    cc               : chromosome copy the read was taken from [0,1]
+    serial_no        : serial number of first read
+
+  Notes:
+  We infer whether we have corrupted reads or not from whether we have a valid fastq_c_fp or not.
   """
   # qname format is chrom:copy|rN|POS1|CIGAR1|POS2|CIGAR2
+  write_corrupted = False if fastq_c_fp is None else True
   for n, template in enumerate(template_list):
     paired = len(template) == 2
     qname = chrom.__str__() + ':' + cc.__str__() + '|r' + (n + serial_no).__str__() + '|' + template[0].POS.__str__() \
@@ -346,14 +349,29 @@ def write_reads_to_file(fastq_fp, fastq_c_fp, template_list, chrom, cc, serial_n
 
 
 def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
+  """
+  Args:
+    fastq_fp         : File pointer
+    fastq_c_fp       : File pointer for corrupted reads
+    ref              : Reference genome
+    g1               : Variant genome (in VCF format)
+    chrom_list       : A list of completed Read objects. Paired reads come sequentially
+    read_model       : Read model we imported
+    model_params     : Copied from params['model_params']
+    block_len        : How many reference bases to tackle at a time
+    master_seed      : The master seed that will seed all the other RNGs
+
+  Notes:
+  We infer whether we have corrupted reads or not from whether we have a valid fastq_c_fp or not.
+  """
+  model_params['generate_corrupted_reads'] = False if fastq_c_fp is None else True
   read_gen = reads_from_genome(ref=ref, g1=g1, chrom_list=chrom_list,
                                read_model=read_model, model_params=model_params,
                                block_len=block_len, master_seed=master_seed)
-  write_corrupted = False if fastq_c_fp is None else True
   serial_no = 0
   for template_list, chrom, cc in read_gen:
     write_reads_to_file(fastq_fp, fastq_c_fp, template_list=template_list, chrom=chrom, cc=cc,
-                        serial_no=serial_no, write_corrupted=write_corrupted)
+                        serial_no=serial_no)
     serial_no += len(template_list)
 
 

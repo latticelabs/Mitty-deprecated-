@@ -293,7 +293,7 @@ def write_test():
   chrom = 1
   cc = 0
   serial_no = 1
-  write_reads_to_file(fp, fp_c, template_list, chrom, cc, serial_no, write_corrupted=True)
+  write_reads_to_file(fp, fp_c, template_list, chrom, cc, serial_no)
 
   fp.seek(0)
   fastq = fp.read()
