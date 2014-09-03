@@ -4,6 +4,8 @@ Commandline::
 
   Usage:
     vcf2reads  --fa_dir=FADIR  [--vcf=VCF]  --out=OUT  --pfile=PFILE  [--corrupt]  [--block_len=BL] [--master_seed=MS] [-v|-V]
+    vcf2reads plugins
+    vcf2reads explain <plugin>
 
   Options:
     --fa_dir=FADIR          Directory where genome is located
@@ -17,15 +19,16 @@ Commandline::
                             If this is not set the random number generator will be initialized via the default method
     -v                      Dump detailed logger messages
     -V                      Dump very detailed logger messages
+    plugins                 List the available denovo plugins
+    explain                 Explain details about the indicated plugin
+    <plugin>                The plugin to explain
 
 Parameter file example::
 
   {
-    "take reads from": [1,2],
-    "coverage": 5.0,
-    "output_file_prefix": "sim_reads",
-    "read_model": "simple_reads",
-    "model_params": {
+    "take reads from": [1,2],           # List the chromosomes the reads should be taken from
+    "read_model": "simple_reads",       # Name of the read plugin to use
+    "model_params": {                   # Model specific parameters, need to be under the key "model_params"
       "paired": false,
       "read_len": 100,
       "template_len": 250
@@ -92,6 +95,7 @@ import numpy
 import vcf
 from mitty.lib.variation import *  # Yes, it's THAT important
 from mitty.lib.genome import FastaGenome
+from Plugins import putil
 
 DNA_complement = string.maketrans('ATCGN', 'TAGCN')
 pos_null = numpy.empty((0,), dtype='u4')  # Convenient, used in apply_one_variant
@@ -353,11 +357,32 @@ def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=Non
     serial_no += len(template_list)
 
 
+def print_plugin_list():
+  print 'Available plugins'
+  for plugin in putil.list_all_read_plugins():
+    print plugin
+
+
+def explain_plugin(plugin):
+  if plugin not in putil.list_all_read_plugins():
+    print 'No such plugin'
+  else:
+    mod = putil.load_read_plugin(plugin)
+    print mod._description
+  return
+
+
 if __name__ == "__main__":
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
   else:
     args = docopt.docopt(__doc__, version=__version__)
+  if args['plugins']:
+    print_plugin_list()
+    exit(0)
+  if args['explain']:
+    explain_plugin(args['<plugin>'])
+    exit(0)
 
   if args['-V']:
     logging.basicConfig(level=logging.DEBUG)
