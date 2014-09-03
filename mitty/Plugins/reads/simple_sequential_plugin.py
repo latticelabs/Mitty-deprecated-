@@ -1,4 +1,8 @@
-"""Very simple deterministic read generator with no read corruption."""
+"""Very simple deterministic read generator with no read corruption.
+
+Seven Bridges Genomics
+Current contact: kaushik.ghose@sbgenomics.com
+"""
 from mitty.lib.read import Read
 
 __example_param_text = """
