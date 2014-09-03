@@ -1,4 +1,21 @@
-from mitty.vcf2reads import Read
+"""Very simple deterministic read generator with no read corruption."""
+from mitty.lib.read import Read
+
+__example_param_text = """
+{
+  'paired': True,      #Are the reads paired or not.
+  'read_len': 100,     #length of each read
+  'template_len': 250, #length of template (only used for paired reads)
+  'read_advance': 20   #how much to advance along the reference after generating a read. Determines "coverage"
+}
+"""
+
+_description = """
+This is a simple, deterministic read generator with no read corruption.
+Example parameter set:
+""" + __example_param_text
+
+_example_params = eval(__example_param_text)
 
 
 def initialize(model_params, master_seed):
