@@ -7,6 +7,9 @@ Commandline::
 
   Usage:
     population --wg=WG  --hs=HS  [--init_size=IS]  [--children=CH] [--gens=G]  --paramfile=PFILE  [--master_seed=SEED]  [--outdir=OD]  [--outprefix=OP]  [--dont_store_all] [-v]
+    population plugins
+    population explain <plugin>
+
 
   Options:
     --wg=WG                 Whole genome reference file
@@ -335,6 +338,14 @@ if __name__ == "__main__":
     docopt.docopt(__doc__, ['-h'])
   else:
     args = docopt.docopt(__doc__, version=__version__)
+  if args['plugins']:
+    mitty.denovo.print_plugin_list()
+    exit(0)
+  if args['explain']:
+    mitty.denovo.explain_plugin(args['<plugin>'])
+    exit(0)
+
+
   logging.basicConfig(level=logging.WARNING)
   if args['-v']:
     logger.setLevel(logging.DEBUG)
