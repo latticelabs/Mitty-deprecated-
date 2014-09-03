@@ -1,4 +1,4 @@
-Mitty is a collection of modules and scripts that enable us to generate simulated genomic data to test our algorithms.
+Mitty is a collection of programs that enable us to generate simulated genomic data to test our algorithms.
 
 Mitty generates simulated data by starting from a reference genome and then adding controlled mutations to it to create
 a variant "sample" genome. Mitty can also simulate populations of genomes derived via sexual reproduction. Mitty can
@@ -16,7 +16,7 @@ Mitty, at its heart, is a set of command line programs that are called with vari
 simulated data. Mitty has, additionally, been wrapped for the Seven Bridges Genomics computation platform (IGOR) and
 can be used from that platform to generate simulated data.
 
-The important components of Mitty are described as:
+The important components of Mitty are described as::
 
     Reference Genome  + denovo.py  --> .vcf file    : random mutations of various kinds representing a "sample"
     
@@ -25,15 +25,3 @@ The important components of Mitty are described as:
     .vcf file + vcf2reads.py       --> .fastq file  : perfect and corrupted reads from "sample"
     
     .fastq file + reads2bam.py     --> .bam file    : perfect alignment of "sample" reads to original reference
-                                                  
-Please read the detailed documentation to learn how to use Mitty.
-
-Trivia
-======
-Since you were dying to know: Mitty comes from James Thurber's "[The Secret Life of Walter Mitty][mitty]" one of my
-favourite pieces from one of my favourite authors. Though [Wikipedia][wiki] has a less favourable interpretation of what
-Walter Mitty stands for, I always thought that Thurber was celebrating the dreamer within each us who spices up the banal
-parts of life with a little harmless fantasy.
-
-[mitty]: http://www.newyorker.com/archive/1939/03/18/390318fi_fiction_thurber?currentPage=all
-[wiki]: http://en.wikipedia.org/wiki/The_Secret_Life_of_Walter_Mitty
