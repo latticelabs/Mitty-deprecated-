@@ -1,13 +1,4 @@
-"""This module contains the machinery to use variation plugins to generate de novo variants to a given reference
-
-This will gradually replace mutate, since it is effectively a superset of mutate. Mutate has a cooler name tho - maybe
-mutate will be the command line script that wraps population functions ...
-
-
-
-This module contains functions that generate variants with reference to a reference genome. The module can be called
-as a script as well. This is useful for creating test data for MGR algorithms/data formats. The script will output
-VCF file(s).
+"""This script produces a VCF file simulating a "sample" based on a reference
 
 Commandline::
 
@@ -28,50 +19,33 @@ Commandline::
     -v                      Dump detailed logger messages
     plugins                 List the available denovo plugins
     explain                 Explain details about the indicated plugin
-    <plugin>                The plugin to explain
+    <plugin>                The plugin to explain. If none, explains the parameter file format
 
 
 Parameter file example::
 
   {
-    "variant_models": [
+    "denovo_variant_models": [    # The list of variant models should come under this key
       {
-        "chromosome": [1],
-        "model": "snp",
-        "phet": 0.5,
-        "p": 0.01,
-        "poisson_rng_seed": 1,
-        "base_sub_rng_seed": 2
+        "snp": {                 # name of the model. To get a list of plugin names type "denovo plugins"
+          "chromosome": [1, 2],  # Chromosomes to apply this model to
+          "phet": 0.5,           # Parameters required by the model
+          "p": 0.01,
+          "poisson_rng_seed": 1,
+          "base_sub_rng_seed": 2
+        }
       },
-      {
-        "chromosome": [1],
-        "model": "delete",
-        "phet": 0.5,
-        "p_del": 0.01,Re
-        "lam_del": 10,
-        "del_loc_rng_seed": 10,
-        "del_len_rng_seed": 1
-      },
-      {
-        "chromosome": [1],
-        "model": "insert",
-        "start_ins_frac": 0.7,
-        "stop_ins_frac":  0.9,
-        "phet": 0,
-        "p_ins": 0.01,
-        "lam_ins": 10,
-        "ins_loc_rng_seed": 0,
-        "ins_len_rng_seed": 1,
-        "base_sel_rng_seed": 2
+      {                          # We can chain as many models as we wish
+        "delete" : {             # We can repeat models if we want
+          "chromosome": [1],
+          "model": "delete",
+          "phet": 0.5,
+          "p_del": 0.01,Re
+          "lam_del": 10
+        }
       }
     ]
   }
-
-The file contains a list of parameter dictionaries, one for each instance of the model we wish to use. Models can be
-repeated. To see the parameter list for each model use the explain function (or read the docs)
-
-Seven Bridges Genomics
-Current contact: kaushik.ghose@sbgenomics.com
 """
 __version__ = '1.0.0'
 
@@ -82,7 +56,7 @@ import docopt
 from lib.genome import FastaGenome
 from mitty.lib.variation import *
 import logging
-from Plugins import putil
+from plugins import putil
 logger = logging.getLogger(__name__)
 
 
