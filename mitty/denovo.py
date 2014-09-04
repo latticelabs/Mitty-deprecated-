@@ -40,7 +40,7 @@ Parameter file example::
           "chromosome": [1],
           "model": "delete",
           "phet": 0.5,
-          "p_del": 0.01,Re
+          "p_del": 0.01,
           "lam_del": 10
         }
       }
