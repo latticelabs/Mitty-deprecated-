@@ -365,7 +365,7 @@ if __name__ == "__main__":
   ref_genome = FastaGenome(seq_dir=args['--fa_dir'])
   params = json.load(open(args['--pfile'], 'r'))
   g1 = parse_vcf(vcf.Reader(filename=args['--vcf']), chrom_list=range(1, 23) + ['X', 'Y']) if args['--vcf'] else {}
-  read_model = importlib.import_module('mitty.Plugins.Reads.' + params['read_model'] + '_plugin')
+  read_model = putil.load_read_plugin(params['read_model'])
   model_params = params['model_params']
   main(fp, fastq_c_fp=fp_c, ref=ref_genome, g1=g1, chrom_list=params['take reads from'],
        read_model=read_model, model_params=model_params, block_len=int(args['--block_len']),
