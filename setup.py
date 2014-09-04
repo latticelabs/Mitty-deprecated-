@@ -10,7 +10,6 @@ setup(
       'pyvcf',
       'numpy',
       'matplotlib',
-      'h5py',
       'nose',
       'scipy'
     ]
