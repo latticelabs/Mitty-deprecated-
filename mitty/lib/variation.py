@@ -118,8 +118,8 @@ def vcf_save_gz(g1, vcf_gz_name, sample_name='sample'):
   """Save .vcf, bgzip and index it. File name should have .gz at the end, but it's not a drama if doesnt. Sigh"""
   vcf_name, ext = splitext(vcf_gz_name)
   if ext != '.gz':  # Like I said, not a drama
-    vcf_name += '_srt.vcf'
-    vcf_gz_name += '.gz'
+    vcf_name += '.vcf'
+    vcf_gz_name = vcf_name + '.gz'
 
   with open(vcf_name, 'w') as fp:
     vcf_save(g1, fp, sample_name=sample_name)
