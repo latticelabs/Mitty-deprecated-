@@ -37,7 +37,6 @@ Parameter file example::
   }
 """
 __version__ = '1.0.0'
-import importlib
 import json
 import string
 import docopt
@@ -213,6 +212,7 @@ def package_reads(template_list, pos_array):
       read.POS, read.CIGAR = align_pos, cigar
 
 
+#@numba.autojit
 def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
   """
   Args:
@@ -326,17 +326,17 @@ def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=Non
 
 
 def print_plugin_list():
-  print 'Available plugins'
+  print('Available plugins')
   for plugin in putil.list_all_read_plugins():
-    print plugin
+    print(plugin)
 
 
 def explain_plugin(plugin):
   if plugin not in putil.list_all_read_plugins():
-    print 'No such plugin'
+    print('No such plugin')
   else:
     mod = putil.load_read_plugin(plugin)
-    print mod._description
+    print(mod._description)
   return
 
 
