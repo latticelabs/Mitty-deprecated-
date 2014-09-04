@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-human_chromosomes = range(1, 23) + ['X', 'Y']
+human_chromosomes = list(range(1, 25))
 
 
 def convert_fasta(fa_fname):
