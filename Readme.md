@@ -2,7 +2,7 @@ Mitty is a collection of programs that enable us to generate simulated genomic d
 
 Mitty generates simulated data by starting from a reference genome and then adding controlled mutations to it to create
 a variant "sample" genome. Mitty can also simulate populations of genomes derived via sexual reproduction. Mitty can
-then generating reads from the chromosomes of the mutated genome(s). 
+then generate reads from the chromosomes of the mutated genome(s). 
 
 At each stage of this process we know the origins of the data and so we know
 
@@ -18,10 +18,14 @@ can be used from that platform to generate simulated data.
 
 The important components of Mitty are described as::
 
-    Reference Genome  + denovo.py  --> .vcf file    : random mutations of various kinds representing a "sample"
+    Reference Genome  + denovo.py      -->  .vcf file
+        random mutations of various kinds representing a "sample"
     
-    Reference Genome  + population.py  --> lot of .vcf files    : a "population"
+    Reference Genome  + population.py  -->  lot of .vcf files
+        a "population"
       
-    .vcf file + vcf2reads.py       --> .fastq file  : perfect and corrupted reads from "sample"
+    .vcf file + vcf2reads.py           -->   .fastq file
+        perfect and corrupted reads from "sample"
     
-    .fastq file + reads2bam.py     --> .bam file    : perfect alignment of "sample" reads to original reference
+    .fastq file + reads2bam.py         -->   .bam file
+        perfect alignment of "sample" reads to original reference
