@@ -1,4 +1,5 @@
-"""This module contains functions that generate simulated reads. The module can be called as a script as well.
+"""This program generates reads from a genome (either a reference genome or a sample genome expressed as a VCF file).
+The read characteristics are governed by the chosen read plugin.
 
 Commandline::
 
@@ -34,59 +35,8 @@ Parameter file example::
       "template_len": 250
     }
   }
-
-Note:
-Expanding the variant sequence takes a bunch of memory because we need 14 bytes per base:
-
-1 byte - forward seq
-1 byte - complement seq
-4 bytes - pos array  (needed for POS)
-4 bytes - diff pos array (needed for CIGAR)
-4 bytes - offset array (needed for offset for reads deep in inserts)
--
-14 bytes
-
-For this reason we adopt a just in time expansion where by we feed chunks of the variant sequence to the read plugin.
-The smaller the chunk size the less extra memory is needed but the chunk computation has an overhead. In general, you
-should make the chunk size as large as you can given your memory keeping in mind that each base takes 14 bytes of space
-when the variant sequence is expanded.
-
-
-Algorithm:
-
-1. Read plugin gives us a list of read + template positions (sorted by position along the mutated sequence).
-2. We start at the beginning of the reference sequence
-3. The read reference is the reference sequence
-4. If the template end is before the next variant position:
-   1. take reads, repeat 4.
-5. If the template end crosses the next variant position:
-   1. If read reference is the reference sequence, start an alt sequence,
-      otherwise clip existing alt sequence (and pos_array)
-   2. Expand the variant, add it to alt seq
-   3. Repeat 2 as needed to go past template
-   4. Goto 4
-6. Repeat all this until reads are exhausted
-
-
-Roadmap
-
-1. Rewrite to use only reference and VCF file to generate reads
-2. Think about how to separate out plugin from main code etc.
-3. Make corruption plugin, read plugin separate?
-
-
-1. The quality scores are in Phred scale (as specified in the SAM spec)
-2. We supply the prefix of output file name in the parameter file . Say we set this as sim_reads.
-   The perfect reads will be saved to sim_reads.bam (or sim_reads.fastq). If we ask for corrupted reads
-   we will get the corrupted reads in the file sim_reads_c.fastq.
-   A text sidecar file sim_reads.info will always be saved with simulation parameters.
-
-3 *** Can probably refactor the whole file for better readability **
-  *** see if we can write shorter functions, see if we can reduce the number of parameters/bundle them ***
-  *** further efficiency gains will probably be minimal - the bottle neck function has been cythonized ***
-
 """
-__version__ = '0.1.0'
+__version__ = '1.0.0'
 import importlib
 import json
 import string
@@ -95,7 +45,7 @@ import numpy
 import vcf
 from mitty.lib.variation import *  # Yes, it's THAT important
 from mitty.lib.genome import FastaGenome
-from Plugins import putil
+from mitty.plugins import putil
 
 DNA_complement = string.maketrans('ATCGN', 'TAGCN')
 pos_null = numpy.empty((0,), dtype='u4')  # Convenient, used in apply_one_variant
