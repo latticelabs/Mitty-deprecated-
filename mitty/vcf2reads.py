@@ -314,6 +314,9 @@ def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=Non
   Notes:
   We infer whether we have corrupted reads or not from whether we have a valid fastq_c_fp or not.
   """
+  import time
+  t_start = time.time()
+
   model_params['generate_corrupted_reads'] = False if fastq_c_fp is None else True
   read_gen = reads_from_genome(ref=ref, g1=g1, chrom_list=chrom_list,
                                read_model=read_model, model_params=model_params,
@@ -323,6 +326,9 @@ def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=Non
     write_reads_to_file(fastq_fp, fastq_c_fp, template_list=template_list, chrom=chrom, cc=cc,
                         serial_no=serial_no)
     serial_no += len(template_list)
+
+  t_end = time.time()
+  logger.debug('Generated {:d} templates in {:f} seconds'.format(serial_no, t_end - t_start))
 
 
 def print_plugin_list():

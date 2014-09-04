@@ -44,6 +44,14 @@ mitty.Plugins.Mutation.snp_plugin module
     :undoc-members:
     :show-inheritance:
 
+mitty.Plugins.Mutation.util module
+----------------------------------
+
+.. automodule:: mitty.Plugins.Mutation.util
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

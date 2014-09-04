@@ -8,6 +8,7 @@ Subpackages
 
     mitty.Plugins.Mutation
     mitty.Plugins.Reads
+    mitty.Plugins.variants
 
 Module contents
 ---------------

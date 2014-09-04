@@ -19,10 +19,26 @@ mitty.cheata module
     :undoc-members:
     :show-inheritance:
 
+mitty.denovo module
+-------------------
+
+.. automodule:: mitty.denovo
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 mitty.fasta2wg module
 ---------------------
 
 .. automodule:: mitty.fasta2wg
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+mitty.genome module
+-------------------
+
+.. automodule:: mitty.genome
     :members:
     :undoc-members:
     :show-inheritance:
@@ -35,6 +51,14 @@ mitty.mutate module
     :undoc-members:
     :show-inheritance:
 
+mitty.population module
+-----------------------
+
+.. automodule:: mitty.population
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 mitty.reads module
 ------------------
 
@@ -43,10 +67,26 @@ mitty.reads module
     :undoc-members:
     :show-inheritance:
 
+mitty.reads2 module
+-------------------
+
+.. automodule:: mitty.reads2
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 mitty.roll_cigar module
 -----------------------
 
 .. automodule:: mitty.roll_cigar
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+mitty.variation module
+----------------------
+
+.. automodule:: mitty.variation
     :members:
     :undoc-members:
     :show-inheritance:

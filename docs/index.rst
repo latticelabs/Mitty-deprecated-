@@ -3,39 +3,17 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Mitty documentation
-===================
-
-#.. include:: ../Readme.md
-
-Contents:
+Mitty
+=====
 
 .. toctree::
     :maxdepth: 2
 
-    mitty.rst
+    introduction
+    files
+    components
+    quickstart
     developer
-
-``fasta2wg``
-------------
-.. program-output:: python fasta2wg.py
-.. automodule:: mitty.fasta2wg
-
-
-``mutate``
-------------
-.. automodule:: mitty.mutate
-
-
-``vcf2seq``
-------------
-.. automodule:: mitty.vcf2seq
-
-
-``reads``
-------------
-.. automodule:: mitty.reads
-
 
 Indices and tables
 ==================
@@ -43,4 +21,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
