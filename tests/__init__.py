@@ -1,6 +1,4 @@
 import os
-import h5py
-from mitty.fasta2wg import save_genome_to_hdf5
 import mitty.lib.variation
 from shutil import rmtree
 # These need to be available to the rest of the test suite
