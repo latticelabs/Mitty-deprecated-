@@ -22,7 +22,7 @@ Example parameter set:
 _example_params = eval(__example_param_text)
 
 
-def initialize(model_params, master_seed):
+def initialize(model_params):
   return {
     'paired': model_params['paired'],
     'read_len': model_params['read_len'],

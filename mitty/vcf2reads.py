@@ -4,7 +4,7 @@ The read characteristics are governed by the chosen read plugin.
 Commandline::
 
   Usage:
-    vcf2reads  --fa_dir=FADIR  [--vcf=VCF]  --out=OUT  --pfile=PFILE  [--corrupt]  [--block_len=BL] [--master_seed=MS] [-v|-V]
+    vcf2reads  --fa_dir=FADIR  [--vcf=VCF]  --out=OUT  --pfile=PFILE  [--corrupt]  [--block_len=BL] --master_seed=MS [-v|-V]
     vcf2reads plugins
     vcf2reads explain <plugin>
 
@@ -15,9 +15,7 @@ Commandline::
     --pfile=PFILE           Name for parameter file
     --corrupt               Write out corrupted reads too.
     --block_len=BL          Consider the sequence in chunks this big. See notes [default: 1000000]
-    --master_seed=MS        If this is specified this passes a master seed to the read plugin.
-                            This overrides any individual seeds specified by the parameter file.
-                            If this is not set the random number generator will be initialized via the default method
+    --master_seed=MS        Passes a master seed to the read plugin.
     -v                      Dump detailed logger messages
     -V                      Dump very detailed logger messages
     plugins                 List the available denovo plugins
@@ -237,7 +235,7 @@ def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_param
     This is written as a generator because we might have a lot of reads and we want to flush the reads to file as we go.
   """
   seed_rng = numpy.random.RandomState(seed=master_seed)
-  read_model_data = read_model.initialize(model_params, master_seed)
+  read_model_data = read_model.initialize(model_params)
   # This is meant for us to store any precomputed tables/constants. If we wish we can store RNGs here
   overlap_len = read_model.overlap_len(read_model_data)
   max_read_len = read_model.max_read_len(read_model_data)
@@ -367,7 +365,7 @@ if __name__ == "__main__":
   fp_c = open(args['--out'] + '_c.fq', 'w') if args['--corrupt'] else None
   ref_genome = FastaGenome(seq_dir=args['--fa_dir'])
   params = json.load(open(args['--pfile'], 'r'))
-  g1 = parse_vcf(vcf.Reader(filename=args['--vcf']), chrom_list=range(1, 23) + ['X', 'Y']) if args['--vcf'] else {}
+  g1 = parse_vcf(vcf.Reader(filename=args['--vcf']), chrom_list=range(1, 25)) if args['--vcf'] else {}
   read_model = putil.load_read_plugin(params['read_model'])
   model_params = params['model_params']
   main(fp, fastq_c_fp=fp_c, ref=ref_genome, g1=g1, chrom_list=params['take reads from'],
