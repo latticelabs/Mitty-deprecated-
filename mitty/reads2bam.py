@@ -82,9 +82,9 @@ def align(in_fastq, out_bam, seq_dir = '', paired=False):
       out_bamfile.write(read)
 
     if not cnt % 100000:
-      logger.debug('{:d} reads done'.format(cnt))
+      logger.debug('{:d} templates done'.format(cnt))
 
-  logger.debug('Aligned {:d} reads'.format(cnt))
+  logger.debug('Aligned {:d} templates'.format(cnt))
   out_bamfile.close()
   sort_and_index_bam(out_bam)
 
