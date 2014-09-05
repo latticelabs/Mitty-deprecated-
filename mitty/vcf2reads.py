@@ -237,11 +237,10 @@ def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_param
     This is written as a generator because we might have a lot of reads and we want to flush the reads to file as we go.
   """
   seed_rng = numpy.random.RandomState(seed=master_seed)
-
-  read_model_state = read_model.initialize(model_params, master_seed)
+  read_model_data = read_model.initialize(model_params, master_seed)
   # This is meant for us to store any precomputed tables/constants. If we wish we can store RNGs here
-  overlap_len = read_model.overlap_len(read_model_state)
-  max_read_len = read_model.max_read_len(read_model_state)
+  overlap_len = read_model.overlap_len(read_model_data)
+  max_read_len = read_model.max_read_len(read_model_data)
   # This is used to determine the overlap for the blocks we feed to the read generator
   init_int2str(max_read_len)  # And to compute this table, of course
 
@@ -254,10 +253,9 @@ def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_param
       vsg = get_variant_sequence_generator(ref_chrom_seq=seq, c1=g1.get(chrom, []), chrom_copy=cc,
                                            block_len=block_len, over_lap_len=overlap_len)
       for this_idx, this_seq_block, this_c_seq_block, this_arr in vsg:
-        tl, read_model_state = read_model.generate_reads(this_idx, this_seq_block, this_c_seq_block, this_arr,
-                                                         read_model_state, seed_rng.randint(SEED_MAX))
+        tl = read_model.generate_reads(this_idx, this_seq_block, this_c_seq_block, this_arr,
+                                       read_model_data, seed_rng.randint(SEED_MAX))
         # Note that we reseed the generator each time. Each chunk is assumed to be independent of the last
-        # The model could ignore this independence by storing its RNGs in read_model_state
         package_reads(tl, this_arr)
         logger.debug('Generated {:d} templates'.format(len(tl)))
         yield tl, chrom, cc
