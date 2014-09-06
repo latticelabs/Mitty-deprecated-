@@ -52,11 +52,13 @@ def generate_reads(this_idx, this_seq_block, this_c_seq_block, this_arr, read_mo
   strand = 0
   for n in range(0, len(this_seq_block) - tl, ra):
     # n is in local coordinates - references to this_seq_block, this_arr etc.
-    this_template = [Read(perfect_seq=seq[strand][n:n+rl],
-                          _start_idx=n, _stop_idx=n+rl, direction=direction[strand])]
+    r1 = Read(perfect_seq=seq[1][n+rl-1:n-1:-1] if strand else seq[0][n:n+rl],
+              _start_idx=n, _stop_idx=n+rl, direction=direction[strand])
     if paired:
-     this_template += [Read(perfect_seq=seq[1-strand][n+tl-1:n+tl-rl-1:-1],
-                            _start_idx=n+tl-rl, _stop_idx=n+tl, direction=direction[strand])]
-    template_list.append(this_template)
+      r2 = Read(perfect_seq=seq[0][n+tl-rl:n+tl] if strand else seq[1][n+tl-1:n+tl-rl-1:-1],
+                _start_idx=n+tl-rl, _stop_idx=n+tl, direction=direction[strand])
+      template_list += [[r1, r2]]
+    else:
+      template_list += [[r1]]
     strand = 1 - strand
   return template_list
