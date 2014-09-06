@@ -1,5 +1,6 @@
 """Declares a read structure that is commonly used."""
 from ctypes import *
+direction = '><'
 
 
 def _pp_seq(seq):
@@ -7,7 +8,8 @@ def _pp_seq(seq):
 
 
 class Read(Structure):
-  _fields_ = [("POS", c_int32),
+  _fields_ = [("direction", c_char),     # '>' means first read is forward direction, '<' means reverse
+              ("POS", c_int32),
               ("CIGAR", c_char_p),
               ("perfect_seq", c_char_p),
               ("corrupted_seq", c_char_p),
