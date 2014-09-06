@@ -3,7 +3,7 @@
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
-from mitty.lib.read import Read
+from mitty.lib.read import Read, direction
 
 __example_param_text = """
 {
@@ -43,15 +43,20 @@ def overlap_len(read_model_state):
 
 
 def generate_reads(this_idx, this_seq_block, this_c_seq_block, this_arr, read_model_data, master_seed):
+  seq = [this_seq_block, this_c_seq_block]
   paired = read_model_data['paired']
   ra = read_model_data['read_advance']
   rl = read_model_data['read_len']
   tl = read_model_data['template_len'] if paired else rl
   template_list = []
+  strand = 0
   for n in range(0, len(this_seq_block) - tl, ra):
     # n is in local coordinates - references to this_seq_block, this_arr etc.
-    this_template = [Read(perfect_seq=this_seq_block[n:n+rl], _start_idx=n, _stop_idx=n+rl)]
+    this_template = [Read(perfect_seq=seq[strand][n:n+rl],
+                          _start_idx=n, _stop_idx=n+rl, direction=direction[strand])]
     if paired:
-     this_template += [Read(perfect_seq=this_c_seq_block[n+tl-1:n+tl-rl-1:-1], _start_idx=n+tl-rl, _stop_idx=n+tl)]
+     this_template += [Read(perfect_seq=seq[1-strand][n+tl-1:n+tl-rl-1:-1],
+                            _start_idx=n+tl-rl, _stop_idx=n+tl, direction=direction[strand])]
     template_list.append(this_template)
+    strand = 1 - strand
   return template_list
