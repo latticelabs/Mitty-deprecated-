@@ -255,7 +255,6 @@ def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_param
                                        read_model_data, seed_rng.randint(SEED_MAX))
         # Note that we reseed the generator each time. Each chunk is assumed to be independent of the last
         package_reads(tl, this_arr)
-        logger.debug('Generated {:d} templates'.format(len(tl)))
         yield tl, chrom, cc
 
 
@@ -272,11 +271,13 @@ def write_reads_to_file(fastq_fp, fastq_c_fp, template_list, chrom, cc, serial_n
   Notes:
   We infer whether we have corrupted reads or not from whether we have a valid fastq_c_fp or not.
   """
-  # qname format is chrom:copy|rN|POS1|CIGAR1|POS2|CIGAR2
+  # qname format is chrom:copy|rN|D|POS1|CIGAR1|POS2|CIGAR2
+  # D='>' if first read is forward, '<' if first read is reversed
+  hdr = chrom.__str__() + ':' + cc.__str__()
   write_corrupted = False if fastq_c_fp is None else True
   for n, template in enumerate(template_list):
     paired = len(template) == 2
-    qname = chrom.__str__() + ':' + cc.__str__() + '|r' + (n + serial_no).__str__() + '|' + template[0].POS.__str__() \
+    qname = hdr + '|r' + (n + serial_no).__str__() + '|' + template[0].direction + '|' + template[0].POS.__str__() \
       + '|' + template[0].CIGAR
     if paired:
       qname += '|' + template[1].POS.__str__() + '|' + template[1].CIGAR
@@ -289,8 +290,6 @@ def write_reads_to_file(fastq_fp, fastq_c_fp, template_list, chrom, cc, serial_n
       fastq_c_fp.write('@' + qname + '\n' + template[0].corrupted_seq + '\n+\n' + template[0].PHRED + '\n')
       if paired:
         fastq_c_fp.write('@' + qname + '\n' + template[1].corrupted_seq + '\n+\n' + template[1].PHRED + '\n')
-
-  logger.debug('Wrote {:d} templates'.format(len(template_list)))
 
 
 def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
@@ -321,9 +320,10 @@ def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=Non
     write_reads_to_file(fastq_fp, fastq_c_fp, template_list=template_list, chrom=chrom, cc=cc,
                         serial_no=serial_no)
     serial_no += len(template_list)
+    logger.debug('Wrote {:d} templates'.format(serial_no))
 
   t_end = time.time()
-  logger.debug('Generated {:d} templates in {:f} seconds'.format(serial_no, t_end - t_start))
+  logger.debug('Generated and wrote {:d} templates in {:f} seconds'.format(serial_no, t_end - t_start))
 
 
 def print_plugin_list():
