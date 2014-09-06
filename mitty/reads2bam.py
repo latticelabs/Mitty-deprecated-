@@ -36,20 +36,24 @@ def sort_and_index_bam(bamfile):
 
 
 def align(in_fastq, out_bam, seq_dir = '', paired=False):
-  """ref_seqs - [(seq_id, seq_len) ...]  in correct order so they can be recovered from correct_chrom_no"""
-  # TODO handle X, Y chromosomes
   def interpret_read_qname(qname, template_order):
+    """chrom:copy|rN|D|POS1|CIGAR1|POS2|CIGAR2"""
     qn = qname.split('|')
-    return int(qn[0][:-2]), int(qn[2 if not template_order else 4]), qn[3 if not template_order else 5]
+    return int(qn[0][:-2]), qn[2], int(qn[3 if not template_order else 5]), qn[4 if not template_order else 6]
 
   def process_read(read, template_order):
-    correct_chrom_no, correct_pos, correct_cigar = interpret_read_qname(read.name, template_order)
+    correct_chrom_no, dirn, correct_pos, correct_cigar = interpret_read_qname(read.name, template_order)
     a_read = pysam.AlignedRead()
     a_read.pos = correct_pos - 1  # BAM files are zero indexed
     a_read.tid = correct_chrom_no - 1
     a_read.qname = read.name
     a_read.cigarstring = correct_cigar
-    a_read.seq = read.sequence[::-1].translate(DNA_complement) if template_order else read.sequence
+    if (template_order and dirn == '>') or (not template_order and dirn == '<'):
+      a_read.seq = read.sequence[::-1].translate(DNA_complement)
+      a_read.flag = 0x10  # 0x10 flag has to be set to indicate reverse complement
+    else:
+      a_read.seq = read.sequence
+      a_read.flag = 0x0
     a_read.qual = read.quality
     a_read.mapq = 100  # It's better to set this
     return a_read
@@ -60,8 +64,8 @@ def align(in_fastq, out_bam, seq_dir = '', paired=False):
         r1, r2 = process_read(fq.next(), 0), process_read(fq.next(), 1)
         # 0b01 flag has to be set to indicate multiple segments
         # 0b10 flag has to be set to indicate each segment mapped
-        # 0x10 flag has to be set to indicate reverse complement
-        r1.flag, r2.flag = 0x43, 0x93  # end1, end2
+        r1.flag |= 0x43  # 1st segment
+        r2.flag |= 0x83  # last segment
         # If we don't set template len and pnexts Tablet doesn't show us the mate pairs properly
         r1.tlen = r2.tlen = r2.pos + r2.rlen - r1.pos
         r1.pnext, r2.pnext = r2.pos, r1.pos
