@@ -1,0 +1,12 @@
+{
+  "take reads from": [1],
+  "read_model": "simple_illumina",
+  "model_params": {
+    "paired": true,
+    "read_len": 100,
+    "template_len": 250,
+    "coverage": 10,
+    "max_p_error": 0.01,
+    "k": 0.1
+  }
+}
