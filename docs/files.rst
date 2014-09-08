@@ -25,12 +25,15 @@ Reads
 Reads are produced as standard `.fastq` files using sanger `PHRED` scores. The `qname` filed is hijacked, however, to
 store the correct alignment answer and looks like this::
 
-    chrom:copy|rN|POS1|CIGAR1               unpaired reads
+    chrom:copy|rN|D|POS1|CIGAR1               unpaired reads
 
-    chrom:copy|rN|POS1|CIGAR1|POS2|CIGAR2   paired reads
+    chrom:copy|rN|D|POS1|CIGAR1|POS2|CIGAR2   paired reads
 
-This is the information that the perfect aligner uses to generate perfect alignments of the reads. The CIGAR string is
-standard except for the case of reads taken from inside an insertion past the anchor points. Such reads should appear as
+This is the information that the perfect aligner uses to generate perfect alignments of the reads. The `D` field carries
+either a `>` or a `<` and indicates if the read (first read if paired) is forward or reverse complemented respectively.
+This is important for understanding how to interpret the sequence string.
+
+The CIGAR string is standard except for the case of reads taken from inside an insertion past the anchor points. Such reads should appear as
 *unmapped* when using a linear reference. The CIGAR for such reads take the form::
 
     >OFFSET
