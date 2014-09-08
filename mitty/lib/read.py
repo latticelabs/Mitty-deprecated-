@@ -12,7 +12,7 @@ class Read(Structure):
               ("POS", c_int32),
               ("CIGAR", c_char_p),
               ("perfect_seq", c_char_p),
-              ("corrupted_seq", c_char_p),
+              ("corrupt_seq", c_char_p),
               ("PHRED", c_char_p),        # Refers to the corrupted sequence
               ("_start_idx", c_int32),
               ("_stop_idx", c_int32)]     # internal use, refers to the pos_array. Used by roll_cigar etc
