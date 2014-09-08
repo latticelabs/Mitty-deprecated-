@@ -88,7 +88,7 @@ def parse_vcf(vcf_rdr, chrom_list):
   for chrom in chrom_list:
     try:
       g1[chrom] = vcf2chrom(vcf_rdr.fetch(chrom, start=0))
-    except KeyError:
+    except (ValueError, KeyError):  # New version of pyvcf changed the error
       g1[chrom] = []
 
   return g1

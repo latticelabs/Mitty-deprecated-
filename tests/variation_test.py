@@ -54,6 +54,12 @@ def vcf2chrom_test2():
   assert chrom == correct_chrom, chrom
 
 
+def vcf_empty_chromosome_test():
+  """Ask for chromosome that does not exist in VCF file"""
+  g1 = parse_vcf(vcf.Reader(filename=small_vcf_name + '.gz'), [1, 2, 3])
+  assert g1[3] == []
+
+
 def vcf_round_trip_test():
   """VCF round trip (load and then save)."""
   import tempfile
