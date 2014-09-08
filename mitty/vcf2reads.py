@@ -288,9 +288,9 @@ def write_reads_to_file(fastq_fp, fastq_c_fp, template_list, chrom, cc, serial_n
       fastq_fp.write('@' + qname + '\n' + template[1].perfect_seq + '\n+\n' + '~' * len(template[1].perfect_seq) + '\n')
 
     if write_corrupted:
-      fastq_c_fp.write('@' + qname + '\n' + template[0].corrupted_seq + '\n+\n' + template[0].PHRED + '\n')
+      fastq_c_fp.write('@' + qname + '\n' + template[0].corrupt_seq + '\n+\n' + template[0].PHRED + '\n')
       if paired:
-        fastq_c_fp.write('@' + qname + '\n' + template[1].corrupted_seq + '\n+\n' + template[1].PHRED + '\n')
+        fastq_c_fp.write('@' + qname + '\n' + template[1].corrupt_seq + '\n+\n' + template[1].PHRED + '\n')
 
 
 def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
