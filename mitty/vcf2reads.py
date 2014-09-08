@@ -26,11 +26,12 @@ Parameter file example::
 
   {
     "take reads from": [1,2],           # List the chromosomes the reads should be taken from
-    "read_model": "simple_reads",       # Name of the read plugin to use
+    "read_model": "simple_sequential",  # Name of the read plugin to use
     "model_params": {                   # Model specific parameters, need to be under the key "model_params"
       "paired": false,
       "read_len": 100,
-      "template_len": 250
+      "template_len": 250,
+      'read_advance': 20
     }
   }
 """
