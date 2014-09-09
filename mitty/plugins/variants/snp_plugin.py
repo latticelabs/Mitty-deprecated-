@@ -34,6 +34,7 @@ base_sub_dict = {
   'G': ['A', 'T', 'C'],  # 'G' -> 'ATC'
   'T': ['C', 'G', 'A'],  # 'T' -> 'CGA'
   'N': ['N', 'N', 'N']
+
 }
 
 
@@ -49,6 +50,7 @@ def variant_generator(ref={},
                       **kwargs):
   try:
     vg = variant_generator
+    
     base_loc_rng, base_sub_rng, het_rng, copy_rng = vg.base_loc_rng, vg.base_sub_rng, vg.het_rng, vg.copy_rng
     logger.debug('Using previous RNG states')
   except AttributeError:
@@ -68,8 +70,9 @@ def variant_generator(ref={},
     het_type = util.het(snp_locs.size, phet, het_rng, copy_rng)
     base_subs = base_sub_rng.randint(3, size=snp_locs.size)
 
-    yield {chrom: [Variation(pos + 1, pos + 2, ref_chrom[pos], base_sub_dict[ref_chrom[pos]][bs], het)
-                   for pos, bs, het in zip(snp_locs, base_subs, het_type) if ref_chrom[pos] != 'N']}
+
+    yield {chrom: [Variation(pos + 1, pos + 2, ref_chrom[pos], base_sub_dict[ref_chrom[pos].upper()][bs], het)
+                   for pos, bs, het in zip(snp_locs, base_subs, het_type) if ref_chrom[pos] != 'N' and ref_chrom[pos] != '\n']}
     # +1 because VCF files are 1 indexed
     #alts will be 0 if ref is not one of ACTG
 
