@@ -58,6 +58,15 @@ def init_int2str(max_read_len):
     int2str = [str(n) for n in range(max_read_len + 1)]
 
 
+def interpret_read_qname(qname, template_order):
+  """chrom:copy|rN|D|POS1|CIGAR1|POS2|CIGAR2
+  Returns:
+    chrom, direction, pos, cigar
+  """
+  qn = qname.split('|')
+  return int(qn[0][:-2]), qn[2], int(qn[3 if not template_order else 5]), qn[4 if not template_order else 6]
+
+
 import logging
 logger = logging.getLogger(__name__)
 
