@@ -1,7 +1,7 @@
 """Given a bam file containing simulated reads aligned by a tool produce a table of mis-aligned reads. The table has the
 following columns
 
-seq,  correct_chrom, correct_pos, aligned_chrom, aligned_pos, mapping_qual, pair mapped
+correct_chrom, correct_pos, aligned_chrom, aligned_pos, mapping_qual, unmapped, mate_unmapped, seq
 
 Commandline::
 
@@ -36,7 +36,8 @@ def analyze_bam(bam_fp, block_size=100000):
         correct_chrom_no, _, correct_pos, correct_cigar = interpret_read_qname(read.qname, read.is_read2)
         if correct_chrom_no == read.tid + 1 and correct_pos == read.pos + 1:  #BAM is zero indexed
           continue
-        misaligned_reads[block_size - current_count] = [read.seq, correct_chrom_no, correct_pos, read.tid + 1, read.pos, read.mapq, False]
+        misaligned_reads[block_size - current_count] = \
+          [correct_chrom_no, correct_pos, read.tid + 1, read.pos + 1, read.mapq, read.rnext + 1, read.pnext + 1, read.seq]
         current_count -= 1
       except StopIteration:
         keep_reading = False
@@ -48,12 +49,12 @@ def analyze_bam(bam_fp, block_size=100000):
 
 
 def write_csv_header(csv_fp):
-  csv_fp.write('seq,  correct_chrom, correct_pos, aligned_chrom, aligned_pos, mapping_qual, pair mapped\n')
+  csv_fp.write('correct_chrom, correct_pos, aligned_chrom, aligned_pos, mapping_qual, rnext, pnext, seq\n')
 
 
 def write_csv(csv_fp, misaligned_reads):
   for line in misaligned_reads:
-    csv_fp.write(','.join(map(str, line)) + '\n')
+    csv_fp.write(', '.join(map(str, line)) + '\n')
 
 
 if __name__ == "__main__":
