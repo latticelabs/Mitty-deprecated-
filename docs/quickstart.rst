@@ -83,23 +83,26 @@ We can use `reads2bam.py` to create a cheat alignment ...
 We can see one of the SNPs we put in.
 
 
-TODO: Creating an alignment
+Creating an alignment
 ---------------------
 We can now use bwa to generate the alignment instead (make sure you have generated the index for the reference):
 
 .. command-output::  bwa mem -t 8 -p ../examples/data/chimera.fa.gz  ../examples/snp_reads_mpileup/out/snp_reads_c.fq > ../examples/snp_reads_mpileup/out/test.sam
-.. We pipe stderr to dev/null because we don't want it confusing Sphinx
-.. sdfs  command-output::  samtools view -Sb  ../examples/snp_reads_mpileup/out/test.sam > ../examples/snp_reads_mpileup/out/test.bam
-.. Need to work out why this does not work
+    :shell:
+
+.. command-output::  samtools view -Sb  ../examples/snp_reads_mpileup/out/test.sam > ../examples/snp_reads_mpileup/out/test.bam
+    :shell:
 
 And again check the alignment
 
 .. command-output::  samtools tview -d T -p "gi|4630864|dbj|AB026117.1|:9980" ../examples/snp_reads_mpileup/out/test.bam ../examples/data/chimera.fa.gz
 
+
 TODO: Add section of validating alignment - incoporate tool formally
 
 
-Quick-start II
+TODO: Quick-start II
 ==============
 
-We figured out how to
+We figured out how to create a variant sample and then take reads from it. Now we will learn how to run population
+simulations.
