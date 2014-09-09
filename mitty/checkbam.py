@@ -53,8 +53,7 @@ def write_csv_header(csv_fp):
 
 
 def write_csv(csv_fp, misaligned_reads):
-  for line in misaligned_reads:
-    csv_fp.write(', '.join(map(str, line)) + '\n')
+  csv_fp.writelines((', '.join(map(str, line)) + '\n' for line in misaligned_reads))
 
 
 if __name__ == "__main__":
