@@ -1,7 +1,7 @@
 """Given a bam file containing simulated reads aligned by a tool produce a table of mis-aligned reads. The table has the
-following columns
+following columns::
 
-correct_chrom, correct_pos, aligned_chrom, aligned_pos, mapping_qual, unmapped, mate_unmapped, seq
+  correct_chrom, correct_pos, aligned_chrom, aligned_pos, mapping_qual, unmapped, mate_unmapped, seq
 
 Commandline::
 
