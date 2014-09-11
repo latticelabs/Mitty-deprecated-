@@ -58,5 +58,6 @@ def self_test_all_found_plugins():
       yield plugin_has_no_t_ests, model
     else:
       for test in tests:
-        t_est_wrapper.description = model[0] + ' plugin self test(s): ' + test[1].func_doc
+        t_est_wrapper.description = model[0] + ' plugin self test(s): ' + (test[1].func_doc or test[1].__name__)
+        # We can't ensure that a dev will provide us with a function doc, so we use the name if can't find a doc string
         yield t_est_wrapper, test
