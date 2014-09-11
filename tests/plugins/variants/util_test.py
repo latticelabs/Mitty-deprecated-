@@ -1,6 +1,6 @@
 import numpy
 from numpy.testing import assert_array_equal
-from mitty.Plugins.variants import util
+from mitty.plugins.variants import util
 
 
 def place_poisson_test():
