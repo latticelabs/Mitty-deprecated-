@@ -26,7 +26,6 @@ This is the stock SNP plugin. A typical parameter set resembles
 _example_params = eval(__example_param_text)
 
 
-
 # This is a substitution base substitution table
 base_sub_dict = {
   'A': ['T', 'C', 'G'],  # 'A' -> 'TCG'

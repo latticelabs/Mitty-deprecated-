@@ -30,18 +30,18 @@ logger = logging.getLogger(__name__)
 
 
 def variant_generator(ref={},
-             chromosome=None,
-             p=0.01,
-             phet=0.5,
-             ins_len_lo=100,
-             ins_len_hi=10000,
-             master_seed=None,
-             ins_loc_rng_seed=1,
-             ins_len_rng_seed=2,
-             base_sel_rng_seed=3,
-             het_rng_seed=4,
-             copy_rng_seed=5,
-             **kwargs):
+                      chromosome=None,
+                      p=0.01,
+                      phet=0.5,
+                      ins_len_lo=100,
+                      ins_len_hi=10000,
+                      master_seed=None,
+                      ins_loc_rng_seed=1,
+                      ins_len_rng_seed=2,
+                      base_sel_rng_seed=3,
+                      het_rng_seed=4,
+                      copy_rng_seed=5,
+                      **kwargs):
   
   try:
       vg = variant_generator

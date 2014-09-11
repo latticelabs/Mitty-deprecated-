@@ -3,21 +3,18 @@
 Note: This never generates a deletion at the first base of a sequence.
 
 """
-__explain__ = """
-Example parameter snippet:
-
-    {
-        "chromosome": [1],
-        "model": "deletion",
-        "phet": 0.5,
-        "p": 0.01,
-        "del_len_lo": 100,
-        "del_len_hi": 10000,
-        "del_loc_rng_seed": 1,
-        "del_len_rng_seed": 2,
-        "het_rng_seed": 3,
-        "copy_rng_seed": 4
-    }
+__example_param_text__ = """
+{
+  "chromosome": [1],      # List of chromosomes to apply the variant to
+  "p": 0.01,              # probability that the deletion will happen at any given base
+  "phet": 0.5,            # probability that the variant will be heterozygous
+  "del_len_lo": 100,      # lower bound on deletion lengths
+  "del_len_hi": 10000,    # upper bound on deletion lengths
+  "del_loc_rng_seed": 1,  #
+  "del_len_rng_seed": 2,
+  "het_rng_seed": 3,
+  "copy_rng_seed": 4
+}
 """
 import numpy
 import logging
