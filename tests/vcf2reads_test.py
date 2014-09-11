@@ -220,7 +220,7 @@ def roll_cigar_test():
 class Read_Module():
   """A simple read model simulator for testing purposes."""
   @staticmethod
-  def initialize(model_params, master_seed):
+  def initialize(model_params):
     return {
       'read_len': model_params['read_len'],
       'template_len': model_params['template_len'],
@@ -250,7 +250,7 @@ class Read_Module():
        Read(perfect_seq=this_c_seq_block[n+tl-1:n+tl-rl-1:-1], _start_idx=n+tl-rl, _stop_idx=n+tl)]
       )
     read_model_state['last_idx'] = n
-    return template_list, read_model_state
+    return template_list
 
 
 def reads_from_genome_test1():
@@ -287,8 +287,8 @@ def write_test():
   import io
   fp, fp_c = io.BytesIO(), io.BytesIO()
   template_list = [  # Unpaired reads
-    [Read(1, '2M', 'AC', 'AT', '~~')],
-    [Read(10, '2M', 'AG', 'TG', '~!')]
+    [Read('>', 1, '2M', 'AC', 'AT', '~~')],
+    [Read('<', 10, '2M', 'AG', 'TG', '~!')]
   ]
   chrom = 1
   cc = 0
@@ -297,11 +297,11 @@ def write_test():
 
   fp.seek(0)
   fastq = fp.read()
-  correct_fastq = """@1:0|r1|1|2M
+  correct_fastq = """@1:0|r1|>|1|2M
 AC
 +
 ~~
-@1:0|r2|10|2M
+@1:0|r2|<|10|2M
 AG
 +
 ~~\n"""
@@ -309,11 +309,11 @@ AG
 
   fp_c.seek(0)
   fastq = fp_c.read()
-  correct_fastq = """@1:0|r1|1|2M
+  correct_fastq = """@1:0|r1|>|1|2M
 AT
 +
 ~~
-@1:0|r2|10|2M
+@1:0|r2|<|10|2M
 TG
 +
 ~!\n"""
