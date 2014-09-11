@@ -1,5 +1,6 @@
 """Automatically find variant plugins and perform integration tests on them. For a plugin to avail of this test
 the plugin needs a _example_params() function that returns a complete parameter file"""
+from inspect import getmembers, isfunction
 from nose.plugins.skip import SkipTest
 import mitty.plugins.putil as putil
 import mitty.lib.genome as genome
@@ -39,16 +40,23 @@ def integration_test_all_found_plugins():
     yield check_plugin_integration, model
 
 
-def check_plugin(model):
-  if not hasattr(model[1], 'test'):
-    #http://stackoverflow.com/questions/1120148/disabling-python-nosetests
-    raise SkipTest('{:s} has no test method. Can not test automatically'.format(model[0]))
-  model[1].test()
+def t_est_wrapper(func):
+  func[1]()
+
+
+def plugin_has_no_t_ests(model):
+  raise SkipTest('No tests')
 
 
 #http://stackoverflow.com/questions/19071601/how-do-i-run-multiple-python-test-cases-in-a-loop
 def self_test_all_found_plugins():
-  """Integration test on automatically found mutation plugin"""
+  """Plugin self test"""
   for model in putil.load_all_variant_plugins():
-    check_plugin.description = model[0] + ' self test'
-    yield check_plugin, model
+    tests = [v for v in getmembers(model[1], isfunction) if v[0].startswith('test')]
+    if len(tests) == 0:
+      plugin_has_no_t_ests.description = model[0] + ' plugin self test(s)'
+      yield plugin_has_no_t_ests, model
+    else:
+      for test in tests:
+        t_est_wrapper.description = model[0] + ' plugin self test(s): ' + test[1].func_doc
+        yield t_est_wrapper, test
