@@ -68,7 +68,7 @@ def test_read_corruption_se():
   assert template_list[0][0].corrupt_seq == 'GCTGA'
 
   assert template_list[1][0].perfect_seq == 'AGTCA'
-  assert template_list[1][0].corrupt_seq == 'TGTAA'  # Note error locations
+  assert template_list[1][0].corrupt_seq == 'AATCT'  # Note error locations
 
 
 def test_read_corruption_paired():
@@ -82,7 +82,7 @@ def test_read_corruption_paired():
   idx = (numpy.array([0, 1, 1]), numpy.array([0, 0, 3]))
   corrupt_bases = 'GTA'
   template_list = extract_reads([seq, seq_c], t_start, strand, tl, rl, paired=True)
-  fill_out_corrupt_bases(template_list, corrupt_bases, idx)
+  fill_out_corrupt_bases(template_list, corrupt_bases, idx, '~~~~~')
 
   assert template_list[0][0].perfect_seq == 'ACTGA'
   assert template_list[0][0].corrupt_seq == 'GCTGA'
