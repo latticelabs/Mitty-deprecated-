@@ -32,9 +32,9 @@ after crossover and fertilization as denovo mutations. Typically their parameter
 __version__ = '1.0.0'
 
 import numpy
+from mitty.lib import genome
 from mitty.lib.variation import vcopy, HOMOZYGOUS, HET1, HET2, vcf_save_gz
 import mitty.denovo
-from fasta2wg import load_reference
 import logging
 logger = logging.getLogger(__name__)
 
@@ -273,7 +273,7 @@ def main(ref_fname='../../Data/ashbya_gossypii/ashbya.h5', hot_spots={}, params_
   else:
     rngs = get_rngs(seed=1)
   ss_models = denovo.load_variant_models(params_json['ss_variant_models'])
-  ref = load_reference(ref_fname)
+  ref = genome.FastaGenome(ref_fname)
   parent_list, _ = \
     population_simulation(ref, denovo_models=models, initial_size=initial_size,
                           hot_spots=hot_spots, rngs=rngs, num_children_per_couple=num_children_per_couple,
@@ -296,7 +296,6 @@ if __name__ == "__main__":
   if args['explain']:
     mitty.denovo.explain_plugin(args['<plugin>'])
     exit(0)
-
 
   logging.basicConfig(level=logging.WARNING)
   if args['-v']:
