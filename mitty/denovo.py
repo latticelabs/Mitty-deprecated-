@@ -4,7 +4,7 @@
 Commandline::
 
   Usage:
-    denovo --fa_dir=FADIR  --vcf=VCF  --param_file=PFILE  [--master_seed=SEED] [-v]
+    denovo --fa_dir=FADIR  --vcf=VCF  --pfile=PFILE  --master_seed=SEED [-v]
     denovo plugins
     denovo explain <plugin>
 
@@ -14,7 +14,7 @@ Commandline::
                             It saves this file as a sorted and compressed vcf file with the uncompressed version
                             available as .vcf. If the file does not end in .vcf.gz the uncompressed version will
                             be of the form <basename>_srt.vcf
-    --paramfile=PFILE       Name for parameter file
+    --pfile=PFILE           Name for parameter file
     --master_seed=SEED      If this is specified, this generates and passes master seeds to all the plugins.
                             This overrides any individual seeds specified by the parameter file.
     -v                      Dump detailed logger messages
@@ -195,4 +195,4 @@ if __name__ == "__main__": # pragma: no cover
 
   ref_genome = FastaGenome(seq_dir=cmd_args['--fa_dir'])
 
-  main(ref_genome, cmd_args['--vcf'], cmd_args['--param_file'], cmd_args['--master_seed'])
+  main(ref_genome, cmd_args['--vcf'], cmd_args['--pfile'], cmd_args['--master_seed'])
