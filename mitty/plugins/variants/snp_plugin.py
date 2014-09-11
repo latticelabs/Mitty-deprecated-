@@ -55,7 +55,7 @@ def variant_generator(ref={},
   except AttributeError:
     if master_seed is not None:
       base_loc_rng_seed, base_sub_rng_seed, het_rng_seed, copy_rng_seed = \
-        numpy.random.RandomState(seed=master_seed).randint(100000000, size=4)
+        numpy.random.RandomState(seed=master_seed).randint(2<<32-1, size=4)
       logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}'.
                    format(base_loc_rng_seed, base_sub_rng_seed, het_rng_seed, copy_rng_seed))
 
