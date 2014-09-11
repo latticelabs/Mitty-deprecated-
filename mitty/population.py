@@ -1,3 +1,4 @@
+#!python
 """
 This script simulates populations of genomes. Genomes are written out as VCF files.
 

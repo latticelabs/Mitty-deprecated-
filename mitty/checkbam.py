@@ -1,3 +1,4 @@
+#!python
 """Given a bam file containing simulated reads aligned by a tool produce a table of mis-aligned reads. The table has the
 following columns::
 

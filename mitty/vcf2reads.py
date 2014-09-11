@@ -1,3 +1,4 @@
+#!python
 """This program generates reads from a genome (either a reference genome or a sample genome expressed as a VCF file).
 The read characteristics are governed by the chosen read plugin.
 

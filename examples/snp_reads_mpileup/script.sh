@@ -17,6 +17,9 @@ samtools index out/test.bam
 
 samtools tview -d T -p "gi|4630864|dbj|AB026117.1|:9980" out/test.bam ../data/chimera.fa.gz
 
+#samtools mpileup -uf ../data/chimera.fa out/test.bam | bcftools view -bvcg - > out/var.raw.bcf
+#bcftools view out/var.raw.bcf | vcfutils.pl varFilter -D100 > out/mpileup.vcf
+
 python ../../mitty/checkbam.py  --inbam out/test.bam --fout out/misalign.csv -v
 
 

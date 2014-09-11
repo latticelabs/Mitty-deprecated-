@@ -1,3 +1,4 @@
+#!python
 """This script produces a VCF file simulating a "sample" based on a reference
 
 Commandline::
