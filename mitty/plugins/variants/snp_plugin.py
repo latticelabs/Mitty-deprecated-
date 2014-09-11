@@ -77,6 +77,7 @@ def variant_generator(ref={},
 
 
 def test():
+  """Basic test"""
   ref = {
     1: 'ACTGACTGACTG',
     2: 'ACTGACTGACTGACTGACTGACTG'
