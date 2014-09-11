@@ -71,8 +71,8 @@ def interpret_read_qname(qname, template_order):
 import logging
 logger = logging.getLogger(__name__)
 
-SEED_MAX = 10000000000  # For each call of the JIT expander we pass a random seed.
-                        # We generate these seeds from the given master seed and
+SEED_MAX = 4294967295  # For each call of the JIT expander we pass a random seed.
+                       # We generate these seeds from the given master seed and
 
 
 def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_len=10e6, over_lap_len=200):
@@ -319,6 +319,7 @@ def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=Non
   Notes:
   We infer whether we have corrupted reads or not from whether we have a valid fastq_c_fp or not.
   """
+  assert 0 < master_seed < SEED_MAX
   import time
   t_start = time.time()
 

@@ -59,6 +59,7 @@ from mitty.lib.variation import *
 import logging
 from plugins import putil
 logger = logging.getLogger(__name__)
+SEED_MAX = 4294967295
 
 
 def merge_variants_with_chromosome(c1, dnv):
@@ -148,7 +149,7 @@ def load_variant_models(model_param_json):
 def apply_master_seed(models, master_seed=None):
   if master_seed is not None:
     for model in models:
-      model["params"]["master_seed"] = numpy.random.RandomState(seed=int(master_seed)).randint(100000000, size=4)
+      model["params"]["master_seed"] = numpy.random.RandomState(seed=int(master_seed)).randint(SEED_MAX, size=4)
 
 
 def print_plugin_list():
@@ -166,8 +167,9 @@ def explain_plugin(plugin):
   return
 
 
-def main(ref, vcf_file_name=None, param_file_name='', master_seed=None):
+def main(ref, vcf_file_name=None, param_file_name='', master_seed=1):
   """This does what the old mutate.py script used to do."""
+  assert 0 < master_seed < SEED_MAX
   logger.debug('Reference file {:s}'.format(ref.dir))
   params = json.load(open(param_file_name, 'r'))
   models = load_variant_models(params['denovo_variant_models'])
@@ -195,4 +197,4 @@ if __name__ == "__main__": # pragma: no cover
 
   ref_genome = FastaGenome(seq_dir=cmd_args['--fa_dir'])
 
-  main(ref_genome, cmd_args['--vcf'], cmd_args['--pfile'], cmd_args['--master_seed'])
+  main(ref_genome, cmd_args['--vcf'], cmd_args['--pfile'], int(cmd_args['--master_seed']))
