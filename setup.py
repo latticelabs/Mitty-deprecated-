@@ -14,7 +14,7 @@ setup(
       'Cython==0.21',
       'PyVCF>=0.6.7',
       'docopt==0.6.2',
-      'matplotlib==1.4.0',
+      #'matplotlib==1.4.0',
       'mock==1.0.1',
       'nose==1.3.4',
       'numpy==1.9.0',
