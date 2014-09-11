@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name='mitty',
@@ -6,8 +6,8 @@ setup(
     description='Simulator for genomic data',
     author='Seven Bridges Genomics',
     author_email='kaushik.ghose@sbgenomics.com',
-    packages=['mitty', 'examples'],
-    scripts=['denovo.py', 'checkbam.py', 'population.py', 'reads2bam.py', 'vcf2reads.py'],
+    packages=['mitty', 'mitty.lib', 'mitty.plugins', 'mitty.util'],
+    scripts=['mitty/denovo.py', 'mitty/checkbam.py', 'mitty/population.py', 'mitty/reads2bam.py', 'mitty/vcf2reads.py'],
     install_requires=[
       'docopt >= 0.6.1',
       'pysam >= 0.8.0',
