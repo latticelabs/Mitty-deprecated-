@@ -24,7 +24,7 @@ Parameter file example::
       "output vcf": "Out/test.vcf"
     },
     "rng": {
-      "master_seed": 1,
+      "master_seed": 1
     },
     "denovo_variant_models": [    # The list of variant models should come under this key
       {
@@ -167,7 +167,10 @@ def explain_plugin(plugin):
     print 'No such plugin'
   else:
     mod = putil.load_variant_plugin(plugin)
-    print mod._description
+    try:
+      print(mod._description)
+    except AttributeError:
+      print('No help for module available')
   return
 
 
