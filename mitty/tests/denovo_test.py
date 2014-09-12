@@ -177,6 +177,7 @@ def load_variant_models_test():
 # This test uses the stock SNP which must be functional for this test to pass as well as some files created during
 # test setup
 def main_test():
+  """Integrating denovo and stock SNP"""
   import json, vcf, tempfile
   param_json = {
     "denovo_variant_models": [
@@ -198,12 +199,9 @@ def main_test():
       }
     ]
   }
-  _, param_fname = tempfile.mkstemp(suffix='.json')
-  with open(param_fname, 'w') as fp:
-    json.dump(param_json, fp, indent=2)
   _, vcf_file_fname = tempfile.mkstemp(suffix='.vcf.gz')
   ref = FastaGenome(seq_dir=example_fasta_genome)
-  g1 = main(ref, vcf_file_name=vcf_file_fname, param_file_name=param_fname, master_seed=1)
+  main(ref, vcf_file_name=vcf_file_fname, parameters=param_json, master_seed=1)
   assert os.path.exists(vcf_file_fname)
 
   vcf_rdr = vcf.Reader(filename=vcf_file_fname).fetch(chrom=1, start=0)

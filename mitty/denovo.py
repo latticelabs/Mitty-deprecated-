@@ -4,19 +4,12 @@
 Commandline::
 
   Usage:
-    denovo --fa_dir=FADIR  --vcf=VCF  --pfile=PFILE  --master_seed=SEED [-v]
+    denovo --pfile=PFILE  [-v]
     denovo plugins
     denovo explain <plugin>
 
   Options:
-    --fa_dir=FADIR          Directory where genome is located
-    --vcf=VCF               Output VCF file. mutate expects the file to end in .vcf.gz
-                            It saves this file as a sorted and compressed vcf file with the uncompressed version
-                            available as .vcf. If the file does not end in .vcf.gz the uncompressed version will
-                            be of the form <basename>_srt.vcf
     --pfile=PFILE           Name for parameter file
-    --master_seed=SEED      If this is specified, this generates and passes master seeds to all the plugins.
-                            This overrides any individual seeds specified by the parameter file.
     -v                      Dump detailed logger messages
     plugins                 List the available denovo plugins
     explain                 Explain details about the indicated plugin
@@ -26,6 +19,13 @@ Commandline::
 Parameter file example::
 
   {
+    "files": {
+      "genome": "/Users/kghose/Data/hg38",
+      "output vcf": "Out/test.vcf"
+    },
+    "rng": {
+      "master_seed": 1,
+    },
     "denovo_variant_models": [    # The list of variant models should come under this key
       {
         "snp": {                 # name of the model. To get a list of plugin names type "denovo plugins"
@@ -47,6 +47,10 @@ Parameter file example::
       }
     ]
   }
+
+Notes:
+
+1. denovo sorts, compresses and indexes the output vcf, which should be given as a vcf.gz file
 """
 __version__ = '1.0.0'
 
@@ -59,7 +63,7 @@ from mitty.lib.variation import *
 import logging
 from plugins import putil
 logger = logging.getLogger(__name__)
-SEED_MAX = 4294967295
+SEED_MAX = (1 << 32) - 1
 
 
 def merge_variants_with_chromosome(c1, dnv):
@@ -167,12 +171,11 @@ def explain_plugin(plugin):
   return
 
 
-def main(ref, vcf_file_name=None, param_file_name='', master_seed=1):
+def main(ref, vcf_file_name=None, parameters={}, master_seed=1):
   """This does what the old mutate.py script used to do."""
   assert 0 < master_seed < SEED_MAX
   logger.debug('Reference file {:s}'.format(ref.dir))
-  params = json.load(open(param_file_name, 'r'))
-  models = load_variant_models(params['denovo_variant_models'])
+  models = load_variant_models(parameters['denovo_variant_models'])
   apply_master_seed(models, master_seed)
   g1 = create_denovo_genome(ref=ref, models=models)
   if vcf_file_name is not None:
@@ -195,6 +198,8 @@ if __name__ == "__main__": # pragma: no cover
   level = logging.DEBUG if cmd_args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
 
-  ref_genome = FastaGenome(seq_dir=cmd_args['--fa_dir'])
-
-  main(ref_genome, cmd_args['--vcf'], cmd_args['--pfile'], int(cmd_args['--master_seed']))
+  params = json.load(open(cmd_args['--pfile'], 'r'))
+  ref_genome = FastaGenome(seq_dir=params['files']['genome'])
+  vcf_file = params['files']['output vcf']
+  master_seed = params['rng']['master_seed']
+  main(ref=ref_genome, vcf_file_name=vcf_file, parameters=params, master_seed=master_seed)
