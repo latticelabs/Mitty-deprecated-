@@ -124,4 +124,5 @@ def vcf_save_gz(g1, vcf_gz_name, sample_name='sample'):
   with open(vcf_name, 'w') as fp:
     vcf_save(g1, fp, sample_name=sample_name)
 
-  compress_and_index_vcf(vcf_name, vcf_gz_name)
+  compress_and_index_vcf(str(vcf_name), str(vcf_gz_name))
+  # tabix can't understand unicode, needs bytes
