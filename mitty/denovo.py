@@ -54,12 +54,14 @@ Notes:
 """
 __version__ = '1.0.0'
 
+import os
 from copy import copy
 import numpy
 import json
 import docopt
 from lib.genome import FastaGenome
 from mitty.lib.variation import *
+from mitty.lib import rpath
 import logging
 from plugins import putil
 logger = logging.getLogger(__name__)
@@ -201,8 +203,9 @@ if __name__ == "__main__": # pragma: no cover
   level = logging.DEBUG if cmd_args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
 
+  base_dir = os.path.dirname(cmd_args['--pfile'])     # Other files will be with respect to this
   params = json.load(open(cmd_args['--pfile'], 'r'))
-  ref_genome = FastaGenome(seq_dir=params['files']['genome'])
-  vcf_file = params['files']['output vcf']
+  ref_genome = FastaGenome(seq_dir=rpath(base_dir, params['files']['genome']))
+  vcf_file = rpath(base_dir, params['files']['output vcf'])
   master_seed = params['rng']['master_seed']
   main(ref=ref_genome, vcf_file_name=vcf_file, parameters=params, master_seed=master_seed)

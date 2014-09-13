@@ -201,7 +201,7 @@ def main_test():
   }
   _, vcf_file_fname = tempfile.mkstemp(suffix='.vcf.gz')
   ref = FastaGenome(seq_dir=example_fasta_genome)
-  main(ref, vcf_file_name=vcf_file_fname, parameters=param_json, master_seed=1)
+  g1 = main(ref, vcf_file_name=vcf_file_fname, parameters=param_json, master_seed=1)
   assert os.path.exists(vcf_file_fname)
 
   vcf_rdr = vcf.Reader(filename=vcf_file_fname).fetch(chrom=1, start=0)
