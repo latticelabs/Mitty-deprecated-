@@ -20,8 +20,8 @@ Parameter file example::
 
   {
     "files": {
-      "genome": "/Users/kghose/Data/hg38",
-      "output vcf": "Out/test.vcf"
+      "genome": "/Users/kghose/Data/hg38",  # An absolute path is left as is
+      "output vcf": "Out/test.vcf"          # a relative path is taken relative to the location of the *script*
     },
     "rng": {
       "master_seed": 1
