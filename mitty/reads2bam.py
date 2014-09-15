@@ -20,6 +20,7 @@ import docopt
 import os
 import pysam
 from lib.genome import FastaGenome
+from mitty.vcf2reads import interpret_read_qname
 import logging
 logger = logging.getLogger(__name__)
 
@@ -36,12 +37,7 @@ def sort_and_index_bam(bamfile):
   os.remove('temp.bam')
 
 
-def align(in_fastq, out_bam, seq_dir = '', paired=False):
-  def interpret_read_qname(qname, template_order):
-    """chrom:copy|rN|D|POS1|CIGAR1|POS2|CIGAR2"""
-    qn = qname.split('|')
-    return int(qn[0][:-2]), qn[2], int(qn[3 if not template_order else 5]), qn[4 if not template_order else 6]
-
+def align(in_fastq, out_bam, seq_dir='', paired=False):
   def process_read(read, template_order):
     correct_chrom_no, dirn, correct_pos, correct_cigar = interpret_read_qname(read.name, template_order)
     a_read = pysam.AlignedRead()
@@ -49,12 +45,12 @@ def align(in_fastq, out_bam, seq_dir = '', paired=False):
     a_read.tid = correct_chrom_no - 1
     a_read.qname = read.name
     a_read.cigarstring = correct_cigar
-    if (template_order and dirn == '>') or (not template_order and dirn == '<'):
-      a_read.seq = read.sequence[::-1].translate(DNA_complement)
-      a_read.flag = 0x10  # 0x10 flag has to be set to indicate reverse complement
-    else:
+    if dirn == '>':
       a_read.seq = read.sequence
       a_read.flag = 0x0
+    else:
+      a_read.seq = read.sequence[::-1].translate(DNA_complement)
+      a_read.flag = 0x10  # 0x10 flag has to be set to indicate reverse complement
     a_read.qual = read.quality
     a_read.mapq = 100  # It's better to set this
     return a_read
@@ -85,7 +81,6 @@ def align(in_fastq, out_bam, seq_dir = '', paired=False):
   for cnt, (reads) in enumerate(get_read(fastq, paired)):
     for read in reads:
       out_bamfile.write(read)
-
     if not cnt % 100000:
       logger.debug('{:d} templates done'.format(cnt))
 
