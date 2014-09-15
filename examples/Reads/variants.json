@@ -1,0 +1,36 @@
+{
+  "files": {
+    "genome": "../data",
+    "output vcf": "variants.vcf.gz"
+  },
+  "rng": {
+    "master_seed": 1
+  },
+  "denovo_variant_models": [
+    {
+      "snp": {
+        "chromosome": [4],
+        "phet": 0.5,
+        "p": 0.005
+      }
+    },
+    {
+      "insert": {
+        "chromosome": [3],
+        "phet": 0.5,
+        "p": 0.005,
+        "ins_len_lo": 10,
+        "ins_len_hi": 50
+      }
+    },
+    {
+      "delete": {
+        "chromosome": [4],
+        "phet": 0.5,
+        "p": 0.01,
+        "del_len_lo": 10,
+        "del_len_hi": 50
+      }
+    }
+  ]
+}
