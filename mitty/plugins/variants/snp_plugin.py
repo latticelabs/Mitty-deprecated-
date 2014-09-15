@@ -41,11 +41,7 @@ def variant_generator(ref={},
                       chromosome=None,
                       phet=0.5,
                       p=0.01,
-                      master_seed=None,
-                      base_loc_rng_seed=1,
-                      base_sub_rng_seed=2,
-                      het_rng_seed=3,
-                      copy_rng_seed=4,
+                      master_seed=1,
                       **kwargs):
   try:
     vg = variant_generator
@@ -53,12 +49,10 @@ def variant_generator(ref={},
     base_loc_rng, base_sub_rng, het_rng, copy_rng = vg.base_loc_rng, vg.base_sub_rng, vg.het_rng, vg.copy_rng
     logger.debug('Using previous RNG states')
   except AttributeError:
-    if master_seed is not None:
-      base_loc_rng_seed, base_sub_rng_seed, het_rng_seed, copy_rng_seed = \
-        numpy.random.RandomState(seed=master_seed).randint(2<<32-1, size=4)
-      logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}'.
-                   format(base_loc_rng_seed, base_sub_rng_seed, het_rng_seed, copy_rng_seed))
-
+    base_loc_rng_seed, base_sub_rng_seed, het_rng_seed, copy_rng_seed = \
+      numpy.random.RandomState(seed=master_seed).randint(2<<32-1, size=4)
+    logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}'.
+                 format(base_loc_rng_seed, base_sub_rng_seed, het_rng_seed, copy_rng_seed))
     base_loc_rng, base_sub_rng, het_rng, copy_rng = util.initialize_rngs(base_loc_rng_seed, base_sub_rng_seed, het_rng_seed, copy_rng_seed)
     vg = variant_generator
     vg.base_loc_rng, vg.base_sub_rng, vg.het_rng, vg.copy_rng = base_loc_rng, base_sub_rng, het_rng, copy_rng
