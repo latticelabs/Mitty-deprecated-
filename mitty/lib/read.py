@@ -8,7 +8,7 @@ def _pp_seq(seq):
 
 
 class Read(Structure):
-  _fields_ = [("direction", c_char),     # '>' means first read is forward direction, '<' means reverse
+  _fields_ = [("direction", c_char),      # Is the read forward '>' or reverse '<'
               ("POS", c_int32),
               ("CIGAR", c_char_p),
               ("perfect_seq", c_char_p),
