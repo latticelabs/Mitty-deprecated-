@@ -38,7 +38,7 @@ def variant_generator(ref={},
                       phet=0.5,
                       del_len_lo=10,
                       del_len_hi=100,
-                      master_seed=None,
+                      master_seed=1,
                       **kwargs):
   try:
     vg = variant_generator
@@ -46,37 +46,45 @@ def variant_generator(ref={},
     del_loc_rng, del_len_rng, het_rng, copy_rng = vg.del_loc_rng, vg.del_len_rng, vg.het_rng, vg.copy_rng
     logger.debug('Using previous RNG states')
   except AttributeError:
-    if master_seed is not None:
-      del_loc_rng_seed, del_len_rng_seed, het_rng_seed, copy_rng_seed = \
-        numpy.random.RandomState(seed=master_seed).randint(100000000, size=4)
-      logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}'.
-                   format(del_loc_rng_seed, del_len_rng_seed, het_rng_seed, copy_rng_seed))
-
+    del_loc_rng_seed, del_len_rng_seed, het_rng_seed, copy_rng_seed = \
+      numpy.random.RandomState(seed=master_seed).randint(2<<32-1, size=4)
+    logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}'.
+                 format(del_loc_rng_seed, del_len_rng_seed, het_rng_seed, copy_rng_seed))
     del_loc_rng, del_len_rng, het_rng, copy_rng = util.initialize_rngs(del_loc_rng_seed, del_len_rng_seed, het_rng_seed, copy_rng_seed)
     vg = variant_generator
     vg.del_loc_rng, vg.del_len_rng, vg.het_rng, vg.copy_rng = del_loc_rng, del_len_rng, het_rng, copy_rng
 
-
-
   for chrom in chromosome:
     ref_seq = ref[chrom]  # Very cheap operation
-    del_locs, = numpy.nonzero(del_loc_rng.rand(len(ref_seq)) < p)
+    del_locs = util.place_poisson(del_loc_rng, p, len(ref_seq))
     del_lens = del_len_rng.randint(low=del_len_lo, high=del_len_hi+1, size=del_locs.size)
     het_type = util.het(del_locs.size, phet, het_rng, copy_rng)
 
-    yield {chrom:[Variation(pos + 1, pos+del_len+1, ref_seq[pos:pos + del_len], '.', het)
-              for het, pos, del_len in zip(het_type, del_locs, del_lens) if ('N' not in ref_seq[pos:pos + del_len])
-                  and ('\n' not in ref_seq[pos:pos + del_len]) and pos + del_len < len(ref_seq)]}
+    yield {chrom: [Variation(pos + 1, pos + del_len + 1, ref_seq[pos:pos + del_len + 1], ref_seq[pos], het)
+                   for het, pos, del_len in zip(het_type, del_locs, del_lens) if ('N' not in ref_seq[pos:pos + del_len + 1])
+                   and pos + del_len < len(ref_seq)]}
 
 
-# def test():
-#   ref = {
-#     1: 'ACTGACTGACTG',
-#     2: 'ACTGACTGACTGACTGACTGACTG'
-#   }
-#   vg = variant_generator(ref, chromosome=[1, 2], p=1.0)
-#   for v_list in vg:
-#     assert isinstance(v_list.values()[0][0], Variation), v_list
+def test():
+  """Should produce variants."""
+  ref = {
+    1: 'ACTGACTGACTG',
+    2: 'ACTGACTGACTGACTGACTGACTG'
+  }
+  vg = variant_generator(ref, chromosome=[1, 2], p=1.0, del_len_lo=1, del_len_hi=2)
+  for v_list in vg:
+    assert isinstance(v_list.values()[0][0], Variation), v_list
+
+
+def test2():
+  """The REFs should match the reference seq."""
+  ref = {
+    1: 'ACTGACTGACTG',
+    2: 'ACTGACTGACTGACTGACTGACTG'
+  }
+  vg = variant_generator(ref, chromosome=[1, 2], p=1.0, del_len_lo=1, del_len_hi=2)
+  for v_list in vg:
+    assert isinstance(v_list.values()[0][0], Variation), v_list
 
 
 if __name__ == "__main__":
