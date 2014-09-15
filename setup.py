@@ -6,7 +6,7 @@ setup(
     description='Simulator for genomic data',
     author='Seven Bridges Genomics',
     author_email='kaushik.ghose@sbgenomics.com',
-    packages=find_packages(include=['mitty*']),
+    packages=find_packages(include=['mitty*'], exclude=['mitty.util']),
     scripts=['mitty/denovo.py', 'mitty/checkbam.py', 'mitty/population.py', 'mitty/reads2bam.py', 'mitty/vcf2reads.py'],
     install_requires=[
       'distribute>=0.7.3',
