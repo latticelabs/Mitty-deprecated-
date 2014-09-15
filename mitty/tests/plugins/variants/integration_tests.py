@@ -18,18 +18,15 @@ def check_plugin_integration(model):
     #http://stackoverflow.com/questions/1120148/disabling-python-nosetests
     raise SkipTest('{:s} has no _example_params method. Can not test automatically'.format(model[0]))
   vcf_name = glob.os.path.join(data_dir, '{:s}_plugin_test.vcf.gz'.format(model[0]))
-  param_file = glob.os.path.join(data_dir, '{:s}_plugin_test.json'.format(model[0]))
   params = {
     "denovo_variant_models": [
       {model[0]: model[1]._example_params}
     ]
   }
-  json.dump(params, open(param_file, 'w'), indent=2)
-  mitty.denovo.main(ref, vcf_file_name=vcf_name, param_file_name=param_file, master_seed=0)
+  mitty.denovo.main(ref, vcf_file_name=vcf_name, parameters=params, master_seed=1)
   assert os.path.exists(vcf_name)  # A very simple test to see if the plugin doesn't crash
 
   os.remove(vcf_name)  # Be neat
-  os.remove(param_file)
 
 
 #http://stackoverflow.com/questions/19071601/how-do-i-run-multiple-python-test-cases-in-a-loop
