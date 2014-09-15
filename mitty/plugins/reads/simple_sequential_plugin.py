@@ -44,19 +44,19 @@ def overlap_len(read_model_state):
 
 def generate_reads(this_idx, this_seq_block, this_c_seq_block, this_arr, read_model_data, master_seed):
   seq = [this_seq_block, this_c_seq_block]
-  paired = read_model_data['paired']
-  ra = read_model_data['read_advance']
-  rl = read_model_data['read_len']
-  tl = read_model_data['template_len'] if paired else rl
+  paired = read_model_data.get('paired', False)
+  ra = read_model_data.get('read_advance', 10)
+  rl = read_model_data.get('read_len', 100)
+  tl = read_model_data.get('template_len', 250) if paired else rl
   template_list = []
   strand = 0
   for n in range(0, len(this_seq_block) - tl, ra):
     # n is in local coordinates - references to this_seq_block, this_arr etc.
-    r1 = Read(perfect_seq=seq[1][n+rl-1:n-1:-1] if strand else seq[0][n:n+rl],
+    r1 = Read(perfect_seq=seq[1][n:n+rl][::-1] if strand else seq[0][n:n+rl],
               _start_idx=n, _stop_idx=n+rl, direction=direction[strand])
     if paired:
-      r2 = Read(perfect_seq=seq[0][n+tl-rl:n+tl] if strand else seq[1][n+tl-1:n+tl-rl-1:-1],
-                _start_idx=n+tl-rl, _stop_idx=n+tl, direction=direction[strand])
+      r2 = Read(perfect_seq=seq[0][n+tl-rl:n+tl] if strand else seq[1][n+tl-rl:n+tl][::-1],
+                _start_idx=n+tl-rl, _stop_idx=n+tl, direction=direction[1 - strand])
       template_list += [[r1, r2]]
     else:
       template_list += [[r1]]

@@ -19,73 +19,38 @@ def test_initialize():
   assert model_state['PHRED'][9] == chr(int(33 + -10*numpy.log10(0.01)))
 
 
-def test_extract_reads_se():
-  """Perfect read generator se"""
-  seq =   'ACTGACTGACTGACTG'
-  seq_c = 'TGACTGACTGACTGAC'
-  t_start = numpy.array([0, 2, 4, 6])
-  strand =  numpy.array([0, 1, 0, 1])
-  rl = 5
-  tl = 11
-  template_list = extract_reads([seq, seq_c], t_start, strand, tl, rl, paired=False)
-
-  assert len(template_list) == 4
-  assert len(template_list[0]) == 1
-  assert template_list[0][0].perfect_seq == 'ACTGA'
-  assert template_list[1][0].perfect_seq == 'AGTCA'
-
-
 def test_extract_reads_paired():
   """Perfect read generator paired"""
   seq =   'ACTGACTGACTGACTG'
   seq_c = 'TGACTGACTGACTGAC'
   t_start = numpy.array([0, 2, 4, 6])
-  strand =  numpy.array([0, 1, 0, 1])
+  read_order = numpy.array([0, 1, 0, 1])
   rl = 5
   tl = 11
-  template_list = extract_reads([seq, seq_c], t_start, strand, tl, rl, paired=True)
+  template_list = extract_reads([seq, seq_c], t_start, read_order, tl, rl)
 
   assert len(template_list) == 4
   assert len(template_list[0]) == 2
-  assert template_list[0][0].perfect_seq == 'ACTGA'
+  assert template_list[0][0].perfect_seq == 'ACTGA', template_list[0][0].perfect_seq
   assert template_list[0][1].perfect_seq == 'AGTCA'
-
-
-def test_read_corruption_se():
-  """Read corruption SE"""
-  seq =   'ACTGACTGACTGACTG'
-  seq_c = 'TGACTGACTGACTGAC'
-  t_start = numpy.array([0, 2, 4, 6])
-  strand =  numpy.array([0, 1, 0, 1])
-  rl = 5
-  tl = 11
-  idx = (numpy.array([0, 1, 1]), numpy.array([0, 0, 3]))
-  corrupt_bases = 'GTA'
-  template_list = extract_reads([seq, seq_c], t_start, strand, tl, rl, paired=False)
-  fill_out_corrupt_bases(template_list, corrupt_bases, idx, '~~~~~')
-
-  assert template_list[0][0].perfect_seq == 'ACTGA'
-  assert template_list[0][0].corrupt_seq == 'GCTGA'
-
-  assert template_list[1][0].perfect_seq == 'AGTCA'
-  assert template_list[1][0].corrupt_seq == 'AATCT'  # Note error locations
 
 
 def test_read_corruption_paired():
   """Read corruption paired"""
   seq =   'ACTGACTGACTGACTG'
   seq_c = 'TGACTGACTGACTGAC'
+  #        0123456789012345
   t_start = numpy.array([0, 2, 4, 6])
-  strand =  numpy.array([0, 1, 0, 1])
+  read_order =  numpy.array([0, 1, 0, 1])
   rl = 5
   tl = 11
   idx = (numpy.array([0, 1, 1]), numpy.array([0, 0, 3]))
   corrupt_bases = 'GTA'
-  template_list = extract_reads([seq, seq_c], t_start, strand, tl, rl, paired=True)
+  template_list = extract_reads([seq, seq_c], t_start, read_order, tl, rl)
   fill_out_corrupt_bases(template_list, corrupt_bases, idx, '~~~~~')
 
   assert template_list[0][0].perfect_seq == 'ACTGA'
   assert template_list[0][0].corrupt_seq == 'GCTGA'
 
   assert template_list[0][1].perfect_seq == 'AGTCA'
-  assert template_list[0][1].corrupt_seq == 'TGTAA'  # Note error locations
+  assert template_list[0][1].corrupt_seq == 'TGTAA'
