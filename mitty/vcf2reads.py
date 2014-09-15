@@ -5,18 +5,14 @@ The read characteristics are governed by the chosen read plugin.
 Commandline::
 
   Usage:
-    vcf2reads  --fa_dir=FADIR  [--vcf=VCF]  --out=OUT  --pfile=PFILE  [--corrupt]  [--block_len=BL] --master_seed=MS [-v|-V]
+    vcf2reads  --pfile=PFILE  [--corrupt]  [--block_len=BL] [-v|-V]
     vcf2reads plugins
     vcf2reads explain <plugin>
 
   Options:
-    --fa_dir=FADIR          Directory where genome is located
-    --vcf=VCF               VCF file. If not given we will take reads from the reference genome
-    --out=OUT               Output file name prefix
     --pfile=PFILE           Name for parameter file
     --corrupt               Write out corrupted reads too.
     --block_len=BL          Consider the sequence in chunks this big. See notes [default: 1000000]
-    --master_seed=MS        Passes a master seed to the read plugin.
     -v                      Dump detailed logger messages
     -V                      Dump very detailed logger messages
     plugins                 List the available denovo plugins
@@ -26,6 +22,16 @@ Commandline::
 Parameter file example::
 
   {
+    "files": {
+      # An absolute path is left as is
+      # a relative path is taken relative to the location of the *script*
+      "genome": "/Users/kghose/Data/hg38",   # Directory where genome is located
+      "input vcf": "Out/test.vcf",           # Omit or set to none to indicate reads from reference genome
+      "output prefix": "Out/reads"           # Output file name prefix
+    },
+    "rng": {
+      "master_seed": 1
+    },
     "take reads from": [1,2],           # List the chromosomes the reads should be taken from
     "read_model": "simple_sequential",  # Name of the read plugin to use
     "model_params": {                   # Model specific parameters, need to be under the key "model_params"
@@ -37,11 +43,13 @@ Parameter file example::
   }
 """
 __version__ = '1.0.0'
+import os
 import json
 import string
 import docopt
 import numpy
 import vcf
+from mitty.lib import rpath
 from mitty.lib.variation import *  # Yes, it's THAT important
 from mitty.lib.genome import FastaGenome
 from mitty.plugins import putil
@@ -60,19 +68,19 @@ def init_int2str(max_read_len):
 
 
 def interpret_read_qname(qname, template_order):
-  """chrom:copy|rN|D|POS1|CIGAR1|POS2|CIGAR2
+  """chrom:copy|rN|D1|POS1|CIGAR1|D2|POS2|CIGAR2
   Returns:
     chrom, direction, pos, cigar
   """
   qn = qname.split('|')
-  return int(qn[0][:-2]), qn[2], int(qn[3 if not template_order else 5]), qn[4 if not template_order else 6]
+  return int(qn[0][:-2]), qn[5 if template_order else 2], int(qn[6 if template_order else 3]), qn[7 if template_order else 4]
 
 
 import logging
 logger = logging.getLogger(__name__)
 
-SEED_MAX = 4294967295  # For each call of the JIT expander we pass a random seed.
-                       # We generate these seeds from the given master seed and
+SEED_MAX = (1 << 32) - 1  # For each call of the JIT expander we pass a random seed.
+                          # We generate these seeds from the given master seed and
 
 
 def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_len=10e6, over_lap_len=200):
@@ -128,10 +136,12 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
         numpy.empty(ptr - ref_ptr_start, dtype='u4'),
         numpy.zeros(ptr - ref_ptr_start, dtype='u4')
       ]]
-    else:  # variant exists and we are on it, expand it
+    else:  # variant entry exists and we are on it, expand it
       alt, ref = variant.ALT, variant.REF
       if (variant.het == HET1 and cc == 1) or (variant.het == HET2 and cc == 0):
-        alt = variant.REF
+        # This variation is on the other copy
+        variant = next(c1_iter, None)  # Load the next variant and move on as if nothing happened
+        continue
 
       l_alt, l_ref = len(alt), len(ref)
       ptr_adv = l_ref  # When we get to this function, our pointer is sitting at POS
@@ -282,8 +292,8 @@ def write_reads_to_file(fastq_fp, fastq_c_fp, template_list, chrom, cc, serial_n
   Notes:
   We infer whether we have corrupted reads or not from whether we have a valid fastq_c_fp or not.
   """
-  # qname format is chrom:copy|rN|D|POS1|CIGAR1|POS2|CIGAR2
-  # D='>' if first read is forward, '<' if first read is reversed
+  # qname format is chrom:copy|rN|D1|POS1|CIGAR1|D2|POS2|CIGAR2
+  # D='>' if read is forward, '<' if read is reversed
   hdr = chrom.__str__() + ':' + cc.__str__()
   write_corrupted = False if fastq_c_fp is None else True
   for n, template in enumerate(template_list):
@@ -291,7 +301,7 @@ def write_reads_to_file(fastq_fp, fastq_c_fp, template_list, chrom, cc, serial_n
     qname = hdr + '|r' + (n + serial_no).__str__() + '|' + template[0].direction + '|' + template[0].POS.__str__() \
       + '|' + template[0].CIGAR
     if paired:
-      qname += '|' + template[1].POS.__str__() + '|' + template[1].CIGAR
+      qname += '|' + template[1].direction + '|' + template[1].POS.__str__() + '|' + template[1].CIGAR
 
     fastq_fp.write('@' + qname + '\n' + template[0].perfect_seq + '\n+\n' + '~' * len(template[0].perfect_seq) + '\n')
     if paired:
@@ -373,13 +383,16 @@ if __name__ == "__main__":
   if args['-v']:
     logger.setLevel(logging.DEBUG)
 
-  fp = open(args['--out'] + '.fq', 'w')
-  fp_c = open(args['--out'] + '_c.fq', 'w') if args['--corrupt'] else None
-  ref_genome = FastaGenome(seq_dir=args['--fa_dir'])
+  base_dir = os.path.dirname(args['--pfile'])     # Other files will be with respect to this
   params = json.load(open(args['--pfile'], 'r'))
-  g1 = parse_vcf(vcf.Reader(filename=args['--vcf']), chrom_list=range(1, 25)) if args['--vcf'] else {}
+
+  ref_genome = FastaGenome(seq_dir=rpath(base_dir, params['files']['genome']))
+  fp = open(rpath(base_dir, params['files']['output prefix']) + '.fq', 'w')
+  fp_c = open(rpath(base_dir, params['files']['output prefix']) + '_c.fq', 'w') if args['--corrupt'] else None
+  g1 = parse_vcf(vcf.Reader(filename=rpath(base_dir, params['files']['input vcf'])),
+                 chrom_list=params['take reads from']) if params['files'].get('input vcf', None) else {}
   read_model = putil.load_read_plugin(params['read_model'])
   model_params = params['model_params']
   main(fp, fastq_c_fp=fp_c, ref=ref_genome, g1=g1, chrom_list=params['take reads from'],
        read_model=read_model, model_params=model_params, block_len=int(args['--block_len']),
-       master_seed=int(args['--master_seed']))
+       master_seed=int(params['rng']['master_seed']))
