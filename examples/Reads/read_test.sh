@@ -7,12 +7,22 @@ set -xe
 PROGDIR=../../mitty/
 GENOMEDIR=../data
 OUTDIR=Out/
-PFILE=seq_reads.json
+
+if [ $1 == "nullseq" ]
+then
+  PFILE=seq_reads.json
+elif [ $1 == "nullillumina" ]
+then
+  PFILE=null_illumina_reads.json
+elif  [ $1 == "varillumina" ]
+then
+  PFILE=var_illumina_reads_p.json
+fi
 
 mkdir -p ${OUTDIR}
 
-: Create null reads from test genome
+: Create reads
 python ${PROGDIR}vcf2reads.py --pfile=${PFILE}  -V
 
 : Do the fake alignment to check
-python ${PROGDIR}reads2bam.py  --fa_dir=${GENOMEDIR} --fastq ${OUTDIR}reads_se.fq --bam=${OUTDIR}reads_se_aligned.bam -v
+python ${PROGDIR}reads2bam.py -p --fa_dir=${GENOMEDIR} --fastq ${OUTDIR}reads.fq --bam=${OUTDIR}reads_aligned.bam -v
