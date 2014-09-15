@@ -13,11 +13,11 @@ Our plan is as follows:
 * Use `samtools mpileup` to create a VCF file to see if we found all the variants
 
 *For this exercise we won't use the human chromosome but rather some test data included with the Mitty source
-distribution in the `examples` directory.*
+distribution in the `examples` directory. The commands for the entire example is available under `examples/complete`*
 
 Adding variants
 ---------------
-The example reference genome has four "chromosomes" let's add SNPs to the first two. We will need the `denovo` program
+The example reference genome has four "chromosomes". Let's add SNPs to the first two. We will need the `denovo` program
 for this. Let's look into what kind of plugins we have available:
 
 .. command-output::  python ../mitty/denovo.py plugins
@@ -32,20 +32,19 @@ Ok, we also want a refresher on how to write the parameter file (and what the co
 
 From this we first create a parameter file, let's call it `snp.json`:
 
-.. literalinclude:: ../examples/snp_reads_mpileup/snp.json
+.. literalinclude:: ../examples/complete/snp.json
     :language: json
 
-Let's run this command and create a new genome (This complete example can be found under `/examples/snp_reads_mpileup`).
-(*We only use the -v option to see what's going on*)
+Let's run this command and create a new genome (*We only use the -v option to see what's going on*).
 
-.. command-output:: mkdir -p ../examples/snp_reads_mpileup/out
-.. command-output::  python ../mitty/denovo.py  --fa_dir=../examples/data/ --param_file=../examples/snp_reads_mpileup/snp.json   --vcf=../examples/snp_reads_mpileup/out/snp.vcf  --master_seed=1024 -v
+.. command-output:: mkdir -p ../examples/complete/out
+.. command-output::  python ../mitty/denovo.py  --pfile=../examples/complete/snp.json -v
 
 Let's take a peek at the produced vcf
 
-.. command-output:: cat ../examples/snp_reads_mpileup/out/snp.vcf
+.. command-output:: cat ../examples/complete/out/snp.vcf
 
-Things seem to have run satisfactorily, now lets generate a bag of reads from this genome.
+Things seem to have run satisfactorily, now let's generate a bag of reads from this genome.
 
 Taking reads
 ------------
@@ -61,60 +60,47 @@ What parameters do we need to call `vcf2reads` and how do we structure the param
 
 .. command-output:: python ../mitty/vcf2reads.py
 
-From this we first create a parameter file, let's call it `illumina.json`:
+From this we first create a parameter file, let's call it `illumina_reads.json`:
 
-.. literalinclude:: ../examples/snp_reads_mpileup/illumina.json
+.. literalinclude:: ../examples/complete/illumina_reads.json
     :language: json
 
 Let's run this command and create some reads from the variant genome
 
-.. command-output::  python ../mitty/vcf2reads.py  --fa_dir=../examples/data/ --pfile=../examples/snp_reads_mpileup/illumina.json  --vcf=../examples/snp_reads_mpileup/out/snp.vcf.gz  --out=../examples/snp_reads_mpileup/out/snp_reads  --corrupt --master_seed=1024 -v
+.. command-output::  python ../mitty/vcf2reads.py  --pfile=../examples/complete/illumina_reads.json -v
 
 
 Creating a cheat alignment
 --------------------------
 We can use `reads2bam.py` to create a cheat alignment ...
 
-.. command-output::  python ../mitty/reads2bam.py -p --fa_dir=../examples/data/ --fastq ../examples/snp_reads_mpileup/out/snp_reads_c.fq --bam=../examples/snp_reads_mpileup/out/test.bam -v
+.. command-output::  python ../mitty/reads2bam.py -p --fa_dir=../examples/data/ --fastq ../examples/complete/out/reads.fq --bam=../examples/complete/out/reads.bam -v
 
 
 ... and view it using `samtools tview` (We, of course, need `samtools` installed for this to work)
 
-.. command-output::  samtools tview -d T -p "gi|4630864|dbj|AB026117.1|:9980" ../examples/snp_reads_mpileup/out/test.bam ../examples/data/chimera.fa.gz
+.. command-output::  samtools tview -d T -p "gi|4630864|dbj|AB026117.1|:9920" ../examples/complete/out/reads.bam ../examples/data/chimera.fa.gz
 
-We can see one of the SNPs we put in.
-
-
-Using `mpileup` to see the SNPs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-We can get fancy and use `samtools mpileup` to extract the SNPs to check if things are ok
-
-.. command-output:: samtools mpileup -uf ../examples/data/chimera.fa ../examples/snp_reads_mpileup/out/test.bam | bcftools view -bvcg - > ../examples/snp_reads_mpileup/out/var.raw.bcf
-    :shell:
-
-.. command-output:: bcftools view ../examples/snp_reads_mpileup/out/var.raw.bcf | vcfutils.pl varFilter -D100 > ../examples/snp_reads_mpileup/out/mpileup.vcf
-    :shell:
-
-.. command-output:: cat ../examples/snp_reads_mpileup/out/mpileup.vcf
+We can see one of the SNPs we put in!
 
 
 Creating an alignment
 ---------------------
 We can now use bwa to generate the alignment instead (make sure you have generated the index for the reference):
 
-.. command-output::  bwa mem -t 8 -p ../examples/data/chimera.fa.gz  ../examples/snp_reads_mpileup/out/snp_reads_c.fq > ../examples/snp_reads_mpileup/out/test.sam
+.. command-output::  bwa mem -t 8 -p ../examples/data/chimera.fa.gz  ../examples/complete/out/reads.fq > ../examples/complete/out/test.sam
     :shell:
 
-.. command-output::  samtools view -Sb  ../examples/snp_reads_mpileup/out/test.sam > ../examples/snp_reads_mpileup/out/temp.bam
+.. command-output::  samtools view -Sb  ../examples/complete/out/test.sam > ../examples/complete/out/temp.bam
     :shell:
 
-.. command-output:: samtools sort ../examples/snp_reads_mpileup/out/temp.bam  ../examples/snp_reads_mpileup/out/test
-.. command-output:: samtools index ../examples/snp_reads_mpileup/out/test.bam
+.. command-output:: samtools sort ../examples/complete/out/temp.bam  ../examples/complete/out/test
+.. command-output:: samtools index ../examples/complete/out/test.bam
 
 
 And again check the alignment
 
-.. command-output::  samtools tview -d T -p "gi|4630864|dbj|AB026117.1|:9980" ../examples/snp_reads_mpileup/out/test.bam ../examples/data/chimera.fa.gz
+.. command-output::  samtools tview -d T -p "gi|4630864|dbj|AB026117.1|:9920" ../examples/complete/out/test.bam ../examples/data/chimera.fa.gz
 
 
 Assessing alignment accuracy
@@ -122,11 +108,9 @@ Assessing alignment accuracy
 The `checkbam` tool allows us to read in a `.bam` file generated by an aligner and create a `.csv` file listing the
 reads that have been improperly placed.
 
-.. command-output:: python ../mitty/checkbam.py  --inbam ../examples/snp_reads_mpileup/out/test.bam --fout ../examples/snp_reads_mpileup/out/misalign.csv -v
+.. command-output:: python ../mitty/checkbam.py  --inbam ../examples/complete/out/test.bam --fout ../examples/complete/out/misalign.csv -v
 
-.. command-output:: head -n 10 ../examples/snp_reads_mpileup/out/misalign.csv
-
-
+.. command-output:: head -n 10 ../examples/complete/out/misalign.csv
 
 
 
