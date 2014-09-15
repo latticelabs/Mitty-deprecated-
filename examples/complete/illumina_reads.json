@@ -1,0 +1,20 @@
+{
+  "files": {
+    "genome": "../data",
+    "input vcf": "out/snp.vcf.gz",
+    "output prefix": "out/reads"
+  },
+  "rng": {
+    "master_seed": 1
+  },
+
+  "take reads from": [1],
+  "read_model": "simple_illumina",
+  "model_params": {
+    "coverage": 10,
+    "read_len": 100,
+    "template_len": 250,
+    "max_p_error": 0.07,
+    "k": 0.3
+  }
+}
