@@ -97,6 +97,22 @@ def generator_test3():
   assert cs == 'TGACAA', cs
 
 
+def generator_test4():
+  """"Overlapping" variants on different copies"""
+  seq = 'ACTGACTGACTGACT'
+  #     'ATGTTACTGACTGACT'
+  c1 = [Variation(1, 4, 'ACT', 'A', HET1),
+        Variation(1, 2, 'A', 'T', HET2)]
+  vg = get_variant_sequence_generator(ref_chrom_seq=seq, c1=c1, chrom_copy=0, block_len=4, over_lap_len=1)
+
+  i, s, cs, a = vg.next()
+  assert i == 0, i
+  assert s == 'AGAC', s
+  assert cs == 'TCTG', cs
+  assert_equal(a[0], [1, 4, 5, 6])
+  assert_equal(a[1], [3, 1, 1, 1])
+
+
 def roll_cigar_test():
   """Rolling a lot of CIGARs"""
   # seq    ACTGA  CTG
