@@ -40,33 +40,32 @@ class FastaGenome():
   ref = FastaGenome('examples/data')
   ch = ref[1]  # Loads the data
 
-  In some special cases you may want to have the sequence as a numpy array of int8s. In such a case you can use the
-  as_numpy option
-  ref = FastaGenome('examples/data', as_numpy=True)
-  ch = ref[1]  # Loads the data as a numpy int8 array
-  ch.tostring() # prints as a string
   """
-  def __init__(self, seq_dir='', load_at_once=False, chrom_list=None, as_numpy=False):
-    """If load_at_once is set we preload every sequence mentioned in chrom_list."""
+  def __init__(self, seq_dir='', persist=False):
+    """If persist is set we retain a loaded sequence in memory."""
     self.dir = seq_dir
-    self.as_numpy = as_numpy
-    self.load_at_once = load_at_once
-    if self.load_at_once:
-      self.sequences = {
-        str(chrom): load_single_fasta(glob.os.path.join(self.dir,'chr{:s}.fa'.format(str(chrom))), self.as_numpy)
-        for chrom in chrom_list
-      }
+    self.persist = persist
+    self.sequences = {}
 
   def __getitem__(self, item):
-    if self.load_at_once:
-      return self.sequences.get(str(item), None)
-    else:
+    def load_seq(it):
       fa_fname = glob.os.path.join(self.dir, 'chr{:s}.fa'.format(str(item)))
       if glob.os.path.exists(fa_fname):
-        return load_single_fasta(fa_fname, as_numpy=self.as_numpy)
+        sq = load_single_fasta(fa_fname)
       else:
         logger.warning('{:s} does not exist'.format(fa_fname))
-        return None
+        sq = None
+      return sq
+
+    if self.persist:
+      if item not in self.sequences:
+        seq = load_seq(item)
+        self.sequences[item] = seq
+      else:
+        seq = self.sequences[item]
+    else:
+      seq = load_seq(item)
+    return seq
 
   def get(self, item, default=None):
     return self.__getitem__(item) or default
@@ -85,6 +84,3 @@ class FastaGenome():
       return seq_id, seq_len
 
     return filter(lambda x: x[0] is not None, [process_sequence(glob.os.path.join(self.dir, 'chr{:s}.fa'.format(str(chrom)))) for chrom in human_chromosomes])
-
-
-
