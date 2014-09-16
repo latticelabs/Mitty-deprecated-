@@ -1,11 +1,13 @@
 """Some functions commonly used by mutation plugins are refactored out here for convenience."""
 import numpy
+from mitty.lib import SEED_MAX
 from mitty.lib.variation import HOMOZYGOUS, HET1, HET2
 
 
-def initialize_rngs(*seeds):
-  """A pure convenience function that, when passed a set of seeds returns us a bunch of initialized RNGs."""
-  return [numpy.random.RandomState(seed=seed) for seed in seeds]
+def initialize_rngs(master_seed, n_rngs=4):
+  """Return n_rngs initialized from the master_seed"""
+  return [numpy.random.RandomState(seed=seed)
+          for seed in numpy.random.RandomState(seed=master_seed).randint(SEED_MAX, size=n_rngs)]
 
 
 def het(num_vars=0, phet=0.5, het_rng=None, copy_rng=None):

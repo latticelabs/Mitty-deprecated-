@@ -40,11 +40,8 @@ def variant_generator(ref={},
   assert 0 <= p <= 1.0, "Probability out of range"
   assert 0 <= phet <= 1.0, "Probability out of range"
   assert 0 < del_len_lo <= del_len_hi, "Check deletion length values"
-  del_loc_rng_seed, del_len_rng_seed, het_rng_seed, copy_rng_seed = \
-    numpy.random.RandomState(seed=master_seed).randint(SEED_MAX, size=4)
-  logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}'.
-               format(del_loc_rng_seed, del_len_rng_seed, het_rng_seed, copy_rng_seed))
-  del_loc_rng, del_len_rng, het_rng, copy_rng = util.initialize_rngs(del_loc_rng_seed, del_len_rng_seed, het_rng_seed, copy_rng_seed)
+  logger.debug('Master seed: {:d}'.format(master_seed))
+  del_loc_rng, del_len_rng, het_rng, copy_rng = util.initialize_rngs(master_seed, 4)
 
   for chrom in chromosome:
     ref_seq = ref[chrom]  # Very cheap operation

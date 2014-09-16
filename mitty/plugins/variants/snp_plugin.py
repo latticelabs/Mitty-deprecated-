@@ -4,13 +4,14 @@ SNP a zygosity and assign an ALT base.
 import numpy
 import mitty.plugins.variants.util as util
 from mitty.lib.variation import Variation
+from mitty.lib import SEED_MAX
 import logging
 logger = logging.getLogger(__name__)
 
 __example_param_text = """
 {
   "chromosome": [4],      # List of chromosomes to apply the variant to
-  "p": 0.01,             # probability that the SNP will happen at any given base
+  "p": 0.01,              # probability that the SNP will happen at any given base
   "phet": 0.5,            # probability that the variant will be heterozygous
 }
 """
@@ -41,11 +42,8 @@ def variant_generator(ref={},
                       **kwargs):
   assert 0 <= p <= 1.0, "Probability out of range"
   assert 0 <= phet <= 1.0, "Probability out of range"
-  base_loc_rng_seed, base_sub_rng_seed, het_rng_seed, copy_rng_seed = \
-    numpy.random.RandomState(seed=master_seed).randint(2<<32-1, size=4)
-  logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}'.
-               format(base_loc_rng_seed, base_sub_rng_seed, het_rng_seed, copy_rng_seed))
-  base_loc_rng, base_sub_rng, het_rng, copy_rng = util.initialize_rngs(base_loc_rng_seed, base_sub_rng_seed, het_rng_seed, copy_rng_seed)
+  logger.debug('Master seed: {:d}'.format(master_seed))
+  base_loc_rng, base_sub_rng, het_rng, copy_rng = util.initialize_rngs(master_seed, 4)
 
   for chrom in chromosome:
     ref_chrom = ref[chrom]

@@ -38,14 +38,10 @@ def variant_generator(ref={},
                       ins_len_hi=10000,
                       master_seed=1,
                       **kwargs):
-  
-  ins_loc_rng_seed, ins_len_rng_seed, base_sel_rng_seed, het_rng_seed, copy_rng_seed = \
-    numpy.random.RandomState(seed=master_seed).randint(SEED_MAX, size=5)
-  logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}, {:d}'.
-               format(ins_loc_rng_seed, ins_len_rng_seed, base_sel_rng_seed, het_rng_seed, copy_rng_seed))
-
-  ins_loc_rng, ins_len_rng, base_sel_rng, het_rng, copy_rng = \
-    util.initialize_rngs(ins_loc_rng_seed, ins_len_rng_seed, base_sel_rng_seed, het_rng_seed, copy_rng_seed)
+  assert 0 <= p <= 1.0, "Probability out of range"
+  assert 0 <= phet <= 1.0, "Probability out of range"
+  logger.debug('Master seed: {:d}'.format(master_seed))
+  ins_loc_rng, ins_len_rng, base_sel_rng, het_rng, copy_rng = util.initialize_rngs(master_seed, 5)
 
   for chrom in chromosome:
     ref_seq = ref[chrom]
