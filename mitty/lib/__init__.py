@@ -1,5 +1,7 @@
 import os
 
+SEED_MAX = (1 << 32) - 1  # Used for seeding rng
+
 
 def rpath(base_dir, this_path):
   """Return this_path relative to base_dir, unless this_path is absolute"""
