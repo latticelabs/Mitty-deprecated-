@@ -39,10 +39,8 @@ Parameter file example::
       {                          # We can chain as many models as we wish
         "delete" : {             # We can repeat models if we want
           "chromosome": [1],
-          "model": "delete",
           "phet": 0.5,
-          "p_del": 0.01,
-          "lam_del": 10
+          "p": 0.01
         }
       }
     ]
@@ -61,11 +59,10 @@ import json
 import docopt
 from lib.genome import FastaGenome
 from mitty.lib.variation import *
-from mitty.lib import rpath
+from mitty.lib import *
 import logging
 from plugins import putil
 logger = logging.getLogger(__name__)
-SEED_MAX = (1 << 32) - 1
 
 
 def merge_variants_with_chromosome(c1, dnv):
@@ -152,10 +149,10 @@ def load_variant_models(model_param_json):
                                                # parameter list
 
 
-def apply_master_seed(models, master_seed=None):
-  if master_seed is not None:
-    for model in models:
-      model["params"]["master_seed"] = numpy.random.RandomState(seed=int(master_seed)).randint(SEED_MAX, size=4)
+def apply_master_seed(models, master_seed=1):
+  assert 0 < master_seed < SEED_MAX
+  for model, seed in zip(models, numpy.random.RandomState(seed=master_seed).randint(SEED_MAX, size=len(models))):
+    model["params"]["master_seed"] = seed
 
 
 def print_plugin_list():
@@ -205,7 +202,7 @@ if __name__ == "__main__": # pragma: no cover
 
   base_dir = os.path.dirname(cmd_args['--pfile'])     # Other files will be with respect to this
   params = json.load(open(cmd_args['--pfile'], 'r'))
-  ref_genome = FastaGenome(seq_dir=rpath(base_dir, params['files']['genome']))
+  ref_genome = FastaGenome(seq_dir=rpath(base_dir, params['files']['genome']), load_at_once=True)
   vcf_file = rpath(base_dir, params['files']['output vcf'])
   master_seed = params['rng']['master_seed']
   main(ref=ref_genome, vcf_file_name=vcf_file, parameters=params, master_seed=master_seed)
