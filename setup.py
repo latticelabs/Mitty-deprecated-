@@ -23,10 +23,6 @@ setup(
       'six==1.7.3',
       'wsgiref==0.1.2'
     ],
-    data_files=[('mitty/tests/data', ['mitty/tests/data/chr1.fa',
-                                      'mitty/tests/data/chr2.fa',
-                                      'mitty/tests/data/chr3.fa',
-                                      'mitty/tests/data/chr4.fa',
-                                      'mitty/tests/data/chimera.fa',
-                                      'mitty/tests/data/chimera.fa.gz'])]
+    include_package_data=True,
+    package_data = {'mitty': ['tests/data/*']}
 )
