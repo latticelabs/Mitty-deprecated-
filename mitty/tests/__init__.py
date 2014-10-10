@@ -2,8 +2,8 @@ import os
 import mitty.lib.variation
 from shutil import rmtree
 # These need to be available to the rest of the test suite
-source_tree_root = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir)
-example_fasta_genome = os.path.join(source_tree_root, 'examples', 'data')
+source_tree_root = os.path.join(os.path.dirname(__file__))
+example_fasta_genome = os.path.join(source_tree_root, 'data')
 data_dir = 'mitty_test_data_dir'  # tempfile.mkdtemp()
 small_vcf_name = os.path.join(data_dir, 'small.vcf')
 

@@ -14,7 +14,6 @@ setup(
       'Cython==0.21',
       'PyVCF>=0.6.7',
       'docopt==0.6.2',
-      #'matplotlib==1.4.0',
       'mock==1.0.1',
       'nose==1.3.4',
       'numpy==1.9.0',
@@ -24,10 +23,10 @@ setup(
       'six==1.7.3',
       'wsgiref==0.1.2'
     ],
-    data_files=[('examples/data', ['examples/data/chr1.fa',
-                                   'examples/data/chr2.fa',
-                                   'examples/data/chr3.fa',
-                                   'examples/data/chr4.fa',
-                                   'examples/data/chimera.fa',
-                                   'examples/data/chimera.fa.gz'])]
+    data_files=[('mitty/tests/data', ['mitty/tests/data/chr1.fa',
+                                      'mitty/tests/data/chr2.fa',
+                                      'mitty/tests/data/chr3.fa',
+                                      'mitty/tests/data/chr4.fa',
+                                      'mitty/tests/data/chimera.fa',
+                                      'mitty/tests/data/chimera.fa.gz'])]
 )
