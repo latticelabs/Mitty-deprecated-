@@ -2,11 +2,9 @@
 genome data"""
 import numpy
 import glob
+import re
 import logging
 logger = logging.getLogger(__name__)
-
-
-human_chromosomes = list(range(1, 25))
 
 
 def convert_fasta(fa_fname):
@@ -70,17 +68,28 @@ class FastaGenome():
   def get(self, item, default=None):
     return self.__getitem__(item) or default
 
+  def sorted_chrom_idx(self):
+    """Get a list of integer indexes of files in the directory of the format chrX where X is an integer."""
+    def f_idx(fn0):
+      m = re.search(r'chr([0-9]+).fa', fn0)
+      return int(m.groups()[0]) if m else None
+    return sorted(filter(lambda x: x is not None, [f_idx(fn) for fn in glob.os.listdir(self.dir)]))
+
   def genome_header(self):
-    """Return a dictionary keyed to all the available chromosomes."""
-    def process_sequence(fname):
+    """Return a list of tuples of the form (seq_id, seq_len) corresponding to the files in the directory. Files not in
+    the format chrX where X is an integer are ignored"""
+    def process_file(fname, seq_offset=[0]):
+      # http://stackoverflow.com/questions/3432830/list-comprehension-for-running-total
       try:
         with open(fname, 'r') as fasta_fp:
           seq_id = fasta_fp.readline()[1:-1]
           idx = fasta_fp.tell()
           fasta_fp.seek(0, 2)
           seq_len = fasta_fp.tell() - idx
+          this_seq_offset = seq_offset[0]
+          seq_offset[0] += seq_len
       except IOError:
         seq_id, seq_len = None, None
-      return seq_id, seq_len
+      return seq_id, seq_len, this_seq_offset
 
-    return filter(lambda x: x[0] is not None, [process_sequence(glob.os.path.join(self.dir, 'chr{:s}.fa'.format(str(chrom)))) for chrom in human_chromosomes])
+    return filter(lambda x: x[0] is not None, [process_file(glob.os.path.join(self.dir, 'chr{:s}.fa'.format(str(chrom)))) for chrom in self.sorted_chrom_idx()])
