@@ -1,15 +1,9 @@
-from .fasta2wg_wrapper import WholeGenomeCompactor
-from .mutate_wrapper import Mutate
-from .vcf2seq_wrapper import Vcf2Seq
-from .reads_wrapper import Reads
-from .cheata_wrapper import Cheata
-from .cheata_split_wrapper import SplitGoodBadAlignments
-#from .kmer_wrapper import Kmer
-
-from .plugins.mutation.snp_wrapper import SNP
-from .plugins.mutation.insert_wrapper import Insert
-from .plugins.mutation.delete_wrapper import Deletion
-
-from .plugins.reads.simple_reads_wrapper import SimpleReads
-
-from .analysis.diagnose_alignment_wrapper import PlotAlign
+from plugins.variants.insert_wrapper import Insert
+from plugins.variants.inversion_wrapper import Inversion
+from plugins.reads.simple_illumina_wrapper import Simple_Illumina
+from plugins.variants.delete_wrapper import Deletion
+from plugins.variants.snp_wrapper import SNP
+from plugins.reads.simple_seq_wrapper import Simple_Seq
+from .denovo_wrapper import Denovo
+from .vcf2reads_wrapper import Vcf2reads
+from .reads2bam_wrapper import Reads2bam
