@@ -78,7 +78,7 @@ def main(bam_fp, csv_fp, json_fp, block_size):
     logger.debug('{:d} mis-aligned reads'.format(cnt))
   json.dump({"read_counts": {str(k): v for k,v in tot_reads_ctr.iteritems()},
              "bad_read_counts": {str(k): v for k,v in bad_reads_ctr.iteritems()}},
-            json_out_fp, indent=2)
+            json_fp, indent=2)
 
 
 if __name__ == "__main__":
