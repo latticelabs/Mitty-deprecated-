@@ -71,7 +71,7 @@ class FastaGenome():
   def sorted_chrom_idx(self):
     """Get a list of integer indexes of files in the directory of the format chrX where X is an integer."""
     def f_idx(fn0):
-      m = re.search(r'chr([0-9]+).fa', fn0)
+      m = re.search(r'chr([0-9]+).fa$', fn0)
       return int(m.groups()[0]) if m else None
     return sorted(filter(lambda x: x is not None, [f_idx(fn) for fn in glob.os.listdir(self.dir)]))
 
