@@ -10,6 +10,7 @@ Commandline::
     --in=IN                 Input result file
     --out_prefix=OUT_PREF   Prefix of output files
 """
+import os
 
 
 def bat_create_genome(ref, start_dir):
@@ -69,6 +70,18 @@ def bat_map_reads(fastq_fp):
     script += "print [{:s}]\n".format(read.name)
     script += "find [{:s}]\n".format(read.sequence)
   return script
+
+
+# def split_multiple_runs(in_fp):
+#   """If we start a new instance of ggeco for each run we waste time rebuilding the index, so we queue up several
+#   experiments and run them in one go, splitting the result files based on the END OF EXPERIMENT tag."""
+#   def out_name(in_fp, cnt):
+#     n = os.path.splitext(in_fp.name)
+#     return '{:s}_{:06d}{:s}'.format(n[0], cnt, n[1])
+#   cntr = 0
+#   out_fp = open(out_name(in_fp, cntr))
+#   for line in in_fp:
+#     if line.startswith()
 
 
 def sanitize_map_reads_output(in_fp):
@@ -159,7 +172,8 @@ def score_reads_simple(in_fp, paired=True, window=0):
   total_reads_cntr, bad_reads_cntr = Counter(), Counter()
   for result in parse_map_reads_file(in_fp, paired):
     total_reads_cntr[result[0][1]] += 1
-    if result[0][1] == result[1][0][0] and result[0][2] == result[1][0][1]:  # Proper, perfect, alignment
+    if result[0][1] == result[1][0][0] and abs(result[0][2] - result[1][0][1]) <= window:
+      # Chroms have to match perfectly, pos can have slop of upto window length
       continue
     bad_reads_cntr[result[0][1]] += 1
     # read.qname, correct_chrom_no, correct_pos, read.tid + 1, read.pos + 1, read.mapq, read.mate_is_unmapped, read.seq
