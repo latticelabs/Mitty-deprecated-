@@ -12,11 +12,12 @@ performance.
 Commandline::
 
   Usage:
-    checkbam  --inbam=INBAM  --out_prefix=OUT_PREF  [--block_size=BS] [-v]
+    checkbam  --inbam=INBAM  --out_prefix=OUT_PREF  [--window=WN] [--block_size=BS] [-v]
 
   Options:
     --inbam=INBAM           Input bam file name of reads
     --out_prefix=OUT_PREF   Prefix of output files
+    --window=WN             Size of tolerance window [default: 0]
     --block_size=BS         Number of reads to process at a time [default: 1000000]
     -v                      Dump detailed logger messages
 """
@@ -31,7 +32,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def analyze_bam(bam_fp, block_size=100000):
+def analyze_bam(bam_fp, window=0, block_size=100000):
   """Given a read iterator from a BAM file, process each read and return a list of lists suitable for writing to csv
   file."""
   total_reads_cntr, bad_reads_cntr = Counter(), Counter()
@@ -44,7 +45,7 @@ def analyze_bam(bam_fp, block_size=100000):
         read = bam_fp.next()
         correct_chrom_no, _, correct_pos, correct_cigar = interpret_read_qname(read.qname, read.is_read2)
         total_reads_cntr[correct_chrom_no] += 1
-        if correct_chrom_no == read.tid + 1 and correct_pos == read.pos + 1:  #BAM is zero indexed
+        if correct_chrom_no == read.tid + 1 and abs(correct_pos - (read.pos + 1)) <= window:  # BAM is zero indexed
           # This read is correctly aligned
           continue
         misaligned_reads[block_size - current_count] = \
@@ -68,9 +69,9 @@ def write_csv(csv_fp, misaligned_reads):
   csv_fp.writelines((', '.join(map(str, line)) + '\n' for line in misaligned_reads))
 
 
-def main(bam_fp, csv_fp, json_fp, block_size):
+def main(bam_fp, csv_fp, json_fp, window, block_size):
   cnt = 0
-  gen = analyze_bam(bam_fp, block_size=block_size)
+  gen = analyze_bam(bam_fp, window=window, block_size=block_size)
   write_csv_header(csv_fp)
   for mis_reads, tot_reads_ctr, bad_reads_ctr in gen:
     write_csv(csv_fp, mis_reads)
@@ -93,4 +94,4 @@ if __name__ == "__main__":
   with pysam.Samfile(args['--inbam']) as bam_in_fp, \
       open(args['--out_prefix'] + '.csv', 'w') as csv_out_fp, \
       open(args['--out_prefix'] + '.json', 'w') as json_out_fp:
-    main(bam_fp=bam_in_fp, csv_fp=csv_out_fp, json_fp=json_out_fp, block_size=int(args['--block_size']))
+    main(bam_fp=bam_in_fp, csv_fp=csv_out_fp, json_fp=json_out_fp, window=int(args['--window']), block_size=int(args['--block_size']))
