@@ -73,45 +73,64 @@ def merge_variants_with_chromosome(c1, dnv):
     dnv (variant list) - The proposed variants
   Returns:
     c2 (variant list)  - The resultant chromosome with variant collisions arbitrated
+
+  Algorithm:
+    o(x,y) = True if x and y overlap
+           = False otherwise
+    e = existing list of variants
+    d = denovo list of variants
+    n = new list of variants being built
+
+    o(e, d) = True: add(e) e++, d++
+            = False:
+              e < d ? add(e) e++
+              else:
+                o(n, d) = True: d++
+                        = False: add(d), d++
+
   """
+  def overlap(x, y):
+    if x is None or y is None: return False
+    if y.POS - 1 <= x.POS <= y.stop + 1 or y.POS - 1 <= x.stop <= y.stop + 1 or x.POS <= y.POS - 1 <= y.stop + 1 <= x.stop:
+      # Potential overlap
+      if x.het == y.het or x.het == HOMOZYGOUS or y.het == HOMOZYGOUS:
+        return True
+    return False
+
   c1_iter, dnv_iter = c1.__iter__(), dnv.__iter__()
   c2 = []
   append = c2.append
+  last_new = None
   # Try the zipper
   existing, denovo = next(c1_iter, None), next(dnv_iter, None)
   while existing is not None and denovo is not None:
-
-    if existing.stop < denovo.POS - 1:  # Clearly non-interfering
+    if overlap(existing, denovo):
+      # This will collide, resolve in favor of existing and advance both lists
       append(vcopy(existing))
-      existing = next(c1_iter, None)
-      continue
-
-    if denovo.stop < existing.POS - 1:  # Clearly non-interfering
-      append(vcopy(denovo))
-      denovo = next(dnv_iter, None)
-      continue
-
-    # Potentially colliding, need to check zygosity
-    if existing.het == denovo.het or \
-       existing.het == HOMOZYGOUS or denovo.het == HOMOZYGOUS:  # This will collide, resolve in favor of existing
-      append(vcopy(existing))
-      existing, denovo = next(c1_iter, None), next(dnv_iter, None)  # Conflict resolved, both need to move on
-    else:  # Won't collide, simply need to resolve who comes first
-      if existing.POS <= denovo.POS:
+      last_new = existing
+      existing, denovo = next(c1_iter, None), next(dnv_iter, None)
+    else:
+      if existing.POS <= denovo.POS:  # Zip-in existing
         append(vcopy(existing))
+        last_new = existing
         existing = next(c1_iter, None)
-      else:
-        append(vcopy(denovo))
-        denovo = next(dnv_iter, None)
+      else:  # Can we zip-in denovo?
+        if not overlap(last_new, denovo):
+          append(vcopy(denovo))
+          last_new = denovo
+        denovo = next(dnv_iter, None)  # In either case, we need to advance denovo
 
   # Now pick up any slack
-  while existing is not None:
-    append(vcopy(existing))
-    existing = next(c1_iter, None)
-
-  while denovo is not None:
-    append(vcopy(denovo))
-    denovo = next(dnv_iter, None)
+  if existing is not None:  # Smooth sailing, just copy over the rest
+    while existing is not None:
+      append(vcopy(existing))
+      existing = next(c1_iter, None)
+  else:  # Need to test for overlap before copying over
+    while denovo is not None:
+      if not overlap(last_new, denovo):
+        append(vcopy(denovo))
+        last_new = c2[-1]
+      denovo = next(dnv_iter, None)  # In either case, we need to advance denovo
 
   return c2
 

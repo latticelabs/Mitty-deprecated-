@@ -91,6 +91,22 @@ def merge_test6():
                 Variation(26, 29, 'CGG', 'C', HOMOZYGOUS)], c2
 
 
+def merge_test7():
+  """Skip bug, discovered during simulations"""
+  cv1 = Variation(3, 7, 'ACTG', 'A', HOMOZYGOUS)
+  cv2 = Variation(10, 11, 'C', 'A', HOMOZYGOUS)
+  c1 = [cv1, cv2]
+
+  dv1 = Variation(1, 5, 'ACTG', 'A', HOMOZYGOUS)
+  dv2 = Variation(7, 8, 'C', 'T', HOMOZYGOUS)  # Collides with previous, should be discarded
+  dv3 = Variation(15, 16, 'A', 'T', HOMOZYGOUS)  # Too close together, second one should collide out
+  dv4 = Variation(16, 16, 'C', 'T', HOMOZYGOUS)
+  dnv = [dv1, dv2, dv3, dv4]
+
+  c2 = merge_variants_with_chromosome(c1, dnv)
+  assert c2 == [cv1, cv2, dv3], c2
+
+
 def add_variant_model_to_genome_test1():
   g1 = {1: [Variation(12, 13, 'G', 'C', HET2),
             Variation(13, 14, 'A', 'C', HET1),
