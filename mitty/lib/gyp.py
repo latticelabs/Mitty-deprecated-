@@ -1,16 +1,18 @@
 """Library for python "interface" to ggeco. Each bat_ function returns a string that can be saved as a batch file
-to run on ggeco. The other functions manage the result files produced by ggeco.
+to run on ggeco. The other functions manage the result files produced by ggeco. When run as a script will compute
+alignment accuracy on result file.
 
 Commandline::
 
   Usage:
-    gyp  --in=IN  --out_prefix=OUT_PREF
+    gyp  --in=IN  --out_prefix=OUT_PREF  [--window=WN]
 
   Options:
     --in=IN                 Input result file
     --out_prefix=OUT_PREF   Prefix of output files
+    --window=WN             Size of tolerance window [default: 0]
 """
-import os
+import pysam  # Needed to write out ggeco alignment as bam file
 
 
 def bat_create_genome(ref, start_dir):
@@ -133,7 +135,7 @@ def parse_alignment_line(line):
   return aligned_chrom, aligned_pos, direction[rev_complement]
 
 
-def parse_map_reads_file(in_fp, paired=True):
+def parse_map_reads_file(in_fp, paired=True, parse_qname=True):
   """Given a raw results file, parse the correct positions of the reads and ."""
   #reads = []
   this_read = None
@@ -147,14 +149,33 @@ def parse_map_reads_file(in_fp, paired=True):
       this_read = this_read + (line[8:-1],)
     else:  # New read begins
       result_to_yield = (this_read, this_alignment) if this_read is not None else None
-      this_read = parse_read_header(line[9:-1], first)
+      if parse_qname:
+        this_read = parse_read_header(line[9:-1], first)
+      else:
+        this_read = (line[9:-1], 0, 0, '>')  # Dummy values for fastq files not from Mitty
       this_alignment = []
       if paired: first = not first
       if result_to_yield is not None:
-        yield result_to_yield
+        if len(result_to_yield[1]):
+          yield result_to_yield
   # Close us out
   if this_read is not None:
-    yield (this_read, this_alignment)
+    if len(this_alignment):
+      yield (this_read, this_alignment)
+
+
+def save_map_reads_file_as_bam(in_fp, paired=True, out_bam_name='test.bam', parse_qname=False):
+  bam_hdr = {'HD': {'VN': '1.4'},
+             'SQ': [{'LN': 1, 'SN': 'dummy'}] * 25}
+  out_bamfile = pysam.Samfile(out_bam_name, 'wb', header=bam_hdr)
+  for result in parse_map_reads_file(in_fp, paired, parse_qname):
+    a_read = pysam.AlignedRead()
+    a_read.pos = result[1][0][1] - 1  # BAM files are zero indexed
+    a_read.tid = result[1][0][0] - 1
+    a_read.qname = result[0][0]
+    a_read.seq = result[0][4]
+    a_read.flag = 0x0
+    out_bamfile.write(a_read)
 
 
 def score_reads_simple(in_fp, paired=True, window=0):
@@ -189,10 +210,10 @@ def write_csv(csv_fp, misaligned_reads):
   csv_fp.writelines((', '.join(map(str, line)) + '\n' for line in misaligned_reads))
 
 
-def main(in_fp, csv_fp, json_fp):
+def main(in_fp, csv_fp, json_fp, window=0):
   import json
   write_csv_header(csv_fp)
-  misaligned_reads, total_reads_cntr, bad_reads_cntr = score_reads_simple(in_fp, paired=True)
+  misaligned_reads, total_reads_cntr, bad_reads_cntr = score_reads_simple(in_fp, paired=True, window=window)
   csv_fp.writelines((', '.join(map(str, line)) + '\n' for line in misaligned_reads))
   json.dump({"read_counts": {str(k): v for k,v in total_reads_cntr.iteritems()},
              "bad_read_counts": {str(k): v for k,v in bad_reads_cntr.iteritems()}},
@@ -208,4 +229,4 @@ if __name__ == "__main__":
   with open(args['--in'], 'r') as gg_in_fp, \
       open(args['--out_prefix'] + '.csv', 'w') as csv_out_fp, \
       open(args['--out_prefix'] + '.json', 'w') as json_out_fp:
-    main(gg_in_fp, csv_fp=csv_out_fp, json_fp=json_out_fp)
+    main(gg_in_fp, csv_fp=csv_out_fp, json_fp=json_out_fp, window=int(args['--window']))
