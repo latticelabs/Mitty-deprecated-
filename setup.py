@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages
 from Cython.Build import cythonize
 
 #extensions = [Extension("*", "*.pyx")]
