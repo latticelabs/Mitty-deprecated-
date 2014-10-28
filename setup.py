@@ -1,5 +1,7 @@
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
+from Cython.Build import cythonize
 
+#extensions = [Extension("*", "*.pyx")]
 setup(
     name='mitty',
     version='1.0.0',
@@ -25,5 +27,6 @@ setup(
     # ],
     # dependency_links=['git+https://github.com/jamescasbon/PyVCF.git'],
     include_package_data=True,
-    package_data={'mitty': ['tests/data/*']}
+    package_data={'mitty': ['tests/data/*']},
+    ext_modules=cythonize('mitty/lib/*.pyx')
 )
