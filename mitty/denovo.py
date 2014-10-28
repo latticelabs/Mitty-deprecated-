@@ -151,6 +151,7 @@ if __name__ == "__main__": # pragma: no cover
   base_dir = os.path.dirname(cmd_args['--pfile'])     # Other files will be with respect to this
   params = json.load(open(cmd_args['--pfile'], 'r'))
   ref_genome = FastaGenome(seq_dir=rpath(base_dir, params['files']['genome']), persist=True)
-  vcf_file = rpath(base_dir, params['files']['output vcf'])
+  vcf_file = params['files']['output vcf']
+  vcf_file = rpath(base_dir, vcf_file) if vcf_file else vcf_file
   master_seed = params['rng']['master_seed']
   main(ref=ref_genome, vcf_file_name=vcf_file, parameters=params, master_seed=master_seed)
