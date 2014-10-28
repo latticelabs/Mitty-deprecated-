@@ -31,7 +31,7 @@ cdef class Variation:
     if op == 2:
       return self.POS == other.POS and self.stop == other.stop and self.REF == other.REF and self.ALT == other.ALT and self.het == other.het
     elif op == 3:
-      return not self.__richcmp__(other)
+      return not self.__richcmp__(other, 2)
     else:
       return False
 
