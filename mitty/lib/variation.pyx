@@ -5,7 +5,7 @@ all the mutation plugins
 
 """
 from os.path import splitext
-from ctypes import *
+#from ctypes import *
 import pysam
 import logging
 logger = logging.getLogger(__name__)
@@ -17,28 +17,29 @@ HET2 = 2
 GT = ['1/1', '1/0', '0/1']  # This needs to match rev 3 definitions
 
 
-class Variation(Structure):
-  _fields_ = [("POS", c_int32),
-              ("stop", c_int32),
-              ("REF", c_char_p),
-              ("ALT", c_char_p),
-              ("het", c_uint8)]
 
-  def __eq__(self, other):
-    # This does not do a isinstance check for speed reasons.
-    if self.POS == other.POS and self.stop == other.stop and self.REF == other.REF and self.ALT == other.ALT and self.het == other.het:
-      return True
+cdef class Variation:
+  cdef public:
+    int POS, stop
+    str REF, ALT
+    char het
+
+  def __cinit__(self, int _pos=0, int _stop=0, str _ref='', str _alt='', char _het=0):
+    self.POS, self.stop, self.REF, self.ALT, self.het = _pos, _stop, _ref, _alt, _het
+
+  def __richcmp__(self, Variation other, int op):
+    if op == 2:
+      return self.POS == other.POS and self.stop == other.stop and self.REF == other.REF and self.ALT == other.ALT and self.het == other.het
+    elif op == 3:
+      return not self.__richcmp__(other)
     else:
       return False
-
-  def __ne__(self, other):
-      return not self.__eq__(other)
 
   def __repr__(self):
     return '(POS={0},stop={1},REF={2},ALT={3},het={4})'.format(self.POS, self.stop, self.REF, self.ALT, GT[self.het])
 
 
-def vcopy(v, het=None):
+def vcopy(Variation v, het=None):
   if het is None:
     return Variation(v.POS, v.stop, v.REF, v.ALT, v.het)
   else:
@@ -126,3 +127,76 @@ def vcf_save_gz(g1, vcf_gz_name, sample_name='sample'):
 
   compress_and_index_vcf(str(vcf_name), str(vcf_gz_name))
   # tabix can't understand unicode, needs bytes
+
+
+cdef bint overlap(Variation x, Variation y):
+  if x is None or y is None: return False
+  if y.POS - 1 <= x.POS <= y.stop + 1 or y.POS - 1 <= x.stop <= y.stop + 1 or x.POS <= y.POS - 1 <= y.stop + 1 <= x.stop:
+    # Potential overlap
+    if x.het == y.het or x.het == HOMOZYGOUS or y.het == HOMOZYGOUS:
+      return True
+  return False
+
+
+def merge_variants_with_chromosome(c1, dnv):
+  """
+  Given an exiting chromosome (in variant format) merge new variants into it in zipper fashion
+
+  Args:
+    c1 (variant list): The original chromosome
+    dnv (variant list): The proposed variants
+
+  Returns:
+    c2 (variant list): The resultant chromosome with variant collisions arbitrated
+
+  Algorithm:
+    o(x,y) = True if x and y overlap
+           = False otherwise
+    e = existing list of variants
+    d = denovo list of variants
+    n = new list of variants being built
+
+    o(e, d) = True: add(e) e++, d++
+            = False:
+              e < d ? add(e) e++
+              else:
+                o(n, d) = True: d++
+                        = False: add(d), d++
+
+  """
+  c1_iter, dnv_iter = c1.__iter__(), dnv.__iter__()
+  c2 = []
+  append = c2.append
+  last_new = None
+  # Try the zipper
+  cdef Variation existing = next(c1_iter, None), denovo = next(dnv_iter, None)
+  while existing is not None and denovo is not None:
+    if overlap(existing, denovo):
+      # This will collide, resolve in favor of existing and advance both lists
+      append(vcopy(existing))
+      last_new = existing
+      existing, denovo = next(c1_iter, None), next(dnv_iter, None)
+    else:
+      if existing.POS <= denovo.POS:  # Zip-in existing
+        append(vcopy(existing))
+        last_new = existing
+        existing = next(c1_iter, None)
+      else:  # Can we zip-in denovo?
+        if not overlap(last_new, denovo):
+          append(vcopy(denovo))
+          last_new = denovo
+        denovo = next(dnv_iter, None)  # In either case, we need to advance denovo
+
+  # Now pick up any slack
+  if existing is not None:  # Smooth sailing, just copy over the rest
+    while existing is not None:
+      append(vcopy(existing))
+      existing = next(c1_iter, None)
+  else:  # Need to test for overlap before copying over
+    while denovo is not None:
+      if not overlap(last_new, denovo):
+        append(vcopy(denovo))
+        last_new = c2[-1]
+      denovo = next(dnv_iter, None)  # In either case, we need to advance denovo
+
+  return c2

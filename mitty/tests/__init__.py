@@ -1,11 +1,13 @@
 import os
 import mitty.lib.variation
+import mitty.lib.bam
 from shutil import rmtree
 # These need to be available to the rest of the test suite
 source_tree_root = os.path.join(os.path.dirname(__file__))
 example_fasta_genome = os.path.join(source_tree_root, 'data')
 data_dir = 'mitty_test_data_dir'  # tempfile.mkdtemp()
 small_vcf_name = os.path.join(data_dir, 'small.vcf')
+fake_bam_name = os.path.join(data_dir, 'fake.bam')
 
 
 def create_small_vcf():
@@ -19,6 +21,11 @@ def create_small_vcf():
       "2\t13\t.\tGTT\tTTG\t100\tPASS\t.\tGT\t1/1\n"
     )
   mitty.lib.variation.compress_and_index_vcf(small_vcf_name, small_vcf_name + '.gz')
+
+
+def create_fake_bam():
+  """Create a bam file with one correctly mapped read, one unmapped read and one incorrectly mapped read."""
+  #mitty.lib.bam.sort_and_index_bam(fake_bam_name)
 
 
 def reset_model(mod):
