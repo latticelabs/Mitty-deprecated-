@@ -29,10 +29,7 @@ cdef class Variation:
 
   def __richcmp__(self, Variation other, int op):
     if op == 2:
-      if self.POS == other.POS and self.stop == other.stop and self.REF == other.REF and self.ALT == other.ALT and self.het == other.het:
-        return True
-      else:
-        return False
+      return self.POS == other.POS and self.stop == other.stop and self.REF == other.REF and self.ALT == other.ALT and self.het == other.het
     elif op == 3:
       return not self.__richcmp__(other)
     else:
@@ -44,9 +41,9 @@ cdef class Variation:
 
 def vcopy(Variation v, het=None):
   if het is None:
-    return Variation(v.POS, v.stop, str(v.REF), str(v.ALT), v.het)
+    return Variation(v.POS, v.stop, v.REF, v.ALT, v.het)
   else:
-    return Variation(v.POS, v.stop, str(v.REF), str(v.ALT), het)
+    return Variation(v.POS, v.stop, v.REF, v.ALT, het)
 
 
 def compress_and_index_vcf(in_vcf_name, out_vcf_name):
@@ -172,7 +169,7 @@ def merge_variants_with_chromosome(c1, dnv):
   append = c2.append
   last_new = None
   # Try the zipper
-  existing, denovo = next(c1_iter, None), next(dnv_iter, None)
+  cdef Variation existing = next(c1_iter, None), denovo = next(dnv_iter, None)
   while existing is not None and denovo is not None:
     if overlap(existing, denovo):
       # This will collide, resolve in favor of existing and advance both lists
