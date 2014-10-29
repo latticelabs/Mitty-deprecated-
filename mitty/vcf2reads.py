@@ -110,6 +110,7 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
   """
   l_ref_seq = len(ref_chrom_seq)
   cc = chrom_copy
+  block_len = int(block_len)
 
   over_lap = 0
   seq_fragments = ['']
