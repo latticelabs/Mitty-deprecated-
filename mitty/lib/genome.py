@@ -31,7 +31,7 @@ def split_multi_fasta_gz(fa_fname, dir_out):
       else:
         this_seq += [line]
     if len(this_seq):
-          write_it_out(dir_out, chrom, seq_id, this_seq)
+      write_it_out(dir_out, chrom, seq_id, this_seq)
 
 
 def convert_fasta(fa_fname):
