@@ -43,11 +43,13 @@ def copy_genome(g1):
   """g1 - dictionary with chromosome name as key, each value is list of Variations."""
   return {k: copy_chromosome(v) for k, v in g1.iteritems()}
 
+
 def copy_chromosome(c1):
   """c1 - list of Variations corresponding to chromosome."""
   return [vcopy(v) for v in c1]
 
-def vcopy(Variation v, het=None):
+
+cpdef inline Variation vcopy(Variation v, het=None):
   if het is None:
     return Variation(v.POS, v.stop, v.REF, v.ALT, v.het)
   else:
@@ -137,7 +139,7 @@ def vcf_save_gz(g1, vcf_gz_name, sample_name='sample'):
   # tabix can't understand unicode, needs bytes
 
 
-cdef bint overlap(Variation x, Variation y):
+cdef inline bint overlap(Variation x, Variation y):
   if x is None or y is None: return False
   if y.POS - 1 <= x.POS <= y.stop + 1 or y.POS - 1 <= x.stop <= y.stop + 1 or x.POS <= y.POS - 1 <= y.stop + 1 <= x.stop:
     # Potential overlap
