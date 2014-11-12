@@ -49,7 +49,7 @@ def copy_chromosome(c1):
   return [vcopy(v) for v in c1]
 
 
-cpdef inline Variation vcopy(Variation v, het=None):
+cdef inline Variation vcopy(Variation v, het=None):
   if het is None:
     return Variation(v.POS, v.stop, v.REF, v.ALT, v.het)
   else:
