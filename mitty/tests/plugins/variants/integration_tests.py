@@ -2,10 +2,10 @@
 the plugin needs a _example_params() function that returns a complete parameter file"""
 from inspect import getmembers, isfunction
 from nose.plugins.skip import SkipTest
+from nose.tools import nottest
 import mitty.plugins.putil as putil
 import mitty.lib.genome as genome
 import glob
-import json
 import mitty.denovo
 from ... import *
 
@@ -37,11 +37,13 @@ def integration_test_all_found_plugins():
     yield check_plugin_integration, model
 
 
-def t_est_wrapper(func):
+@nottest
+def test_wrapper(func):
   func[1]()
 
 
-def plugin_has_no_t_ests(model):
+@nottest
+def plugin_has_no_tests(model):
   raise SkipTest('No tests')
 
 
@@ -51,10 +53,10 @@ def self_test_all_found_plugins():
   for model in putil.load_all_variant_plugins():
     tests = [v for v in getmembers(model[1], isfunction) if v[0].startswith('test')]
     if len(tests) == 0:
-      plugin_has_no_t_ests.description = model[0] + ' plugin self test(s)'
-      yield plugin_has_no_t_ests, model
+      plugin_has_no_tests.description = model[0] + ' plugin self test(s)'
+      yield plugin_has_no_tests, model
     else:
       for test in tests:
-        t_est_wrapper.description = model[0] + ' plugin self test(s): ' + (test[1].func_doc or test[1].__name__)
+        test_wrapper.description = model[0] + ' plugin self test(s): ' + (test[1].func_doc or test[1].__name__)
         # We can't ensure that a dev will provide us with a function doc, so we use the name if can't find a doc string
-        yield t_est_wrapper, test
+        yield test_wrapper, test
