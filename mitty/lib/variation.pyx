@@ -39,6 +39,14 @@ cdef class Variation:
     return '(POS={0},stop={1},REF={2},ALT={3},het={4})'.format(self.POS, self.stop, self.REF, self.ALT, GT[self.het])
 
 
+def copy_genome(g1):
+  """g1 - dictionary with chromosome name as key, each value is list of Variations."""
+  return {k: copy_chromosome(v) for k, v in g1.iteritems()}
+
+def copy_chromosome(c1):
+  """c1 - list of Variations corresponding to chromosome."""
+  return [vcopy(v) for v in c1]
+
 def vcopy(Variation v, het=None):
   if het is None:
     return Variation(v.POS, v.stop, v.REF, v.ALT, v.het)

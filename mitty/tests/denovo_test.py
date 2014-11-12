@@ -1,6 +1,6 @@
 from mitty.denovo import *
 from mitty.tests import *
-
+from nose.tools import eq_, ok_
 
 def merge_test1():
   """Merge variants, non overlapping, existing first (ED)."""
@@ -124,7 +124,7 @@ def add_variant_model_to_genome_test1():
   vg = variant_generator()
   g2 = merge_variants_with_genome(g1, vg)
 
-  assert correct_final_g == g2, g2
+  eq_(correct_final_g, g2)
 
 
 def add_variant_model_to_genome_test1a():
@@ -140,7 +140,7 @@ def add_variant_model_to_genome_test1a():
   vg = variant_generator()
   g2 = merge_variants_with_genome(g1, vg)
 
-  assert correct_final_g == g2, g2
+  eq_(correct_final_g, g2)
 
 
 def add_variant_model_to_genome_test2():
@@ -162,8 +162,8 @@ def add_variant_model_to_genome_test2():
   vg = variant_generator()
   g2 = merge_variants_with_genome(g1, vg)
 
-  assert correct_final_g == g2, g2
-  assert g1 == {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)], 2: [Variation(7, 10, 'CAA', 'C', HET2)]}  # Must not change original
+  eq_(correct_final_g, g2)
+  eq_(g1, {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)], 2: [Variation(7, 10, 'CAA', 'C', HET2)]})  # Must not change original
 
 
 # This test uses the stock SNP which must exist for this test to pass
@@ -222,4 +222,4 @@ def main_test():
 
   vcf_rdr = vcf.Reader(filename=vcf_file_fname).fetch(chrom=1, start=0)
   v1 = vcf_rdr.next()
-  assert v1.POS, g1[1][0].POS
+  eq_(v1.POS, g1[1][0].POS)

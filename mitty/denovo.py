@@ -52,7 +52,6 @@ Notes:
 """
 __version__ = '1.0.0'
 
-from copy import copy
 import numpy
 import json
 import docopt
@@ -65,8 +64,11 @@ logger = logging.getLogger(__name__)
 
 
 def merge_variants_with_genome(g1, variant_generator):
-  """Given an original genome add any variants that come off the variant_generator"""
-  g2 = copy(g1)
+  """Given an original genome add any variants that come off the variant_generator
+  Args:
+    g1 (dict): Dict of chromosomes
+  """
+  g2 = copy_genome(g1)
   for delta_g in variant_generator:
     for chrom, dnv in delta_g.iteritems():
       try:
