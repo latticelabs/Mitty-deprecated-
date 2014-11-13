@@ -55,11 +55,11 @@ __version__ = '1.0.0'
 import numpy
 import json
 import docopt
-from lib.genome import FastaGenome
+from mitty.lib.genome import FastaGenome
 from mitty.lib.variation import *
 from mitty.lib import *
+from mitty.plugins import putil
 import logging
-from plugins import putil
 logger = logging.getLogger(__name__)
 
 
