@@ -51,7 +51,7 @@ def variant_generator(ref={},
     het_type = util.het(snp_locs.size, phet, het_rng, copy_rng)
     base_subs = base_sub_rng.randint(3, size=snp_locs.size)
 
-    yield {chrom: [Variation(pos + 1, pos + 2, ref_chrom[pos], base_sub_dict[ref_chrom[pos].upper()][bs], het)
+    yield {chrom: [Variation(pos + 1, pos + 2, ref_chrom[pos], base_sub_dict[ref_chrom[pos]][bs], het)
                    for pos, bs, het in zip(snp_locs, base_subs, het_type) if ref_chrom[pos] != 'N']}
     # +1 because VCF files are 1 indexed
     #alts will be 0 if ref is not one of ACTG
