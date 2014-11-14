@@ -1,5 +1,6 @@
 import numpy.testing
 from nose.tools import raises, assert_equal
+from nose.tools import nottest
 
 from mitty.tests import *
 from mitty.lib.variation import Variation, parse_vcf
@@ -7,6 +8,7 @@ from mitty.population import *
 import mitty.denovo as denovo
 
 
+@nottest
 def chrom_crossover_test():
   c1 = [
       Variation(1, 2, 'C', 'CAA', HET2),
@@ -30,6 +32,7 @@ def chrom_crossover_test():
   assert c1[0] == Variation(1, 2, 'C', 'CAA', HET2)  # We shouldn't be changing our original
 
 
+@nottest
 def crossover_event_test():
   c1 = [
     Variation(1, 2, 'C', 'CAA', HET2),
@@ -57,6 +60,7 @@ def crossover_event_test():
   assert correct_g == crossover_event(g1, crossover_idx)
 
 
+@nottest
 def pair_one_chrom_test():
   """Merging: test c1 longer than c2"""
   c1 = [
@@ -77,6 +81,7 @@ def pair_one_chrom_test():
   assert correct_pairing == pair_one_chrom(c1, c2, which_copy), pair_one_chrom(c1, c2, which_copy)
 
 
+@nottest
 def pair_one_chrom_test2():
   """Merging: test c2 longer than c1"""
   c1 = [
@@ -95,6 +100,7 @@ def pair_one_chrom_test2():
   assert correct_pairing == pair_one_chrom(c1, c2, which_copy), pair_one_chrom(c1, c2, which_copy)
 
 
+@nottest
 def pair_one_chrom_test3():
   """Merging: Comprehensive test"""
   c1 = [
@@ -124,6 +130,7 @@ def pair_one_chrom_test3():
   assert correct_pairing == pair_one_chrom(c1, c2, which_copy)
 
 
+@nottest
 def fertilize_one_test():
   c11 = [
     Variation(1, 2, 'C', 'CAA', HET1)
@@ -156,6 +163,7 @@ def fertilize_one_test():
   assert correct_g3 == fertilize_one(g1, g2, which_copy)
 
 
+@nottest
 def place_crossovers_on_chrom_test():
   """Cross over location generator"""
   c1 = [
@@ -196,6 +204,7 @@ def place_crossovers_on_chrom_test():
   # The denser your variant structure, the clearer is the sum of gaussian model
 
 
+@nottest
 def spawn_test():
   """Spawn from parents (No denovo)."""
   g1 = {1: [Variation(1, 2, 'C', 'CAA', HET1)],
@@ -217,6 +226,7 @@ def spawn_test():
                Variation(POS=17, stop=18, REF='G', ALT='T', het=HET1)]}] == spawn(g1, g2, hot_spots, rngs)
 
 
+@nottest
 def spawn_test2():
   """Spawn from parents (With denovo)."""
   ref = {
@@ -263,6 +273,7 @@ def spawn_test2():
   assert_equal(correct_ch, ch)
 
 
+@nottest
 def de_novo_population_test():
   """De novo population"""
   params_json = {
@@ -310,12 +321,14 @@ def de_novo_population_test():
   assert pop[1][2][1].het == HOMOZYGOUS
 
 
+@nottest
 @raises(AssertionError)
 def one_generation_assert_test():
   """Too small a population: should not work"""
   one_generation([1], hot_spots={}, rngs={}, num_children_per_couple=2, ref=None, models=[])
 
 
+@nottest
 def one_generation_test():
   """Create de novo population, then one set of children."""
   params_json = {
@@ -369,6 +382,7 @@ def one_generation_test():
   assert parents == [(1, 0)], parents
 
 
+@nottest
 def population_simulation_test():
   """Create de novo population, then ten generations of descendants."""
   params_json = {

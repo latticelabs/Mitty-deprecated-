@@ -1,9 +1,12 @@
 Quick-start I
 =============
 
-Now that we have an overview of how Mitty is structured and some of the conventions used let us see how we can use
-Mitty for a data simulation problem. Let us say our colleague Heng Li has written an aligner called `bwa` and we want
-to figure out how well it does at aligning.
+(For an overview of how Mitty is structured and some of the conventions used please see the detailed documentation.
+This quickstart is for the impatient - like me - who like to type in commands and see stuff happen and go from
+there)
+
+We will introduce Mitty via a data simulation problem. Let us say our colleague Heng Li has written an aligner
+called ``bwa`` and we want to figure out how well it does at aligning.
 
 Our plan is as follows:
 

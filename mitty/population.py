@@ -1,42 +1,125 @@
 #!python
-"""
-This script simulates populations of genomes. Genomes are written out as VCF files.
+"""This script simulates populations of genomes. Genomes are written out as VCF files.
 
 Commandline::
 
   Usage:
-    population --wg=WG  --hs=HS  [--init_size=IS]  [--children=CH] [--gens=G]  --paramfile=PFILE  [--master_seed=SEED]  [--outdir=OD]  [--outprefix=OP]  [--dont_store_all] [-v]
+    population --pfile=PFILE  --mode=MODE [-v]
     population plugins
     population explain <plugin>
 
-
   Options:
-    --wg=WG                 Whole genome reference file
-    --hs=HS                 Crossover hotspot file
-    --init_size=IS          Size of initial population [default: 10]
-    --children=CH           Children per couple [default: 2]
-    --gens=G                Generations to run [default: 20]
-    --paramfile=PFILE       Name for parameter file
-    --master_seed=SEED      If this is specified, this generates and passes master seeds to all the plugins.
-                            This overrides any individual seeds specified by the parameter file.
-    --outdir=OD             Output directory [default: out]
-    --outprefix=OP          Output VCF file prefix [default: pop]
-    --dont_store_all        If set, don't store all generations - just first and last
+    --pfile=PFILE           Name for parameter file
+    --mode-MODE             Mode of simulation ('simple') [default: simple]
     -v                      Dump detailed logger messages
+    plugins                 List the available denovo plugins
+    explain                 Explain details about the indicated plugin
+    <plugin>                The plugin to explain. If none, explains the parameter file format
 
-The parameter file format is identical to that used by denovo.py, but there are two lists of variant plugins (as opposed
-to one). The first list has the same key as that for denovo ("denovo_variant_models") and is used to generate the
-initial ancestor population. The second list has the key "ss_variant_models". These models are applied to the genomes
-after crossover and fertilization as denovo mutations. Typically their parameters will be set to a very low rate.
+For a detailed description of the process used for generating populations please see the documentation.
+
+
+
+
+Modes:
+'simple' - The "denovo_variant_models" are used to create a 'template' individual
+
+
+
+
+The parameter file format is similar to that used by denovo.py
+
+1. The parameter file contains a "initial_population_size" argument that determines how large the initial population is
+2.
+
+3. There are two lists of variant plugins (as opposed to one). The first list has the same key as that for denovo
+("denovo_variant_models") and is used to generate the initial ancestor population. The second list has the key
+"ss_variant_models". These models are applied to the genomes after crossover and fertilization as denovo mutations.
+Typically their parameters will be set to a very low rate.
+
+
+Parameter file example::
+
+  {
+    "files": {
+      "genome": "/Users/kghose/Data/hg38",  # An absolute path is left as is
+      "output_dir": "Out",                  # A relative path is taken relative to the location of the *script*
+      "output_vcf_prefix": "pop"            # The prefix added to each genome file
+                                            # the file names will be pop_gX_pY
+                                            # and the sample names will be gX_pY
+                                            # where X is the generation number
+                                            # Y is the individual number in that generation
+    },
+    "rng": {
+      "master_seed": 1
+    },
+    "founder_population": {
+      "size": 20,                           # Size of founder population
+      "mode": "incremental",                # "incremental" -> generate by creating one "denovo" individual (0) and then
+                                                               add "ss_variant_models" for each new individual in the
+                                                               founder population
+                                            # "independent" -> each founder is a result of a "denovo" run
+    },
+    "generations": {
+      "count": 0,             # How many generations
+      "children": 2           # How many children per mating
+      "cross_over_model": Y   # The cross over model we will be using
+      "incest_level": 0       # How many generations to backtrack to prevent relatives from mating
+    },
+    "denovo_variant_models": [    # The list of variant models should come under this key
+      {
+        "snp": {                 # name of the model. To get a list of plugin names type "denovo plugins"
+          "chromosome": [1, 2],  # Chromosomes to apply this model to
+          "phet": 0.5,           # Parameters required by the model
+          "p": 0.01,
+          "poisson_rng_seed": 1,
+          "base_sub_rng_seed": 2
+        }
+      },
+      {                          # We can chain as many models as we wish
+        "delete" : {             # We can repeat models if we want
+          "chromosome": [1],
+          "phet": 0.5,
+          "p": 0.01
+        }
+      }
+    ],
+    "ss_variant_models": [    # The list of variant models should come under this key
+      {
+        "snp": {                 # name of the model. To get a list of plugin names type "denovo plugins"
+          "chromosome": [1, 2],  # Chromosomes to apply this model to
+          "phet": 0.5,           # Parameters required by the model
+          "p": 0.01,
+          "poisson_rng_seed": 1,
+          "base_sub_rng_seed": 2
+        }
+      },
+      {                          # We can chain as many models as we wish
+        "delete" : {             # We can repeat models if we want
+          "chromosome": [1],
+          "phet": 0.5,
+          "p": 0.01
+        }
+      }
+    ],
+  }
 """
 __version__ = '1.0.0'
 
 import numpy
 from mitty.lib import genome
-from mitty.lib.variation import vcopy, HOMOZYGOUS, HET1, HET2, vcf_save_gz
+from mitty.lib.variation import HOMOZYGOUS, HET1, HET2, vcf_save_gz
 import mitty.denovo
 import logging
 logger = logging.getLogger(__name__)
+
+
+def founder_population(ref_fp, models=[], size=10):
+  """This uses variant plugins and denovo.py functions to generate a founder population.
+
+  Note, seeds for each model need to be preset before this
+  """
+  return [mitty.denovo.create_denovo_genome(ref_fp, models) for _ in range(size)]
 
 
 def chrom_crossover(c1, crossover_idx):
@@ -178,11 +261,6 @@ def spawn(g1, g2, hot_spots={}, rngs={}, num_children=2, ref=None, models=[]):
       g2_cross = mitty.denovo.apply_variant_models_to_genome(g2_cross, ref, models)
     children.append(fertilize_one(g1_cross, g2_cross, which_copies(g1, rngs['chrom_copy'])))
   return children
-
-
-def de_novo_population(ref_fp, models=[], size=10):
-  """This uses variant plugins and denovo.py functions to generate a population of highly differentiated individuals"""
-  return [mitty.denovo.create_denovo_genome(ref_fp, models) for _ in range(size)]
 
 
 # def find_mates(pop, related_level=0, parent_list=[]):

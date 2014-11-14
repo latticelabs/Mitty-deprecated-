@@ -10,9 +10,9 @@ Mitty
     :maxdepth: 2
 
     introduction
+    quickstart
     files
     components
-    quickstart
     developer
 
 Indices and tables

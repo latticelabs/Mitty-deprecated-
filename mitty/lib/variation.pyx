@@ -5,7 +5,6 @@ all the mutation plugins
 
 """
 from os.path import splitext
-#from ctypes import *
 import pysam
 import logging
 logger = logging.getLogger(__name__)
@@ -17,14 +16,14 @@ HET2 = 2
 GT = ['1/1', '1/0', '0/1']  # This needs to match rev 3 definitions
 
 
-
 cdef class Variation:
   cdef public:
-    int POS, stop
+    long int POS, stop
     str REF, ALT
-    char het
+    char het, recessive
+    signed char fitness
 
-  def __cinit__(self, int _pos=0, int _stop=0, str _ref='', str _alt='', char _het=0):
+  def __cinit__(self, int _pos=0, int _stop=0, str _ref='', str _alt='', char _het=0, ):
     self.POS, self.stop, self.REF, self.ALT, self.het = _pos, _stop, _ref, _alt, _het
 
   def __richcmp__(self, Variation other, int op):
@@ -36,7 +35,7 @@ cdef class Variation:
       return False
 
   def __repr__(self):
-    return '(POS={0},stop={1},REF={2},ALT={3},het={4})'.format(self.POS, self.stop, self.REF, self.ALT, GT[self.het])
+    return '(POS={0},stop={1},REF={2},ALT={3},het={4},recessive={5},fit={6})'.format(self.POS, self.stop, self.REF, self.ALT, GT[self.het], self.recessive, self.fitness/128.0)
 
 
 def copy_genome(g1):
