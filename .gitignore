@@ -1,2 +1,9 @@
 *.pyc
 .DS_Store
+/.idea
+*.c
+*.so
+*.egg
+build
+.eggs
+.tox
