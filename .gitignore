@@ -4,6 +4,7 @@
 *.c
 *.so
 *.egg
-build
+*.egg-info
 .eggs
+build
 .tox
