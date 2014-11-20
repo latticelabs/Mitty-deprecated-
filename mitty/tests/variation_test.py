@@ -1,7 +1,8 @@
 import vcf
 import io
 from mitty.lib.variation import *
-from . import *
+from . import *  # To get definitions from the setup script
+from nose.tools import assert_equal
 
 
 def vcf2chrom_test():
@@ -21,11 +22,11 @@ def vcf2chrom_test():
   )
 
   correct_chrom = [
-      Variation(1, 2, 'C', 'CAA', HET2),
-      Variation(3, 6, 'CAG', 'C', HET1),
-      Variation(7, 8, 'G', 'T', HET2),
-      Variation(9, 12, 'GTT', '', HET1),
-      Variation(13, 16, 'GTT', 'TTG', HOMOZYGOUS)
+      new_variation(1, 2, 'C', 'CAA', HET_01),
+      new_variation(3, 6, 'CAG', 'C', HET_10),
+      new_variation(7, 8, 'G', 'T', HET_01),
+      new_variation(9, 12, 'GTT', '', HET_10),
+      new_variation(13, 16, 'GTT', 'TTG', HOMOZYGOUS)
   ]
   chrom = vcf2chrom(vcf.Reader(fsock=io.BytesIO(vcf_str)))
   assert chrom == correct_chrom, chrom
@@ -44,11 +45,11 @@ def vcf2chrom_test2():
   )
 
   correct_chrom = [
-      Variation(1, 2, 'C', 'CAA', HOMOZYGOUS),
-      Variation(3, 6, 'CAG', 'C', HOMOZYGOUS),
-      Variation(7, 8, 'G', 'T', HOMOZYGOUS),
-      Variation(9, 12, 'GTT', '', HOMOZYGOUS),
-      Variation(13, 16, 'GTT', 'TTG', HOMOZYGOUS)
+      new_variation(1, 2, 'C', 'CAA', HOMOZYGOUS),
+      new_variation(3, 6, 'CAG', 'C', HOMOZYGOUS),
+      new_variation(7, 8, 'G', 'T', HOMOZYGOUS),
+      new_variation(9, 12, 'GTT', '', HOMOZYGOUS),
+      new_variation(13, 16, 'GTT', 'TTG', HOMOZYGOUS)
   ]
   chrom = vcf2chrom(vcf.Reader(fsock=io.BytesIO(vcf_str)))
   assert chrom == correct_chrom, chrom
@@ -67,4 +68,4 @@ def vcf_round_trip_test():
   temp_vcf_fp, temp_vcf_name = tempfile.mkstemp(suffix='.vcf')  # No .gz extension on purpose
   vcf_save_gz(g1, temp_vcf_name)
   g1_load = parse_vcf(vcf.Reader(filename=temp_vcf_name + '.gz'), [1, 2])
-  assert g1 == g1_load, [g1, g1_load]
+  assert_equal(g1, g1_load)
