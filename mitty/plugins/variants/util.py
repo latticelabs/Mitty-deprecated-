@@ -1,7 +1,7 @@
 """Some functions commonly used by mutation plugins are refactored out here for convenience."""
 import numpy
 from mitty.lib import SEED_MAX
-from mitty.lib.variation import HOMOZYGOUS, HET1, HET2
+from mitty.lib.variation import HOMOZYGOUS, HET_10, HET_01
 
 
 def initialize_rngs(master_seed, n_rngs=4):
@@ -41,8 +41,8 @@ def het(num_vars=0, phet=0.5, het_rng=None, copy_rng=None):
   het_type = numpy.empty((num_vars,), dtype='u1')
   het_type.fill(HOMOZYGOUS)  # Homozygous
   idx_het, = numpy.nonzero(het_rng.rand(het_type.size) < phet)  # Heterozygous locii
-  het_type[idx_het] = HET1  # On copy 1
-  het_type[idx_het[numpy.nonzero(copy_rng.rand(idx_het.size) < 0.5)[0]]] = HET2  # On copy 2
+  het_type[idx_het] = HET_10  # On copy 1
+  het_type[idx_het[numpy.nonzero(copy_rng.rand(idx_het.size) < 0.5)[0]]] = HET_01  # On copy 2
   return het_type
 
 
