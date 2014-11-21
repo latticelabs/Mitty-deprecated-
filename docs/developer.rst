@@ -1,31 +1,12 @@
 Developer/Advanced user notes
 =============================
 
-HDF5 for Whole genome file
---------------------------
-Mitty stores sequences from a genome in a whole genome file. This is a standard HDF5_ file with datasets corresponding
-to chromosome sequences with associated metadata.
+.. toctree::
+    :maxdepth: 2
 
-.. _HDF5: http://en.wikipedia.org/wiki/Hierarchical_Data_Format
+    variants
+    genomes
 
-* The HDF5 file is gzip compressed, so it is the same size as a comparable multi-fasta file,
-* Any sequence in the file can be accessed directly, rather than via sequential access [#block]_
-* It can hold metadata about the genome and the individual chromosomes in a natural, well defined manner
-* Sequences are organized into chromosomes and copies of chromosomes, allowing us to store simulated genomes with special characteristics such as polysomies_.
-* Extra data can be stored that is used further down the simulation chain (e.g. POS arrays for generating proper CIGAR and POS values for simulated reads)
-
-.. _polysomies: http://en.wikipedia.org/wiki/Polysomy
-.. [#block] Early versions of Mitty used block processing for everything. I changed this to whole chromosome based processing because for Human use cases individual chromosomes are small enough to fit even on modest machines. This considerably simplifies the code and concepts.
-
-Whole genome file structure
----------------------------
-The structure of the whole genome file is as follows::
-
-    /sequence/<chrom>.attrs['seq_id'] -> sequence id e.g. NIH accession number
-    /sequence/<chrom>/<cpy>  -> sequence data for this chromosome and copy
-    /sequence/<chrom>/<cpy>.attrs['reference']  -> boolean. True if this is copied from the reference genome
-
-    pos/<chrom>/<cpy>  -> pos array of u4 (see reads.py for its utility)
 
 
 De Novo variant collision detection
