@@ -1,7 +1,7 @@
 import vcf
 import io
 from mitty.lib.variation import *
-from . import *  # To get definitions from the setup script
+from .. import *  # To get definitions from the setup script
 from nose.tools import assert_sequence_equal, assert_sequence_equal
 
 
