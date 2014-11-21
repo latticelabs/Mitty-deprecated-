@@ -4,6 +4,7 @@ documentation
 """
 from os.path import splitext
 import pysam
+from collections import deque
 import logging
 logger = logging.getLogger(__name__)
 
@@ -26,15 +27,15 @@ cdef class VariationData:
     self.POS, self.stop, self.REF, self.ALT = _pos, _stop, _ref, _alt
 
 
-cdef inline char encode_variation_metadata(char het=0, char recessive=0, float fitness=0):
-  return (het << 6) | (recessive << 5) | (<char>(fitness * 15 + 16) & 0x1f)
+cdef inline unsigned char encode_variation_metadata(unsigned char het=0, unsigned char recessive=0, float fitness=0):
+  return (het << 6) | (recessive << 5) | (<unsigned char>(fitness * 15 + 16) & 0x1f)
 
 
-cdef inline char decode_het_info(char metadata):
+cdef inline unsigned char decode_het_info(unsigned char metadata):
   return metadata >> 6
 
 
-def decode_variation_metadata(char metadata):
+def decode_variation_metadata(unsigned char metadata):
   return metadata >> 6, (metadata >> 5) & 0x1, ((metadata & 0x1f) - 16)/15.0
 
 
@@ -46,24 +47,28 @@ cdef class Variation:
   """Carries *reference* to a VariationData instance and heterozygosity, recessiveness and fitness data."""
   cdef public:
     VariationData vd
-    char metadata
+    unsigned char metadata
     # This 8 bit field carries the following information
     # 7,6   - het
     # 5     - recessive
     # 0-4   - fitness value 0-15 -ve 17-31 +ve
 
   # http://docs.cython.org/src/userguide/special_methods.html
-  def __cinit__(self, VariationData _vd, char _v_info):
+  def __cinit__(self, VariationData _vd, unsigned char _v_info):
     self.vd, self.metadata = _vd, _v_info
+
+
+  cpdef bint eq(self, Variation other):
+    return self.vd.POS == other.vd.POS and self.vd.stop == other.vd.stop and \
+           self.vd.REF == other.vd.REF and self.vd.ALT == other.vd.ALT and \
+           decode_het_info(self.metadata) == decode_het_info(other.metadata)
 
   # http://docs.cython.org/src/userguide/special_methods.html
   def __richcmp__(self, Variation other, int op):
     if op == 2:
-      return self.vd.POS == other.vd.POS and self.vd.stop == other.vd.stop and \
-             self.vd.REF == other.vd.REF and self.vd.ALT == other.vd.ALT and \
-             decode_het_info(self.metadata) == decode_het_info(other.metadata)
+      return self.eq(other)
     elif op == 3:
-      return not self.__richcmp__(other, 2)
+      return not self.eq(other)
     else:
       return False
 
@@ -102,7 +107,7 @@ def vcf2chrom(vcf_rdr):
   """Given a vcf reader corresponding to one chromosome, read in the variant descriptions into our format. The result is
   sorted if the vcf file is sorted.
   """
-  chrom = []
+  chrom = deque()
   append = chrom.append
   for variant in vcf_rdr:
     alt = variant.ALT[0].sequence if variant.ALT[0] is not None else ''
@@ -178,18 +183,6 @@ cdef inline vcopy(Variation x):
   return Variation(x.vd, x.metadata)
 
 
-cdef inline bint overlap(Variation x, Variation y):
-  # Returns true if the footprints of the variations overlap.
-  if x is None or y is None: return False
-  if y.vd.POS - 1 <= x.vd.POS <= y.vd.stop + 1 or y.vd.POS - 1 <= x.vd.stop <= y.vd.stop + 1 or \
-                  x.vd.POS <= y.vd.POS - 1 <= y.vd.stop + 1 <= x.vd.stop:
-    # Potential overlap
-    x_het, y_het = decode_het_info(x.metadata), decode_het_info(y.metadata)
-    if x_het == y_het or x_het == HOMOZYGOUS or y_het == HOMOZYGOUS:
-      return True
-  return False
-
-
 def merge_variants(c1, c2):
   """
   Given an existing chromosome (list of variants) merge a new list of variants into it in zipper fashion
@@ -215,20 +208,39 @@ def merge_variants(c1, c2):
                   o(c3, c2) = True: c2++
                             = False: add(c2), c2++
   """
-  c1_iter, dnv_iter = c1.__iter__(), c2.__iter__()
-  c3 = []
+  return c_merge_variants(c1, c2)
+
+
+cdef inline bint overlap(Variation x, Variation y):
+  # Returns true if the footprints of the variations overlap.
+  cdef char x_het, y_het
+  if x is None or y is None: return False
+  if y.vd.POS - 1 <= x.vd.POS <= y.vd.stop + 1 or y.vd.POS - 1 <= x.vd.stop <= y.vd.stop + 1 or \
+                  x.vd.POS <= y.vd.POS - 1 <= y.vd.stop + 1 <= x.vd.stop:
+    # Potential overlap
+    x_het, y_het = decode_het_info(x.metadata), decode_het_info(y.metadata)
+    if x_het == y_het or x_het == HOMOZYGOUS or y_het == HOMOZYGOUS:
+      return True
+  return False
+
+
+#TODO: refactor this to be faster? Not use vcopy? Code can be made cleaner
+cdef c_merge_variants(c1, c2):
+  c1_iter, c2_iter = c1.__iter__(), c2.__iter__()
+  c3 = deque()
   append = c3.append
+
   last_new = None
   # Try the zipper
-  cdef Variation existing = next(c1_iter, None), denovo = next(dnv_iter, None)
+  cdef Variation existing = next(c1_iter, None), denovo = next(c2_iter, None)
   while existing is not None and denovo is not None:
     if overlap(existing, denovo):
       # This will collide, resolve in favor of existing and advance both lists
       append(vcopy(existing))
       last_new = existing
-      existing, denovo = next(c1_iter, None), next(dnv_iter, None)
+      existing, denovo = next(c1_iter, None), next(c2_iter, None)
     else:
-      if existing.POS <= denovo.POS:  # Zip-in existing
+      if existing.vd.POS <= denovo.vd.POS:  # Zip-in existing
         append(vcopy(existing))
         last_new = existing
         existing = next(c1_iter, None)
@@ -236,7 +248,7 @@ def merge_variants(c1, c2):
         if not overlap(last_new, denovo):
           append(vcopy(denovo))
           last_new = denovo
-        denovo = next(dnv_iter, None)  # In either case, we need to advance denovo
+        denovo = next(c2_iter, None)  # In either case, we need to advance denovo
 
   # Now pick up any slack
   if existing is not None:  # Smooth sailing, just copy over the rest
@@ -247,7 +259,7 @@ def merge_variants(c1, c2):
     while denovo is not None:
       if not overlap(last_new, denovo):
         append(vcopy(denovo))
-        last_new = c3[-1]
-      denovo = next(dnv_iter, None)  # In either case, we need to advance denovo
+        last_new = denovo
+      denovo = next(c2_iter, None)  # In either case, we need to advance denovo
 
   return c3
