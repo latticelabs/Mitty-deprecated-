@@ -83,16 +83,6 @@ cdef inline Variation copy_variant(v1):
   return Variation(v1.vd, v1.metadata)
 
 
-def copy_genome(g1):
-  """g1 - dictionary with chromosome name as key, each value is list of Variations."""
-  return {k: copy_chromosome(v) for k, v in g1.iteritems()}
-
-
-def copy_chromosome(c1):
-  """c1 - list of Variations corresponding to a chromosome."""
-  return [Variation(v, v.metadata) for v in c1]
-
-
 def compress_and_index_vcf(in_vcf_name, out_vcf_name):
   """Given an uncompressed, but sorted, vcf, compress and index it."""
   #bgzip -c sorted.vcf > sorted.vcf.gz
