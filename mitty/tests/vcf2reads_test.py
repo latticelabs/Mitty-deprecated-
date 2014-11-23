@@ -33,7 +33,7 @@ def generator_test2():
   """Sequence expand with one variant"""
   seq = 'ACTGACTGACTGACT'
   #     'ATGACTGACTGACT'
-  c1 = [Variation(1, 3, 'AC', 'A', HOMOZYGOUS)]
+  c1 = [new_variation(1, 3, 'AC', 'A', HOMOZYGOUS)]
   vg = get_variant_sequence_generator(ref_chrom_seq=seq, c1=c1, chrom_copy=0, block_len=4, over_lap_len=1)
 
   i, s, cs, a = vg.next()
@@ -65,8 +65,8 @@ def generator_test3():
   """Sequence expand with two variants"""
   seq = 'ACTGACTGACTGACT'
   #     'ATGTTACTGACTGACT'
-  c1 = [Variation(1, 3, 'AC', 'A', HET1),
-        Variation(4, 5, 'G', 'GTT', HOMOZYGOUS)]
+  c1 = [new_variation(1, 3, 'AC', 'A', HET_10),
+        new_variation(4, 5, 'G', 'GTT', HOMOZYGOUS)]
   vg = get_variant_sequence_generator(ref_chrom_seq=seq, c1=c1, chrom_copy=0, block_len=4, over_lap_len=1)
 
   i, s, cs, a = vg.next()
@@ -101,8 +101,8 @@ def generator_test4():
   """"Overlapping" variants on different copies"""
   seq = 'ACTGACTGACTGACT'
   #     'ATGTTACTGACTGACT'
-  c1 = [Variation(1, 4, 'ACT', 'A', HET1),
-        Variation(1, 2, 'A', 'T', HET2)]
+  c1 = [new_variation(1, 4, 'ACT', 'A', HET_10),
+        new_variation(1, 2, 'A', 'T', HET_01)]
   vg = get_variant_sequence_generator(ref_chrom_seq=seq, c1=c1, chrom_copy=0, block_len=4, over_lap_len=1)
 
   i, s, cs, a = vg.next()

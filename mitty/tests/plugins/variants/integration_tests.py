@@ -13,28 +13,27 @@ from ... import *
 ref = genome.FastaGenome(example_fasta_genome)
 
 
-def check_plugin_integration(model):
-  if not hasattr(model[1], '_example_params'):
+def check_plugin_integration(args):
+  name, model = args
+  if not hasattr(model, '_example_params'):
     #http://stackoverflow.com/questions/1120148/disabling-python-nosetests
-    raise SkipTest('{:s} has no _example_params method. Can not test automatically'.format(model[0]))
-  vcf_name = glob.os.path.join(data_dir, '{:s}_plugin_test.vcf.gz'.format(model[0]))
+    raise SkipTest('{:s} has no _example_params method. Can not test automatically'.format(name))
   params = {
     "denovo_variant_models": [
-      {model[0]: model[1]._example_params}
+      {name: model._example_params}
     ]
   }
-  mitty.denovo.main(ref, vcf_file_name=vcf_name, parameters=params, master_seed=1)
-  assert os.path.exists(vcf_name)  # A very simple test to see if the plugin doesn't crash
-
-  os.remove(vcf_name)  # Be neat
+  g1 = mitty.denovo.main(ref, models=mitty.denovo.load_variant_model_list(params['denovo_variant_models']),
+                         master_seed=1)
+  assert type(g1) == dict  # A very simple test to see if the plugin doesn't crash
 
 
 #http://stackoverflow.com/questions/19071601/how-do-i-run-multiple-python-test-cases-in-a-loop
 def integration_test_all_found_plugins():
   """Integration test on automatically found mutation plugin"""
-  for model in putil.load_all_variant_plugins():
-    check_plugin_integration.description = model[0] + ' integration test'
-    yield check_plugin_integration, model
+  for name, module in mitty.lib.discover_all_variant_plugins():
+    check_plugin_integration.description = name + ' integration test'
+    yield check_plugin_integration, (name, mitty.lib.load_variant_plugin(name))
 
 
 @nottest
@@ -43,20 +42,21 @@ def test_wrapper(func):
 
 
 @nottest
-def plugin_has_no_tests(model):
+def plugin_has_no_tests(_):
   raise SkipTest('No tests')
 
 
 #http://stackoverflow.com/questions/19071601/how-do-i-run-multiple-python-test-cases-in-a-loop
 def self_test_all_found_plugins():
   """Plugin self test"""
-  for model in putil.load_all_variant_plugins():
-    tests = [v for v in getmembers(model[1], isfunction) if v[0].startswith('test')]
+  for name, module in mitty.lib.discover_all_variant_plugins():
+    model = mitty.lib.load_variant_plugin(name)
+    tests = [v for v in getmembers(model, isfunction) if v[0].startswith('test')]
     if len(tests) == 0:
-      plugin_has_no_tests.description = model[0] + ' plugin self test(s)'
-      yield plugin_has_no_tests, model
+      plugin_has_no_tests.description = name + ' plugin self test(s)'
+      yield plugin_has_no_tests, None
     else:
       for test in tests:
-        test_wrapper.description = model[0] + ' plugin self test(s): ' + (test[1].func_doc or test[1].__name__)
+        test_wrapper.description = name + ' plugin self test(s): ' + (test[1].func_doc or test[1].__name__)
         # We can't ensure that a dev will provide us with a function doc, so we use the name if can't find a doc string
         yield test_wrapper, test
