@@ -56,6 +56,7 @@ def variant_generator(ref={},
 
 
 def test():
+  from mitty.lib.variation import Variation
   """Basic test"""
   ref = {
     1: 'ACTGACTGACTG',
