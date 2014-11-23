@@ -12,5 +12,9 @@ setup(
     scripts=['mitty/denovo.py', 'mitty/checkbam.py', 'mitty/population.py', 'mitty/reads2bam.py', 'mitty/vcf2reads.py'],
     include_package_data=True,
     package_data={'mitty': ['tests/data/*']},
-    ext_modules=cythonize('mitty/lib/*.pyx')
+    ext_modules=cythonize('mitty/lib/*.pyx'),
+    entry_points={
+      # Register the built in plugins
+      'mitty.plugins.variants': ['snp = mitty.plugins.variants.snp_plugin']
+    }
 )
