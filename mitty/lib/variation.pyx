@@ -26,41 +26,25 @@ cdef class VariationData:
     self.POS, self.stop, self.REF, self.ALT = _pos, _stop, _ref, _alt
 
 
-cdef inline unsigned char encode_variation_metadata(unsigned char het=0, unsigned char recessive=0, float fitness=0):
-  return (het << 6) | (recessive << 5) | (<unsigned char>(fitness * 15 + 16) & 0x1f)
-
-
-cdef inline unsigned char decode_het_info(unsigned char metadata):
-  return metadata >> 6
-
-
-def decode_variation_metadata(unsigned char metadata):
-  return metadata >> 6, (metadata >> 5) & 0x1, ((metadata & 0x1f) - 16)/15.0
-
-
 def new_variation(int _pos=0, int _stop=0, str _ref='', str _alt='', char het=0, char recessive=0, float fitness=0):
-  return Variation(VariationData(_pos, _stop, _ref, _alt), encode_variation_metadata(het, recessive, fitness))
+  return Variation(VariationData(_pos, _stop, _ref, _alt), het, recessive, fitness)
 
 
 cdef class Variation:
   """Carries *reference* to a VariationData instance and heterozygosity, recessiveness and fitness data."""
   cdef public:
     VariationData vd
-    unsigned char metadata
-    # This 8 bit field carries the following information
-    # 7,6   - het
-    # 5     - recessive
-    # 0-4   - fitness value 0-15 -ve 17-31 +ve
+    unsigned char het, recessive, fitness
 
   # http://docs.cython.org/src/userguide/special_methods.html
-  def __cinit__(self, VariationData _vd, unsigned char _v_info):
-    self.vd, self.metadata = _vd, _v_info
-
+  def __cinit__(self, VariationData _vd, unsigned char _het, unsigned char _rec, unsigned char _fit):
+    self.vd, self.het, self.recessive, self.fitness = _vd, _het, _rec, _fit
 
   cpdef bint eq(self, Variation other):
+    # We don't consider fitness or recessiveness
     return self.vd.POS == other.vd.POS and self.vd.stop == other.vd.stop and \
            self.vd.REF == other.vd.REF and self.vd.ALT == other.vd.ALT and \
-           decode_het_info(self.metadata) == decode_het_info(other.metadata)
+           self.het == other.het
 
   # http://docs.cython.org/src/userguide/special_methods.html
   def __richcmp__(self, Variation other, int op):
@@ -74,8 +58,7 @@ cdef class Variation:
   def __repr__(self):
     """Return a human friendly printed representation of the variant."""
     return '(POS={0},stop={1},REF={2},ALT={3},het={4},r={5},fit={6})'.\
-      format(self.vd.POS, self.vd.stop, self.vd.REF, self.vd.ALT, GT[self.metadata >> 6], (self.metadata >> 5) & 0x1,
-             ((self.metadata & 0x1f) - 16)/15.0)
+      format(self.vd.POS, self.vd.stop, self.vd.REF, self.vd.ALT, GT[self.het], self.recessive, self.fitness)
 
 
 def compress_and_index_vcf(in_vcf_name, out_vcf_name):
@@ -146,7 +129,7 @@ def vcf_save(g1, fp, sample_name='sample'):
       ref = var.vd.REF if var.vd.REF != '' else '.'
       alt = var.vd.ALT if var.vd.ALT != '' else '.'
       #  CHROM    POS   ID   REF   ALT   QUAL FILTER INFO FORMAT tsample
-      wr(ch + "\t" + str(var.vd.POS) + "\t.\t" + ref + "\t" + alt + "\t100\tPASS\t.\tGT\t" + GT[decode_het_info(var.metadata)] + "\n")
+      wr(ch + "\t" + str(var.vd.POS) + "\t.\t" + ref + "\t" + alt + "\t100\tPASS\t.\tGT\t" + GT[var.het] + "\n")
 
 
 def vcf_save_gz(g1, vcf_gz_name, sample_name='sample'):
@@ -165,11 +148,11 @@ def vcf_save_gz(g1, vcf_gz_name, sample_name='sample'):
 
 def copy_variant_sequence(c1):
   """c1 - a sequence of variants that need to be copied over. Note that we always share the VariantData"""
-  return [Variation(v1.vd, v1.metadata) for v1 in c1]
+  return [Variation(v1.vd, v1.het, v1.recessive, v1.fitness) for v1 in c1]
 
 
 cdef inline Variation copy_variant(v1):
-  return Variation(v1.vd, v1.metadata)
+  return Variation(v1.vd, v1.het, v1.recessive, v1.fitness)
 
 
 def merge_variants(c1, c2):
@@ -202,13 +185,11 @@ def merge_variants(c1, c2):
 
 cdef inline bint overlap(Variation x, Variation y):
   # Returns true if the footprints of the variations overlap.
-  cdef char x_het, y_het
   if x is None or y is None: return False
   if y.vd.POS - 1 <= x.vd.POS <= y.vd.stop + 1 or y.vd.POS - 1 <= x.vd.stop <= y.vd.stop + 1 or \
                   x.vd.POS <= y.vd.POS - 1 <= y.vd.stop + 1 <= x.vd.stop:
     # Potential overlap
-    x_het, y_het = decode_het_info(x.metadata), decode_het_info(y.metadata)
-    if x_het == y_het or x_het == HOMOZYGOUS or y_het == HOMOZYGOUS:
+    if x.het == y.het or x.het == HOMOZYGOUS or y.het == HOMOZYGOUS:
       return True
   return False
 

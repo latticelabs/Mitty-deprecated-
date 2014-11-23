@@ -83,6 +83,7 @@ SEED_MAX = (1 << 32) - 1  # For each call of the JIT expander we pass a random s
                           # We generate these seeds from the given master seed and
 
 
+#TODO: make this more elegant + move it to Cython?
 def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_len=10e6, over_lap_len=200):
   """Return the computed variant sequence in blocks
   Args:
@@ -122,14 +123,14 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
   c1_iter = c1.__iter__()
   variant = next(c1_iter, None)
   while ptr < l_ref_seq:
-    if variant is None or (ptr < variant.POS - 1):  # We should copy just the reference
+    if variant is None or (ptr < variant.vd.POS - 1):  # We should copy just the reference
       if variant is None:  # No more variants left
         ref_ptr_start = ptr
         ptr = min(ptr + var_ptr_finish - var_ptr, l_ref_seq)
         var_ptr += ptr - ref_ptr_start
       else:  # Copy as much of the reference as we can
         ref_ptr_start = ptr
-        ptr = min(ptr + var_ptr_finish - var_ptr, variant.POS - 1)
+        ptr = min(ptr + var_ptr_finish - var_ptr, variant.vd.POS - 1)
         var_ptr += ptr - ref_ptr_start
       seq_fragments += [ref_chrom_seq[ref_ptr_start:ptr]]
       arr_fragments += [[
@@ -138,17 +139,17 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
         numpy.zeros(ptr - ref_ptr_start, dtype='u4')
       ]]
     else:  # variant entry exists and we are on it, expand it
-      alt, ref = variant.ALT, variant.REF
-      if (variant.het == HET1 and cc == 1) or (variant.het == HET2 and cc == 0):
+      alt, ref, het = variant.vd.ALT, variant.vd.REF, variant.het
+      if (het == HET_10 and cc == 1) or (het == HET_01 and cc == 0):
         # This variation is on the other copy
         variant = next(c1_iter, None)  # Load the next variant and move on as if nothing happened
         continue
 
       l_alt, l_ref = len(alt), len(ref)
       ptr_adv = l_ref  # When we get to this function, our pointer is sitting at POS
-      pos_alt = numpy.arange(variant.POS, variant.POS + min(l_alt, l_ref), dtype='u4')  # We might have ref bases in alt
+      pos_alt = numpy.arange(variant.vd.POS, variant.vd.POS + min(l_alt, l_ref), dtype='u4')  # We might have ref bases in alt
       if l_alt > l_ref:  # This was an insertion
-        pos_alt = numpy.concatenate((pos_alt, numpy.ones(l_alt - l_ref, dtype='u4') * variant.stop))
+        pos_alt = numpy.concatenate((pos_alt, numpy.ones(l_alt - l_ref, dtype='u4') * variant.vd.stop))
 
       seq_fragments += [alt]
       arr_fragments += [[pos_alt, numpy.empty(l_alt, dtype='u4'), numpy.arange(l_alt, dtype='u4')]]
