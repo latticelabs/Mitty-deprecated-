@@ -153,7 +153,7 @@ def merge_test6():
   #                   new_variation(13, 16, 'CAA', 'C', HET_01),
   #                   new_variation(20, 23, 'CAA', 'C', HET_10),
   #                   new_variation(26, 29, 'CGG', 'C', HOMOZYGOUS)])
-  assert_sequence_equal(deque([v10, v11, v21, v12, v13]), c3)
+  assert_sequence_equal([v10, v11, v21, v12, v13], c3)
 
 
 def merge_test7():
