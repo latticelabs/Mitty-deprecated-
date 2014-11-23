@@ -4,7 +4,6 @@ documentation
 """
 from os.path import splitext
 import pysam
-from collections import deque
 import logging
 logger = logging.getLogger(__name__)
 
@@ -79,10 +78,6 @@ cdef class Variation:
              ((self.metadata & 0x1f) - 16)/15.0)
 
 
-cdef inline Variation copy_variant(v1):
-  return Variation(v1.vd, v1.metadata)
-
-
 def compress_and_index_vcf(in_vcf_name, out_vcf_name):
   """Given an uncompressed, but sorted, vcf, compress and index it."""
   #bgzip -c sorted.vcf > sorted.vcf.gz
@@ -97,7 +92,7 @@ def vcf2chrom(vcf_rdr):
   """Given a vcf reader corresponding to one chromosome, read in the variant descriptions into our format. The result is
   sorted if the vcf file is sorted.
   """
-  chrom = deque()
+  chrom = []  # deque()
   append = chrom.append
   for variant in vcf_rdr:
     alt = variant.ALT[0].sequence if variant.ALT[0] is not None else ''
@@ -118,7 +113,7 @@ def vcf2chrom(vcf_rdr):
     except IndexError:  # No genotype info, will assume homozygous
         pass
 
-    append(Variation(VariationData(start, stop, ref, alt), encode_variation_metadata(het)))
+    append(new_variation(start, stop, ref, alt, het))
 
   return chrom
 
@@ -130,8 +125,7 @@ def parse_vcf(vcf_rdr, chrom_list):
     try:
       g1[chrom] = vcf2chrom(vcf_rdr.fetch(chrom, start=0))
     except (ValueError, KeyError):  # New version of pyvcf changed the error
-      g1[chrom] = []
-
+      g1[chrom] = []  #deque()
   return g1
 
 
@@ -169,8 +163,13 @@ def vcf_save_gz(g1, vcf_gz_name, sample_name='sample'):
   # tabix can't understand unicode, needs bytes
 
 
-cdef inline vcopy(Variation x):
-  return Variation(x.vd, x.metadata)
+def copy_variant_sequence(c1):
+  """c1 - a sequence of variants that need to be copied over. Note that we always share the VariantData"""
+  return [Variation(v1.vd, v1.metadata) for v1 in c1]
+
+
+cdef inline Variation copy_variant(v1):
+  return Variation(v1.vd, v1.metadata)
 
 
 def merge_variants(c1, c2):
@@ -214,10 +213,10 @@ cdef inline bint overlap(Variation x, Variation y):
   return False
 
 
-#TODO: refactor this to be faster? Not use vcopy? Code can be made cleaner
+#TODO: refactor this to be faster? Not use copy_variant? Code can be made cleaner
 cdef c_merge_variants(c1, c2):
   c1_iter, c2_iter = c1.__iter__(), c2.__iter__()
-  c3 = deque()
+  c3 = []  #deque()
   append = c3.append
 
   last_new = None
@@ -226,29 +225,29 @@ cdef c_merge_variants(c1, c2):
   while existing is not None and denovo is not None:
     if overlap(existing, denovo):
       # This will collide, resolve in favor of existing and advance both lists
-      append(vcopy(existing))
+      append(copy_variant(existing))
       last_new = existing
       existing, denovo = next(c1_iter, None), next(c2_iter, None)
     else:
       if existing.vd.POS <= denovo.vd.POS:  # Zip-in existing
-        append(vcopy(existing))
+        append(copy_variant(existing))
         last_new = existing
         existing = next(c1_iter, None)
       else:  # Can we zip-in denovo?
         if not overlap(last_new, denovo):
-          append(vcopy(denovo))
+          append(copy_variant(denovo))
           last_new = denovo
         denovo = next(c2_iter, None)  # In either case, we need to advance denovo
 
   # Now pick up any slack
   if existing is not None:  # Smooth sailing, just copy over the rest
     while existing is not None:
-      append(vcopy(existing))
+      append(copy_variant(existing))
       existing = next(c1_iter, None)
   else:  # Need to test for overlap before copying over
     while denovo is not None:
       if not overlap(last_new, denovo):
-        append(vcopy(denovo))
+        append(copy_variant(denovo))
         last_new = denovo
       denovo = next(c2_iter, None)  # In either case, we need to advance denovo
 
