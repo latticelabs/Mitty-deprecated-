@@ -15,6 +15,8 @@ setup(
     ext_modules=cythonize('mitty/lib/*.pyx'),
     entry_points={
       # Register the built in plugins
-      'mitty.plugins.variants': ['snp = mitty.plugins.variants.snp_plugin']
+      'mitty.plugins.variants': ['snp = mitty.plugins.variants.snp_plugin'],
+      # Command line scripts
+      'console_scripts': ['denovo = mitty.denovo:cli']
     }
 )
