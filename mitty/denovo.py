@@ -5,15 +5,15 @@ Commandline::
 
   Usage:
     denovo --pfile=PFILE  [-v]
-    denovo plugins
-    denovo explain <plugin>
+    denovo models
+    denovo explain <model_name>
 
   Options:
     --pfile=PFILE           Name for parameter file
     -v                      Dump detailed logger messages
-    plugins                 List the available denovo plugins
+    models                  List the available denovo models
     explain                 Explain details about the indicated plugin
-    <plugin>                The plugin to explain. If none, explains the parameter file format
+    <model_name>            The model to explain. If none, explains the parameter file format
 
 
 Parameter file example::
@@ -52,108 +52,111 @@ Notes:
 """
 __version__ = '1.0.0'
 
-import numpy
 import json
 import docopt
+import mitty.lib
 from mitty.lib.genome import FastaGenome
 from mitty.lib.variation import *
-from mitty.lib import *
-from mitty.plugins import putil
 import logging
 logger = logging.getLogger(__name__)
 
 
-def merge_variants_with_genome(g1, variant_generator):
+def copy_missing_chromosomes(g1, g2):
+  """Copy any chromosomes found in g2 but not in g1 onto g1. g1 is changed in place
+
+  :param dict g1: genome
+  :param dict g2: genome
+  :returns: changes g1 in place"""
+  missing_chrom = set(g2.keys()) - set(g1.keys())
+  for ch in missing_chrom:
+    g1[ch] = copy_variant_sequence(g2[ch])
+
+
+def merge_variants_from_models(g1={}, variant_generators=[]):
   """Given an original genome add any variants that come off the variant_generator
-  Args:
-    g1 (dict): Dict of chromosomes
+
+  :param dict g1: genome
+  :param list variant_generators: list of variant generators
+  :returns: list of Variants
   """
-  g2 = copy_genome(g1)
-  for delta_g in variant_generator:
-    for chrom, dnv in delta_g.iteritems():
-      try:
-        g2[chrom] = merge_variants_with_chromosome(g2[chrom], dnv)
-      except KeyError:  # This is the first time we are seeing variants on this chromosome
-        g2[chrom] = dnv
+  g2 = {}
+  for vg in variant_generators:
+    for delta_g in vg:
+      for chrom, dnv in delta_g.iteritems():
+        g2[chrom] = merge_variants(g2.get(chrom) or g1.get(chrom, []), dnv)
+  copy_missing_chromosomes(g2, g1)
   return g2
 
 
-def apply_variant_models_to_genome(g1={}, ref=None, models=[]):
-  """Return a copy of g1 with the denovo variants from the models merged in"""
-  g2 = None
-  for model in models:
-    g2 = merge_variants_with_genome(g2 or g1, model["model"].variant_generator(ref, **model["params"]))
-  return g2
-
-
-def create_denovo_genome(ref, models=[]):
-  """Simply a convenience function that creates a genome from scratch."""
-  return apply_variant_models_to_genome(ref=ref, models=models)
-
-
-def load_variant_models(model_param_json):
-  """Given a list of models and parameters load the models in"""
-  return [{"model": putil.load_variant_plugin(k), "params": v}
+def load_variant_model_list(model_param_json):
+  """Given a list of models and parameters load the relevant modules and store the parameters as tuples"""
+  return [{"model": mitty.lib.load_variant_plugin(k), "params": v}
           for model_json in model_param_json
           for k, v in model_json.iteritems()]  # There really is only one key (the model name) and the value is the
                                                # parameter list
 
 
-def apply_master_seed(models, master_seed=1):
-  assert 0 < master_seed < SEED_MAX
-  for model, seed in zip(models, numpy.random.RandomState(seed=master_seed).randint(SEED_MAX, size=len(models))):
-    model["params"]["master_seed"] = seed
+def get_variant_generator_list_from_model_list(mdl_list, ref, master_seed=1):
+  """Initialize the variant generators from the list of models (and parameters) while passing a master seed."""
+  assert 0 < master_seed < mitty.lib.SEED_MAX
+  return [mdl['model'].variant_generator(ref=ref, master_seed=seed, **mdl['params'])
+          for mdl, seed in zip(mdl_list, mitty.lib.get_seeds(master_seed, len(mdl_list)))]
 
 
-def print_plugin_list():
-  print 'Available plugins'
-  for plugin in putil.list_all_variant_plugins():
-    print plugin
+def print_model_list():
+  print('\nAvailable models\n----------------')
+  for name, mod_name in mitty.lib.discover_all_variant_plugins():
+    print('- {:s} ({:s})\n'.format(name, mod_name))
 
 
-def explain_plugin(plugin):
-  if plugin not in putil.list_all_variant_plugins():
-    print 'No such plugin'
-  else:
-    mod = putil.load_variant_plugin(plugin)
-    try:
-      print(mod._description)
-    except AttributeError:
-      print('No help for module available')
+def explain_model(name):
+  try:
+    mod = mitty.lib.load_variant_plugin(name)
+  except ImportError:
+    print('No model named {:s}'.format(name))
+    return
+  try:
+    print(mod._description)
+  except AttributeError:
+    print('No help for model "{:s}" available'.format(name))
   return
 
 
-def main(ref, vcf_file_name=None, parameters={}, master_seed=1):
+def main(ref, models=[], master_seed=1):
   """This does what the old mutate.py script used to do."""
-  assert 0 < master_seed < SEED_MAX
+  assert 0 < master_seed < mitty.lib.SEED_MAX
   logger.debug('Reference file {:s}'.format(ref.dir))
-  models = load_variant_models(parameters['denovo_variant_models'])
-  apply_master_seed(models, master_seed)
-  g1 = create_denovo_genome(ref=ref, models=models)
-  if vcf_file_name is not None:
-    vcf_save_gz(g1, vcf_file_name)
-  return g1
+  vgl = get_variant_generator_list_from_model_list(models, ref, master_seed=master_seed)
+  return merge_variants_from_models(g1={}, variant_generators=vgl)
 
 
-if __name__ == "__main__": # pragma: no cover
+def cli():  # pragma: no cover
+  """Serves as entry point for scripts"""
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
   else:
     cmd_args = docopt.docopt(__doc__, version=__version__)
-  if cmd_args['plugins']:
-    print_plugin_list()
+  if cmd_args['models']:
+    print_model_list()
     exit(0)
   if cmd_args['explain']:
-    explain_plugin(cmd_args['<plugin>'])
+    explain_model(cmd_args['<model_name>'])
     exit(0)
 
   level = logging.DEBUG if cmd_args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
 
+  import os
   base_dir = os.path.dirname(cmd_args['--pfile'])     # Other files will be with respect to this
   params = json.load(open(cmd_args['--pfile'], 'r'))
-  ref_genome = FastaGenome(seq_dir=rpath(base_dir, params['files']['genome']), persist=True)
-  vcf_file = params['files']['output vcf']
-  vcf_file = rpath(base_dir, vcf_file) if vcf_file else vcf_file
+  ref_genome = FastaGenome(seq_dir=mitty.lib.rpath(base_dir, params['files']['genome']), persist=True)
+  vcf_file_name = mitty.lib.rpath(base_dir, params['files']['output vcf'])
+  models = load_variant_model_list(params['denovo_variant_models'])
   master_seed = params['rng']['master_seed']
-  main(ref=ref_genome, vcf_file_name=vcf_file, parameters=params, master_seed=master_seed)
+
+  g1 = main(ref=ref_genome, models=models, master_seed=master_seed)
+  vcf_save_gz(g1, vcf_file_name)
+
+
+if __name__ == "__main__":
+  cli()

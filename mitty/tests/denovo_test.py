@@ -1,65 +1,49 @@
+from mitty.lib.variation import *
 from mitty.denovo import *
 from mitty.tests import *
-from nose.tools import eq_, ok_
+from nose.tools import eq_, ok_, assert_sequence_equal
 
 
 def add_variant_model_to_genome_test1():
-  g1 = {1: [Variation(12, 13, 'G', 'C', HET_01),
-            Variation(13, 14, 'A', 'C', HET_10),
-            Variation(19, 20, 'G', 'A', HET_10)]}  # This should be placed with no problems
+  """Proposed variant should collide and be ignored."""
+  c1 = [v10, v11, v12] = [new_variation(12, 13, 'G', 'C', HET_01),
+                          new_variation(13, 14, 'A', 'C', HET_10),
+                          new_variation(19, 20, 'G', 'A', HET_10)]  # This should be placed with no problems
+  g1 = {1: c1}
+  vg = ({1: [new_variation(13, 14, 'A', 'T', HET_10)]} for _ in [1])  # This will collide with v11 and not be inserted
+  g2 = merge_variants_from_models(g1, [vg])
 
-  def variant_generator():
-    g2 = [{1: [Variation(13, 14, 'A', 'T', HET_10)]}]  # This will pass
-    for g in g2:
-      yield g
-
-  correct_final_g = {1: [Variation(12, 13, 'G', 'C', HET_01),
-                         Variation(13, 14, 'A', 'C', HET_10),
-                         Variation(19, 20, 'G', 'A', HET_10)]}
-
-  vg = variant_generator()
-  g2 = merge_variants_with_genome(g1, vg)
-
-  eq_(correct_final_g, g2)
-
-
-def add_variant_model_to_genome_test1a():
-  g1 = {1: [Variation(13, 14, 'A', 'C', HET_10)]}  # This should be placed with no problems
-
-  def variant_generator():
-    g2 = [{1: [Variation(13, 14, 'A', 'T', HET_10)]}]  # This will pass
-    for g in g2:
-      yield g
-
-  correct_final_g = {1: [Variation(13, 14, 'A', 'C', HET_10)]}
-
-  vg = variant_generator()
-  g2 = merge_variants_with_genome(g1, vg)
-
-  eq_(correct_final_g, g2)
+  assert_sequence_equal(g1[1], g2[1])
 
 
 def add_variant_model_to_genome_test2():
-  g1 = {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)],
-        2: [Variation(7, 10, 'CAA', 'C', HET_01)]}  # This should be placed with no problems
+  """Variant generator adds new chromosomes."""
+  g1 = {1: [new_variation(13, 14, 'A', 'C', HET_10)]}  # This should be placed with no problems
+  vg = ({2: [new_variation(13, 14, 'A', 'T', HET_10)]} for _ in [1])
+  g2 = merge_variants_from_models(g1, [vg])
 
-  def variant_generator():
-    g2 = [{1: [Variation(1, 2, 'C', 'CAA', HET_01)]},  # This will collide
-          {2: [Variation(7, 8, 'G', 'T', HET_10)]},  # This will pass
-          {2: [Variation(17, 18, 'G', 'T', HET_10)]}]  # This will pass
-    for g in g2:
-      yield g
+  assert 1 in g2
+  assert 2 in g2
 
-  correct_final_g = {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)],
-                     2: [Variation(7, 10, 'CAA', 'C', HET_01),
-                         Variation(7, 8, 'G', 'T', HET_10),
-                         Variation(17, 18, 'G', 'T', HET_10)]}
 
-  vg = variant_generator()
-  g2 = merge_variants_with_genome(g1, vg)
+def add_variant_model_to_genome_test3():
+  """Variants from multiple models."""
+  c1 = [v12, v13, v19] = [new_variation(12, 13, 'G', 'C', HOMOZYGOUS),
+                          new_variation(13, 14, 'A', 'C', HOMOZYGOUS),
+                          new_variation(19, 20, 'G', 'A', HOMOZYGOUS)]  # This should be placed with no problems
+  g1 = {1: c1}
+  v16 = new_variation(16, 17, 'T', 'C', HOMOZYGOUS)
+  vg1 = ({1: [v12, v16]} for _ in [1])  # First variant will collide
+  v22 = new_variation(22, 23, 'T', 'C', HOMOZYGOUS)
+  vg2 = ({1: [v22], 2: [v13, v19]} for _ in [1])  # This will all pass
+  g2_correct = {
+    1: [v12, v13, v16, v19, v22],
+    2: [v13, v19]
+  }
+  g2 = merge_variants_from_models(g1, [vg1, vg2])
 
-  eq_(correct_final_g, g2)
-  eq_(g1, {1: [Variation(1, 4, 'CAA', 'C', HOMOZYGOUS)], 2: [Variation(7, 10, 'CAA', 'C', HET_01)]})  # Must not change original
+  assert_sequence_equal(g2[1], g2_correct[1])
+  assert_sequence_equal(g2[2], g2_correct[2])
 
 
 # This test uses the stock SNP which must exist for this test to pass
@@ -81,7 +65,7 @@ def load_variant_models_test():
           }
         }
       ]
-  mdl = load_variant_models(param_json)
+  mdl = load_variant_model_list(param_json)
   assert hasattr(mdl[0]["model"], 'variant_generator')
   assert 'master_seed' in mdl[1]["params"]
 
@@ -97,25 +81,21 @@ def main_test():
         "snp": {
            "chromosome": [1, 2],
            "phet": 0.5,
-           "p": 0.0001,
-           "master_seed": 1
+           "p": 0.0001
         }
       },
       {
         "snp": {
            "chromosome": [2],
            "phet": 0.0,
-           "p": 0.01,
-           "master_seed": 2
+           "p": 0.01
         }
       }
     ]
   }
   _, vcf_file_fname = tempfile.mkstemp(suffix='.vcf.gz')
   ref = FastaGenome(seq_dir=example_fasta_genome)
-  g1 = main(ref, vcf_file_name=vcf_file_fname, parameters=param_json, master_seed=1)
-  assert os.path.exists(vcf_file_fname)
-
-  vcf_rdr = vcf.Reader(filename=vcf_file_fname).fetch(chrom=1, start=0)
-  v1 = vcf_rdr.next()
-  eq_(v1.POS, g1[1][0].POS)
+  mdl = load_variant_model_list(param_json['denovo_variant_models'])
+  g1 = main(ref, models=mdl, master_seed=1)
+  assert type(g1) == dict
+  assert type(g1[1][0]) == Variation
