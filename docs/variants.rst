@@ -1,5 +1,7 @@
-The `Variation` structure
-=========================
+.. _variation_struct:
+
+Variations
+==========
 Internally variants are represented by a simple structure called :py:class:`mitty.lib.variation.Variation`.
 The code is implemented as a cython class as we need to create many instances of this structure and we need to
 repeatedly copy it from one place to another.

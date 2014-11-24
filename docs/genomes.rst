@@ -1,7 +1,16 @@
 Simulation of genomes
 =====================
+Chromosomes and Genomes
+-----------------------
+A chromosome is represented as a list of :ref:`variation_struct`. Genomes are stored as a dictionary with chromosome
+numbers (1,2,3...) as keys and lists of variants as values.
 
-Please see :doc:`variants` for details on the internal representation of variations
+
+Variant generators
+------------------
+:py:mod:`mitty.denovo`
+
+
 
 
 Population simulations

@@ -1,5 +1,6 @@
 #!python
-"""This script simulates populations of genomes. Genomes are written out as VCF files.
+"""This module implements functions for simulating populations of genomes. When run as a script it will produce sets of
+VCF files one for each sample in a population.
 
 Commandline::
 
@@ -108,7 +109,7 @@ __version__ = '1.0.0'
 
 import numpy
 from mitty.lib import genome
-from mitty.lib.variation import HOMOZYGOUS, HET1, HET2, vcf_save_gz
+from mitty.lib.variation import HOMOZYGOUS, HET_10, HET_01, vcf_save_gz
 import mitty.denovo
 import logging
 logger = logging.getLogger(__name__)
@@ -129,10 +130,10 @@ def chrom_crossover(c1, crossover_idx):
   for c, idx in zip(c1, crossover_idx):
     new_c = vcopy(c)  # Valid for no crossover or HOMOZYGOUS
     if idx == 1 and c.het != HOMOZYGOUS:
-      if c.het == HET1:
-        new_c.het = HET2
+      if c.het == HET_10:
+        new_c.het = HET_01
       else:
-        new_c.het = HET1
+        new_c.het = HET_10
     c2 += [new_c]
   return c2
 
@@ -161,11 +162,11 @@ def pair_one_chrom(c1, c2, which_copy):
   l1, l2 = next(c1_iter, None), next(c2_iter, None)
   while l1 is not None and l2 is not None:
 
-    if (l1.het == HET1 and which_copy[0] == 1) or (l1.het == HET2 and which_copy[0] == 0):
+    if (l1.het == HET_10 and which_copy[0] == 1) or (l1.het == HET_01 and which_copy[0] == 0):
       l1 = next(c1_iter, None)
       continue
 
-    if (l2.het == HET1 and which_copy[1] == 1) or (l2.het == HET2 and which_copy[1] == 0):
+    if (l2.het == HET_10 and which_copy[1] == 1) or (l2.het == HET_01 and which_copy[1] == 0):
       l2 = next(c2_iter, None)
       continue
 
@@ -175,21 +176,21 @@ def pair_one_chrom(c1, c2, which_copy):
       continue
 
     if l1.POS <= l2.POS:
-      c3 += [vcopy(l1, het=HET1)]
+      c3 += [vcopy(l1, het=HET_10)]
       l1 = next(c1_iter, None)
     else:
-      c3 += [vcopy(l2, het=HET2)]
+      c3 += [vcopy(l2, het=HET_01)]
       l2 = next(c2_iter, None)
 
   # Now pick up any slack
   while l1 is not None:
-    if (l1.het == HOMOZYGOUS) or (l1.het == HET1 and which_copy[0] == 0) or (l1.het == HET2 and which_copy[0] == 1):
-      c3 += [vcopy(l1, het=HET1)]
+    if (l1.het == HOMOZYGOUS) or (l1.het == HET_10 and which_copy[0] == 0) or (l1.het == HET_01 and which_copy[0] == 1):
+      c3 += [vcopy(l1, het=HET_10)]
     l1 = next(c1_iter, None)
 
   while l2 is not None:
-    if (l2.het == HOMOZYGOUS) or (l2.het == HET1 and which_copy[1] == 0) or (l2.het == HET2 and which_copy[1] == 1):
-      c3 += [vcopy(l2, het=HET2)]
+    if (l2.het == HOMOZYGOUS) or (l2.het == HET_10 and which_copy[1] == 0) or (l2.het == HET_01 and which_copy[1] == 1):
+      c3 += [vcopy(l2, het=HET_01)]
     l2 = next(c2_iter, None)
 
   return c3

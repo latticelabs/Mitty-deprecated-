@@ -66,6 +66,7 @@ def init_int2str(max_read_len):
     int2str = [str(n) for n in range(max_read_len + 1)]
 
 
+#TODO: refactor into reads
 def interpret_read_qname(qname, template_order):
   """chrom:copy|rN|D1|POS1|CIGAR1|D2|POS2|CIGAR2
   Returns:
