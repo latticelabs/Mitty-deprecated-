@@ -11,7 +11,11 @@ setup(
     package_data={'mitty': ['tests/data/*']},
     entry_points={
       # Register the built in plugins
-      'mitty.plugins.variants': ['snp = mitty.plugins.variants.snp_plugin'],
+      'mitty.plugins.variants': ['snp = mitty.plugins.variants.snp_plugin',
+                                 'delete = mitty.plugins.variants.delete_plugin',
+                                 'insert = mitty.plugins.variants.insert_plugin',
+                                 'inversion = mitty.plugins.variants.inversion_plugin',
+                                 'low_entropy_insert = mitty.plugins.variants.low_entropy_insert_plugin'],
       'mitty.plugins.reads': ['simple_sequential = mitty.plugins.reads.simple_sequential_plugin',
                               'simple_illumina = mitty.plugins.reads.simple_illumina_plugin'],
       # Command line scripts
