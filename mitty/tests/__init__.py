@@ -1,6 +1,6 @@
 import os
 import mitty.lib.variation
-import mitty.lib.bam
+#import mitty.lib.bam
 from shutil import rmtree
 # These need to be available to the rest of the test suite
 source_tree_root = os.path.join(os.path.dirname(__file__))
