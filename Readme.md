@@ -30,6 +30,10 @@ The important components of Mitty are described as::
     .fastq file + reads2bam.py         -->   .bam file
         perfect alignment of "sample" reads to original reference
 
+
+    .bam file + checkbam.py            -->  diagnostic files
+        Allows us to check the quality of our alignments
+
 Installation
 ============
 
@@ -40,6 +44,16 @@ pip install git+ssh://git@gitlab.sbgenomics.com:graphgenome/mitty.git#egg=mitty
 ```
 
 This requires that you are connected to VPN, and that you have an SSH key setup on Gitlab.
+
+
+Testing
+=======
+You should have ```pip install nose``` previously. Then simply run
+
+```
+nosetests mitty
+```
+
 
 Developing
 ==========
