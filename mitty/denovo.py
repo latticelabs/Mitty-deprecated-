@@ -1,5 +1,6 @@
 #!python
-"""This script produces a VCF file simulating a "sample" based on a reference
+"""This module implements functions to add denovo variants to a genome. When run as a script it will produce a VCF
+file simulating a "sample".
 
 Commandline::
 
