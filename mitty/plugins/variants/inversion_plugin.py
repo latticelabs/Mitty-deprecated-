@@ -19,7 +19,7 @@ import numpy
 import logging
 import string
 import mitty.plugins.variants.util as util
-from mitty.lib.variation import Variation
+from mitty.lib.variation import new_variation
 
 logger = logging.getLogger(__name__)
 DNA_complement = string.maketrans('ATCGNatcg', 'TAGCNtagc')
@@ -59,7 +59,7 @@ def variant_generator(ref={},
     het_type = util.het(inv_locs.size, phet, het_rng, copy_rng)
 
 
-    yield {chrom:[Variation(pos + 1, pos + 1+inv_len, ref_seq[pos:pos + inv_len],
+    yield {chrom:[new_variation(pos + 1, pos + 1+inv_len, ref_seq[pos:pos + inv_len],
                 ref_seq[pos:pos + inv_len].translate(DNA_complement)[::-1], het)
               for het, pos, inv_len in zip(het_type, inv_locs, inv_lens)
               if ('N'  not in ref_seq[pos:pos + inv_len]) and ('\n' not in ref_seq[pos:pos + inv_len])

@@ -3,10 +3,8 @@
 Note: This never generates a deletion at the first base of a sequence.
 
 """
-import numpy
 import logging
-from mitty.lib import SEED_MAX
-from mitty.lib.variation import Variation
+from mitty.lib.variation import new_variation
 import mitty.plugins.variants.util as util
 
 logger = logging.getLogger(__name__)
@@ -49,13 +47,14 @@ def variant_generator(ref={},
     del_lens = del_len_rng.randint(low=del_len_lo, high=del_len_hi+1, size=del_locs.size)
     het_type = util.het(del_locs.size, phet, het_rng, copy_rng)
 
-    yield {chrom: [Variation(pos + 1, pos + del_len + 1, ref_seq[pos:pos + del_len + 1], ref_seq[pos], het)
+    yield {chrom: [new_variation(pos + 1, pos + del_len + 1, ref_seq[pos:pos + del_len + 1], ref_seq[pos], het)
                    for het, pos, del_len in zip(het_type, del_locs, del_lens) if ('N' not in ref_seq[pos:pos + del_len + 1])
                    and pos + del_len < len(ref_seq)]}
 
 
 def test():
   """Should produce variants."""
+  from mitty.lib.variation import Variation
   ref = {
     1: 'ACTGACTGACTG',
     2: 'ACTGACTGACTGACTGACTGACTG'
@@ -67,6 +66,7 @@ def test():
 
 def test2():
   """The REFs should match the reference seq."""
+  from mitty.lib.variation import Variation
   ref = {
     1: 'ACTGACTGACTG',
     2: 'ACTGACTGACTGACTGACTGACTG'

@@ -1,7 +1,7 @@
 """This generates insertions that consist of repeated copies of the same subsequence."""
 import numpy
 import mitty.plugins.variants.util as util
-from mitty.lib.variation import Variation
+from mitty.lib.variation import new_variation
 import logging
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def variant_generator(ref={},
     ins_lens = ins_len_rng.randint(low=ins_len_lo, high=ins_len_hi+1, size=ins_locs.size)
     het_type = util.het(ins_locs.size, phet, het_rng, copy_rng)
 
-    yield {chrom:[Variation(pos + 1, pos + 2, ref_seq[pos], ref_seq[pos] +
+    yield {chrom:[new_variation(pos + 1, pos + 2, ref_seq[pos], ref_seq[pos] +
            _repeat_sequence(ins_len, sub_seq_len, base_sel_rng), het)
            for het, pos, ins_len in zip(het_type, ins_locs, ins_lens) if ref_seq[pos] != 'N']}
 
@@ -73,6 +73,7 @@ def _repeat_sequence(seq_len=100, subseq_len=10, base_sel_rng=None, alphabet=['A
 
 def test():
   """Basic test"""
+  from mitty.lib.variation import Variation
   ref = {
     1: 'ACTGACTGACTG',
     2: 'ACTGACTGACTGACTGACTGACTG'
