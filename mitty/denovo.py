@@ -56,6 +56,7 @@ __version__ = '1.0.0'
 import json
 import docopt
 import mitty.lib
+import mitty.lib.io
 from mitty.lib.genome import FastaGenome
 from mitty.lib.variation import *
 import logging
@@ -156,7 +157,7 @@ def cli():  # pragma: no cover
   master_seed = params['rng']['master_seed']
 
   g1 = main(ref=ref_genome, models=models, master_seed=master_seed)
-  vcf_save_gz(g1, vcf_file_name)
+  mitty.lib.io.vcf_save_gz(g1, vcf_file_name)
 
 
 if __name__ == "__main__":
