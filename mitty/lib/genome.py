@@ -59,15 +59,20 @@ def load_single_fasta(fa_fname, as_numpy=False):
 
 
 class FastaGenome():
-  """This represents a genome as a collection of fasta files stored in a directory. The fasta files should be numbered
-  chr1, chr2, chr3 ... chr23, chr24. Sequences can be accessed using the slice notation e.g.
+  """This represents a genome as a collection of fasta files stored in a directory.
 
-  ref = FastaGenome('examples/data')
-  ch = ref[1]  # Loads the data
+  The fasta files should be numbered chr1, chr2, chr3 ...
+  Sequences can be accessed using the slice notation e.g.::
+
+    ref = FastaGenome('examples/data', persist=True)
+    chr1 = ref[1]  # Loads the sequence data and keeps it attached to the object
 
   """
   def __init__(self, seq_dir='', persist=False):
-    """If persist is set we retain a loaded sequence in memory."""
+    """
+    :param str seq_dir: path to the directory containing the fasta files
+    :param bool persist: If true, once loaded, a sequence is kept in memory. This speeds up operations at the
+                           expense of memory."""
     self.dir = seq_dir
     self.persist = persist
     self.sequences = {}
@@ -106,8 +111,8 @@ class FastaGenome():
     return sorted(filter(lambda x: x is not None, [f_idx(fn) for fn in glob.os.listdir(self.dir)]))
 
   def genome_header(self):
-    """Return a list of tuples of the form (seq_id, seq_len) corresponding to the files in the directory. Files not in
-    the format chrX where X is an integer are ignored"""
+    """Return a list of tuples of the form (seq_id, seq_len, seq_offset) corresponding to the files in the directory.
+    Files not in the format chrX where X is an integer are ignored"""
     def process_file(fname, seq_offset=[0]):
       # http://stackoverflow.com/questions/3432830/list-comprehension-for-running-total
       try:
