@@ -119,7 +119,7 @@ class FastaGenome():
           this_seq_offset = seq_offset[0]
           seq_offset[0] += seq_len
       except IOError:
-        seq_id, seq_len = None, None
+        seq_id, seq_len, this_seq_offset = None, None, None
       return seq_id, seq_len, this_seq_offset
 
     return filter(lambda x: x[0] is not None, [process_file(glob.os.path.join(self.dir, 'chr{:s}.fa'.format(str(chrom)))) for chrom in self.sorted_chrom_idx()])
