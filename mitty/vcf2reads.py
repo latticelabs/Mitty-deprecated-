@@ -6,8 +6,8 @@ Commandline::
 
   Usage:
     vcf2reads  --pfile=PFILE  [--corrupt]  [--block_len=BL] [-v|-V]
-    vcf2reads plugins
-    vcf2reads explain <plugin>
+    vcf2reads models
+    vcf2reads explain <model>
 
   Options:
     --pfile=PFILE           Name for parameter file
@@ -15,9 +15,9 @@ Commandline::
     --block_len=BL          Consider the sequence in chunks this big. See notes [default: 1000000]
     -v                      Dump detailed logger messages
     -V                      Dump very detailed logger messages
-    plugins                 List the available denovo plugins
-    explain                 Explain details about the indicated plugin
-    <plugin>                The plugin to explain
+    models                  List the available read models
+    explain                 Explain details about the indicated model
+    <model>                 The model to explain
 
 Parameter file example::
 
@@ -49,10 +49,9 @@ import string
 import docopt
 import numpy
 import vcf
-from mitty.lib import rpath
+import mitty.lib
 from mitty.lib.variation import *  # Yes, it's THAT important
 from mitty.lib.genome import FastaGenome
-from mitty.plugins import putil
 
 DNA_complement = string.maketrans('ATCGN', 'TAGCN')
 pos_null = numpy.empty((0,), dtype='u4')  # Convenient, used in apply_one_variant
@@ -78,9 +77,6 @@ def interpret_read_qname(qname, template_order):
 
 import logging
 logger = logging.getLogger(__name__)
-
-SEED_MAX = (1 << 32) - 1  # For each call of the JIT expander we pass a random seed.
-                          # We generate these seeds from the given master seed and
 
 
 #TODO: make this more elegant + move it to Cython?
@@ -275,7 +271,7 @@ def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_param
                                            block_len=block_len, over_lap_len=overlap_len)
       for this_idx, this_seq_block, this_c_seq_block, this_arr in vsg:
         tl = read_model.generate_reads(this_idx, this_seq_block, this_c_seq_block, this_arr,
-                                       read_model_data, seed_rng.randint(SEED_MAX))
+                                       read_model_data, seed_rng.randint(mitty.lib.SEED_MAX))
         # Note that we reseed the generator each time. Each chunk is assumed to be independent of the last
         package_reads(tl, this_arr)
         yield tl, chrom, cc
@@ -331,9 +327,7 @@ def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=Non
   Notes:
   We infer whether we have corrupted reads or not from whether we have a valid fastq_c_fp or not.
   """
-  assert 0 < master_seed < SEED_MAX
-  import time
-  t_start = time.time()
+  assert 0 < master_seed < mitty.lib.SEED_MAX
 
   model_params['generate_corrupted_reads'] = False if fastq_c_fp is None else True
   read_gen = reads_from_genome(ref=ref, g1=g1, chrom_list=chrom_list,
@@ -345,36 +339,39 @@ def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=Non
                         serial_no=serial_no)
     serial_no += len(template_list)
     logger.debug('Wrote {:d} templates'.format(serial_no))
-
-  t_end = time.time()
-  logger.debug('Generated and wrote {:d} templates in {:f} seconds'.format(serial_no, t_end - t_start))
+  return serial_no
 
 
-def print_plugin_list():
-  print('Available plugins')
-  for plugin in putil.list_all_read_plugins():
-    print(plugin)
+def print_model_list():
+  print('\nAvailable models\n----------------')
+  for name, mod_name in mitty.lib.discover_all_reads_plugins():
+    print('- {:s} ({:s})\n'.format(name, mod_name))
 
 
-def explain_plugin(plugin):
-  if plugin not in putil.list_all_read_plugins():
-    print('No such plugin')
-  else:
-    mod = putil.load_read_plugin(plugin)
+def explain_model(name):
+  try:
+    mod = mitty.lib.load_reads_plugin(name)
+  except ImportError:
+    print('No model named {:s}'.format(name))
+    return
+  try:
     print(mod._description)
+  except AttributeError:
+    print('No help for model "{:s}" available'.format(name))
   return
 
 
-if __name__ == "__main__":
+def cli():
+  """Entry point for scripts."""
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
   else:
     args = docopt.docopt(__doc__, version=__version__)
-  if args['plugins']:
-    print_plugin_list()
+  if args['models']:
+    print_model_list()
     exit(0)
   if args['explain']:
-    explain_plugin(args['<plugin>'])
+    explain_model(args['<model>'])
     exit(0)
 
   if args['-V']:
@@ -388,13 +385,22 @@ if __name__ == "__main__":
   base_dir = os.path.dirname(args['--pfile'])     # Other files will be with respect to this
   params = json.load(open(args['--pfile'], 'r'))
 
-  ref_genome = FastaGenome(seq_dir=rpath(base_dir, params['files']['genome']))
-  fp = open(rpath(base_dir, params['files']['output prefix']) + '.fq', 'w')
-  fp_c = open(rpath(base_dir, params['files']['output prefix']) + '_c.fq', 'w') if args['--corrupt'] else None
-  g1 = parse_vcf(vcf.Reader(filename=rpath(base_dir, params['files']['input vcf'])),
+  ref_genome = FastaGenome(seq_dir=mitty.lib.rpath(base_dir, params['files']['genome']))
+  fp = open(mitty.lib.rpath(base_dir, params['files']['output prefix']) + '.fq', 'w')
+  fp_c = open(mitty.lib.rpath(base_dir, params['files']['output prefix']) + '_c.fq', 'w') if args['--corrupt'] else None
+  g1 = parse_vcf(vcf.Reader(filename=mitty.lib.rpath(base_dir, params['files']['input vcf'])),
                  chrom_list=params['take reads from']) if params['files'].get('input vcf', None) else {}
-  read_model = putil.load_read_plugin(params['read_model'])
+  read_model = mitty.lib.load_reads_plugin(params['read_model'])
   model_params = params['model_params']
-  main(fp, fastq_c_fp=fp_c, ref=ref_genome, g1=g1, chrom_list=params['take reads from'],
+
+  import time
+  t_start = time.time()
+  serial_no = main(fp, fastq_c_fp=fp_c, ref=ref_genome, g1=g1, chrom_list=params['take reads from'],
        read_model=read_model, model_params=model_params, block_len=int(args['--block_len']),
        master_seed=int(params['rng']['master_seed']))
+  t_end = time.time()
+  logger.debug('Generated and wrote {:d} templates in {:f} seconds'.format(serial_no, t_end - t_start))
+
+
+if __name__ == "__main__":
+  cli()
