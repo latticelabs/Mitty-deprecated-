@@ -1,6 +1,6 @@
 import os
 import mitty.lib.variation
-#import mitty.lib.bam
+import mitty.lib.io
 from shutil import rmtree
 # These need to be available to the rest of the test suite
 source_tree_root = os.path.join(os.path.dirname(__file__))
@@ -20,7 +20,7 @@ def create_small_vcf():
       "2\t9\t.\tGTT\t.\t100\tPASS\t.\tGT\t1/0\n"
       "2\t13\t.\tGTT\tTTG\t100\tPASS\t.\tGT\t1/1\n"
     )
-  mitty.lib.variation.compress_and_index_vcf(small_vcf_name, small_vcf_name + '.gz')
+  mitty.lib.io.compress_and_index_vcf(small_vcf_name, small_vcf_name + '.gz')
 
 
 def create_fake_bam():

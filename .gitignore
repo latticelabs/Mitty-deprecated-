@@ -1,2 +1,12 @@
 *.pyc
 .DS_Store
+/.idea
+*.c
+*.so
+*.egg
+*.egg-info
+.eggs
+build
+.tox
+dist
+wheelhouse
