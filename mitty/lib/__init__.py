@@ -4,7 +4,7 @@ import pkg_resources
 
 SEED_MAX = (1 << 32) - 1  # Used for seeding rng
 VARIANT_PLUGIN_ENTRY_POINT = 'mitty.plugins.variants'
-READS_PLUGIN_ENTRY_POINT = 'mitty.plugins.variants'
+READS_PLUGIN_ENTRY_POINT = 'mitty.plugins.reads'
 
 
 def rpath(base_dir, this_path):
