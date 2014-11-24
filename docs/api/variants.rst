@@ -19,7 +19,7 @@ This distinction, unimportant when we are dealing with a single sample in isolat
 computation speed when we are dealing with large population simulations. Without this separation in implementation,
 each time we create a sample we would waste time and space creating identical copies of variants.
 
-Using the current implementation, a variant in a sample is one byte of metadata indicating which copy(ies) of the
+Using the current implementation, a variant in a sample is three bytes of metadata indicating which copy(ies) of the
 chromosome the variant is on, whether it is recessive and a fitness value. There is then a pointer to the actual (heavy)
 variant data with (POS, REF and ALT).
 
