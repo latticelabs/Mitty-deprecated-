@@ -28,7 +28,7 @@ setup(
       'scipy>=0.14.0',
       'docopt>=0.6.2',
       'pysam>=0.8.1',
-      'PyVCF>=0.7.0'
+      'PyVCF==0.7.0dev'
     ],
     cython_ext='mitty/lib/*.pyx'
 )
