@@ -19,11 +19,13 @@ def get_seeds(master_seed=1, size=1):
 
 
 def discover_all_variant_plugins():
-  return [(v.name, v.module_name) for v in pkg_resources.iter_entry_points(VARIANT_PLUGIN_ENTRY_POINT)]
+  return sorted([(v.name, v.module_name) for v in pkg_resources.iter_entry_points(VARIANT_PLUGIN_ENTRY_POINT)],
+                cmp=lambda x, y: cmp(x[0], y[0]))
 
 
 def discover_all_reads_plugins():
-  return [(v.name, v.module_name) for v in pkg_resources.iter_entry_points(READS_PLUGIN_ENTRY_POINT)]
+  return sorted([(v.name, v.module_name) for v in pkg_resources.iter_entry_points(READS_PLUGIN_ENTRY_POINT)],
+                cmp=lambda x, y: cmp(x[0], y[0]))
 
 
 def _load_plugin(name, plugin_entry_point):
