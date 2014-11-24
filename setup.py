@@ -18,12 +18,13 @@ setup(
       'console_scripts': ['denovo = mitty.denovo:cli', 'vcf2reads = mitty.vcf2reads:cli']
     },
     install_requires=[
+      'setuptools>=0.7',
       'cython-ext',
       'numpy>=1.9.0',
       'scipy>=0.14.0',
       'docopt>=0.6.2',
-      'pysam>=0.8.0',
-      'PyVCF'
+      'pysam>=0.8.1',
+      'PyVCF>=0.7.0'
     ],
     cython_ext='mitty/lib/*.pyx'
 )
