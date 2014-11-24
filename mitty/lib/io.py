@@ -1,4 +1,5 @@
 """Some utilities related to file formats, compressing and indexing."""
+from os.path import splitext
 import os
 import pysam
 from variation import *
