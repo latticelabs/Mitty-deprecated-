@@ -50,6 +50,7 @@ import docopt
 import numpy
 import vcf
 import mitty.lib
+import mitty.lib.io
 from mitty.lib.variation import *  # Yes, it's THAT important
 from mitty.lib.genome import FastaGenome
 
@@ -389,8 +390,9 @@ def cli():
   ref_genome = FastaGenome(seq_dir=mitty.lib.rpath(base_dir, params['files']['genome']))
   fp = open(mitty.lib.rpath(base_dir, params['files']['output prefix']) + '.fq', 'w')
   fp_c = open(mitty.lib.rpath(base_dir, params['files']['output prefix']) + '_c.fq', 'w') if args['--corrupt'] else None
-  g1 = parse_vcf(vcf.Reader(filename=mitty.lib.rpath(base_dir, params['files']['input vcf'])),
-                 chrom_list=params['take reads from']) if params['files'].get('input vcf', None) else {}
+  g1 = mitty.lib.io.parse_vcf(
+    vcf.Reader(filename=mitty.lib.rpath(base_dir, params['files']['input vcf'])), chrom_list=params['take reads from']) \
+      if params['files'].get('input vcf', None) else {}
   read_model = mitty.lib.load_reads_plugin(params['read_model'])
   model_params = params['model_params']
 
