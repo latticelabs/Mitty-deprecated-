@@ -73,7 +73,7 @@ def align(in_fastq, out_bam, seq_dir='', paired=False):
 
   ref = FastaGenome(seq_dir=seq_dir)
   bam_hdr = {'HD': {'VN': '1.4'},
-             'SQ': [{'LN': seq_len, 'SN': seq_id.split(' ')[0]} for seq_id, seq_len in ref.genome_header()]}
+             'SQ': [{'LN': seq_len, 'SN': seq_id.split(' ')[0]} for seq_id, seq_len, _ in ref.genome_header()]}
   #  Tablet and other viewers get confused by spaces in the seq_id. Losers
   fastq = pysam.Fastqfile(in_fastq)
   out_bamfile = pysam.Samfile(out_bam, 'wb', header=bam_hdr)
