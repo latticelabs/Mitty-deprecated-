@@ -21,7 +21,7 @@ __example_param_text__ = """
 """
 
 _description = """
-This is the stock SNP plugin. A typical parameter set resembles
+This is the stock delete plugin. A typical parameter set resembles
 """ + __example_param_text__
 
 _example_params = eval(__example_param_text__)
