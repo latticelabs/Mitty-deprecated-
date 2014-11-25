@@ -60,7 +60,7 @@ the description so I don't have to repeat myself::
 Typically, you will be distributing your plugin as a separate Python package. You need to register the package as a
 Mitty plugin by indicating an entry point in your ``setup.py`` script.
 
-Assuming that your module is named ``snp_plugin.py`` and the directory structure of your code is
+Assuming that your module is named ``snp_plugin.py`` and the directory structure of your code is::
 
     mitty_snp
          |--> snp_plugin.py

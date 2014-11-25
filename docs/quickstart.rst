@@ -23,15 +23,15 @@ Adding variants
 The example reference genome has four "chromosomes". Let's add SNPs to the first two. We will need the `denovo` program
 for this. Let's look into what kind of plugins we have available:
 
-.. command-output::  python ../mitty/denovo.py plugins
+.. command-output::  denovo models
 
 Ok, the `snp` plugin sounds promising, what kind of parameters does it need?
 
-.. command-output::  python ../mitty/denovo.py explain snp
+.. command-output::  denovo explain snp
 
 Ok, we also want a refresher on how to write the parameter file (and what the command line options are) for denovo:
 
-.. command-output::  python ../mitty/denovo.py
+.. command-output::  denovo
 
 From this we first create a parameter file, let's call it `snp.json`:
 
@@ -41,7 +41,7 @@ From this we first create a parameter file, let's call it `snp.json`:
 Let's run this command and create a new genome (*We only use the -v option to see what's going on*).
 
 .. command-output:: mkdir -p ../examples/complete/out
-.. command-output::  python ../mitty/denovo.py  --pfile=../examples/complete/snp.json -v
+.. command-output::  denovo  --pfile=../examples/complete/snp.json -v
 
 Let's take a peek at the produced vcf
 
@@ -53,15 +53,15 @@ Taking reads
 ------------
 Let's first figure out what kind of read models we have available to us.
 
-.. command-output::  python ../mitty/vcf2reads.py plugins
+.. command-output::  vcf2reads models
 
 `simple_illumina` sounds promising, what kind of parameter file does it need?
 
-.. command-output::  python ../mitty/vcf2reads.py explain simple_illumina
+.. command-output::  vcf2reads explain simple_illumina
 
 What parameters do we need to call `vcf2reads` and how do we structure the parameters file?
 
-.. command-output:: python ../mitty/vcf2reads.py
+.. command-output:: vcf2reads
 
 From this we first create a parameter file, let's call it `illumina_reads.json`:
 
@@ -70,14 +70,14 @@ From this we first create a parameter file, let's call it `illumina_reads.json`:
 
 Let's run this command and create some reads from the variant genome
 
-.. command-output::  python ../mitty/vcf2reads.py  --pfile=../examples/complete/illumina_reads.json -v
+.. command-output::  vcf2reads  --pfile=../examples/complete/illumina_reads.json -v
 
 
 Creating a cheat alignment
 --------------------------
 We can use `reads2bam.py` to create a cheat alignment ...
 
-.. command-output::  python ../mitty/reads2bam.py -p --fa_dir=../examples/data/ --fastq ../examples/complete/out/reads.fq --bam=../examples/complete/out/reads.bam -v
+.. command-output::  reads2bam -p --fa_dir=../examples/data/ --fastq ../examples/complete/out/reads.fq --bam=../examples/complete/out/reads.bam -v
 
 
 ... and view it using `samtools tview` (We, of course, need `samtools` installed for this to work)

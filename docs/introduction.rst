@@ -1,11 +1,11 @@
-Introduction
-============
+Overview
+++++++++
 
 .. include:: ../Readme.md
 
 
 Trivia
-------
+======
 Since you were dying to know: Mitty comes from James Thurber's `"The Secret Life of Walter Mitty"`_ one of my
 favourite pieces from one of my favourite authors. Though Wikipedia_ has a less favourable interpretation of what
 Walter Mitty stands for, I always thought that Thurber was celebrating the dreamer within each us who spices up the banal

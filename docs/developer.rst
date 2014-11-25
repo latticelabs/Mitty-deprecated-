@@ -4,8 +4,23 @@ Developer/Advanced user notes
 .. toctree::
     :maxdepth: 2
 
-    variants
-    genomes
+    dev/variants
+    dev/variant_plugins
+    dev/population
+
+
+Creating distributables
+=======================
+
+Handling PyVCF
+--------------
+The problem with PyVCF is that
+
+Under ``vcf/__init__.py`` change VERSION to 0.7.0.
+
+``pip wheel .`` copy this to the devpi server. Then require this in setup.py of Mitty
+
+
 
 
 

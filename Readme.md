@@ -37,28 +37,24 @@ The important components of Mitty are described as::
 Installation
 ============
 
-Mitty can be installed using pip like this:
+Mitty can be installed using pip like this::
 
-```
-pip install git+ssh://git@gitlab.sbgenomics.com:graphgenome/mitty.git#egg=mitty
-```
+    pip install git+ssh://git@gitlab.sbgenomics.com:graphgenome/mitty.git#egg=mitty
+
 
 This requires that you are connected to VPN, and that you have an SSH key setup on Gitlab.
 
 
 Testing
 =======
-You should have ```pip install nose``` previously. Then simply run
+You should have ``pip install nose`` previously. Then simply run ::
 
-```
-nosetests mitty
-```
+    nosetests mitty
 
 
 Developing
 ==========
 
-To develop on Mitty, simply clone the repository, and from the project root run:
-```
-pip install -e .
-```
+To develop on Mitty, simply clone the repository, and from the project root run ::
+
+    pip install -e .

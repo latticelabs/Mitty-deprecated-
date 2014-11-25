@@ -1,20 +1,6 @@
-Simulation of genomes
-=====================
-Chromosomes and Genomes
------------------------
-A chromosome is represented as a list of :ref:`variation_struct`. Genomes are stored as a dictionary with chromosome
-numbers (1,2,3...) as keys and lists of variants as values.
-
-
-Variant generators
-------------------
-:py:mod:`mitty.denovo`
-
-
-
-
 Population simulations
-----------------------
+======================
+
 Populations simulations start with a founder population. The founder population can be generated independently or
 incrementally. An independent founder population is equivalent to running ``denovo`` multiple times with a different
 random seed each time resulting in non-overlapping VCF files (any overlap will be due to chance). An incrementally
