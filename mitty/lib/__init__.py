@@ -29,9 +29,8 @@ def discover_all_reads_plugins():
 
 
 def _load_plugin(name, plugin_entry_point):
-  for v in pkg_resources.iter_entry_points(plugin_entry_point):
-    if v.name == name:
-      return v.load()
+  for v in pkg_resources.iter_entry_points(plugin_entry_point, name):
+    return v.load()
   raise ImportError('No plugin called "{:s}" has been registered.'.format(name))
 
 
