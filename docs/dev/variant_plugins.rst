@@ -1,3 +1,5 @@
+.. _how_to_write_variant_plugins:
+
 Writing variant plugins
 =======================
 A few example variant generators are found under ``plugins/variants``. Plugins are registered using the
