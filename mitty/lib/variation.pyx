@@ -2,6 +2,7 @@
 genomes (collections of variations). For a description of design choices and algorithms please see the developer
 documentation
 """
+
 # Types of het
 ABSENT = 0
 HOMOZYGOUS = 3
@@ -56,27 +57,27 @@ cdef class Variation:
       format(self.vd.POS, self.vd.stop, self.vd.REF, self.vd.ALT, GT[self.het], self.recessive, self.fitness)
 
 
-def copy_variant_sequence(c1):
-  """c1 - a sequence of variants that need to be copied over. Note that we always share the VariantData"""
+def copy_variant_sequence(list c1):
+  """copy_variant_sequence(list c1)
+  :param list c1: a sequence of variants that need to be copied over.
+  :rtype list: Copy of the variant list. Note that we always share the VariantData"""
   return [Variation(v1.vd, v1.het, v1.recessive, v1.fitness) for v1 in c1]
 
 
-cdef inline Variation copy_variant(v1):
+cdef inline Variation copy_variant(Variation v1):
   return Variation(v1.vd, v1.het, v1.recessive, v1.fitness)
 
 
-def merge_variants(c1, c2):
-  """
+def merge_variants(list c1, list c2):
+  """merge_variants(list c1, list c2)
   Given an existing chromosome (list of variants) merge a new list of variants into it in zipper fashion
 
-  Args:
-    c1 (variant list): The original variants
-    c2 (variant list): The proposed new variants
+  :param list c1: The original variants
+  :param list c2: The proposed new variants
+  :rtype list: The resultant variant list with collisions arbitrated
 
-  Returns:
-    c3 (variant list): The resultant variant list with collisions arbitrated
+  Algorithm::
 
-  Algorithm:
     o(x,y) = True if x and y overlap
            = False otherwise
     c1 = existing list of variants
@@ -89,6 +90,7 @@ def merge_variants(c1, c2):
                 else:
                   o(c3, c2) = True: c2++
                             = False: add(c2), c2++
+
   """
   return c_merge_variants(c1, c2)
 
