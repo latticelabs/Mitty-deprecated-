@@ -1,5 +1,6 @@
 """This generates insertions that consist of repeated copies of the same subsequence."""
 import numpy
+from mitty.lib.util import initialize_rngs
 import mitty.plugins.variants.util as util
 from mitty.lib.variation import new_variation
 import logging
@@ -38,7 +39,7 @@ def variant_generator(ref={},
   assert 0 <= p <= 1.0, "Probability out of range"
   assert 0 <= phet <= 1.0, "Probability out of range"
   logger.debug('Master seed: {:d}'.format(master_seed))
-  ins_loc_rng, ins_len_rng, base_sel_rng, het_rng, copy_rng = util.initialize_rngs(master_seed, 5)
+  ins_loc_rng, ins_len_rng, base_sel_rng, het_rng, copy_rng = initialize_rngs(master_seed, 5)
 
   for chrom in chromosome:
     ref_seq = ref[chrom]

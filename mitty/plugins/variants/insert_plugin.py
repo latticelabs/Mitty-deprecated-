@@ -3,6 +3,8 @@
 Note: This never generates a deletion at the first base of a sequence.
 
 """
+from mitty.lib.util import initialize_rngs
+
 __example_param_text = """
 {
   "chromosome": [1],
@@ -40,7 +42,7 @@ def variant_generator(ref={},
   assert 0 <= p <= 1.0, "Probability out of range"
   assert 0 <= phet <= 1.0, "Probability out of range"
   logger.debug('Master seed: {:d}'.format(master_seed))
-  ins_loc_rng, ins_len_rng, base_sel_rng, het_rng, copy_rng = util.initialize_rngs(master_seed, 5)
+  ins_loc_rng, ins_len_rng, base_sel_rng, het_rng, copy_rng = initialize_rngs(master_seed, 5)
 
   for chrom in chromosome:
     ref_seq = ref[chrom]

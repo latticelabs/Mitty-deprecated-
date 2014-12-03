@@ -1,5 +1,6 @@
 import numpy
 from numpy.testing import assert_array_equal
+from mitty.lib.util import place_poisson
 from mitty.plugins.variants import util
 
 
@@ -12,6 +13,6 @@ def place_poisson_test():
   correct_locs = correct_locs[:idx[0]]
 
   rng = numpy.random.RandomState(seed=1)
-  computed_locs = util.place_poisson(rng, p, end_p)
+  computed_locs = place_poisson(rng, p, end_p)
 
   assert_array_equal(correct_locs, computed_locs)

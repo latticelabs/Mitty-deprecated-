@@ -5,6 +5,7 @@ Note: This never generates a deletion at the first base of a sequence.
 """
 import logging
 from mitty.lib.variation import new_variation
+from mitty.lib.util import initialize_rngs, place_poisson
 import mitty.plugins.variants.util as util
 
 logger = logging.getLogger(__name__)
@@ -39,11 +40,11 @@ def variant_generator(ref={},
   assert 0 <= phet <= 1.0, "Probability out of range"
   assert 0 < del_len_lo <= del_len_hi, "Check deletion length values"
   logger.debug('Master seed: {:d}'.format(master_seed))
-  del_loc_rng, del_len_rng, het_rng, copy_rng = util.initialize_rngs(master_seed, 4)
+  del_loc_rng, del_len_rng, het_rng, copy_rng = initialize_rngs(master_seed, 4)
 
   for chrom in chromosome:
     ref_seq = ref[chrom]  # Very cheap operation
-    del_locs = util.place_poisson(del_loc_rng, p, len(ref_seq))
+    del_locs = place_poisson(del_loc_rng, p, len(ref_seq))
     del_lens = del_len_rng.randint(low=del_len_lo, high=del_len_hi+1, size=del_locs.size)
     het_type = util.het(del_locs.size, phet, het_rng, copy_rng)
 

@@ -1,4 +1,6 @@
 """This is the stock inversion generator."""
+from mitty.lib.util import initialize_rngs
+
 __explain__ = """
 Example parameter snippet:
 
@@ -48,7 +50,7 @@ def variant_generator(ref={},
       logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}'.
                  format(inv_loc_rng_seed, inv_len_rng_seed, het_rng_seed, copy_rng_seed))
 
-    inv_loc_rng, inv_len_rng, het_rng, copy_rng = util.initialize_rngs(inv_loc_rng_seed, inv_len_rng_seed, het_rng_seed, copy_rng_seed)
+    inv_loc_rng, inv_len_rng, het_rng, copy_rng = initialize_rngs(inv_loc_rng_seed, inv_len_rng_seed, het_rng_seed, copy_rng_seed)
     vg = variant_generator
     vg.inv_loc_rng, vg.inv_len_rng, vg.het_rng, vg.copy_rng = inv_loc_rng, inv_len_rng, het_rng, copy_rng
 

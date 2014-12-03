@@ -105,6 +105,12 @@ def get_variant_generator_list_from_model_list(mdl_list, ref, master_seed=1):
           for mdl, seed in zip(mdl_list, mitty.lib.get_seeds(master_seed, len(mdl_list)))]
 
 
+def create_variant_list_from_models(mdl_list, ref, master_seed=1):
+  """Given a model list, seed and ref return us a genome. Convenience wrapper function."""
+  return merge_variants_from_models(variant_generators=
+                                    get_variant_generator_list_from_model_list(mdl_list, ref, master_seed))
+
+
 def print_model_list():
   print('\nAvailable models\n----------------')
   for name, mod_name in mitty.lib.discover_all_variant_plugins():
