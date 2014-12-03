@@ -3,9 +3,7 @@ the plugin needs a _example_params() function that returns a complete parameter 
 from inspect import getmembers, isfunction
 from nose.plugins.skip import SkipTest
 from nose.tools import nottest
-import mitty.plugins.putil as putil
 import mitty.lib.genome as genome
-import glob
 import mitty.denovo
 from ... import *
 
