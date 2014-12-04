@@ -60,7 +60,7 @@ cdef class Variation:
 def copy_variant_sequence(list c1, idx=None, het=None):
   """copy_variant_sequence(list c1, idx, het)
   :param list c1: a sequence of variants that need to be copied over.
-  :rtype list: Copy of the variant list. Note that we always share the VariantData"""
+  :rtype generator: Generated copy of the variant list. Note that we always share the VariantData"""
   cdef Variation v1
   cdef int n
   if idx is None:
@@ -77,7 +77,8 @@ cdef inline Variation copy_variant(Variation v1):
 
 def merge_variants(list c1, list c2):
   """merge_variants(list c1, list c2)
-  Given an existing chromosome (list of variants) merge a new list of variants into it in zipper fashion
+  Given an existing chromosome (list of variants) merge a new list of variants into it in zipper fashion. c1 has
+  priority (collisions are resolved in favor of c1)
 
   :param list c1: The original variants
   :param list c2: The proposed new variants
@@ -152,3 +153,31 @@ cdef c_merge_variants(c1, c2):
       denovo = next(c2_iter, None)  # In either case, we need to advance denovo
 
   return c3
+
+
+def copy_missing_chromosomes(g1, g2):
+  """Copy any chromosomes found in g2 but not in g1 onto g1. g1 is changed in place
+
+  :param dict g1: genome
+  :param dict g2: genome
+  :returns: changes g1 in place"""
+  missing_chrom = set(g2.keys()) - set(g1.keys())
+  cdef int ch
+  for ch in missing_chrom:
+    g1[ch] = list(copy_variant_sequence(g2[ch]))
+
+
+def merge_genomes(g1={}, g2={}):
+  """Given two genomes run merge_variants(c1, c2) on each chromosome. g1 has priority. In the end copy any chromosomes
+  present in g2 but not in g1 into g1 (so that g1 is a superset of g2)
+
+  :param dict g1: genome
+  :param dict g2: genome
+  :returns: new genome
+  """
+  g3 = {}
+  for chrom, c2 in g2.iteritems():
+    g3[chrom] = merge_variants(g1.get(chrom, []), c2)
+  copy_missing_chromosomes(g3, g1)  # The previous loop merges all chr in c2.
+                                    # Now, we need to consider all chr in c1 but not in c2
+  return g3

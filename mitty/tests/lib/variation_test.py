@@ -128,3 +128,29 @@ def merge_test7():
 
   c2 = merge_variants(c1, dnv)
   assert_sequence_equal(c2, [cv1, cv2, dv3])
+
+
+def copy_missing_chromosomes_test():
+  """Copy missing chromosomes."""
+  c1 = [v10, v11] = [new_variation(1, 2, 'A', 'T', HOMOZYGOUS),
+                     new_variation(4, 5, 'C', 'A', HOMOZYGOUS)]
+  g1 = {1: c1}
+  c2 = [v20, c21] = [new_variation(3, 4, 'A', 'T', HOMOZYGOUS),
+                     new_variation(6, 7, 'C', 'A', HOMOZYGOUS)]
+  g2 = {2: c2}
+  copy_missing_chromosomes(g1, g2)
+  assert_sequence_equal(g1[1], c1)
+  assert_sequence_equal(g1[2], c2)
+
+
+def merge_genomes_test():
+  """Merge genomes."""
+  c1 = [v10, v11] = [new_variation(1, 2, 'A', 'T', HOMOZYGOUS),
+                     new_variation(4, 5, 'C', 'A', HOMOZYGOUS)]
+  g1 = {1: c1}
+  c2 = [v20, c21] = [new_variation(3, 4, 'A', 'T', HOMOZYGOUS),
+                     new_variation(6, 7, 'C', 'A', HOMOZYGOUS)]
+  g2 = {1: c1, 2: c2}
+  g3 = merge_genomes(g1, g2)
+  assert_sequence_equal(g3[1], c1)
+  assert_sequence_equal(g3[2], c2)
