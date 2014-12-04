@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 def split_multi_fasta_gz(fa_fname, dir_out):
   """Given a gzipped multi fa.gz file split it into separate files as used by mitty"""
   def write_it_out(d_out, ch, sid, seq):
+    logger.debug('Writing out {:s}'.format(sid))
     with open(os.path.join(d_out, 'chr{:d}.fa'.format(ch)), 'w') as fp_out:
       fp_out.write(sid + '\n')
       fp_out.writelines(seq)
