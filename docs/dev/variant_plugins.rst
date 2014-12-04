@@ -35,6 +35,9 @@ chromosome number the variants are for and the value should be the list of propo
 In this case we loop over each chromosome, sending out a list of variants each time we loop. It is perfectly legal to
 return variants on multiple chromosomes as well.
 
+**It is important that the returned variants are sorted in ascending order. If this violated then subsequent processing
+steps will fail.**
+
 In addition to the generator function the module should also expose:
 
 An example parameter string. This is used for the help as well as for the integration test the test suite can run
