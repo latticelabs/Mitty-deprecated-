@@ -36,8 +36,14 @@ cdef class Variation:
   def __cinit__(self, VariationData _vd, unsigned char het=HOMOZYGOUS, unsigned char rec=1, unsigned char fit=128):
     self.vd, self.het, self.recessive, self.fitness = _vd, het, rec, fit
 
+
+  # Need this for set to work (https://docs.python.org/2/reference/datamodel.html#object.__hash__)
+  def  __hash__(self):
+    return self.vd.POS ^ self.vd.REF.__hash__() ^ self.vd.ALT.__hash__()
+
+
   cpdef bint eq(self, Variation other):
-    # We don't consider fitness or recessiveness
+    # We don't consider zygosity, fitness or recessiveness
     return self.vd.POS == other.vd.POS and self.vd.stop == other.vd.stop and \
            self.vd.REF == other.vd.REF and self.vd.ALT == other.vd.ALT and \
            self.het == other.het
@@ -75,13 +81,13 @@ cdef inline Variation copy_variant(Variation v1):
   return Variation(v1.vd, v1.het, v1.recessive, v1.fitness)
 
 
-def merge_variants(list c1, list c2):
-  """merge_variants(list c1, list c2)
+def merge_variants(c1, c2):
+  """merge_variants(c1, c2)
   Given an existing chromosome (list of variants) merge a new list of variants into it in zipper fashion. c1 has
   priority (collisions are resolved in favor of c1)
 
-  :param list c1: The original variants
-  :param list c2: The proposed new variants
+  :param c1: The original variants (iterable)
+  :param c2: The proposed new variants (iterable)
   :rtype list: The resultant variant list with collisions arbitrated
 
   Algorithm::
