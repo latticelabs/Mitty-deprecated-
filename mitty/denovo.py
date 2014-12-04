@@ -63,17 +63,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def copy_missing_chromosomes(g1, g2):
-  """Copy any chromosomes found in g2 but not in g1 onto g1. g1 is changed in place
-
-  :param dict g1: genome
-  :param dict g2: genome
-  :returns: changes g1 in place"""
-  missing_chrom = set(g2.keys()) - set(g1.keys())
-  for ch in missing_chrom:
-    g1[ch] = copy_variant_sequence(g2[ch])
-
-
 def merge_variants_from_models(g1={}, variant_generators=[]):
   """Given an original genome add any variants that come off the variant_generator
 
