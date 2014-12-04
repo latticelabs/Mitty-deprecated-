@@ -124,6 +124,7 @@ def explain_model(name):
     print('No model named {:s}'.format(name))
     return
   try:
+    print('\n---- ' + name + ' (' + mod.__name__ + ') ----')
     print(mod._description)
   except AttributeError:
     print('No help for model "{:s}" available'.format(name))
