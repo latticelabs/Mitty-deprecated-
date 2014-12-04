@@ -2,6 +2,33 @@ from mitty.lib.variation import *
 from nose.tools import assert_sequence_equal, assert_sequence_equal
 
 
+def copy_test1():
+  """Copy list of variants with no modification"""
+  c1 = [v0, v1] = [new_variation(1, 4, 'CAA', 'C', HOMOZYGOUS), new_variation(13, 16, 'CTT', 'C', HOMOZYGOUS)]
+  c2 = copy_variant_sequence(c1)
+  assert_sequence_equal(c1, list(c2))
+
+
+def copy_test2():
+  """Copy list of variants selectively"""
+  c1 = [v0, v1, v2] = [new_variation(1, 4, 'CAA', 'C', HOMOZYGOUS),
+                       new_variation(7, 8, 'C', 'T', HOMOZYGOUS),
+                       new_variation(13, 16, 'CTT', 'C', HOMOZYGOUS)]
+  c2 = copy_variant_sequence(c1, idx=[0, 2])
+  assert_sequence_equal([v0, v2], list(c2))
+
+
+def copy_test3():
+  """Copy list of variants selectively with het"""
+  c1 = [v0, v1, v2] = [new_variation(1, 4, 'CAA', 'C', HOMOZYGOUS),
+                       new_variation(7, 8, 'C', 'T', HOMOZYGOUS),
+                       new_variation(13, 16, 'CTT', 'C', HOMOZYGOUS)]
+  c2 = copy_variant_sequence(c1, idx=[0, 2], het=[HET_01, HET_10])
+  v0d = Variation(v0.vd, het=HET_01)
+  v2d = Variation(v2.vd, het=HET_10)
+  assert_sequence_equal([v0d, v2d], list(c2))
+
+
 def merge_test1():
   """Merge variants, non overlapping, existing first (ED)."""
   c1 = [v10] = [new_variation(1, 4, 'CAA', 'C', HOMOZYGOUS)]

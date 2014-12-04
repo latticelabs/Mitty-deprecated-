@@ -33,8 +33,8 @@ cdef class Variation:
     unsigned char het, recessive, fitness
 
   # http://docs.cython.org/src/userguide/special_methods.html
-  def __cinit__(self, VariationData _vd, unsigned char _het, unsigned char _rec, unsigned char _fit):
-    self.vd, self.het, self.recessive, self.fitness = _vd, _het, _rec, _fit
+  def __cinit__(self, VariationData _vd, unsigned char het=HOMOZYGOUS, unsigned char rec=1, unsigned char fit=128):
+    self.vd, self.het, self.recessive, self.fitness = _vd, het, rec, fit
 
   cpdef bint eq(self, Variation other):
     # We don't consider fitness or recessiveness
@@ -57,11 +57,18 @@ cdef class Variation:
       format(self.vd.POS, self.vd.stop, self.vd.REF, self.vd.ALT, GT[self.het], self.recessive, self.fitness)
 
 
-def copy_variant_sequence(list c1):
-  """copy_variant_sequence(list c1)
+def copy_variant_sequence(list c1, idx=None, het=None):
+  """copy_variant_sequence(list c1, idx, het)
   :param list c1: a sequence of variants that need to be copied over.
   :rtype list: Copy of the variant list. Note that we always share the VariantData"""
-  return [Variation(v1.vd, v1.het, v1.recessive, v1.fitness) for v1 in c1]
+  cdef Variation v1
+  cdef int n
+  if idx is None:
+    return (Variation(v1.vd, v1.het, v1.recessive, v1.fitness) for v1 in c1)
+  elif het is None:
+    return (Variation(c1[n].vd, c1[n].het, c1[n].recessive, c1[n].fitness) for n in idx)
+  else:
+    return (Variation(c1[n].vd, het[n2], c1[n].recessive, c1[n].fitness) for n2, n in enumerate(idx))
 
 
 cdef inline Variation copy_variant(Variation v1):
