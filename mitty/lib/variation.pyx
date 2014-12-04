@@ -45,8 +45,7 @@ cdef class Variation:
   cpdef bint eq(self, Variation other):
     # We don't consider zygosity, fitness or recessiveness
     return self.vd.POS == other.vd.POS and self.vd.stop == other.vd.stop and \
-           self.vd.REF == other.vd.REF and self.vd.ALT == other.vd.ALT and \
-           self.het == other.het
+           self.vd.REF == other.vd.REF and self.vd.ALT == other.vd.ALT
 
   # http://docs.cython.org/src/userguide/special_methods.html
   def __richcmp__(self, Variation other, int op):
