@@ -20,7 +20,7 @@ setup(
                               'simple_illumina = mitty.plugins.reads.simple_illumina_plugin'],
       # Command line scripts
       'console_scripts': ['denovo = mitty.denovo:cli', 'vcf2reads = mitty.vcf2reads:cli',
-                          'splitta = mitty.cli.splitta:cli']
+                          'splitta = mitty.util.splitta:cli']
     },
     install_requires=[
       'setuptools>=0.7',
