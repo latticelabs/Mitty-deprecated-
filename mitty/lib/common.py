@@ -42,3 +42,7 @@ def load_variant_plugin(name):
 
 def load_reads_plugin(name):
   return _load_plugin(name, READS_PLUGIN_ENTRY_POINT)
+
+
+import string
+DNA_complement = string.maketrans('ATCGN', 'TAGCN')
