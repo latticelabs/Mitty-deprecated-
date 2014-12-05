@@ -19,8 +19,10 @@ setup(
       'mitty.plugins.reads': ['simple_sequential = mitty.plugins.reads.simple_sequential_plugin',
                               'simple_illumina = mitty.plugins.reads.simple_illumina_plugin'],
       # Command line scripts
-      'console_scripts': ['denovo = mitty.denovo:cli', 'vcf2reads = mitty.vcf2reads:cli',
-                          'splitta = mitty.util.splitta:cli']
+      'console_scripts': ['denovo = mitty.denovo:cli',
+                          'vcf2reads = mitty.vcf2reads:cli',
+                          'splitta = mitty.util.splitta:cli',
+                          'checkbam = mitty.benchmarking.checkbam:cli']
     },
     install_requires=[
       'setuptools>=0.7',

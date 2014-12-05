@@ -1,13 +1,9 @@
 #!python
 """Given a bam file containing simulated reads aligned by a tool produce diagnostic files for analyzing the aligner
-performance.
+performance:
   1. Produce a csv file containing data about the misaligned and unmapped reads with the following columns::
-
-    qname, correct_chrom, correct_pos, aligned_chrom, aligned_pos, mapping_qual, mate_is_unmapped, seq
-
+       qname, correct_chrom, correct_pos, aligned_chrom, aligned_pos, mapping_qual, mate_is_unmapped, seq
   2. Produce a .json file with various useful summary statistics
-
-
 
 Commandline::
 
@@ -82,7 +78,7 @@ def main(bam_fp, csv_fp, json_fp, window, block_size):
             json_fp, indent=2)
 
 
-if __name__ == "__main__":
+def cli():
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__doc__, ['-h'])
   else:
@@ -92,6 +88,9 @@ if __name__ == "__main__":
   logging.basicConfig(level=level)
 
   with pysam.Samfile(args['--inbam']) as bam_in_fp, \
-      open(args['--out_prefix'] + '.csv', 'w') as csv_out_fp, \
-      open(args['--out_prefix'] + '.json', 'w') as json_out_fp:
+       open(args['--out_prefix'] + '.csv', 'w') as csv_out_fp, \
+       open(args['--out_prefix'] + '.json', 'w') as json_out_fp:
     main(bam_fp=bam_in_fp, csv_fp=csv_out_fp, json_fp=json_out_fp, window=int(args['--window']), block_size=int(args['--block_size']))
+
+if __name__ == "__main__":
+  cli()
