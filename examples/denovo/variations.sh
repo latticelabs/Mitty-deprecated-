@@ -9,7 +9,7 @@ OUTDIR="Out/"
 mkdir -p ${OUTDIR}
 
 : Generate mutations
-python ${PROGDIR}/denovo.py  --pfile=snp.json -v
+python ${PROGDIR}/denovo.py  --pfile=variations.json -v
 
 : Show us the files
 cat ${OUTDIR}/test.vcf
