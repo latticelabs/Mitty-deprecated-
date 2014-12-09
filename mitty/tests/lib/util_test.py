@@ -1,7 +1,6 @@
 import numpy
 from numpy.testing import assert_array_equal
-from mitty.lib.util import place_poisson
-from mitty.plugins.variants import util
+import mitty.lib.util
 
 
 def place_poisson_test():
@@ -13,6 +12,54 @@ def place_poisson_test():
   correct_locs = correct_locs[:idx[0]]
 
   rng = numpy.random.RandomState(seed=1)
-  computed_locs = place_poisson(rng, p, end_p)
+  computed_locs = mitty.lib.util.place_poisson(rng, p, end_p)
 
   assert_array_equal(correct_locs, computed_locs)
+
+
+def sequence_gen_test():
+  """Markov chain sequence generator, normal termination."""
+  class MockRng:
+    def __init__(self, r):
+      self.rand_iter = (n for n in r)
+
+    def rand(self):
+      return self.rand_iter.next()
+
+  seq = 'A'
+  ins_pts = [0]
+  max_len = 10
+  #          A    C    G    T    x
+  t_mat = [[0.2, 0.2, 0.2, 0.2, 0.2],
+           [0.1, 0.1, 0.1, 0.1, 0.6],
+           [0.2, 0.1, 0.2, 0.1, 0.4],
+           [0.1, 0.2, 0.2, 0.1, 0.4]]
+  rng = MockRng([0.5, .72, .0001, .3, .147, .092, .186, .345, .397, 1.0])
+  #   0.5, .72,        .0001,  .3,  .147, .092, .186, .345, .397, 1.0
+  # A->G -> x(ignored)-> A->   C->   C->    A->   A->   C->   T->  (end)
+  seq_l = mitty.lib.util.markov_sequences(seq, ins_pts, max_len, t_mat, rng)
+  assert seq_l[0] == 'GACCAACT', seq_l[0]
+
+
+def sequence_gen_test2():
+  """Markov chain sequence generator, terminate when too long."""
+  class MockRng:
+    def __init__(self, r):
+      self.rand_iter = (n for n in r)
+
+    def rand(self):
+      return self.rand_iter.next()
+
+  seq = 'A'
+  ins_pts = [0]
+  max_len = 7
+  #          A    C    G    T    x
+  t_mat = [[0.2, 0.2, 0.2, 0.2, 0.2],
+           [0.1, 0.1, 0.1, 0.1, 0.6],
+           [0.2, 0.1, 0.2, 0.1, 0.4],
+           [0.1, 0.2, 0.2, 0.1, 0.4]]
+  rng = MockRng([0.5, .72, .0001, .3, .147, .092, .186, .345, .397, 0.55])
+  #   0.5, .72,        .0001,  .3,  .147, .092, .186, .345, .397,  0.55
+  # A->G -> x(ignored)-> A->   C->   C->    A->   A->   C-> (force end)
+  seq_l = mitty.lib.util.markov_sequences(seq, ins_pts, max_len, t_mat, rng)
+  assert seq_l[0] == 'GACCAAC', seq_l[0]
