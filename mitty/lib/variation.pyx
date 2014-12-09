@@ -3,7 +3,7 @@ genomes (collections of variations). For a description of design choices and alg
 documentation
 """
 
-# Types of het
+# Types of zygosity
 ABSENT = 0
 HOMOZYGOUS = 3
 HET_01 = 1
@@ -58,12 +58,12 @@ cdef class Variation:
 
   def __repr__(self):
     """Return a human friendly printed representation of the variant."""
-    return '(POS={0},stop={1},REF={2},ALT={3},het={4},r={5},fit={6})'.\
+    return '(POS={0},stop={1},REF={2},ALT={3},zygosity={4},r={5},fit={6})'.\
       format(self.vd.POS, self.vd.stop, self.vd.REF, self.vd.ALT, GT[self.het], self.recessive, self.fitness)
 
 
 def copy_variant_sequence(list c1, idx=None, het=None):
-  """copy_variant_sequence(list c1, idx, het)
+  """copy_variant_sequence(list c1, idx, zygosity)
   :param list c1: a sequence of variants that need to be copied over.
   :rtype generator: Generated copy of the variant list. Note that we always share the VariantData"""
   cdef Variation v1
