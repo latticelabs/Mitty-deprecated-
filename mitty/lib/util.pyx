@@ -55,6 +55,12 @@ def zygosity(num_vars=0, phet=0.5, het_rng=None, copy_rng=None):
   return het_type
 
 
+def add_p_end_to_t_mat(t_mat, p_end):
+  """Given p_end, incorporate it into the t_mat."""
+  p_end_1 = 1.0 - p_end
+  return [[p_end_1 * (t_mat[i][j]/sum(t_mat[i])) for j in range(4)] + [p_end] for i in range(4)]
+
+
 cdef markov_chain_sequence_gen(
     char first_letter, float ct_mat[4][5], unsigned char *seq, unsigned long int *l, unsigned long int max_len, rng):
   """sequence_gen(float t_mat[4][5], char *alphabet[4])
@@ -111,7 +117,7 @@ def markov_sequences(bytes seq, ins_pts, max_len, t_mat, rng):
   Return us insertions at the requested positions.
   :param (str) seq: the reference sequence. Needed for first letters of insertions
   :param (iterable) ins_pts: iterable of insertion points
-  :param (4x5 list) t_mat: transition matrix
+  :param (4x5 list) t_mat: transition matrix, including prob of termination
   :param rng: numpy random number generator object that has rand
   :returns a list of insertion sequences
   """
