@@ -35,7 +35,7 @@ Parameter file example::
       "size": 20,              # Size of population we want
       "p_ancestral": 0.001,    # Probability that a variant in the ancestral pool ends up in a sample
                                # in general p_ancestral * p_model = p_sample
-      "p_ancestral_het": 0.9,   # Probability that ancestral variant is het
+      "p_ancestral_het": 0.9,   # Probability that ancestral variant is zygosity
       "ancestral_models": [        # The list of ancestral variant models should come under this key
         {
           "snp": {                 # name of the model.
@@ -71,7 +71,6 @@ Parameter file example::
     }
   }
 """
-
 __version__ = '1.0.0'
 
 import docopt
@@ -81,7 +80,6 @@ import mitty.lib.util
 import mitty.lib.genome
 from mitty.lib.variation import copy_variant_sequence
 import mitty.denovo
-from mitty.plugins.variants.util import het as gen_het
 import logging
 logger = logging.getLogger(__name__)
 
@@ -107,9 +105,9 @@ def founder_population(ancestral_models=[], denovo_models=[], p_a=.95, p_het=0.5
   founder_pool = []
   for sn in range(pop_size):
     ancestor = {}
-    for k, v in ancestral_pool.iteritems():
+    for k, v in ancestral_pool.iteritems():  # Iterate through chromosomes
       ancestral_comb = mitty.lib.util.place_poisson(ancestral_comb_rng, p_a, size_of_ancestral_pool[k])
-      ancestral_het = gen_het(num_vars=ancestral_comb.size, phet=p_het, het_rng=ancestral_het_rng, copy_rng=ancestral_copy_rng)
+      ancestral_het = mitty.lib.util.zygosity(num_vars=ancestral_comb.size, phet=p_het, het_rng=ancestral_het_rng, copy_rng=ancestral_copy_rng)
       ancestor[k] = copy_variant_sequence(ancestral_pool[k], ancestral_comb, ancestral_het)
     denovo = mitty.denovo.create_variant_list_from_models(denovo_models, ref, denovo_model_seeds[sn])
     founder_pool += [mitty.lib.variation.merge_genomes(ancestor, denovo)]
@@ -173,11 +171,11 @@ if __name__ == "__main__":
 #   c2 = []
 #   for c, idx in zip(c1, crossover_idx):
 #     new_c = vcopy(c)  # Valid for no crossover or HOMOZYGOUS
-#     if idx == 1 and c.het != HOMOZYGOUS:
-#       if c.het == HET_10:
-#         new_c.het = HET_01
+#     if idx == 1 and c.zygosity != HOMOZYGOUS:
+#       if c.zygosity == HET_10:
+#         new_c.zygosity = HET_01
 #       else:
-#         new_c.het = HET_10
+#         new_c.zygosity = HET_10
 #     c2 += [new_c]
 #   return c2
 #
@@ -206,35 +204,35 @@ if __name__ == "__main__":
 #   l1, l2 = next(c1_iter, None), next(c2_iter, None)
 #   while l1 is not None and l2 is not None:
 #
-#     if (l1.het == HET_10 and which_copy[0] == 1) or (l1.het == HET_01 and which_copy[0] == 0):
+#     if (l1.zygosity == HET_10 and which_copy[0] == 1) or (l1.zygosity == HET_01 and which_copy[0] == 0):
 #       l1 = next(c1_iter, None)
 #       continue
 #
-#     if (l2.het == HET_10 and which_copy[1] == 1) or (l2.het == HET_01 and which_copy[1] == 0):
+#     if (l2.zygosity == HET_10 and which_copy[1] == 1) or (l2.zygosity == HET_01 and which_copy[1] == 0):
 #       l2 = next(c2_iter, None)
 #       continue
 #
-#     if vcopy(l1, het=HOMOZYGOUS) == vcopy(l2, het=HOMOZYGOUS):  # Homozygous
-#       c3 += [vcopy(l1, het=HOMOZYGOUS)]
+#     if vcopy(l1, zygosity=HOMOZYGOUS) == vcopy(l2, zygosity=HOMOZYGOUS):  # Homozygous
+#       c3 += [vcopy(l1, zygosity=HOMOZYGOUS)]
 #       l1, l2 = next(c1_iter, None), next(c2_iter, None)
 #       continue
 #
 #     if l1.POS <= l2.POS:
-#       c3 += [vcopy(l1, het=HET_10)]
+#       c3 += [vcopy(l1, zygosity=HET_10)]
 #       l1 = next(c1_iter, None)
 #     else:
-#       c3 += [vcopy(l2, het=HET_01)]
+#       c3 += [vcopy(l2, zygosity=HET_01)]
 #       l2 = next(c2_iter, None)
 #
 #   # Now pick up any slack
 #   while l1 is not None:
-#     if (l1.het == HOMOZYGOUS) or (l1.het == HET_10 and which_copy[0] == 0) or (l1.het == HET_01 and which_copy[0] == 1):
-#       c3 += [vcopy(l1, het=HET_10)]
+#     if (l1.zygosity == HOMOZYGOUS) or (l1.zygosity == HET_10 and which_copy[0] == 0) or (l1.zygosity == HET_01 and which_copy[0] == 1):
+#       c3 += [vcopy(l1, zygosity=HET_10)]
 #     l1 = next(c1_iter, None)
 #
 #   while l2 is not None:
-#     if (l2.het == HOMOZYGOUS) or (l2.het == HET_10 and which_copy[1] == 0) or (l2.het == HET_01 and which_copy[1] == 1):
-#       c3 += [vcopy(l2, het=HET_01)]
+#     if (l2.zygosity == HOMOZYGOUS) or (l2.zygosity == HET_10 and which_copy[1] == 0) or (l2.zygosity == HET_01 and which_copy[1] == 1):
+#       c3 += [vcopy(l2, zygosity=HET_01)]
 #     l2 = next(c2_iter, None)
 #
 #   return c3

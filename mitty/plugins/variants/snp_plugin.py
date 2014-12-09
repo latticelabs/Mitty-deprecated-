@@ -1,9 +1,8 @@
 """This is the stock SNP plugin. It uses four independent RNGs to locate SNPs along a reference sequence, assign each
 SNP a zygosity and assign an ALT base.
 """
-from mitty.lib.util import initialize_rngs, place_poisson
-import mitty.plugins.variants.util as util
 from mitty.lib.variation import new_variation
+import mitty.lib.util as mutil
 import logging
 logger = logging.getLogger(__name__)
 
@@ -42,12 +41,12 @@ def variant_generator(ref={},
   assert 0 <= p <= 1.0, "Probability out of range"
   assert 0 <= phet <= 1.0, "Probability out of range"
   logger.debug('Master seed: {:d}'.format(master_seed))
-  base_loc_rng, base_sub_rng, het_rng, copy_rng = initialize_rngs(master_seed, 4)
+  base_loc_rng, base_sub_rng, het_rng, copy_rng = mutil.initialize_rngs(master_seed, 4)
 
   for chrom in chromosome:
     ref_chrom = ref[chrom]
-    snp_locs = place_poisson(base_loc_rng, p, len(ref_chrom))
-    het_type = util.het(snp_locs.size, phet, het_rng, copy_rng)
+    snp_locs = mutil.place_poisson(base_loc_rng, p, len(ref_chrom))
+    het_type = mutil.zygosity(snp_locs.size, phet, het_rng, copy_rng)
     base_subs = base_sub_rng.randint(3, size=snp_locs.size)
 
     yield {chrom: [new_variation(pos + 1, pos + 2, ref_chrom[pos], base_sub_dict[ref_chrom[pos]][bs], het)

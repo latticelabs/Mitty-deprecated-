@@ -320,12 +320,12 @@ def founder_population_test2():
 #   hot_spots = {1: numpy.array([[1, 1, .5]]), 2: numpy.array([[7, 1, .5]])}
 #   rngs = get_rngs(1)
 #
-#   assert [{1: [Variation(POS=1, stop=2, REF='C', ALT='CAA', het=HOMOZYGOUS)],
-#            2: [Variation(POS=7, stop=8, REF='G', ALT='T', het=HET_10),
-#                Variation(POS=17, stop=18, REF='G', ALT='T', het=HET_01)]},
-#           {1: [Variation(POS=1, stop=2, REF='C', ALT='CAA', het=HET_10)],
-#            2: [Variation(POS=7, stop=8, REF='G', ALT='T', het=HET_01),
-#                Variation(POS=17, stop=18, REF='G', ALT='T', het=HET_10)]}] == spawn(g1, g2, hot_spots, rngs)
+#   assert [{1: [Variation(POS=1, stop=2, REF='C', ALT='CAA', zygosity=HOMOZYGOUS)],
+#            2: [Variation(POS=7, stop=8, REF='G', ALT='T', zygosity=HET_10),
+#                Variation(POS=17, stop=18, REF='G', ALT='T', zygosity=HET_01)]},
+#           {1: [Variation(POS=1, stop=2, REF='C', ALT='CAA', zygosity=HET_10)],
+#            2: [Variation(POS=7, stop=8, REF='G', ALT='T', zygosity=HET_01),
+#                Variation(POS=17, stop=18, REF='G', ALT='T', zygosity=HET_10)]}] == spawn(g1, g2, hot_spots, rngs)
 #
 #
 # @nottest
@@ -362,16 +362,16 @@ def founder_population_test2():
 #   models = denovo.load_variant_models(params_json['ss_variant_models'])
 #   for m in models: reset_model(m)
 #   ch = spawn(g1, g2, hot_spots, rngs, 2, ref, models)
-#   correct_ch = [{1: [Variation(POS=1,stop=2,REF='C',ALT='CAA',het=HOMOZYGOUS),
-#                      Variation(POS=7,stop=8,REF='T',ALT='A',het=HET_10),
-#                      Variation(POS=9,stop=10,REF='A',ALT='G',het=HET_01)],
-#                  2: [Variation(POS=7,stop=8,REF='G',ALT='T',het=HET_10),
-#                      Variation(POS=17,stop=18,REF='G',ALT='T',het=HET_01)]},
-#                 {1: [Variation(POS=1,stop=2,REF='C',ALT='CAA',het=HET_10),
-#                      Variation(POS=7,stop=8,REF='T',ALT='G',het=HET_10),
-#                      Variation(POS=16,stop=17,REF='T',ALT='A',het=HOMOZYGOUS)],
-#                  2: [Variation(POS=7,stop=8,REF='G',ALT='T',het=HET_01),
-#                      Variation(POS=17,stop=18,REF='G',ALT='T',het=HET_10)]}]
+#   correct_ch = [{1: [Variation(POS=1,stop=2,REF='C',ALT='CAA',zygosity=HOMOZYGOUS),
+#                      Variation(POS=7,stop=8,REF='T',ALT='A',zygosity=HET_10),
+#                      Variation(POS=9,stop=10,REF='A',ALT='G',zygosity=HET_01)],
+#                  2: [Variation(POS=7,stop=8,REF='G',ALT='T',zygosity=HET_10),
+#                      Variation(POS=17,stop=18,REF='G',ALT='T',zygosity=HET_01)]},
+#                 {1: [Variation(POS=1,stop=2,REF='C',ALT='CAA',zygosity=HET_10),
+#                      Variation(POS=7,stop=8,REF='T',ALT='G',zygosity=HET_10),
+#                      Variation(POS=16,stop=17,REF='T',ALT='A',zygosity=HOMOZYGOUS)],
+#                  2: [Variation(POS=7,stop=8,REF='G',ALT='T',zygosity=HET_01),
+#                      Variation(POS=17,stop=18,REF='G',ALT='T',zygosity=HET_10)]}]
 #   assert_equal(correct_ch, ch)
 #
 #
@@ -420,7 +420,7 @@ def founder_population_test2():
 #
 #   pop = de_novo_population(ref, models, size=2)
 #   assert pop[0][1][0].POS == 16, pop
-#   assert pop[1][2][1].het == HOMOZYGOUS
+#   assert pop[1][2][1].zygosity == HOMOZYGOUS
 #
 #
 # @nottest

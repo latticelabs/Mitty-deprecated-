@@ -1,6 +1,4 @@
 """This is the stock inversion generator."""
-from mitty.lib.util import initialize_rngs
-
 __explain__ = """
 Example parameter snippet:
 
@@ -20,7 +18,7 @@ Example parameter snippet:
 import numpy
 import logging
 import string
-import mitty.plugins.variants.util as util
+import mitty.lib.util as mutil
 from mitty.lib.variation import new_variation
 
 logger = logging.getLogger(__name__)
@@ -50,7 +48,7 @@ def variant_generator(ref={},
       logger.debug('Used master seed to generate seeds {:d}, {:d}, {:d}, {:d}'.
                  format(inv_loc_rng_seed, inv_len_rng_seed, het_rng_seed, copy_rng_seed))
 
-    inv_loc_rng, inv_len_rng, het_rng, copy_rng = initialize_rngs(inv_loc_rng_seed, inv_len_rng_seed, het_rng_seed, copy_rng_seed)
+    inv_loc_rng, inv_len_rng, het_rng, copy_rng = mutil.initialize_rngs(inv_loc_rng_seed, inv_len_rng_seed, het_rng_seed, copy_rng_seed)
     vg = variant_generator
     vg.inv_loc_rng, vg.inv_len_rng, vg.het_rng, vg.copy_rng = inv_loc_rng, inv_len_rng, het_rng, copy_rng
 
@@ -58,7 +56,7 @@ def variant_generator(ref={},
     ref_seq = ref[chrom]
     inv_locs, = numpy.nonzero(inv_loc_rng.rand(len(ref_seq)) < p)
     inv_lens = inv_len_rng.randint(low=inv_len_lo, high=inv_len_hi+1, size=inv_locs.size)
-    het_type = util.het(inv_locs.size, phet, het_rng, copy_rng)
+    het_type = het(inv_locs.size, phet, het_rng, copy_rng)
 
 
     yield {chrom:[new_variation(pos + 1, pos + 1+inv_len, ref_seq[pos:pos + inv_len],

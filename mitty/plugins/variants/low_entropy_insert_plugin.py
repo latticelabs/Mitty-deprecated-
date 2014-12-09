@@ -1,7 +1,6 @@
 """This generates insertions that consist of repeated copies of the same subsequence."""
 import numpy
-from mitty.lib.util import initialize_rngs
-import mitty.plugins.variants.util as util
+import mitty.lib.util
 from mitty.lib.variation import new_variation
 import logging
 logger = logging.getLogger(__name__)
@@ -39,14 +38,14 @@ def variant_generator(ref={},
   assert 0 <= p <= 1.0, "Probability out of range"
   assert 0 <= phet <= 1.0, "Probability out of range"
   logger.debug('Master seed: {:d}'.format(master_seed))
-  ins_loc_rng, ins_len_rng, base_sel_rng, het_rng, copy_rng = initialize_rngs(master_seed, 5)
+  ins_loc_rng, ins_len_rng, base_sel_rng, het_rng, copy_rng = mitty.lib.util.initialize_rngs(master_seed, 5)
 
   for chrom in chromosome:
     ref_seq = ref[chrom]
     ins_locs, = numpy.nonzero(ins_loc_rng.rand(len(ref_seq)) < p)
     if ins_locs.size == 0: continue  # No variants here
     ins_lens = ins_len_rng.randint(low=ins_len_lo, high=ins_len_hi+1, size=ins_locs.size)
-    het_type = util.het(ins_locs.size, phet, het_rng, copy_rng)
+    het_type = mitty.lib.util.zygosity(ins_locs.size, phet, het_rng, copy_rng)
 
     yield {chrom:[new_variation(pos + 1, pos + 2, ref_seq[pos], ref_seq[pos] +
            _repeat_sequence(ins_len, sub_seq_len, base_sel_rng), het)

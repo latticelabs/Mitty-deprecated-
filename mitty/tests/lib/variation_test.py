@@ -19,7 +19,7 @@ def copy_test2():
 
 
 def copy_test3():
-  """Copy list of variants selectively with het"""
+  """Copy list of variants selectively with zygosity"""
   c1 = [v0, v1, v2] = [new_variation(1, 4, 'CAA', 'C', HOMOZYGOUS),
                        new_variation(7, 8, 'C', 'T', HOMOZYGOUS),
                        new_variation(13, 16, 'CTT', 'C', HOMOZYGOUS)]
