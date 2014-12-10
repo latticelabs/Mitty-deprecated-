@@ -24,11 +24,11 @@ chromosome number the variants are for and the value should be the list of propo
   for chrom in chromosome:
     ref_chrom = ref[chrom]
     snp_locs = util.place_poisson(base_loc_rng, p, len(ref_chrom))
-    het_type = util.het(snp_locs.size, phet, het_rng, copy_rng)
+    het_type = util.zygosity(snp_locs.size, phet, het_rng, copy_rng)
     base_subs = base_sub_rng.randint(3, size=snp_locs.size)
 
-    yield {chrom: [new_variation(pos + 1, pos + 2, ref_chrom[pos], base_sub_dict[ref_chrom[pos]][bs], het)
-                   for pos, bs, het in zip(snp_locs, base_subs, het_type) if ref_chrom[pos] != 'N']}
+    yield {chrom: [new_variation(pos + 1, pos + 2, ref_chrom[pos], base_sub_dict[ref_chrom[pos]][bs], zygosity)
+                   for pos, bs, zygosity in zip(snp_locs, base_subs, het_type) if ref_chrom[pos] != 'N']}
     # +1 because VCF files are 1 indexed
     #alts will be 0 if ref is not one of ACTG
 
@@ -40,8 +40,7 @@ steps will fail.**
 
 In addition to the generator function the module should also expose:
 
-An example parameter string. This is used for the help as well as for the integration test the test suite can run
-automatically on all discovered plugins::
+* An example parameter string. This is used for the help as well as for the integration test that the test suite runs on all discovered plugins::
 
     __example_param_text = """
     {
@@ -51,14 +50,13 @@ automatically on all discovered plugins::
     }
     """
 
-A description text that is printed when the model is described::
+* A description text that is printed when the model is described::
 
     _description = """
     This is the stock SNP plugin. A typical parameter set resembles
     """ + __example_param_text
 
-A dictionary that is passed to the integration test as an example parameter set. I usually use the same string as for
-the description so I don't have to repeat myself::
+* A dictionary that is passed to the integration test as an example parameter set. I usually use the same string as for the description so I don't have to repeat myself::
 
     _example_params = eval(__example_param_text)
 
@@ -76,8 +74,8 @@ Your ``setup.py`` script would indicate the entry point as::
     entry_points = {'mitty.plugins.variants': ['mysnp = mitty_snp.snp_plugin']}
 
 Users would call this model by the name ``mysnp`` in their parameter files. Python currently allows you to add duplicate
-entry point names. Be aware that, though this plugin will be listed, the plugin that was installed first will be the
-one that is used
+entry point names. If names are duplicated, though the plugin will be found on the list of available plugins, in the
+simulations, the plugin with the same name that was installed first will be the one that is used.
 
 A complete ``setup.py`` would look like::
 
@@ -92,4 +90,3 @@ A complete ``setup.py`` would look like::
         packages=find_packages(include=['mitty_snp']),
         entry_points = {'mitty.plugins.variants': ['mysnp = mitty_snp.snp_plugin']}
     )
-
