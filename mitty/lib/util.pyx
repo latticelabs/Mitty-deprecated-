@@ -3,23 +3,23 @@ from mitty.lib import SEED_MAX
 from mitty.lib.variation import HOMOZYGOUS, HET_10, HET_01
 
 
-def initialize_rngs(master_seed, n_rngs=4):
+def initialize_rngs(unsigned long master_seed, int n_rngs=4):
   """Return n_rngs initialized from the master_seed"""
   return [numpy.random.RandomState(seed=seed)
           for seed in numpy.random.RandomState(seed=master_seed).randint(SEED_MAX, size=n_rngs)]
 
 
-def place_poisson(rng, p, end_x):
+def place_poisson(rng, float p, unsigned long end_x):
   """Given a random number generator, a probability and an end point, generate poisson distributed events. For short
   end_p this may, by chance, generate fewer locations that normal"""
   if p == 0.0:
     return numpy.array([])
-  est_block_size = end_x * p * 1.2
-  these_locs = rng.poisson(lam=1./p, size=est_block_size).cumsum()
+  est_block_size = <unsigned long>(<float>end_x * p * 1.2)
+  these_locs = rng.geometric(p=p, size=est_block_size).cumsum()
   return these_locs[:numpy.searchsorted(these_locs, end_x)]
 
 
-def zygosity(num_vars=0, phet=0.5, het_rng=None, copy_rng=None):
+def zygosity(int num_vars=0, float phet=0.5, het_rng=None, copy_rng=None):
   """This function determines heterozygosity of variants.
 
   Parameters
@@ -99,6 +99,7 @@ def base_subs(bytes seq, sub_pts, t_mat, rng):
     ct_mat[ob][2] += ct_mat[ob][1]
 
   r = rng.rand(len(sub_pts))
+  cdef unsigned long q
   return [<bytes> sub_base(s[sub_pts[q]], sub_mat, ct_mat, r[q]) for q in range(len(sub_pts))]
 
 
