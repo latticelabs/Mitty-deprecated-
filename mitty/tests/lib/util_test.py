@@ -18,6 +18,28 @@ def place_poisson_test():
   assert_array_equal(correct_locs, computed_locs)
 
 
+def base_subs_test():
+  """Base substitution."""
+  class MockRng:
+    def __init__(self, r):
+      self.r = r
+
+    def rand(self, n):
+      return self.r[:n]
+
+  seq = 'ACGT'
+  sub_pts = [0, 1, 2, 3]
+  t_mat = [[0.0, 0.3, 0.3, 0.3],
+           [0.3, 0.0, 0.3, 0.3],
+           [0.3, 0.3, 0.0, 0.3],
+           [0.3, 0.3, 0.3, 0.0]]
+  rng = MockRng([0.5, 0.5, 0.5, 0.5])
+  # -> G G C C
+
+  base_subbed = mitty.lib.util.base_subs(seq, sub_pts, t_mat, rng)
+  assert ['G', 'G', 'C', 'C'] == base_subbed, base_subbed
+
+
 def add_p_end_to_t_mat_test():
   """Adding p_end to t_mat."""
   t_mat = [[0.25, 0.25, 0.25, 0.25],

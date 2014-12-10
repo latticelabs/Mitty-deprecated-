@@ -55,6 +55,53 @@ def zygosity(num_vars=0, phet=0.5, het_rng=None, copy_rng=None):
   return het_type
 
 
+cdef unsigned char sub_base(unsigned char orig_base, unsigned char sub_mat[85][3], float ct_mat[85][3], float r):
+  # sub_matrix
+  #          0  1  2
+  # A (65)   C  G  T
+  # C (67)   A  G  T
+  # G (71)   A  C  T
+  # T (84)   A  C  G
+
+  cdef:
+    unsigned char i
+  for i in range(3):
+    if r < ct_mat[orig_base][i]:
+      break
+  return sub_mat[orig_base][i]
+
+
+def base_subs(bytes seq, sub_pts, t_mat, rng):
+  """
+  t_mat ->
+     A C G T
+  A  . x x x
+  C  x . x x
+  G  x x . x
+  T  x x x .
+  """
+  cdef:
+    char *s = seq
+    unsigned char i, j, ob, sb
+    unsigned char sub_mat[85][3]
+    float ct_mat[85][3]
+
+  # Create the ct_mat from the basic t_mat
+  for i, ob in enumerate([65, 67, 71, 84]):
+    jj = 0
+    for j, sb in enumerate([65, 67, 71, 84]):
+      if i == j: continue
+      ct_mat[ob][jj] = t_mat[i][j]  # First pass, compact the matrix
+      sub_mat[ob][jj] = sb  #
+      jj += 1
+    # Second pass, do cumulative probabilities
+    ct_mat[ob][1] += ct_mat[ob][0]
+    ct_mat[ob][2] += ct_mat[ob][1]
+
+  r = rng.rand(len(sub_pts))
+  return [<bytes> sub_base(s[sub_pts[q]], sub_mat, ct_mat, r[q]) for q in range(len(sub_pts))]
+
+
 def add_p_end_to_t_mat(t_mat, p_end):
   """Given p_end, incorporate it into the t_mat."""
   p_end_1 = 1.0 - p_end
