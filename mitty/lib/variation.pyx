@@ -9,7 +9,7 @@ HOMOZYGOUS = 3
 HET_01 = 1
 HET_10 = 2
 #       00     01     10     11
-GT = ['0/0', '0/1', '1/0', '1/1']  # This needs to match rev 3 definitions
+GT = ['0|0', '0|1', '1|0', '1|1']  # This needs to match rev 3 definitions
 
 
 cdef class VariationData:
