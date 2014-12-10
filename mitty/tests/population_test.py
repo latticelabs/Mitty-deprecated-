@@ -58,58 +58,6 @@ def founder_population_test():
     assert set(pop[n][2]) - set(pool[2]) == set()
 
 
-def founder_population_test2():
-  """Generating large enough founder population to cover all ancestral variants"""
-  ancestor_models_json = [
-    {
-      "snp": {
-         "chromosome": [1],
-         "phet": 0.0,  # This is ignored for ancestors
-         "p": 0.01,
-      }
-    },
-    {
-      "snp": {
-         "chromosome": [2],
-         "phet": 0.0,  # ignored for ancestors
-         "p": 0.1,
-      }
-    }
-  ]
-
-  denovo_models_json = [
-    {
-      "snp": {
-         "chromosome": [1],
-         "phet": 0.0,  # This is ignored for ancestors
-         "p": 0.001,
-      }
-    },
-    {
-      "snp": {
-         "chromosome": [2],
-         "phet": 0.0,  # ignored for ancestors
-         "p": 0.01,
-      }
-    }
-  ]
-
-  ancestral_models = mitty.denovo.load_variant_model_list(ancestor_models_json)
-  denovo_models = mitty.denovo.load_variant_model_list(denovo_models_json)
-  ref = FastaGenome(seq_dir=example_fasta_genome, persist=True)
-
-  pop_size = 20
-  pop, pool = founder_population(ancestral_models=ancestral_models,
-                                 denovo_models=denovo_models,
-                                 p_a=.95, p_het=0.5, ref=ref, pop_size=pop_size, master_seed=1)
-
-  s = set()
-  for p in pop:
-    s = s.union(p[1])
-  assert set(pool[1]) - s == set()
-
-
-
 # @nottest
 # def chrom_crossover_test():
 #   c1 = [

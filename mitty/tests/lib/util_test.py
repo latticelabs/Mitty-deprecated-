@@ -8,7 +8,7 @@ def place_poisson_test():
   rng = numpy.random.RandomState(seed=1)
   p = .01
   end_p = 10000
-  correct_locs = rng.poisson(lam=1./p, size=end_p).cumsum()
+  correct_locs = rng.geometric(p=p, size=end_p).cumsum()
   idx, = numpy.nonzero(correct_locs >= end_p)
   correct_locs = correct_locs[:idx[0]]
 
