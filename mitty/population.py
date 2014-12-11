@@ -35,7 +35,7 @@ Parameter file example::
       "size": 20,              # Size of population we want
       "p_ancestral": 0.001,    # Probability that a variant in the ancestral pool ends up in a sample
                                # in general p_ancestral * p_model = p_sample
-      "p_ancestral_het": 0.9,   # Probability that ancestral variant is zygosity
+      "p_ancestral_het": 0.9,   # Probability that ancestral variant is het
       "ancestral_models": [        # The list of ancestral variant models should come under this key
         {
           "snp": {                 # name of the model.
