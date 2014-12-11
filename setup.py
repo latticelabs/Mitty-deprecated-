@@ -22,6 +22,7 @@ setup(
       # Command line scripts
       'console_scripts': ['denovo = mitty.denovo:cli',
                           'vcf2reads = mitty.vcf2reads:cli',
+                          'reads2bam = mitty.reads2bam:cli',
                           'splitta = mitty.util.splitta:cli',
                           'checkbam = mitty.benchmarking.checkbam:cli']
     },
