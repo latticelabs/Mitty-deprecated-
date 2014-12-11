@@ -19,18 +19,24 @@ can be used from that platform to generate simulated data.
 The important components of Mitty are described as::
 
     Reference Genome  + denovo.py      -->  .vcf file
-        random mutations of various kinds representing a "sample"
-    
+        mutations of various kinds representing a single sample
+  
+
     Reference Genome  + population.py  -->  lot of .vcf files
-        a "population"
+        a founder population of genomes
+      
+
+    Reference Genome + founder population  + generations.py  -->  lot of .vcf files, lineage files
+        multiple generations created by sexual reproduction
+      
       
     .vcf file + vcf2reads.py           -->   .fastq file
         perfect and corrupted reads from "sample"
     
     .fastq file + reads2bam.py         -->   .bam file
         perfect alignment of "sample" reads to original reference
-
-
+    
+    
     .bam file + checkbam.py            -->  diagnostic files
         Allows us to check the quality of our alignments
 
