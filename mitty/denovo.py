@@ -1,6 +1,6 @@
 #!python
-"""This module implements functions to add denovo variants to a genome. When run as a script it will produce a VCF
-file simulating a "sample".
+"""This module implements functions to add denovo variants to a genome.
+When run as a script it will produce a VCF file simulating a "sample".
 
 Commandline::
 
@@ -14,7 +14,7 @@ Commandline::
     -v                      Dump detailed logger messages
     models                  List the available denovo models
     explain                 Explain details about the indicated plugin
-    <model_name>            The model to explain. If none, explains the parameter file format
+    <model_name>            The model to explain.
 
 
 Parameter file example::
@@ -138,7 +138,8 @@ def cli():  # pragma: no cover
     print_model_list()
     exit(0)
   if cmd_args['explain']:
-    explain_model(cmd_args['<model_name>'])
+    if '<model_name>' in cmd_args:
+      explain_model(cmd_args['<model_name>'])
     exit(0)
 
   level = logging.DEBUG if cmd_args['-v'] else logging.WARNING
