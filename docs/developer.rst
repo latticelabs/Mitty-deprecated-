@@ -9,6 +9,8 @@ Developer/Advanced user notes
     dev/denovo
     dev/population
     dev/reads
+    dev/mitty
+
 
 
 Creating distributables
@@ -242,7 +244,7 @@ bitarray with ctypes class for Variation::
             7    0.003    0.000    0.003    0.000 {method 'sub' of '_sre.SRE_Pattern' objects}
        114/42    0.003    0.000    0.007    0.000 sre_parse.py:379(_parse)
             1    0.002    0.002    0.003    0.003 hermite.py:59(<module>)
-            1    0.002    0.002    0.007    0.007 util.py:11(het)
+            1    0.002    0.002    0.007    0.007 util.py:11(zygosity)
             1    0.002    0.002    0.003    0.003 laguerre.py:59(<module>)
 
 
@@ -251,7 +253,7 @@ mutate.py
 ---------
 Internally, Mitty stores each variant as a group of operations
 
-(type, het, footprint)
+(type, zygosity, footprint)
 ()
 
 
@@ -263,7 +265,7 @@ as follows:
 
    _ type name
   /
-(type, het, footprint, )
+(type, zygosity, footprint, )
         \            \
          \            \_ list of variant description tuples
           \

@@ -18,10 +18,13 @@ Our plan is as follows:
 *For this exercise we won't use the human chromosome but rather some test data included with the Mitty source
 distribution in the `examples` directory. The commands for the entire example is available under `examples/complete`*
 
+Note that Mitty expects each chromosome file to be stored in a separate fasta file with no newlines (Please see
+:ref:`ref-genome`).
+
 Adding variants
 ---------------
 The example reference genome has four "chromosomes". Let's add SNPs to the first two. We will need the `denovo` program
-for this. Let's look into what kind of plugins we have available:
+for this. Let's look into what kind of models we have available:
 
 .. command-output::  denovo models
 
@@ -47,7 +50,8 @@ Let's take a peek at the produced vcf
 
 .. command-output:: cat ../examples/complete/out/snp.vcf
 
-Things seem to have run satisfactorily, now let's generate a bag of reads from this genome.
+Things seem to have run satisfactorily. Note that we produce phased VCF files and we also use the notation 1|0 since we
+have complete knowledge of the phasing. (Please see :ref:`var-genome`). Now let's generate a bag of reads from this genome.
 
 Taking reads
 ------------
@@ -73,23 +77,24 @@ Let's run this command and create some reads from the variant genome
 .. command-output::  vcf2reads  --pfile=../examples/complete/illumina_reads.json -v
 
 
-Creating a cheat alignment
---------------------------
-We can use `reads2bam.py` to create a cheat alignment ...
+..
+    Creating a cheat alignment
+    --------------------------
+    We can use `reads2bam.py` to create a cheat alignment ...
 
-.. command-output::  reads2bam -p --fa_dir=../examples/data/ --fastq ../examples/complete/out/reads.fq --bam=../examples/complete/out/reads.bam -v
+    .. command-output::  reads2bam -p --fa_dir=../examples/data/ --fastq ../examples/complete/out/reads.fq --bam=../examples/complete/out/reads.bam -v
 
 
-... and view it using `samtools tview` (We, of course, need `samtools` installed for this to work)
+    ... and view it using `samtools tview` (We, of course, need `samtools` installed for this to work)
 
-.. command-output::  samtools tview -d T -p "gi|4630864|dbj|AB026117.1|:9920" ../examples/complete/out/reads.bam ../examples/data/chimera.fa.gz
+    .. command-output::  samtools tview -d T -p "gi|4630864|dbj|AB026117.1|:9920" ../examples/complete/out/reads.bam ../examples/data/chimera.fa.gz
 
-We can see one of the SNPs we put in!
+    We can see one of the SNPs we put in!
 
 
 Creating an alignment
 ---------------------
-We can now use bwa to generate the alignment instead (make sure you have generated the index for the reference):
+We can now use bwa to align the simulated reads (make sure you have generated the index for the reference):
 
 .. command-output::  bwa mem -t 8 -p ../examples/data/chimera.fa.gz  ../examples/complete/out/reads.fq > ../examples/complete/out/test.sam
     :shell:
@@ -101,9 +106,11 @@ We can now use bwa to generate the alignment instead (make sure you have generat
 .. command-output:: samtools index ../examples/complete/out/test.bam
 
 
-And again check the alignment
+And teh check the alignment
 
-.. command-output::  samtools tview -d T -p "gi|4630864|dbj|AB026117.1|:9920" ../examples/complete/out/test.bam ../examples/data/chimera.fa.gz
+.. command-output::  samtools tview -d T -p "gi|4630864|dbj|AB026117.1|:6950" ../examples/complete/out/test.bam ../examples/data/chimera.fa.gz
+
+We can see one of the SNPs we put in!
 
 
 Assessing alignment accuracy
@@ -122,9 +129,7 @@ and this is the ``.csv`` file with details of how the reads were misaligned
 .. command-output:: head -n 10 ../examples/complete/out/misalign.csv
 
 
-
-
-TODO: Quick-start II
+Quick-start II
 ==============
 
 We figured out how to create a variant sample and then take reads from it. Now we will learn how to run population

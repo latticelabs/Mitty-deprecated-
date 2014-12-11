@@ -1,12 +1,21 @@
 Files and conventions
 =====================
 
+.. _ref-genome:
+
 Reference genome
 ----------------
 Mitty expects the reference genome to be stored as a set of .fasta files under a common directory. Mitty requires each
 .fasta file to contain just two lines. The first line is the sequence id and the second line is the sequence itself.
-Mitty requires any lower case letters (sometimes used to indicate repeats) to uppercase. See ``examples/data``. A
-command line script ``splitta`` is provided that will do this for you.
+Mitty requires any lower case letters (sometimes used to indicate repeats) to be converted to uppercase.
+See ``examples/data``. A command line script ``splitta`` is provided that will take a gzipped multi-fasta fasta file
+- such as `hg38`_ from the USC ftp server - and split it into separate, appropriately named, unzipped files under a common
+directory.
+
+.. _hg38: ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
+
+
+.. _var-genome:
 
 Variant genome
 --------------
@@ -18,8 +27,8 @@ strict:
 * The REF must contain at least one reference base.
   Violating this rule will cause off-by-one errors in special cases (see developer docs)
 * There is only one sample per file.
-* Their phasing information (GT, genotype column) is exact: 1/0 means having a variant on copy 0 of the chromosome and 0/1 means having a variant on copy 1 of the chromosome.
-* There are no GT=0/0 entries
+* Their phasing information (GT, genotype column) is exact: `1|0` means having a variant on copy 0 of the chromosome and `0|1` means having a variant on copy 1 of the chromosome.
+* There are no GT=`0|0` entries
 
 Reads
 -----
