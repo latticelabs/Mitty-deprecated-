@@ -6,7 +6,7 @@ Reference genome
 Mitty expects the reference genome to be stored as a set of .fasta files under a common directory. Mitty requires each
 .fasta file to contain just two lines. The first line is the sequence id and the second line is the sequence itself.
 Mitty requires any lower case letters (sometimes used to indicate repeats) to uppercase. See ``examples/data``. A
-command line script ``mitty_fasta_splitter`` is provided that will do this for you.
+command line script ``splitta`` is provided that will do this for you.
 
 Variant genome
 --------------
