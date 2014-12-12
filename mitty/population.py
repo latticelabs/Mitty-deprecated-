@@ -86,6 +86,7 @@ logger = logging.getLogger(__name__)
 
 def founder_population(ancestral_models=[], denovo_models=[], p_a=.95, p_het=0.5, ref=None, pop_size=10, master_seed=1):
   """Generate a founder population
+
   :param list ancestral_models: List of ancestral models. This will only be run once, so make sure the pool of variants is dense enough for your population size.
   :param list denovo_models: List of denovo models. Will be called for each sample in the population
   :param float p_a: the probability that any given variant from the ancestral pool will end up in a sample

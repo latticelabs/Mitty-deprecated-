@@ -44,10 +44,11 @@ Generate a perfect alignment: ``reads2bam``
 
 Analyze an alignment: ``checkbam``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: mitty.checkbam
+.. automodule:: mitty.benchmarking.checkbam
 
 
-Miscellaneous code not used directly by mitty
----------------------------------------------
-(.. automodule:: mitty.util.complexity)
-(.. automodule:: mitty.util.high_entropy_seq)
+..
+    Miscellaneous code not used directly by mitty
+    ---------------------------------------------
+    (.. automodule:: mitty.util.complexity)
+    (.. automodule:: mitty.util.high_entropy_seq)

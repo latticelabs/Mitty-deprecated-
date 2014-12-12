@@ -204,8 +204,6 @@ latex_elements = {
 
   # Additional stuff for the LaTeX preamble.
   #'preamble': '',
-
-  #  'fncychap': '\\usepackage[Rejne]{fncychap}'
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
