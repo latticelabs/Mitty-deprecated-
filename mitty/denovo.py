@@ -22,14 +22,14 @@ Parameter file example::
   {
     "files": {
       "genome": "/Users/kghose/Data/hg38",  # An absolute path is left as is
-      "output vcf": "Out/test.vcf.gz"          # a relative path is taken relative to the location of the *script*
+      "output vcf": "Out/test.vcf.gz"       # a relative path is taken relative to the location of the *script*
     },
     "rng": {
       "master_seed": 1
     },
     "denovo_variant_models": [    # The list of variant models should come under this key
       {
-        "snp": {                 # name of the model. To get a list of plugin names type "denovo plugins"
+        "snp": {                 # name of the model. To get a list of plugin names type "denovo models"
           "chromosome": [1, 2],  # Chromosomes to apply this model to
           "phet": 0.5,           # Parameters required by the model
           "p": 0.01,
