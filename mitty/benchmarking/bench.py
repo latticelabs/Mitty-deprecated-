@@ -31,7 +31,7 @@ def exclude_this(exclude_list, fid, tid, tpid):
   """
   for excl in exclude_list:
     # if excl(.) is None it should match anything
-    if (excl(0) or fid) == fid and (excl(1) or tid) == tid and (excl(2) or tpid) == tpid:
+    if (excl[0] or fid) == fid and (excl[1] or tid) == tid and (excl[2] or tpid) == tpid:
       return True
   return False
 
