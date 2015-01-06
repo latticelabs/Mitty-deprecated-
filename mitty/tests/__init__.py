@@ -47,12 +47,6 @@ def create_fake_bam():
   #mitty.lib.bam.sort_and_index_bam(fake_bam_name)
 
 
-def reset_model(mod):
-  vg = mod['model'].variant_generator
-  for d in vg.__dict__.keys():
-    delattr(vg, d)
-
-
 def setup_package():
   """In order to speed up tests we create a complete chain of data starting from a whole genome file and ending at
   simulated reads. If this function fails it means Mitty is broken in some fundamental way."""
