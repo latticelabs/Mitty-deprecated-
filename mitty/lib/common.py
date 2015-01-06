@@ -7,6 +7,7 @@ import pkg_resources
 SEED_MAX = (1 << 32) - 1  # Used for seeding rng
 VARIANT_PLUGIN_ENTRY_POINT = 'mitty.plugins.variants'
 READS_PLUGIN_ENTRY_POINT = 'mitty.plugins.reads'
+BENCHMARK_TOOL_WRAPPER_ENTRY_POINT = 'mitty.benchmark.toolwrapper'
 
 
 def rpath(base_dir, this_path):
@@ -42,6 +43,12 @@ def load_variant_plugin(name):
 
 def load_reads_plugin(name):
   return _load_plugin(name, READS_PLUGIN_ENTRY_POINT)
+
+
+def load_benchmark_tool_wrapper(name):
+  for v in pkg_resources.iter_entry_points(BENCHMARK_TOOL_WRAPPER_ENTRY_POINT, name):
+    return v.load()
+  raise ImportError('No tool wrapper called "{:s}" has been registered.'.format(name))
 
 
 import string
