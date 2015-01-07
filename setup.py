@@ -6,7 +6,7 @@ setup(
     description='Simulator for genomic data',
     author='Seven Bridges Genomics',
     author_email='kaushik.ghose@sbgenomics.com',
-    packages=find_packages(include=['mitty*'], exclude=['mitty.util']),
+    packages=find_packages(include=['mitty*']),
     include_package_data=True,
     package_data={'mitty': ['tests/data/*']},
     entry_points={
