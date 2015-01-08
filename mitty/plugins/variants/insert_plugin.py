@@ -44,6 +44,11 @@ def variant_generator(ref={},
   assert 0 <= p <= 1.0, "Probability out of range"
   assert 0 <= phet <= 1.0, "Probability out of range"
   assert 0 <= p_end <= 1.0, "Probability out of range"
+  if t_mat is None:
+    t_mat = [[0.32654629, 0.17292732, 0.24524503, 0.25528135],
+             [0.3489394, 0.25942695, 0.04942584, 0.3422078],
+             [0.28778188, 0.21087004, 0.25963262, 0.24171546],
+             [0.21644706, 0.20588717, 0.24978216, 0.32788362]]
 
   logger.debug('Master seed: {:d}'.format(master_seed))
   ins_loc_rng, ins_markov_rng, het_rng, copy_rng = mutil.initialize_rngs(master_seed, 4)
