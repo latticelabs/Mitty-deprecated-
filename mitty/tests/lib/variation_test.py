@@ -1,5 +1,5 @@
 from mitty.lib.variation import *
-from nose.tools import assert_sequence_equal, assert_sequence_equal
+from nose.tools import assert_sequence_equal
 
 
 def copy_test1():
@@ -128,6 +128,20 @@ def merge_test7():
 
   c2 = merge_variants(c1, dnv)
   assert_sequence_equal(c2, [cv1, cv2, dv3])
+
+
+def merge_test8():
+  """Tricky variant merge case that led to out of order result"""
+  n = new_variation
+  cv1 = n(26, 27, 'A', 'ACA', HET_01)
+  c1 = [cv1]
+
+  dv1 = n(24, 25, 'A', 'C', HET_01)
+  dv2 = n(25, 26, 'C', 'A', HET_10)
+  dnv = [dv1, dv2]
+
+  c2 = merge_variants(c1, dnv)
+  assert_sequence_equal(c2, [dv2, cv1], c2)
 
 
 def copy_missing_chromosomes_test():

@@ -112,52 +112,45 @@ cdef inline bint overlap(Variation x, Variation y):
   # Returns true if the footprints of the variations overlap.
   if x is None or y is None: return False
   if y.vd.POS - 1 <= x.vd.POS <= y.vd.stop + 1 or y.vd.POS - 1 <= x.vd.stop <= y.vd.stop + 1 or \
-                  x.vd.POS <= y.vd.POS - 1 <= y.vd.stop + 1 <= x.vd.stop:
-    # Potential overlap
-    if x.het == y.het or x.het == HOMOZYGOUS or y.het == HOMOZYGOUS:
+                  x.vd.POS <= y.vd.POS - 1 <= y.vd.stop + 1 <= x.vd.stop:  # Potential overlap
+    if x.het == y.het or x.het == HOMOZYGOUS or y.het == HOMOZYGOUS:  # Definite overlap
       return True
   return False
 
 
 #TODO: refactor this to be faster? Not use copy_variant? Code can be made cleaner
-cdef c_merge_variants(c1, c2):
-  c1_iter, c2_iter = c1.__iter__(), c2.__iter__()
-  c3 = []  #deque()
-  append = c3.append
+cdef c_merge_variants(list c1, list c2):
+  cdef:
+    int n1_max = len(c1), n2_max = len(c2)
+    int n1 = 0, n2 = 0, n3 = 0
+  c3 = [None] * (n1_max + n2_max)  # This is the maximum size of c3
+  while n1 < n1_max and n2 < n2_max:
+    if overlap(c1[n1], c2[n2]): # This will collide. Advance c2 and redo. Fixes case for merge_test8
+      n2 += 1
+    else:  # No collision
+      if c1[n1].vd.POS <= c2[n2].vd.POS:  # Zip-in c1 as it comes before c2
+        c3[n3] = copy_variant(c1[n1])
+        n1 += 1
+        n3 += 1
+      else:  # Zip-in c2 as it comes before next c1
+        if n3==0 or not overlap(c3[n3 - 1], c2[n2]):
+          c3[n3] = copy_variant(c2[n2])
+          n3 += 1
+        n2 +=1  # Need to advance c2 anyway
 
-  last_new = None
-  # Try the zipper
-  cdef Variation existing = next(c1_iter, None), denovo = next(c2_iter, None)
-  while existing is not None and denovo is not None:
-    if overlap(existing, denovo):
-      # This will collide, resolve in favor of existing and advance both lists
-      append(copy_variant(existing))
-      last_new = existing
-      existing, denovo = next(c1_iter, None), next(c2_iter, None)
-    else:
-      if existing.vd.POS <= denovo.vd.POS:  # Zip-in existing
-        append(copy_variant(existing))
-        last_new = existing
-        existing = next(c1_iter, None)
-      else:  # Can we zip-in denovo?
-        if not overlap(last_new, denovo):
-          append(copy_variant(denovo))
-          last_new = denovo
-        denovo = next(c2_iter, None)  # In either case, we need to advance denovo
+  # Now copy over slack
+  while n1 < n1_max:  # Smooth sailing, just copy over the rest of the original (c1)
+    c3[n3] = copy_variant(c1[n1])
+    n1 += 1
+    n3 += 1
 
-  # Now pick up any slack
-  if existing is not None:  # Smooth sailing, just copy over the rest
-    while existing is not None:
-      append(copy_variant(existing))
-      existing = next(c1_iter, None)
-  else:  # Need to test for overlap before copying over
-    while denovo is not None:
-      if not overlap(last_new, denovo):
-        append(copy_variant(denovo))
-        last_new = denovo
-      denovo = next(c2_iter, None)  # In either case, we need to advance denovo
+  while n2 < n2_max:  # Need to test each new (c2) for clashes with itself
+    if n3==0 or not overlap(c3[n3 - 1], c2[n2]):
+      c3[n3] = copy_variant(c2[n2])
+      n3 += 1
+    n2 += 1  # Need to advance c2 anyway
 
-  return c3
+  return c3[:n3]
 
 
 def copy_missing_chromosomes(g1, g2):
