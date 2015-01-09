@@ -109,7 +109,7 @@ def founder_population(ancestral_models=[], denovo_models=[], p_a=.95, p_het=0.5
     for k, v in ancestral_pool.iteritems():  # Iterate through chromosomes
       ancestral_comb = mitty.lib.util.place_poisson(ancestral_comb_rng, p_a, size_of_ancestral_pool[k])
       ancestral_het = mitty.lib.util.zygosity(num_vars=ancestral_comb.size, phet=p_het, het_rng=ancestral_het_rng, copy_rng=ancestral_copy_rng)
-      ancestor[k] = copy_variant_sequence(ancestral_pool[k], ancestral_comb, ancestral_het)
+      ancestor[k] = list(copy_variant_sequence(ancestral_pool[k], ancestral_comb, ancestral_het))
     denovo = mitty.denovo.create_variant_list_from_models(denovo_models, ref, denovo_model_seeds[sn])
     founder_pool += [mitty.lib.variation.merge_genomes(ancestor, denovo)]
 
