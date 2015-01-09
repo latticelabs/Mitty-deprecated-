@@ -68,7 +68,7 @@ def vcf_save(g1, fp, sample_name='sample'):
   )
   # Write lines
   wr = fp.write
-  for chrom, variants in g1.iteritems():  # We don't bother sorting - we do that when we bgzip and index it
+  for chrom, variants in g1.iteritems():
     ch = str(chrom)
     for var in variants:
       # In the VCF file no REF or ALT is indicated by a .
