@@ -82,6 +82,9 @@ def extract_reads(seqs, t_start, read_order, tl, rl):
   """Refactored out random variables to make testing easier."""
   template_list = []
   for n in range(t_start.size):
+    if 'N' in seqs[0][t_start[n]:t_start[n]+rl] or 'N' in seqs[1][t_start[n]+tl-rl:t_start[n]+tl]:
+      continue
+
     r1 = Read(perfect_seq=seqs[0][t_start[n]:t_start[n]+rl], _start_idx=t_start[n], _stop_idx=t_start[n]+rl, direction='>')
     r2 = Read(perfect_seq=seqs[1][t_start[n]+tl-rl:t_start[n]+tl][::-1], _start_idx=t_start[n]+tl-rl, _stop_idx=t_start[n]+tl, direction='<')
     if read_order[n]:
