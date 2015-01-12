@@ -20,10 +20,12 @@ Commandline::
 __version__ = '1.0.0'
 import docopt
 import pysam
+
 from mitty.lib import DNA_complement
 from mitty.lib.genome import FastaGenome
 from mitty.lib.io import sort_and_index_bam
 from mitty.vcf2reads import interpret_read_qname
+
 import logging
 logger = logging.getLogger(__name__)
 

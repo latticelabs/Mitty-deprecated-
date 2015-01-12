@@ -1,7 +1,9 @@
-from mitty.lib.variation import *
-from mitty.denovo import *
-from mitty.tests import *
-from nose.tools import eq_, ok_, assert_sequence_equal
+from nose.tools import assert_sequence_equal
+
+from mitty.lib.genome import FastaGenome
+from mitty.lib.variation import Variation, new_variation, HOMOZYGOUS, HET_10, HET_01
+from mitty.denovo import merge_variants_from_models, load_variant_model_list, main
+from mitty.tests import example_fasta_genome
 
 
 def add_variant_model_to_genome_test1():

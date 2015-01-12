@@ -1,12 +1,8 @@
-import numpy.testing
-from nose.tools import raises, assert_equal
-from nose.tools import nottest
-
-from mitty.tests import *
-from mitty.lib.variation import Variation
 from mitty.lib.genome import FastaGenome
-from mitty.population import *
-import mitty.denovo as denovo
+from mitty.population import founder_population
+import mitty.denovo
+
+from mitty.tests import example_fasta_genome
 
 
 def founder_population_test():

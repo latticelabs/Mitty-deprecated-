@@ -74,12 +74,14 @@ Parameter file example::
 __version__ = '1.0.0'
 
 import docopt
+
 import mitty.lib
 import mitty.lib.io
 import mitty.lib.util
 import mitty.lib.genome
 from mitty.lib.variation import copy_variant_sequence
 import mitty.denovo
+
 import logging
 logger = logging.getLogger(__name__)
 

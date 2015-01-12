@@ -55,10 +55,12 @@ __version__ = '1.0.0'
 
 import json
 import docopt
+
 import mitty.lib
 import mitty.lib.io
 from mitty.lib.genome import FastaGenome
-from mitty.lib.variation import *
+from mitty.lib.variation import copy_missing_chromosomes, merge_variants
+
 import logging
 logger = logging.getLogger(__name__)
 

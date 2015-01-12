@@ -44,11 +44,13 @@ Parameter file example::
 """
 __version__ = '1.0.0'
 import os
+
 import json
 import string
 import docopt
 import numpy
 import vcf
+
 import mitty.lib
 import mitty.lib.io
 from mitty.lib.variation import *  # Yes, it's THAT important
