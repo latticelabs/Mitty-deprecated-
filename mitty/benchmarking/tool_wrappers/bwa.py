@@ -19,7 +19,12 @@ class Tool(bench.Tool):
     except subprocess.CalledProcessError:
       raise RuntimeError('No samtools in path')
 
-    bench.Tool.__init__(self, *args, **kwargs)
+    super(Tool, self).__init__(*args, **kwargs)
+
+  def add_parameter_set(self, name, param_dict):
+    if name in self.parameter_set:
+      raise RuntimeError('This tool parameter set ({:s}) has already been added'.format(str(name)))
+    self.parameter_set[name] = param_dict
 
   def setup_files(self, file_set):
     """The only thing we need to do is make sure that we have indexed the reference."""
@@ -30,13 +35,15 @@ class Tool(bench.Tool):
     logger.debug('Creating bwa index')
     subprocess.call(['bwa', 'index', file_set['reference_file']])
 
-  def benchmark(self, file_set, tool_p_set, out_prefix):
+  def run(self, file_set, tool_p_set_name, out_prefix):
+    if tool_p_set_name not in self.parameter_set:
+      raise RuntimeError('No such tool parameter set ({:s})'.format(tool_p_set_name))
     FNULL = open(os.devnull, 'w')  # Shut up BWA
     temp_sam_fp, temp_sam_fname = tempfile.mkstemp(suffix='.sam')
     # TODO: use the unix time command
     logger.debug('Aligning using bwa. Output to {:s}'.format(temp_sam_fname))
     subprocess.call(['bwa', 'mem', '-v 1'] +
-                    ['{:s} {:s}'.format(k, v) for k, v in tool_p_set.iteritems()] +
+                    ['{:s} {:s}'.format(k, str(v)) for k, v in self.parameter_set[tool_p_set_name].iteritems()] +
                     ['-p' if file_set['fastq_is_paired_interleaved'] else '',
                      file_set['reference_file'], file_set['fastq']], stdout=temp_sam_fp, stderr=FNULL)
     os.close(temp_sam_fp)
