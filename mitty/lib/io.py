@@ -1,8 +1,11 @@
 """Some utilities related to file formats, compressing and indexing."""
 from os.path import splitext
 import os
+
 import pysam
-from variation import *
+
+from mitty.lib.variation import HET_01, HET_10, HOMOZYGOUS, ABSENT, new_variation, GT
+
 import logging
 logger = logging.getLogger(__name__)
 
