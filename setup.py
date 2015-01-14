@@ -1,5 +1,9 @@
-from setuptools import setup, find_packages
-from Cython.Build import cythonize
+from setuptools import setup, find_packages, Extension
+import glob
+from os.path import basename, splitext
+
+names = [(basename(fname)[:-4], fname[:-4]) for fname in glob.glob('mitty/lib/*.pyx')]
+extensions = [Extension(name[0], [name[1] + '.c']) for name in names]
 
 setup(
     name='mitty',
@@ -29,12 +33,11 @@ setup(
     },
     install_requires=[
       'setuptools>=0.7',
-      'cython>=0.21.0',
       'numpy>=1.8.0',
       'docopt>=0.6.2',
       'pysam>=0.8.1',
       'PyVCF==0.7.0dev'
     ],
-    ext_modules=cythonize('mitty/lib/*.pyx'),
+    ext_modules=extensions,
     test_suite='nose.collector'
 )
