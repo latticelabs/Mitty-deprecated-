@@ -36,5 +36,6 @@ setup(
       'pysam>=0.8.1',
       'PyVCF==0.7.0dev'
     ],
-    ext_modules=cythonize('mitty/lib/*.pyx')
+    ext_modules=cythonize('mitty/lib/*.pyx'),
+    test_suite='nose.collector'
 )
