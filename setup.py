@@ -29,8 +29,7 @@ setup(
     install_requires=[
       'setuptools>=0.7',
       'cython-ext',
-      'numpy>=1.9.0',
-      'scipy>=0.14.0',
+      'numpy>=1.8.0',   # Downgraded version to avoid problems with Linux installs
       'docopt>=0.6.2',
       'pysam>=0.8.1',
       'PyVCF==0.7.0dev'
