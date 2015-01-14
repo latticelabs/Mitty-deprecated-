@@ -1,9 +1,6 @@
 from setuptools import setup, find_packages, Extension
-import glob
-from os.path import basename, splitext
-
-names = [(basename(fname)[:-4], fname[:-4]) for fname in glob.glob('mitty/lib/*.pyx')]
-extensions = [Extension(name[0], [name[1] + '.c']) for name in names]
+extensions = [Extension('mitty.lib.util', sources=['mitty/lib/util.c']),
+              Extension('mitty.lib.variation', sources=['mitty/lib/variation.c'])]
 
 setup(
     name='mitty',
