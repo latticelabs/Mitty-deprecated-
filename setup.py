@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+from Cython.Build import cythonize
 
 setup(
     name='mitty',
@@ -28,12 +29,12 @@ setup(
     },
     install_requires=[
       'setuptools>=0.7',
-      'cython-ext',
+      'cython>=0.21.0',
       'numpy>=1.9.0',
       'scipy>=0.14.0',
       'docopt>=0.6.2',
       'pysam>=0.8.1',
       'PyVCF==0.7.0dev'
     ],
-    cython_ext='mitty/lib/*.pyx'
+    ext_modules=cythonize('mitty/lib/*.pyx')
 )
