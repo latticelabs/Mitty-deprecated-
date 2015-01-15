@@ -30,7 +30,7 @@ def check_plugin_integration(args):
 def integration_test_all_found_plugins():
   """Integration test on automatically found mutation plugin"""
   for name, module in mitty.lib.discover_all_variant_plugins():
-    check_plugin_integration.description = name + ' integration test'
+    check_plugin_integration.description = name + ' (variant plugin) integration test'
     yield check_plugin_integration, (name, mitty.lib.load_variant_plugin(name))
 
 
@@ -51,10 +51,10 @@ def self_test_all_found_plugins():
     model = mitty.lib.load_variant_plugin(name)
     tests = [v for v in getmembers(model, isfunction) if v[0].startswith('test')]
     if len(tests) == 0:
-      plugin_has_no_tests.description = name + ' plugin self test(s)'
+      plugin_has_no_tests.description = name + ' (variant plugin) self test(s)'
       yield plugin_has_no_tests, None
     else:
       for test in tests:
-        test_wrapper.description = name + ' plugin self test(s): ' + (test[1].func_doc or test[1].__name__)
+        test_wrapper.description = name + ' (variant plugin) self test(s): ' + (test[1].func_doc or test[1].__name__)
         # We can't ensure that a dev will provide us with a function doc, so we use the name if can't find a doc string
         yield test_wrapper, test
