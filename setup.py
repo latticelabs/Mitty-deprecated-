@@ -1,5 +1,18 @@
-from setuptools import setup, find_packages
-from Cython.Build import cythonize
+from setuptools import setup, find_packages, Extension
+
+
+def make_extension_modules(post_processor, source_file_extension):
+    return post_processor([Extension('mitty.lib.variation', ['mitty/lib/variation.{0}'.format(source_file_extension)]),
+                           Extension('mitty.lib.util', ['mitty/lib/util.{0}'.format(source_file_extension)])])
+
+
+def extension_modules():
+    try:
+        from Cython.Build import cythonize
+        return make_extension_modules(cythonize, 'pyx')
+    except ImportError:
+        return make_extension_modules(lambda arg: arg, 'c')
+
 
 setup(
     name='mitty',
@@ -28,12 +41,11 @@ setup(
     },
     install_requires=[
       'setuptools>=0.7',
-      'cython>=0.21.0',
       'numpy>=1.9.0',
       'scipy>=0.14.0',
       'docopt>=0.6.2',
       'pysam>=0.8.1',
       'PyVCF==0.7.0dev'
     ],
-    ext_modules=cythonize('mitty/lib/*.pyx'),
+    ext_modules=extension_modules(),
 )
