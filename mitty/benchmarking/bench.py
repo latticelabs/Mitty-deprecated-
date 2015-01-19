@@ -141,51 +141,6 @@ class AlignerBenchSets(BenchSet):
     self.bench_p_sets[name] = {'window': window, 'block_size': block_size}
 
 
-def run_bench_marks2(file_sets, bench_p_sets, tools, tool_p_sets, exclude_list, root_dir, analyze_func):
-  """Run nested loops to execute all the benchmarks asked for
-  :param file_sets: dictionary of tuples  {id: (human name, file_set_dict) ... }
-  :param bench_p_sets: dictionary of tuples  {id: (human name, bench_p_dict) ... }
-  :param tools: dictionary of tuples {id: (human name, tool object) ... }
-  :param tool_p_sets: dictionary of dictionary of tuples {tid: {id: (human name, tool_p_set) ...} ... }
-                      tid needs to match with tool ids
-  :param exclude_list: list of dictionaries with id combinations to be excluded.
-  :param root_dir: where the output will be placed
-  :param analyze_func: function that analyzes the results.
-                       Typically:  analyze_bam or analyze_vcf
-  """
-  bench_mark_matrix = {bpid: [bench_p_sets[bpid][0],
-                              {fid: [file_sets[fid][0],
-                                     {tid: [tools[tid][0],
-                                            {tpid: [tool_p_sets[tid][tpid][0], None]
-                                             for tpid in sorted(tool_p_sets[tid])}]
-                                     for tid in sorted(tools)}]
-                              for fid in sorted(file_sets)}]
-                       for bpid in sorted(bench_p_sets)}
-  for fid, (fname, file_set) in file_sets.iteritems():
-    logger.debug('Running file set {:s}'.format(fname))
-    for tid, (tname, tool) in tools.iteritems():
-      logger.debug('Running tool {:s}'.format(tname))
-      tool.setup_files(file_set)
-      for tpid, (tpname, tool_p_set) in tool_p_sets[tid].iteritems():
-        if exclude_this(exclude_list, fid, tid, tpid):
-          continue
-        out_prefix = os.path.join(root_dir, 'f{:d}_t{:d}_p{:d}'.format(fid, tid, tpid))
-        if os.path.exists(out_prefix):
-          raise RuntimeError('Output directory {:s} already exists'.format(out_prefix))
-        os.makedirs(out_prefix)
-        out_file_set = tool.run(file_set, tool_p_set, out_prefix)
-        for bpid, (bpname, bench_p_set) in bench_p_sets.iteritems():
-          out_prefix2 = os.path.join(out_prefix, 'bps{:d}'.format(bpid))
-          os.makedirs(out_prefix2)
-          analyze_func(file_set=file_set, out_file_set=out_file_set, bench_p_set=bench_p_set, out_prefix=out_prefix2)
-          bench_mark_matrix[bpid][1][fid][1][tid][1][tpid][1] = out_prefix2
-
-  dimensions = {'file_sets': file_sets,
-                'bench_p_sets': bench_p_sets,
-                'tools': tools,
-                'tool_p_sets': tool_p_sets}
-
-  write_benchmark_metadata({'bench_mark_matrix': bench_mark_matrix, 'dimensions': dimensions}, root_dir)
 
 html_wrapper = ("<!DOCTYPE html>\n"
                 "<html lang=\"en\">\n"

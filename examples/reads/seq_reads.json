@@ -7,12 +7,12 @@
   "rng": {
     "master_seed": 1
   },
-  "take reads from": [4],
+  "take reads from": [1],
   "read_model": "simple_sequential",
   "model_params": {
     "paired": true,
-    "read_len": 10,
-    "template_len": 25,
+    "read_len": 100,
+    "template_len": 250,
     "read_advance":10
   }
 }
