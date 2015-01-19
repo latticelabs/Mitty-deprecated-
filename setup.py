@@ -9,7 +9,6 @@ setup(
     author_email='kaushik.ghose@sbgenomics.com',
     packages=find_packages(include=['mitty*']),
     include_package_data=True,
-    package_data={'mitty': ['tests/data/*']},
     entry_points={
       # Register the built in plugins
       'mitty.plugins.variants': ['snp = mitty.plugins.variants.snp_plugin',
@@ -37,5 +36,4 @@ setup(
       'PyVCF==0.7.0dev'
     ],
     ext_modules=cythonize('mitty/lib/*.pyx'),
-    test_suite='nose.collector'
 )

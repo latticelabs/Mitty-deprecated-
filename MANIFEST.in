@@ -1,1 +1,2 @@
 recursive-include mitty *.pyx
+recursive-include mitty/tests/data *
