@@ -14,6 +14,21 @@ different conditions and data set characteristics.**
 
 Installation
 ============
+    
+    pip install 
+
+
+
+
+
+
+
+
+
+The following command should be sufficient on a Mac to get the `develop` branch of Mitty running on your machine
+
+    pip install git+https://gitlab.sbgenomics.com:9443/graphgenome/mitty.git@develop#egg=mitty
+
 
 Linux specific preamble
 -----------------------
@@ -21,7 +36,7 @@ As needed (i.e. if you haven't ever done it)
 
     sudo apt-get install python-pip
     sudo apt-get install git
-    
+    sudo apt-get install python-dev    
 
 The easy way
 ------------

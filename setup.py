@@ -21,6 +21,8 @@ setup(
                                  'low_entropy_insert = mitty.plugins.variants.low_entropy_insert_plugin'],
       'mitty.plugins.reads': ['simple_sequential = mitty.plugins.reads.simple_sequential_plugin',
                               'simple_illumina = mitty.plugins.reads.simple_illumina_plugin'],
+      # Register example tool wrapper
+      'mitty.benchmarking.tools': ['bwa = mitty.benchmarking.tool_wrappers.bwa'],
       # Command line scripts
       'console_scripts': ['denovo = mitty.denovo:cli',
                           'vcf2reads = mitty.vcf2reads:cli',

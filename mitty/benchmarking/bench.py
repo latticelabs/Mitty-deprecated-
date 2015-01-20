@@ -1,18 +1,33 @@
 """Module that can run benchmarks and provides a base class for tool wrapping."""
 import os
+import json
 from collections import OrderedDict
 
 import pysam
+
 from mitty.benchmarking import checkbam
+import mitty.lib
 
 import logging
 logger = logging.getLogger(__name__)
 
 
+class DataSet(object):
+  """Represents a data set."""
+  def __init__(self, name, description):
+    self.name = name
+    self.description = description
+
+def get_tool(name):
+  tool = mitty.lib.load_benchmark_tool_wrapper(name)
+  return tool.Tool
+
+
 class Tool(object):
   """A wrapper round an aligner or variant caller."""
-  def __init__(self, name='No name'):
+  def __init__(self, name='No name', description='No description'):
     self.name = name
+    self.description = description
     self.parameter_set = OrderedDict()
 
   def setup_files(self, file_set):
@@ -33,32 +48,6 @@ class Tool(object):
 # The information we need (about file sets, tool sets, parameters etc.) are easily saved in dictionaries, however the
 # key names need to be specific. In order to make sure we use the right key names we use classes to wrap round the
 # dictionary and provide a well defined interface
-
-
-class BenchResultMatrix:
-  """A name indexed multi-dimensional table."""
-  def __init__(self, bench_set):
-    f_sets = bench_set.file_sets.iteritems()
-    bp_sets = bench_set.bench_p_sets.iteritems()
-    tools = bench_set.tools.iteritems()
-    self.bench_mark_matrix = {
-      bpk: {
-        fsk: {
-          tk: {
-            tsk: tsv for tsk, tsv in tv.get_parameter_set().iteritems()
-          } for tk, tv in tools
-        } for fsk, _ in f_sets
-      } for bpk, _ in bp_sets
-    }
-
-    # self.bench_mark_matrix = {bpk: [bench_p_sets[bpid][0],
-    #                           {fid: [file_sets[fid][0],
-    #                                  {tid: [tools[tid][0],
-    #                                         {tpid: [tool_p_sets[tid][tpid][0], None]
-    #                                          for tpk, tpv in tool_p_sets[tid])}]
-    #                                  for tid in sorted(tools)}]
-    #                           for fid in sorted(file_sets)}]
-    #                    for bpid in sorted(bench_p_sets)}
 
 
 class BenchSet(object):
@@ -116,6 +105,37 @@ class BenchSet(object):
             os.makedirs(out_prefix2)
             self.analyze_func(file_set=file_set, out_file_set=out_file_set, bench_p_set=bench_p_set, out_prefix=out_prefix2)
 
+    bench_info = {
+      'file_sets': self.file_sets.keys(),
+      'bench_mark_sets': self.bench_p_sets.keys(),
+      'tools': [{tn: self.tools[tn].parameter_set.keys()} for tn in self.tools.iterkeys()]
+    }
+
+    with open(os.path.join(root_dir, 'benchmark_info.json'), 'w') as fp:
+      json.dump(bench_info, fp, indent=2)
+
+    #generate_summary_jquery_page(root_dir, os.path.realpath('__file__'))
+
+
+class FileSet(object):
+  def __init__(self):
+    pass
+
+
+class ReferenceFileSet(FileSet):
+  """Stores a reference file."""
+  def __init__(self, fname):
+    self.file = {'reference_file': os.path.join(os.path.abspath(__file__), fname)}
+
+
+
+class AlignerFileSet(object):
+  """Stores a dictionary with paths to the files."""
+  def __init__(self, ):
+    os.path.abspath()
+
+
+
 
 class AlignerBenchSets(BenchSet):
   """Everything needed to benchmark an aligner."""
@@ -141,50 +161,6 @@ class AlignerBenchSets(BenchSet):
     self.bench_p_sets[name] = {'window': window, 'block_size': block_size}
 
 
-
-html_wrapper = ("<!DOCTYPE html>\n"
-                "<html lang=\"en\">\n"
-                "  <head>\n"
-                "    <title>Benchmarking results</title>\n"
-                "  </head>\n"
-                "  <body>\n"
-                "  {:s}\n"
-                "  </body>\n"
-                "</html>\n")
-
-
-def write_benchmark_metadata(bench_data, root_dir):
-  """Save a .json file in root_dir that explains what benchmarks have been run. This information is helpful to create an
-   index that links to all the benchmark results.
-
-
-
-   """
-  body = ""
-  for bpid in sorted(bench_data['dimensions']['bench_p_sets']):
-    body += '<table>'
-    body += '<tr>'
-
-    for tid in sorted(bench_data['dimensions']['tools']):
-      body += '<th>'
-      body += bench_data['dimensions']['tools'][tid][0]
-      body += '</th>'
-    body += '</tr>'
-
-    for fid in sorted(bench_data['dimensions']['file_sets']):
-      body += '<tr>'
-      for tid in sorted(bench_data['dimensions']['tools']):
-        for tpid in sorted(bench_data['dimensions']['tool_p_sets'][tid]):
-          body += '<td>'
-          body += bench_data['dimensions']['tool_p_sets'][tid][tpid][0]
-          body += '</td>'
-      body += '</tr>'
-    body += '</table>'
-
-  with open(os.path.join(root_dir, 'benchmark_summary.html'), 'w') as fp:
-    fp.write(html_wrapper.format(body))
-
-
 def analyze_bam(out_file_set, bench_p_set, out_prefix, **kwargs):
   """
   :param file_set: ignored
@@ -198,4 +174,104 @@ def analyze_bam(out_file_set, bench_p_set, out_prefix, **kwargs):
        open(os.path.join(out_prefix, 'bench.csv'), 'w') as csv_out_fp, \
        open(os.path.join(out_prefix, 'bench.json'), 'w') as json_out_fp:
     checkbam.main(bam_fp=bam_in_fp, csv_fp=csv_out_fp, json_fp=json_out_fp,
-                  window=bench_p_set['window'], block_size=bench_p_set['block_size'])  # TODO: Put these in bench mark parameters
+                  window=bench_p_set['window'], block_size=bench_p_set['block_size'])
+
+
+def generate_summary_jquery_page(root_dir, script_dir):
+  def summary_table(idx):
+    html = '<table>'
+    html += '<thead><tr><th rowspan="2">File sets</th>'
+    for d in bench_info['tools']:
+      tool_name = d.keys()[0]
+      tool_param_names = d[tool_name]
+      html += '<th colspan="{:d}">{:s}</th>'.format(len(tool_param_names), tool_name)
+    html += '</tr>'
+    html += '<tr>'
+    for d in bench_info['tools']:
+      for pn in d[d.keys()[0]]:
+        html += '<th>{:s}</th>'.format(pn)
+    html += '</tr></thead>'
+
+
+
+    html += '</table>'
+    return html
+
+  includes = {
+    'jquery-ui_min_css': open(os.path.join(script_dir, "jquery-ui-1.11.2/jquery-ui.min.css")).read(),
+    'jquery_js': open(os.path.join(script_dir, "jquery-ui-1.11.2/external/jquery/jquery.js")).read(),
+    'jqueryui_js': open(os.path.join(script_dir, "jquery-ui-1.11.2/jquery-ui.min.js")).read(),
+    'jquery-ui_theme_min_css': open(os.path.join(script_dir, "jquery-ui-1.11.2/jquery-ui.theme.min.css")).read()
+  }
+  header_stuff = """
+  <style media="screen" type="text/css">{jquery-ui_min_css}</style>
+  <script>{jquery_js}</script>
+  <script>{jqueryui_js}</script>
+  <style media="screen" type="text/css">{jquery-ui_theme_min_css}</style>
+  """.format(**includes)
+
+  html_head = """<head>
+  <meta charset="utf-8">
+  <title>Benchmark results</title>""" + header_stuff + \
+  """<script>
+  $(function() {
+    $( "#tabs" ).tabs();
+  });
+  </script>
+  <style media="screen" type="text/css">
+  table {
+    color: #333;
+    font-family: Helvetica, Arial, sans-serif;
+    /*width: 640px;*/
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  td, th {
+    border: 1px solid; /* transparent; /* No more visible border */
+    height: 30px;
+    transition: all 0.3s;  /* Simple transition for hover effect */
+  }
+
+  th {
+    background: #DFDFDF;  /* Darken header a bit */
+    font-weight: bold;
+  }
+
+  td {
+    background: #FAFAFA;
+    text-align: center;
+  }
+
+  /* Cells in even rows (2,4,6...) are one color */
+  tr:nth-child(even) td { background: #F1F1F1; }
+
+  /* Cells in odd rows (1,3,5...) are another (excludes header cells)  */
+  tr:nth-child(odd) td { background: #FEFEFE; }
+
+  tr td:hover { background: #666; color: #FFF; } /* Hover cell effect! */
+
+  /* Add border-radius to specific cells! */
+  tr:first-child th:nth-child(2) {
+    border-radius: 5px 0 0 0;
+  }
+
+  tr:first-child th:last-child {
+    border-radius: 0 5px 0 0;
+  }
+
+  </style>
+</head>"""
+
+  with open(os.path.join(root_dir, 'benchmark_info.json'), 'r') as fp:
+    bench_info = json.load(fp)
+    html_body = '<body><div id="tabs"><ul>'
+    for n, k in enumerate(bench_info['bench_mark_sets']):
+      html_body += '<li><a href="#tabs-{:d}">{:s}</a></li>'.format(n, k)
+    html_body += '</ul>'
+    for n, k in enumerate(bench_info['bench_mark_sets']):
+      html_body += '<div id="tabs-{:d}">'.format(n) + summary_table(n) + '</div>'
+    html_body += '</div></body>'
+
+  with open(os.path.join(root_dir, 'benchmark_info.html'), 'w') as fp:
+    fp.write('<!doctype html><html lang="en">' + html_head + html_body + '</html>')

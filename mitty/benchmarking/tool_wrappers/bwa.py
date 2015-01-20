@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class Tool(bench.Tool):
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, description='BWA by Heng Li'):
     try:
       subprocess.check_output(['which', 'bwa'])
     except subprocess.CalledProcessError:
@@ -19,7 +19,7 @@ class Tool(bench.Tool):
     except subprocess.CalledProcessError:
       raise RuntimeError('No samtools in path')
 
-    super(Tool, self).__init__(*args, **kwargs)
+    super(Tool, self).__init__(name='bwa', description=description)
 
   def add_parameter_set(self, name, param_dict):
     if name in self.parameter_set:

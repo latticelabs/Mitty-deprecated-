@@ -23,45 +23,23 @@ Specs
 
 Architecture
 ============
-1. Tools and file sets are Python plugins. file sets are packages containing data and a small Python class that 
-describes them. ``pip install``-ing the packages results in them being registered as ``mitty.benchmarking`` components
-which can then be looked up. This has the advantage that the data can be pulled from a central repository, can be 
-versioned etc. A file set can depend on another fileset, such that we don't need to replicate common elements. For example
-the hg38 can be a file set. This, by itself, is not useful, but another file set containing null reads from hg38 would
-have it as a dependency (since aligners need the reference). Another file set containing a VCF referenced to hg38 and 
-reads could also have it as a dependency, so that installing these sets does not duplicate hg38
+1. Filesets are json files that aggregate collections of local files. This can be automated/regularized to be some 
+kind of repository later to ensure versioning and uniqueness of files.
+2. Tools are Python plugins that are wrappers around locally installed tools accessible via the command line. The wrapper 
+constructs the command line required to run the tool and runs any appropriate pre- and post-processing to make the tool
+run
+3. Tool parameter sets are also json files listing a particular set of parameters for that tool
+4. A benchmark parameter set is a json file that lists a particular set of parameters for a benchmark criterion
+5. A benchmark file is another simple json file that lists the filesets, tools, tool parameter sets and bench mark parameter
+sets that go into a benchmark. The benchmarker loads the benchmark spec .json file and runs the benchmarks
 
-
-2. A simple command-line application lets us list the tools and file sets available and add them to the benchmark. Then,
-based on the tools selected it guides us through setting parameter sets and adding benchmark parameter sets. It then
-saves a .json file with the benchmark specs. This .json file can be written by hand or any other tool too.
-
-3. The benchmarker loads the benchmark spec .json file and runs the benchmarks
-
-4. A to be determined visualizer then displays visualizations of the tool performance
+6. A to be determined visualizer then displays visualizations of the tool performance
 
 Why not do this via the platform?
 --------------------------------
 The platform does not have loops or other constructs necessary to make this kind of run convenient. In order to run this
 benchmark we would need to construct multiple pipelines, one for each parameter combination, which is tedious and error
 prone.
-
-
-
-
-
-
-
----
-
-1. A benchmark-suite file is 
-
-1. A Python wrapper is written for the tool that acts as an interface between the benchmarker and the tool. The wrapper 
-constructs the command line required to run the tool and runs any appropriate pre- and post-processing to make the tool
-run
-2. A parameter file tells the bench-marker which input file suites to use, what the parameter grid is and what wrapper
-to use
-3. The output is displayed as an interactive web-page that allows you to drill down the results.
 
 
 Result organization
