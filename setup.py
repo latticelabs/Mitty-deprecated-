@@ -1,6 +1,18 @@
 from setuptools import setup, find_packages, Extension
-extensions = [Extension('mitty.lib.util', sources=['mitty/lib/util.c']),
-              Extension('mitty.lib.variation', sources=['mitty/lib/variation.c'])]
+
+
+def make_extension_modules(post_processor, source_file_extension):
+    return post_processor([Extension('mitty.lib.variation', ['mitty/lib/variation.{0}'.format(source_file_extension)]),
+                           Extension('mitty.lib.util', ['mitty/lib/util.{0}'.format(source_file_extension)])])
+
+
+def extension_modules():
+    try:
+        from Cython.Build import cythonize
+        return make_extension_modules(cythonize, 'pyx')
+    except ImportError:
+        return make_extension_modules(lambda arg: arg, 'c')
+
 
 setup(
     name='mitty',
@@ -10,7 +22,6 @@ setup(
     author_email='kaushik.ghose@sbgenomics.com',
     packages=find_packages(include=['mitty*']),
     include_package_data=True,
-    package_data={'mitty': ['tests/data/*']},
     entry_points={
       # Register the built in plugins
       'mitty.plugins.variants': ['snp = mitty.plugins.variants.snp_plugin',
@@ -32,11 +43,10 @@ setup(
     },
     install_requires=[
       'setuptools>=0.7',
-      'numpy>=1.8.0',
+      'numpy>=1.9.0',
       'docopt>=0.6.2',
       'pysam>=0.8.1',
       'PyVCF==0.7.0dev'
     ],
-    ext_modules=extensions,
-    test_suite='nose.collector'
+    ext_modules=extension_modules(),
 )
