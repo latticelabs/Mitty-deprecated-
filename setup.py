@@ -36,6 +36,7 @@ setup(
       'mitty.benchmarking.tools': ['bwa = mitty.benchmarking.tool_wrappers.bwa'],
       # Command line scripts
       'console_scripts': ['denovo = mitty.denovo:cli',
+                          'population = mitty.population:cli',
                           'vcf2reads = mitty.vcf2reads:cli',
                           'reads2bam = mitty.reads2bam:cli',
                           'splitta = mitty.util.splitta:cli',
