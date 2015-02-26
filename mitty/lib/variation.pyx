@@ -13,7 +13,12 @@ GT = ['0|0', '0|1', '1|0', '1|1']  # This needs to match rev 3 definitions
 
 
 cdef class VariationData:
-  """Carries POS, stop REF and ALT information."""
+  """VD(pos, stop, REF, ALT)
+  Attributes:
+    POS
+    footprint
+    REF
+    ALT"""
   cdef public:
     long int POS, stop
     str REF, ALT
