@@ -37,7 +37,7 @@ def save_variant_master_list(chrom_name, ml, conn=None):
   """
   table_name = 'chrom_' + chrom_name
   conn.execute("DROP TABLE IF EXISTS {:s}".format(table_name))
-  conn.execute("CREATE TABLE {:s} (vid INTEGER PRIMARY KEY, idx INTEGER, pos INTEGER, ref TEXT, alt TEXT)".format(table_name))
+  conn.execute("CREATE TABLE {:s} (idx INTEGER PRIMARY KEY, pos INTEGER, ref TEXT, alt TEXT)".format(table_name))
   for k, v in ml.iteritems():
     conn.execute("INSERT INTO {:s}(idx, pos, ref, alt) VALUES (?, ?, ?, ?)".format(table_name), (k, v.POS, v.REF, v.ALT))
   conn.commit()
@@ -52,7 +52,7 @@ def load_variant_master_list(chrom_name, conn):
   table_name = 'chrom_' + chrom_name
   ml = {}
   for row in conn.execute("SELECT * FROM {:s} ORDER BY idx".format(table_name)):
-    ml[row[1]] = VD(row[2], row[2] + len(row[3]), row[3], row[4])
+    ml[row[0]] = VD(row[1], row[1] + len(row[2]), row[2], row[3])
   return ml
 
 
