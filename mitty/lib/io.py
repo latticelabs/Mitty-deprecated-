@@ -1,13 +1,59 @@
 """Some utilities related to file formats, compressing and indexing."""
 from os.path import splitext
 import os
+import cPickle
+import sqlite3 as sq
+from contextlib import contextmanager
 
 import pysam
 
-from mitty.lib.variation import HET_01, HET_10, HOMOZYGOUS, ABSENT, new_variation, GT
+#from mitty.lib.variation import HET_01, HET_10, HOMOZYGOUS, ABSENT, new_variation, GT
+from mitty.lib.variation import VariationData as VD
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def open_db(db_name='population.sqlite3'):
+  conn = sq.connect(db_name)
+  conn.text_factory = str
+  c = conn.cursor()
+  yield conn, c
+  conn.close()
+
+
+def db(db_name='population.sqlite3'):
+  conn = sq.connect(db_name)
+  conn.text_factory = str
+  return conn
+
+
+def save_variant_master_list(chrom_name, ml, conn=None):
+  """Save the master list as a chromosome in a sqlite3 database
+  :param chrom_name: name of the chromosome. The table will be named
+  :param ml: dictionary representing the variant master list
+  :param conn: The connection object.
+  """
+  table_name = 'chrom_' + chrom_name
+  conn.execute("DROP TABLE IF EXISTS {:s}".format(table_name))
+  conn.execute("CREATE TABLE {:s} (vid INTEGER PRIMARY KEY, idx INTEGER, pos INTEGER, ref TEXT, alt TEXT)".format(table_name))
+  for k, v in ml.iteritems():
+    conn.execute("INSERT INTO {:s}(idx, pos, ref, alt) VALUES (?, ?, ?, ?)".format(table_name), (k, v.POS, v.REF, v.ALT))
+  conn.commit()
+
+
+def load_variant_master_list(chrom_name, conn):
+  """Save the master list as a python pickle file
+  :param chrom_name: name of the chromosome. The table will be named
+  :param conn: The connection object.
+  :returns ml: dictionary representing the variant master list
+  """
+  table_name = 'chrom_' + chrom_name
+  ml = {}
+  for row in conn.execute("SELECT * FROM {:s} ORDER BY idx".format(table_name)):
+    ml[row[1]] = VD(row[2], row[2] + len(row[3]), row[3], row[4])
+  return ml
 
 
 def sort_and_index_bam(bamfile):
@@ -19,7 +65,6 @@ def sort_and_index_bam(bamfile):
   os.remove('temp.bam')
 
 
-#TODO implement saving of fitness and recessive fields and loading (if present)
 def vcf2chrom(vcf_rdr):
   """Given a vcf reader corresponding to one chromosome, read in the variant descriptions into our format. The result is
   sorted if the vcf file is sorted.
@@ -51,7 +96,7 @@ def vcf2chrom(vcf_rdr):
 
 
 def parse_vcf(vcf_rdr, chrom_list):
-  """Given a vcf reader load in all the chromosomes."""
+  """Given a vcf reader load in all the chromosomes for all the samples."""
   g1 = {}
   for chrom in chrom_list:
     try:
