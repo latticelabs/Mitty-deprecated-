@@ -42,8 +42,8 @@ def save_sample(sample_name, g, conn):
   erase_sample(sample_name, g, conn)
   for k, chrom in g.iteritems():
     table_name = sample_table_name(sample_name, k)
-    conn.execute("CREATE TABLE {:s} (pos INTEGER PRIMARY KEY, stop INTEGER, ref TEXT, alt TEXT, gt INTEGER)".format(table_name))
-    insert_clause = "INSERT INTO {:s}(pos, stop, ref, alt, gt) VALUES (?, ?, ?, ?, ?)".format(table_name)
+    conn.execute("CREATE TABLE {:s} (pos INTEGER PRIMARY KEY, stop INTEGER, gt INTEGER, ref TEXT, alt TEXT)".format(table_name))
+    insert_clause = "INSERT INTO {:s}(pos, stop, gt, ref, alt) VALUES (?, ?, ?, ?, ?)".format(table_name)
     conn.executemany(insert_clause, chrom)
   conn.commit()
 

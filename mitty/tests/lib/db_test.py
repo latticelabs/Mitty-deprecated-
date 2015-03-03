@@ -11,14 +11,14 @@ def sample_roundtrip_test():
   os.close(temp_fp)
   conn = db.connect(temp_name)
 
-  c1 = [(1, 4, 'CAA', 'C', db.HOMOZYGOUS),
-        (13, 14, 'C', 'G', db.HET_10),
-        (20, 21, 'T', 'C', db.HET_10),
-        (26, 27, 'T', 'TCGA', db.HOMOZYGOUS)]
-  c2 = [(4, 6, 'CA', 'C', db.HOMOZYGOUS),
-        (13, 14, 'C', 'G', db.HET_10),
-        (20, 21, 'T', 'C', db.HET_10),
-        (26, 27, 'T', 'TCGA', db.HOMOZYGOUS)]
+  c1 = [(1, 4, db.HOMOZYGOUS, 'CAA', 'C'),
+        (13, 14, db.HET_10, 'C', 'G'),
+        (20, 21, db.HET_10, 'T', 'C'),
+        (26, 27, db.HOMOZYGOUS, 'T', 'TCGA')]
+  c2 = [(4, 6, db.HOMOZYGOUS, 'CA', 'C'),
+        (13, 14, db.HET_10, 'C', 'G'),
+        (20, 21, db.HET_10, 'T', 'C'),
+        (26, 27, db.HOMOZYGOUS, 'T', 'TCGA')]
   g = {'1': c1, '2': c2}
 
   db.save_sample('s1', g, conn)
@@ -33,10 +33,10 @@ def sample_overwrite_test():
   temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
   os.close(temp_fp)
   conn = db.connect(temp_name)
-  c1 = [(1, 4, 'CAA', 'C', db.HOMOZYGOUS),
-        (13, 14, 'C', 'G', db.HET_10)]
-  c2 = [(4, 6, 'CA', 'C', db.HOMOZYGOUS),
-        (20, 21, 'T', 'C', db.HET_10)]
+  c1 = [(1, 4, db.HOMOZYGOUS, 'CAA', 'C'),
+        (13, 14, db.HET_10, 'C', 'G')]
+  c2 = [(4, 6, db.HOMOZYGOUS, 'CA', 'C'),
+        (20, 21, db.HET_10, 'T', 'C')]
   g = {'1': c1}
   db.save_sample('s1', g, conn)
   g = {'2': c2}
