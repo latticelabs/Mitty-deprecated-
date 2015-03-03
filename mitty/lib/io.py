@@ -8,7 +8,7 @@ from contextlib import contextmanager
 import pysam
 
 #from mitty.lib.variation import HET_01, HET_10, HOMOZYGOUS, ABSENT, new_variation, GT
-from mitty.lib.variation import VariationData as VD
+from mitty.lib.variation import VariationData as VD, Genotype as GT, HET_01, HET_10, HOMOZYGOUS, cgt
 
 import logging
 logger = logging.getLogger(__name__)
@@ -50,10 +50,78 @@ def load_variant_master_list(chrom_name, conn):
   :returns ml: dictionary representing the variant master list
   """
   table_name = 'chrom_' + chrom_name
-  ml = {}
-  for row in conn.execute("SELECT * FROM {:s} ORDER BY idx".format(table_name)):
-    ml[row[0]] = VD(row[1], row[1] + len(row[2]), row[2], row[3])
-  return ml
+  return {row[0]: VD(row[1], row[1] + len(row[2]), row[2], row[3]) for row in conn.execute("SELECT * FROM {:s} ORDER BY idx".format(table_name))}
+  # ml = {}
+  # for row in conn.execute("SELECT * FROM {:s} ORDER BY idx".format(table_name)):
+  #   ml[row[0]] = VD(row[1], row[1] + len(row[2]), row[2], row[3])
+  # return ml
+
+
+def save_sample(sample_name, chrom_name, s, conn):
+  """Save the sample chromosome in a sqlite3 database
+  :param sample_name: name of the sample
+  :param chrom_name: name of the chromosome
+  :param s: list of Genotype objects
+  :param conn: The connection object.
+  """
+  table_name = 'sample_{:s}_chrom_'.format(sample_name, chrom_name)
+  conn.execute("DROP TABLE IF EXISTS {:s}".format(table_name))
+  conn.execute("CREATE TABLE {:s} (idx INTEGER PRIMARY KEY, gt INTEGER)".format(table_name))
+  for gt in s:
+    conn.execute("INSERT INTO {:s}(idx, gt) VALUES (?, ?)".format(table_name), (gt.index, gt.het))
+  conn.commit()
+
+
+def load_sample(sample_name, chrom_name, conn):
+  """Save the sample chromosome in a sqlite3 database
+  :param sample_name: name of the sample
+  :param chrom_name: name of the chromosome
+  :param conn: The connection object.
+  :returns s: list of Genotype objects
+  """
+  table_name = 'sample_{:s}_chrom_'.format(sample_name, chrom_name)
+  return [GT(row[0], row[1])  for row in conn.execute("SELECT * FROM {:s} ORDER BY idx".format(table_name))]
+
+
+def load_vcf(rdr, sample_labels=None, max_rows=-1):
+  """Given a VCF reader, create .
+  :param rdr: VCF reader object (see below)
+  :param sample_labels: list of sample names. If None, load all the samples in the file
+  :returns l: master list of variants (dict)
+  :returns samples: list of list of Genotypes
+
+  fname = '/Users/kghose/Data/vcf1000g/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz'
+  vf = vcf.Reader(filename=fname)
+  rdr = vf.fetch(chrom=22, start=0)
+  """
+  if sample_labels is None:
+    sample_labels = rdr.samples
+
+  l = {}
+  samples = [[] for _ in sample_labels]
+  for i, v in enumerate(rdr):
+    if i == max_rows:  # Works for -1
+      break
+    for n, sn in enumerate(sample_labels):
+      call = v.genotype(sn)
+      if call.is_variant:
+        g1 = int(call.gt_alleles[0])
+        if g1 == 0:
+          g1 = int(call.gt_alleles[1])
+      else:
+        continue
+      g1 -= 1
+      try:
+        alt = v.ALT[g1].sequence
+      except AttributeError:
+        continue
+      het = HOMOZYGOUS
+      if call.gt_alleles[0] == '0':
+        het = HET_01
+      elif call.gt_alleles[1] == '0':
+        het = HET_10
+      samples[n] += [cgt(l, v.POS, stop=v.POS + len(v.REF), ref=v.REF, alt=alt, het=het)]
+  return l, samples
 
 
 def sort_and_index_bam(bamfile):
