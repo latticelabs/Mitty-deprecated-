@@ -1,115 +1,15 @@
 import mitty.lib.variation as vr
 from mitty.lib.variation import HOMOZYGOUS, HET_01, HET_10
 from nose.tools import assert_sequence_equal
-
-VD = vr.VariationData
-nv = vr.new_variation
-gt = vr.Genotype
-HH = HOMOZYGOUS
-
-
-def addition_test():
-  """Add variant to master list"""
-  l = {}
-  index = vr.add_novel_variant_to_master(VD(1, 2, 'A', 'C'), l)
-  assert index == 65536
-
-
-def addition_test2():
-  """Duplicate variant in master list"""
-  l = {}
-  index = vr.add_novel_variant_to_master(VD(1, 2, 'A', 'C'), l)
-  assert index == 65536
-  index = vr.add_novel_variant_to_master(VD(1, 2, 'A', 'C'), l)
-  assert index == 65536
-
-
-def addition_test3():
-  """Multiple allele detection on addition to master list"""
-  l = {}
-  index = vr.add_novel_variant_to_master(VD(1, 2, 'A', 'C'), l)
-  assert index == 65536
-  index = vr.add_novel_variant_to_master(VD(1, 2, 'A', 'G'), l)
-  assert index == 65537
-
-
-def cgt(l, pos, stop=None, ref='A', alt='C', het=HOMOZYGOUS):
-  vd = VD(pos, stop or pos + 1, ref, alt)
-  return vr.add_as_genotype(vd, l, het)
-
-
-def find_next_line_test():
-  """Multiple sample line from master list"""
-  l = {}
-  g = [cgt(l, n + 1, HH) for n in range(8)]
-  s1 = [g[0], g[2], g[6]]
-  s2 = [g[0], g[1], g[3], g[7]]
-  s3 = [g[1], g[4], g[5], g[6]]
-
-  samples = [s1, s2, s3]
-
-  csc = [0, 0, 0]
-  idx_of_min = vr.find_next_line(samples, 3, csc)
-  assert idx_of_min == [0, 1], idx_of_min
-
-  csc = [1, 1, 0]
-  idx_of_min = vr.find_next_line(samples, 3, csc)
-  assert idx_of_min == [1, 2], idx_of_min
-
-  csc = [1, 2, 1]
-  idx_of_min = vr.find_next_line(samples, 3, csc)
-  assert idx_of_min == [0], idx_of_min
-
-
-def multi_sample_test():
-  """Multiple sample iterator from master list"""
-  l = {}
-  g = [cgt(l, n + 1, HH) for n in range(8)]
-  s1 = [g[0], g[2], g[6]]
-  s2 = [g[0], g[1], g[3], g[7]]
-  s3 = [g[1], g[4], g[5], g[6]]
-
-  samples = [s1, s2, s3]
-  gvr = vr.get_variant_rows(l, samples)
-  correct_rows = [[0, 1], [1, 2], [0]]
-
-  for row, crow in zip(gvr, correct_rows):
-    assert row == crow, row
-
-
-# def copy_test1():
-#   """Copy list of variants with no modification"""
-#   c1 = [v0, v1] = [nv(1, 4, 'CAA', 'C', HOMOZYGOUS), nv(13, 16, 'CTT', 'C', HOMOZYGOUS)]
-#   c2 = vr.copy_variant_sequence(c1)
-#   assert_sequence_equal(c1, list(c2))
-#
-#
-# def copy_test2():
-#   """Copy list of variants selectively"""
-#   c1 = [v0, v1, v2] = [nv(1, 4, 'CAA', 'C', HOMOZYGOUS),
-#                        nv(7, 8, 'C', 'T', HOMOZYGOUS),
-#                        nv(13, 16, 'CTT', 'C', HOMOZYGOUS)]
-#   c2 = vr.copy_variant_sequence(c1, idx=[0, 2])
-#   assert_sequence_equal([v0, v2], list(c2))
-#
-#
-# def copy_test3():
-#   """Copy list of variants selectively with zygosity"""
-#   c1 = [v0, v1, v2] = [nv(1, 4, 'CAA', 'C', HOMOZYGOUS),
-#                        nv(7, 8, 'C', 'T', HOMOZYGOUS),
-#                        nv(13, 16, 'CTT', 'C', HOMOZYGOUS)]
-#   c2 = vr.copy_variant_sequence(c1, idx=[0, 2], het=[HET_01, HET_10])
-#   v0d = vr.Variation(v0.vd, het=HET_01)
-#   v2d = vr.Variation(v2.vd, het=HET_10)
-#   assert_sequence_equal([v0d, v2d], list(c2))
+HOM = HOMOZYGOUS
+Var = vr.Var
 
 
 def merge_test1():
   """Merge variants, non overlapping, existing first (ED)."""
-  l = {}
-  c1 = [v10] = [cgt(l, 1, 4, 'CAA', 'C', HOMOZYGOUS)]
-  c2 = [v20] = [cgt(l, 10, 13, 'CAA', 'C', HOMOZYGOUS)]
-  c3 = vr.merge_variants(c1, c2, l)
+  c1 = [v10] = [Var(1, 4, HOM)]
+  c2 = [v20] = [Var(10, 13, HOM)]
+  c3 = vr.merge_variants(c1, c2)
   assert_sequence_equal(c3, [v10, v20])
 
 
@@ -211,7 +111,7 @@ def merge_test7():
 
 
 def merge_test8():
-  """Tricky variant merge case that led to out of order result"""
+  """Tricky data merge case that led to out of order result"""
   l = {}
   cv1 = cgt(l, 26, 27, 'A', 'ACA', HET_01)
   c1 = [cv1]
