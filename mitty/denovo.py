@@ -55,6 +55,7 @@ __version__ = '1.0.0'
 
 import json
 import docopt
+import time
 
 import mitty.lib
 import mitty.lib.io
@@ -155,8 +156,15 @@ def cli():  # pragma: no cover
   models = load_variant_model_list(params['denovo_variant_models'])
   master_seed = params['rng']['master_seed']
 
+  t0 = time.time()
   g1 = main(ref=ref_genome, models=models, master_seed=master_seed)
+  t1 = time.time()
+  logger.debug('Computed variants in {:f} s'.format(t1 - t0))
+
+  t0 = time.time()
   mitty.lib.io.vcf_save_gz(g1, vcf_file_name)
+  t1 = time.time()
+  logger.debug('Saved VCF file in {:f} s'.format(t1 - t0))
 
 
 if __name__ == "__main__":
