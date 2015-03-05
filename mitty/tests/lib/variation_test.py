@@ -176,119 +176,146 @@ def merge_test3():
 def merge_test4a():
   """Merge variants, full overlapping (E-D-)"""
   l = {}
-  c1 = [v10] = [cgt(l, 2, 5, 'CAA', 'C', HOMOZYGOUS)]
-  c2 = [v20] = [cgt(l, 2, 5, 'CAA', 'T', HOMOZYGOUS)]
-  c3 = vr.merge_variants(c1, c2, l)
-  assert_sequence_equal(c3, [v10])
+  v10 = nsv(2, 5, 'CAA', 'C', HOM)
+  v20 = nsv(2, 5, 'CAA', 'T', HOM)
+  avms([v10], l)
+
+  c1 = nsp([v10])
+  dnv = iter([v20])
+  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  assert_sequence_equal(c1.to_list(), [v10])
 
 
 def merge_test4b():
   """Merge variants, full overlapping, SNP (D-E-)."""
   l = {}
-  c1 = [v10] = [cgt(l, 2, 3, 'C', 'G', HET_10)]
-  c2 = [v20] = [cgt(l, 2, 3, 'C', 'T', HET_10)]
-  c3 = vr.merge_variants(c1, c2, l)
-  assert_sequence_equal(c3, [v10])
+  v10 = nsv(2, 3, 'C', 'G', HET_10)
+  v20 = nsv(2, 3, 'C', 'T', HET_10)
+  avms([v10], l)
+
+  c1 = nsp([v10])
+  dnv = iter([v20])
+  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  assert_sequence_equal(c1.to_list(), [v10])
 
 
 # Important test - killed a nasty logic bug
 def merge_test4c():
   """Merge variants, full overlapping, with non-colliding preceder"""
   l = {}
-  c1 = [v10, v11] = [cgt(l, 1, 2, 'G', 'C', HET_01),
-                     cgt(l, 2, 3, 'A', 'C', HET_10)]
-  c2 = [v20] = [cgt(l, 2, 3, 'A', 'T', HET_10)]
-  c3 = vr.merge_variants(c1, c2, l)
-  assert_sequence_equal(c3, [v10, v11])
+  v10 = nsv(1, 2, 'G', 'C', HET_01)
+  v11 = nsv(2, 3, 'A', 'C', HET_10)
+  v20 = nsv(2, 3, 'A', 'T', HET_10)
+  avms([v10, v11], l)
+
+  c1 = nsp([v10, v11])
+  dnv = iter([v20])
+  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  assert_sequence_equal(c1.to_list(), [v10, v11])
 
 
 def merge_test4():
   """Merge variants, overlapping (E-D). D will collide and will be rejected"""
   l = {}
-  c1 = [v10] = [cgt(l, 1, 4, 'CAA', 'C', HOMOZYGOUS)]
-  c2 = [v20] = [cgt(l, 2, 5, 'CCC', 'C', HOMOZYGOUS)]
-  c3 = vr.merge_variants(c1, c2, l)
-  assert_sequence_equal(c3, [v10])
+  v10 = nsv(1, 4, 'CAA', 'C', HOM)
+  v20 = nsv(2, 5, 'CCC', 'C', HOM)
+  avms([v10], l)
+
+  c1 = nsp([v10])
+  dnv = iter([v20])
+  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  assert_sequence_equal(c1.to_list(), [v10])
 
 
 def merge_test5():
   """Merge variants, overlapping (D-E). D will collide and will be rejected"""
   l = {}
-  c2 = [v20] = [cgt(l, 1, 4, 'CAA', 'C', HOMOZYGOUS)]
-  c1 = [v10] = [cgt(l, 2, 5, 'CCC', 'C', HOMOZYGOUS)]
-  c3 = vr.merge_variants(c1, c2, l)
-  assert_sequence_equal(c3, [v10])
+  v10 = nsv(2, 5, 'CCC', 'C', HOM)
+  v20 = nsv(1, 4, 'CAA', 'C', HOM)
+  avms([v10], l)
+
+  c1 = nsp([v10])
+  dnv = iter([v20])
+  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  assert_sequence_equal(c1.to_list(), [v10])
 
 
 def merge_test6():
   """Merge variants, overlapping heterozygous. Overlapping but with mixed zygosity"""
   l = {}
-  c1 = [v10, v11, v12, v13] = [cgt(l, 1, 4, 'CAA', 'C', HOMOZYGOUS),
-                               cgt(l, 13, 16, 'CAA', 'C', HET_10),
-                               cgt(l, 20, 23, 'CAA', 'C', HET_10),
-                               cgt(l, 26, 29, 'CAA', 'C', HOMOZYGOUS)]
-  c2 = [v20, v21, v22, v23] = [cgt(l, 5, 8, 'CTT', 'C', HOMOZYGOUS),  # Will collide out
-                               cgt(l, 13, 16, 'CTT', 'C', HET_01),  # Will pass
-                               cgt(l, 20, 23, 'CTT', 'C', HOMOZYGOUS),  # Will collide out
-                               cgt(l, 26, 29, 'CTT', 'C', HET_01)]  # Will collide out
-  c3 = vr.merge_variants(c1, c2, l)
-  assert_sequence_equal([v10, v11, v21, v12, v13], c3)
+  v10 = nsv(1, 4, 'CAA', 'C', HOM)
+  v11 = nsv(13, 16, 'CAA', 'C', HET_10)
+  v12 = nsv(20, 23, 'CAA', 'C', HET_10)
+  v13 = nsv(26, 29, 'CAA', 'C', HOM)
+  avms([v10, v11, v12, v13], l)
+
+  v20 = nsv(5, 8, 'CTT', 'C', HOM)  # Will collide out
+  v21 = nsv(13, 16, 'CTT', 'C', HET_01)
+  v22 = nsv(20, 23, 'CTT', 'C', HOM)
+  v23 = nsv(26, 29, 'CTT', 'C', HET_01)
+
+  c1 = nsp([v10, v11, v12, v13])
+  dnv = iter([v20, v21, v22, v23])
+  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  assert_sequence_equal(c1.to_list(), [v10, v11, v21, v12, v13])
 
 
 def merge_test7():
   """Skip bug, discovered during simulations"""
   l = {}
-  cv1 = cgt(l, 3, 7, 'ACTG', 'A', HOMOZYGOUS)
-  cv2 = cgt(l, 10, 11, 'C', 'A', HOMOZYGOUS)
-  c1 = [cv1, cv2]
+  v10 = nsv(3, 7, 'ACTG', 'A', HOM)
+  v11 = nsv(10, 11, 'C', 'A', HOM)
+  avms([v10, v11], l)
 
-  dv1 = cgt(l, 1, 5, 'ACTG', 'A', HOMOZYGOUS)
-  dv2 = cgt(l, 7, 8, 'C', 'T', HOMOZYGOUS)  # Collides with previous, should be discarded
-  dv3 = cgt(l, 15, 16, 'A', 'T', HOMOZYGOUS)  # Too close together, second one should collide out
-  dv4 = cgt(l, 16, 16, 'C', 'T', HOMOZYGOUS)
-  dnv = [dv1, dv2, dv3, dv4]
+  v20 = nsv(1, 5, 'ACTG', 'A', HOM)
+  v21 = nsv(7, 8, 'C', 'T', HOM)    # Collides with previous, should be discarded
+  v22 = nsv(15, 16, 'A', 'T', HOM)  # Too close together, second one should collide out
+  v23 = nsv(16, 16, 'C', 'T', HOM)
 
-  c2 = vr.merge_variants(c1, dnv, l)
-  assert_sequence_equal(c2, [cv1, cv2, dv3])
+  c1 = nsp([v10, v11])
+  dnv = iter([v20, v21, v22, v23])
+  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  assert_sequence_equal(c1.to_list(), [v10, v11, v22])
 
 
 def merge_test8():
   """Tricky data merge case that led to out of order result"""
   l = {}
-  cv1 = cgt(l, 26, 27, 'A', 'ACA', HET_01)
-  c1 = [cv1]
+  v10 = nsv(26, 27, 'A', 'ACA', HET_01)
+  avms([v10], l)
 
-  dv1 = cgt(l, 24, 25, 'A', 'C', HET_01)
-  dv2 = cgt(l, 25, 26, 'C', 'A', HET_10)
-  dnv = [dv1, dv2]
+  v20 = nsv(24, 25, 'A', 'C', HET_01)
+  v21 = nsv(25, 26, 'C', 'A', HET_10)
 
-  c2 = vr.merge_variants(c1, dnv, l)
-  assert_sequence_equal(c2, [dv2, cv1], c2)
-
-
-def copy_missing_chromosomes_test():
-  """Copy missing chromosomes."""
-  l = {}
-  c1 = [v10, v11] = [cgt(l, 1, 2, 'A', 'T', HOMOZYGOUS),
-                     cgt(l, 4, 5, 'C', 'A', HOMOZYGOUS)]
-  g1 = {1: c1}
-  c2 = [v20, c21] = [cgt(l, 3, 4, 'A', 'T', HOMOZYGOUS),
-                     cgt(l, 6, 7, 'C', 'A', HOMOZYGOUS)]
-  g2 = {2: c2}
-  vr.copy_missing_chromosomes(g1, g2)
-  assert_sequence_equal(g1[1], c1)
-  assert_sequence_equal(g1[2], c2)
+  c1 = nsp([v10])
+  dnv = iter([v20, v21])
+  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  assert_sequence_equal(c1.to_list(), [v21, v10])
 
 
-def merge_genomes_test():
-  """Merge genomes."""
-  l = {}
-  c1 = [v10, v11] = [cgt(l, 1, 2, 'A', 'T', HOMOZYGOUS),
-                     cgt(l, 4, 5, 'C', 'A', HOMOZYGOUS)]
-  g1 = {1: c1}
-  c2 = [v20, c21] = [cgt(l, 3, 4, 'A', 'T', HOMOZYGOUS),
-                     cgt(l, 6, 7, 'C', 'A', HOMOZYGOUS)]
-  g2 = {1: c1, 2: c2}
-  g3 = vr.merge_genomes(g1, g2, l)
-  assert_sequence_equal(g3[1], c1)
-  assert_sequence_equal(g3[2], c2)
+# def copy_missing_chromosomes_test():
+#   """Copy missing chromosomes."""
+#   l = {}
+#   c1 = [v10, v11] = [cgt(l, 1, 2, 'A', 'T', HOMOZYGOUS),
+#                      cgt(l, 4, 5, 'C', 'A', HOMOZYGOUS)]
+#   g1 = {1: c1}
+#   c2 = [v20, c21] = [cgt(l, 3, 4, 'A', 'T', HOMOZYGOUS),
+#                      cgt(l, 6, 7, 'C', 'A', HOMOZYGOUS)]
+#   g2 = {2: c2}
+#   vr.copy_missing_chromosomes(g1, g2)
+#   assert_sequence_equal(g1[1], c1)
+#   assert_sequence_equal(g1[2], c2)
+#
+#
+# def merge_genomes_test():
+#   """Merge genomes."""
+#   l = {}
+#   c1 = [v10, v11] = [cgt(l, 1, 2, 'A', 'T', HOMOZYGOUS),
+#                      cgt(l, 4, 5, 'C', 'A', HOMOZYGOUS)]
+#   g1 = {1: c1}
+#   c2 = [v20, c21] = [cgt(l, 3, 4, 'A', 'T', HOMOZYGOUS),
+#                      cgt(l, 6, 7, 'C', 'A', HOMOZYGOUS)]
+#   g2 = {1: c1, 2: c2}
+#   g3 = vr.merge_genomes(g1, g2, l)
+#   assert_sequence_equal(g3[1], c1)
+#   assert_sequence_equal(g3[2], c2)

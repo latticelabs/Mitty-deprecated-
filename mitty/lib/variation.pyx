@@ -129,6 +129,12 @@ cdef class Sample:
         self.cursor = self.cursor.next
     return self.cursor.next  # Will be None for empty list
 
+  cpdef SampleVariant last(self):
+    if self.head == self.tail:  # Empty list
+      return None
+    else:
+      return self.tail
+
   cpdef insert(self, SampleVariant sv):
     """Place sv right after cursor. cursor will point to original cursor.next after this. In practice, this places
     sv right before the variant advance just spit out"""
@@ -216,8 +222,9 @@ cpdef add_denovo_variants_to_sample(Sample s, dnv, dict ml):
         s2 = next(dnv, None)
 
   while s2 is not None:  # All the remaining denovo variants can just be appended to the sample
-    s2.data = add_novel_variant_to_master(s2.data, ml)
-    s.append(s2)
+    if not overlap(s.last(), s2):
+      s2.data = add_novel_variant_to_master(s2.data, ml)
+      s.append(s2)
     s2 = next(dnv, None)
 
 
