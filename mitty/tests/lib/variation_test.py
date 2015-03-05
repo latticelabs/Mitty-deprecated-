@@ -1,34 +1,176 @@
 import mitty.lib.variation as vr
-from mitty.lib.variation import HOMOZYGOUS, HET_01, HET_10
 from nose.tools import assert_sequence_equal
-HOM = HOMOZYGOUS
-Var = vr.Var
+nvr = vr.Variant
+avm = vr.add_novel_variant_to_master
+HOM = vr.HOM
+HET_01 = vr.HET_01
+HET_10 = vr.HET_10
+
+
+# Some utility functions to make our life easier
+def nsv(pos, stop, ref, alt, gt):
+  """New sample variant"""
+  return vr.SampleVariant(gt, vr.Variant(pos, stop, ref, alt))
+
+
+def nsp(svs):
+  """Given a list of SampleVariants, turn them into a Sample instance"""
+  s = vr.Sample('test')
+  for sv in svs:
+    s.append(sv)
+  return s
+
+
+def avms(svs, ml):
+  for sv in svs:
+    avm(sv.data, ml)
+
+
+def addition_test():
+  """Add variant to master list"""
+  l = {}
+  v1 = nvr(1, 2, 'A', 'C')
+  assert vr.add_novel_variant_to_master(v1, l) == v1
+  assert l[65536] == v1  # Test if index stuff is correct
+
+
+def addition_test2():
+  """Duplicate variant in master list"""
+  l = {}
+  v1 = nvr(1, 2, 'A', 'C')
+  v2 = nvr(1, 2, 'A', 'C')
+
+  assert vr.add_novel_variant_to_master(v1, l) == v1
+  assert vr.add_novel_variant_to_master(v2, l) == v1  # Duplicate should be replaced with existing
+
+
+def addition_test3():
+  """Multiple allele detection on addition to master list"""
+  l = {}
+  v1 = nvr(1, 2, 'A', 'C')
+  v2 = nvr(1, 2, 'A', 'G')
+  v3 = nvr(1, 2, 'C', 'G')
+
+  assert vr.add_novel_variant_to_master(v1, l) == v1
+  assert vr.add_novel_variant_to_master(v2, l) == v2
+  assert vr.add_novel_variant_to_master(v3, l) == v3
+  assert l[65536] == v1
+  assert l[65537] == v2
+  assert l[65538] == v3
+
+
+def sample_test():
+  """Appending to Sample linked list"""
+  s = vr.Sample('test')
+  assert s.label == 'test'
+  assert s.head == s.tail
+  assert s.length == 0
+
+  sv1 = nsv(1, 4, 'CAA', 'C', HOM)
+  sv2 = nsv(10, 13, 'CAA', 'C', HOM)
+
+  s.append(sv1)
+  assert s.length == 1
+  assert s.head.next == sv1, (s.head, sv1)
+  assert s.tail == sv1, (s.tail, sv1)
+
+  s.append(sv2)
+  assert s.length == 2
+  assert s.head.next == sv1, (s.head, sv1)
+  assert s.tail == sv2, (s.tail, sv2)
+
+
+def sample_test1():
+  """Advancing through Sample"""
+  s = vr.Sample('test')
+  sv1 = nsv(1, 4, 'CAA', 'C', HOM)
+  sv2 = nsv(10, 13, 'CAA', 'C', HOM)
+  s.append(sv1)
+  s.append(sv2)
+
+  assert s.advance() == sv1
+  assert s.advance() == sv2
+  assert s.advance() is None
+  assert s.advance() is None
+
+  s.rewind_cursor()
+  assert s.advance() == sv1
+
+
+def sample_test2():
+  """Inserting into Sample linked list"""
+  s = vr.Sample('test')
+  sv1 = nsv(1, 4, 'CAA', 'C', HOM)
+  sv2 = nsv(10, 13, 'CAA', 'C', HOM)
+  sv3 = nsv(2, 5, 'CAA', 'C', HOM)
+  sv4 = nsv(6, 9, 'CAA', 'C', HOM)
+
+  s.append(sv1)
+  s.append(sv2)
+
+  s.advance()
+  s.insert(sv3)
+  assert_sequence_equal([sv for sv in s], [sv3, sv1, sv2])
+  s.insert(sv4)
+  assert_sequence_equal([sv for sv in s], [sv3, sv4, sv1, sv2])
+
+  s = vr.Sample('test')
+  s.append(sv1)
+  s.append(sv2)
+  s.advance()
+  s.advance()
+  s.insert(sv3)
+  assert_sequence_equal([sv for sv in s], [sv1, sv3, sv2])
+
+  s = vr.Sample('test')
+  s.append(sv1)
+  s.append(sv2)
+  s.advance()
+  s.advance()
+  s.advance()
+  s.insert(sv3)
+  assert_sequence_equal([sv for sv in s], [sv1, sv2, sv3])
 
 
 def merge_test1():
   """Merge variants, non overlapping, existing first (ED)."""
-  c1 = [v10] = [Var(1, 4, HOM)]
-  c2 = [v20] = [Var(10, 13, HOM)]
-  c3 = vr.merge_variants(c1, c2)
-  assert_sequence_equal(c3, [v10, v20])
+  l = {}
+  v10 = nsv(1, 4, 'CAA', 'C', HOM)
+  v20 = nsv(10, 13, 'CAA', 'C', HOM)
+  avm(v10.data, l)
+
+  c1 = nsp([v10])
+  dnv = iter([v20])
+  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  assert_sequence_equal(c1.to_list(), [v10, v20])
 
 
 def merge_test2():
   """Merge variants, non overlapping, denovo first (DE)."""
   l = {}
-  c1 = [v10] = [cgt(l, 10, 13, 'CAA', 'C', HOMOZYGOUS)]
-  c2 = [v20] = [cgt(l, 1, 4, 'CAA', 'C', HOMOZYGOUS)]
-  c3 = vr.merge_variants(c1, c2, l)
-  assert_sequence_equal(c3, [v20, v10])
+  v10 = nsv(10, 13, 'CAA', 'C', HOM)
+  v20 = nsv(1, 4, 'CAA', 'C', HOM)
+  avm(v10.data, l)
+
+  c1 = nsp([v10])
+  dnv = iter([v20])
+  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  assert_sequence_equal(c1.to_list(), [v20, v10])
 
 
 def merge_test3():
   """Merge variants, non overlapping (EDED)"""
   l = {}
-  c1 = [v10, v11] = [cgt(l, 1, 4, 'CAA', 'C', HOMOZYGOUS), cgt(l, 13, 16, 'CTT', 'C', HOMOZYGOUS)]
-  c2 = [v20, v21] = [cgt(l, 8, 11, 'CCC', 'C', HOMOZYGOUS), cgt(l, 20, 23, 'CAA', 'C', HOMOZYGOUS)]
-  c3 = vr.merge_variants(c1, c2, l)
-  assert_sequence_equal(c3, [v10, v20, v11, v21])
+  v10 = nsv(1, 4, 'CAA', 'C', HOM)
+  v11 = nsv(13, 16, 'CTT', 'C', HOM)
+  v20 = nsv(8, 11, 'CCC', 'C', HOM)
+  v21 = nsv(20, 23, 'CAA', 'C', HOM)
+  avms([v10, v11], l)
+
+  c1 = nsp([v10, v11])
+  dnv = iter([v20, v21])
+  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  assert_sequence_equal(c1.to_list(), [v10, v20, v11, v21])
 
 
 def merge_test4a():

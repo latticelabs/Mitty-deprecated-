@@ -9,7 +9,7 @@ cpdef enum:
   ABSENT = 0
   HET_01 = 1
   HET_10 = 2
-  HOMOZYGOUS = 3
+  HOM = 3
 #       00     01     10     11
 GT = ['0|0', '0|1', '1|0', '1|1']  # This needs to match rev 3 definitions
 
@@ -29,7 +29,7 @@ cdef class Variant:
   number allele this is at that position. This index is then used as the rowid when we save the data to the database.
   """
   cdef public:
-    unsigned long pos, stop, hash
+    unsigned long pos, stop, hash, index
     bytes ref, alt
 
   def __cinit__(self, unsigned long pos, unsigned long stop, bytes ref, bytes alt):
@@ -43,22 +43,23 @@ cdef class Variant:
     return self.pos, self.stop, self.ref, self.alt
 
 
-cpdef unsigned long add_novel_variant_to_master(Variant v, dict ml):
+cpdef Variant add_novel_variant_to_master(Variant v, dict ml):
   """Add this new variant to the dictionary (master list). Intelligently handle case where we have an existing allele
   at the same locus.
   :param v: This variant in the form of a Variation instance
   :param ml: Python dictionary storing all variants in a chromosome
-  :returns index
+  :returns v or existing variant in master list to which this variant is identical
   """
   cdef unsigned short n = 0
   cdef unsigned long index = v.pos << 16 | n
   while index in ml:  # Find us an empty spot
     if ml[index].hash == v.hash:
-      return index # This is identical to an existing variant
+      return ml[index] # This is identical to an existing variant
     n += 1
     index = v.pos << 16 | n
   ml[index] = v
-  return index
+  v.index = index
+  return v
 
 
 cdef class SampleVariant:
@@ -83,6 +84,8 @@ cdef class SampleVariant:
 
 
 def create_sample_iterable(pos, ref, alt, gt):
+  """Given lists/generators of the bare variant data (e.g. from a plugin) return us an iterator that will produce a
+  stream of individual SampleVariants."""
   for p, r, a, g in itertools.izip(pos, ref, alt, gt):
     yield SampleVariant(g, Variant(p, p + len(r), r, a))
 
@@ -111,6 +114,9 @@ cdef class Sample:
 
   def __iter__(self):
     return SampleIterator(self)
+
+  def to_list(self):
+    return [sv for sv in self]
 
   cpdef rewind_cursor(self):
     self.cursor = None
@@ -166,7 +172,7 @@ cdef inline bint overlap(SampleVariant v1, SampleVariant v2):
   """
   if v2.data.pos - 1 <= v1.data.pos <= v2.data.stop + 1 or v2.data.pos - 1 <= v1.data.stop <= v2.data.stop + 1 or \
      v1.data.pos <= v2.data.pos - 1 <= v2.data.stop + 1 <= v1.data.stop:  # Potential overlap
-    if v1.gt == v2.gt or v1.gt == HOMOZYGOUS or v2.gt == HOMOZYGOUS:  # Definite overlap
+    if v1.gt == v2.gt or v1.gt == HOM or v2.gt == HOM:  # Definite overlap
       return True
   return False
 
@@ -205,13 +211,13 @@ cpdef add_denovo_variants_to_sample(Sample s, dnv, dict ml):
       if s1.data.pos <= s2.data.pos:  # Advance s until we come to s2
         s1 = s.advance()
       else:  #s1 is past s2 and there is no collision, good to add
+        s2.data = add_novel_variant_to_master(s2.data, ml)  # If this denovo already exists in the master list, use that
         s.insert(s2)
-        add_novel_variant_to_master(s2.data, ml)
         s2 = next(dnv, None)
 
   while s2 is not None:  # All the remaining denovo variants can just be appended to the sample
+    s2.data = add_novel_variant_to_master(s2.data, ml)
     s.append(s2)
-    add_novel_variant_to_master(s2.data, ml)
     s2 = next(dnv, None)
 
 
