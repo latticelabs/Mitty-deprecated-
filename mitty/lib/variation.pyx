@@ -251,7 +251,7 @@ cdef append_sv_copies(Sample s, SampleVariant sv1, int cp1, SampleVariant sv2, i
       s.append(SampleVariant(HET_01, sv2.data))
 
 
-cpdef pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Sample s2, list cross_over2, int chrom_copy2):
+cpdef Sample pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Sample s2, list cross_over2, int chrom_copy2):
   """pair_chromosomes(s1, cross_over_points1, int cp1, s2, cross_over_points2, int cp2)
   Starting with a pair of parent samples, apply crossover points and pair the resulting gametes to make a child genome
   :param s1: first sample genome
@@ -308,6 +308,7 @@ cpdef pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Sample s2, 
       sv1 = s1.advance()
       sv2 = s2.advance()
 
+  return s3
 
 
 # cpdef merge_variants(list c1, list c2):
