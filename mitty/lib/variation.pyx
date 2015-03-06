@@ -82,7 +82,13 @@ cdef class SampleVariant:
     self.gt, self.data, self.next = gt, variant, None
 
   def __repr__(self):
-    return '{:d} {:s}'.format(self.data.pos, GT[self.gt])
+    return '{:s} {:s}'.format(self.data, GT[self.gt])
+
+  def __richcmp__(self, SampleVariant other, int op):
+    if op == 2:
+      return other.data.hash == self.data.hash and self.gt == other.gt
+    elif op == 3:
+      return not (other.data.hash == self.data.hash and self.gt == other.gt)
 
 
 def create_sample_iterable(pos, ref, alt, gt):
@@ -107,7 +113,7 @@ cdef class Sample:
     unsigned long length
 
   def __cinit__(self):
-    self.head = self.tail = SampleVariant(ABSENT, None)  # Dummy node
+    self.head = self.tail = SampleVariant(ABSENT, Variant(0, 0, '', ''))  # Dummy node
     self.cursor, self.length = None, 0
 
   def __len__(self):
@@ -267,8 +273,8 @@ cpdef Sample pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Samp
     * For each parent, pick variants from one copy, until we reach a cross over point, then flip the copy
   """
   cdef:
-    int cp1 = chrom_copy1, cp2 = chrom_copy2, max_pos
-    long co_pt1, co_pt2, p1, p2
+    int cp1 = chrom_copy1, cp2 = chrom_copy2
+    long co_pt1, co_pt2, p1, p2, max_pos
     Sample s3 = Sample()
     SampleVariant sv1 = s1.advance(), sv2 = s2.advance()
 
