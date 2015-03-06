@@ -15,7 +15,7 @@ def nsv(pos, stop, ref, alt, gt):
 
 def nsp(svs):
   """Given a list of SampleVariants, turn them into a Sample instance"""
-  s = vr.Sample('test')
+  s = vr.Sample()
   for sv in svs:
     s.append(sv)
   return s
@@ -61,8 +61,7 @@ def addition_test3():
 
 def sample_test():
   """Appending to Sample linked list"""
-  s = vr.Sample('test')
-  assert s.label == 'test'
+  s = vr.Sample()
   assert s.head == s.tail
   assert s.length == 0
 
@@ -82,7 +81,7 @@ def sample_test():
 
 def sample_test1():
   """Advancing through Sample"""
-  s = vr.Sample('test')
+  s = vr.Sample()
   sv1 = nsv(1, 4, 'CAA', 'C', HOM)
   sv2 = nsv(10, 13, 'CAA', 'C', HOM)
   s.append(sv1)
@@ -99,7 +98,7 @@ def sample_test1():
 
 def sample_test2():
   """Inserting into Sample linked list"""
-  s = vr.Sample('test')
+  s = vr.Sample()
   sv1 = nsv(1, 4, 'CAA', 'C', HOM)
   sv2 = nsv(10, 13, 'CAA', 'C', HOM)
   sv3 = nsv(2, 5, 'CAA', 'C', HOM)
@@ -114,7 +113,7 @@ def sample_test2():
   s.insert(sv4)
   assert_sequence_equal([sv for sv in s], [sv3, sv4, sv1, sv2])
 
-  s = vr.Sample('test')
+  s = vr.Sample()
   s.append(sv1)
   s.append(sv2)
   s.advance()
@@ -122,7 +121,7 @@ def sample_test2():
   s.insert(sv3)
   assert_sequence_equal([sv for sv in s], [sv1, sv3, sv2])
 
-  s = vr.Sample('test')
+  s = vr.Sample()
   s.append(sv1)
   s.append(sv2)
   s.advance()
@@ -132,8 +131,19 @@ def sample_test2():
   assert_sequence_equal([sv for sv in s], [sv1, sv2, sv3])
 
 
-def merge_test1():
-  """Merge variants, non overlapping, existing first (ED)."""
+def denovo_add_test0():
+  """Add denovo, original list empty"""
+  l = {}
+  v20 = nsv(10, 13, 'CAA', 'C', HOM)
+
+  c1 = nsp([])
+  dnv = iter([v20])
+  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  assert_sequence_equal(c1.to_list(), [v20])
+
+
+def denovo_add_test1():
+  """Add denovo, non overlapping, existing first (ED)."""
   l = {}
   v10 = nsv(1, 4, 'CAA', 'C', HOM)
   v20 = nsv(10, 13, 'CAA', 'C', HOM)
@@ -145,8 +155,8 @@ def merge_test1():
   assert_sequence_equal(c1.to_list(), [v10, v20])
 
 
-def merge_test2():
-  """Merge variants, non overlapping, denovo first (DE)."""
+def denovo_add_test2():
+  """Add denovo, non overlapping, denovo first (DE)."""
   l = {}
   v10 = nsv(10, 13, 'CAA', 'C', HOM)
   v20 = nsv(1, 4, 'CAA', 'C', HOM)
@@ -158,8 +168,8 @@ def merge_test2():
   assert_sequence_equal(c1.to_list(), [v20, v10])
 
 
-def merge_test3():
-  """Merge variants, non overlapping (EDED)"""
+def denovo_add_test3():
+  """Add denovo, non overlapping (EDED)"""
   l = {}
   v10 = nsv(1, 4, 'CAA', 'C', HOM)
   v11 = nsv(13, 16, 'CTT', 'C', HOM)
@@ -173,8 +183,8 @@ def merge_test3():
   assert_sequence_equal(c1.to_list(), [v10, v20, v11, v21])
 
 
-def merge_test4a():
-  """Merge variants, full overlapping (E-D-)"""
+def denovo_add_test4a():
+  """Add denovo, full overlapping (E-D-)"""
   l = {}
   v10 = nsv(2, 5, 'CAA', 'C', HOM)
   v20 = nsv(2, 5, 'CAA', 'T', HOM)
@@ -186,8 +196,8 @@ def merge_test4a():
   assert_sequence_equal(c1.to_list(), [v10])
 
 
-def merge_test4b():
-  """Merge variants, full overlapping, SNP (D-E-)."""
+def denovo_add_test4b():
+  """Add denovo, full overlapping, SNP (D-E-)."""
   l = {}
   v10 = nsv(2, 3, 'C', 'G', HET_10)
   v20 = nsv(2, 3, 'C', 'T', HET_10)
@@ -200,8 +210,8 @@ def merge_test4b():
 
 
 # Important test - killed a nasty logic bug
-def merge_test4c():
-  """Merge variants, full overlapping, with non-colliding preceder"""
+def denovo_add_test4c():
+  """Add denovo, full overlapping, with non-colliding preceder"""
   l = {}
   v10 = nsv(1, 2, 'G', 'C', HET_01)
   v11 = nsv(2, 3, 'A', 'C', HET_10)
@@ -214,8 +224,8 @@ def merge_test4c():
   assert_sequence_equal(c1.to_list(), [v10, v11])
 
 
-def merge_test4():
-  """Merge variants, overlapping (E-D). D will collide and will be rejected"""
+def denovo_add_test4():
+  """Add denovo, overlapping (E-D). D will collide and will be rejected"""
   l = {}
   v10 = nsv(1, 4, 'CAA', 'C', HOM)
   v20 = nsv(2, 5, 'CCC', 'C', HOM)
@@ -227,8 +237,8 @@ def merge_test4():
   assert_sequence_equal(c1.to_list(), [v10])
 
 
-def merge_test5():
-  """Merge variants, overlapping (D-E). D will collide and will be rejected"""
+def denovo_add_test5():
+  """Add denovo, overlapping (D-E). D will collide and will be rejected"""
   l = {}
   v10 = nsv(2, 5, 'CCC', 'C', HOM)
   v20 = nsv(1, 4, 'CAA', 'C', HOM)
@@ -240,8 +250,8 @@ def merge_test5():
   assert_sequence_equal(c1.to_list(), [v10])
 
 
-def merge_test6():
-  """Merge variants, overlapping heterozygous. Overlapping but with mixed zygosity"""
+def denovo_add_test6():
+  """Add denovo, overlapping heterozygous. Overlapping but with mixed zygosity"""
   l = {}
   v10 = nsv(1, 4, 'CAA', 'C', HOM)
   v11 = nsv(13, 16, 'CAA', 'C', HET_10)
@@ -260,8 +270,8 @@ def merge_test6():
   assert_sequence_equal(c1.to_list(), [v10, v11, v21, v12, v13])
 
 
-def merge_test7():
-  """Skip bug, discovered during simulations"""
+def denovo_add_test7():
+  """Add denovo: Skip bug, discovered during simulations"""
   l = {}
   v10 = nsv(3, 7, 'ACTG', 'A', HOM)
   v11 = nsv(10, 11, 'C', 'A', HOM)
@@ -278,8 +288,8 @@ def merge_test7():
   assert_sequence_equal(c1.to_list(), [v10, v11, v22])
 
 
-def merge_test8():
-  """Tricky data merge case that led to out of order result"""
+def denovo_add_test8():
+  """Add denovo: Tricky data merge case that led to out of order result"""
   l = {}
   v10 = nsv(26, 27, 'A', 'ACA', HET_01)
   avms([v10], l)
@@ -291,6 +301,10 @@ def merge_test8():
   dnv = iter([v20, v21])
   vr.add_denovo_variants_to_sample(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v21, v10])
+
+
+
+
 
 
 # def copy_missing_chromosomes_test():

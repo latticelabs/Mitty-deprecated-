@@ -13,6 +13,8 @@ cpdef enum:
 #       00     01     10     11
 GT = ['0|0', '0|1', '1|0', '1|1']  # This needs to match rev 3 definitions
 
+# Copy 0 -> 1|0
+# Copy 1 -> 0|1
 
 cdef class Variant:
   """Variant(pos, stop, REF, ALT)
@@ -101,13 +103,12 @@ cdef class Sample:
     advance advances cursor and returns cursor.next
   """
   cdef public:
-    str label
     SampleVariant head, cursor, tail
     unsigned long length
 
-  def __cinit__(self, str label):
+  def __cinit__(self):
     self.head = self.tail = SampleVariant(ABSENT, None)  # Dummy node
-    self.label, self.cursor, self.length = label, None, 0
+    self.cursor, self.length = None, 0
 
   def __len__(self):
     return self.length
@@ -222,10 +223,91 @@ cpdef add_denovo_variants_to_sample(Sample s, dnv, dict ml):
         s2 = next(dnv, None)
 
   while s2 is not None:  # All the remaining denovo variants can just be appended to the sample
-    if not overlap(s.last(), s2):
+    if s.last() is None or not overlap(s.last(), s2):
       s2.data = add_novel_variant_to_master(s2.data, ml)
       s.append(s2)
     s2 = next(dnv, None)
+
+
+cdef append_sv_copy(Sample s, int child_cp, SampleVariant sv, int parent_cp):
+  """Append correct copy of  SampleVariant to s."""
+  if (sv.gt == HOM) or (sv.gt == HET_01 and parent_cp == 1) or (sv.gt == HET_10 and parent_cp == 0):
+    gt = HET_10 if child_cp == 0 else HET_01
+    s.append(SampleVariant(gt, sv.data))
+
+
+cdef append_sv_copies(Sample s, SampleVariant sv1, int cp1, SampleVariant sv2, int cp2):
+  """Use this function when both variants have the same pos and we need to arbitrate genotype"""
+  # If the variant is absent from one of the copies, don't have to worry about this
+  if (sv1.gt == HET_10 and cp1 == 1) or (sv1.gt == HET_01 and cp1 == 0):
+    append_sv_copy(s, 1, sv2, cp2)
+  elif (sv2.gt == HET_10 and cp2 == 1) or (sv2.gt == HET_01 and cp2 == 0):
+    append_sv_copy(s, 0, sv1, cp1)
+  else:  # Both copies of the child genome will have a copy of sv1 abd sv2. Now we have to check more deeply
+    if sv1.data == sv2.data:  # This will be HOM
+      s.append(SampleVariant(HOM, sv1.data))
+    else:  # OK, two variants at the same spot, but they are different
+      s.append(SampleVariant(HET_10, sv1.data))  # They will appear in a certain order
+      s.append(SampleVariant(HET_01, sv2.data))
+
+
+cpdef pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Sample s2, list cross_over2, int chrom_copy2):
+  """pair_chromosomes(s1, cross_over_points1, int cp1, s2, cross_over_points2, int cp2)
+  Starting with a pair of parent samples, apply crossover points and pair the resulting gametes to make a child genome
+  :param s1: first sample genome
+  :param cross_over1: list of cross over points
+  :param chrom_copy1: which copy of chrom to use for gamete [0, 1]
+  :param s2: second sample genome
+  :param cross_over2: list of cross over points
+  :param chrom_copy2: which copy of chrom to use for gamete [0, 1]
+  :returns s3: child genome
+
+  Algorithm:
+    * Zip in sample variants from both parents in merge sort fashion until done.
+    * For each parent, pick variants from one copy, until we reach a cross over point, then flip the copy
+  """
+  cdef:
+    int cp1 = chrom_copy1, cp2 = chrom_copy2, max_pos
+    long co_pt1, co_pt2, p1, p2
+    Sample s3 = Sample()
+    SampleVariant sv1 = s1.advance(), sv2 = s2.advance()
+
+  if s1.last() is not None:
+    max_pos = s1.last().data.pos + 1
+  else:
+    max_pos = 1
+  if s2.last() is not None:
+    max_pos = max(s2.last().data.pos + 1, max_pos)
+
+  co1_i = iter(cross_over1)
+  co2_i = iter(cross_over2)
+
+  co_pt1 = next(co1_i, max_pos)
+  co_pt2 = next(co2_i, max_pos)
+
+  while sv1 is not None or sv2 is not None:
+    p1 = sv1.data.pos if sv1 else max_pos
+    p2 = sv2.data.pos if sv2 else max_pos
+
+    # Time to switch copies
+    while p1 > co_pt1:
+      cp1 = 1 - cp1
+      co_pt1 = next(co1_i, max_pos)
+    while p2 > co_pt2:  # Time to switch copies
+      cp2 = 1 - cp2
+      co_pt2 = next(co2_i, max_pos)
+
+    if p1 < p2:    # Nothing tricky, just add sv1 to the sample
+      append_sv_copy(s3, 0, sv1, cp1)  # By convention, parent1 contributes to copy0 of child chromosome
+      sv1 = s1.advance()
+    elif p2 < p1:  # Nothing tricky, just add sv2 to the sample
+      append_sv_copy(s3, 1, sv2, cp2)  # By convention, parent2 contributes to copy1 of child chromosome
+      sv2 = s2.advance()
+    else:  # A little bit tricky - need to check to see if we end up with a HOM variant, or two HETs
+      append_sv_copies(s3, sv1, cp1, sv2, cp2)
+      sv1 = s1.advance()
+      sv2 = s2.advance()
+
 
 
 # cpdef merge_variants(list c1, list c2):
