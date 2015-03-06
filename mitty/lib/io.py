@@ -1,90 +1,44 @@
-"""Some utilities related to file formats, compressing and indexing."""
+"""Some utilities related to loading/saving different file formats, compressing and indexing."""
 from os.path import splitext
 import os
-import cPickle
-import sqlite3 as sq
-from contextlib import contextmanager
+import gzip
 
 import pysam
-
-#from mitty.lib.variation import HET_01, HET_10, HOMOZYGOUS, ABSENT, new_variation, GT
-from mitty.lib.variation import VariationData as VD, Genotype as GT, HET_01, HET_10, HOMOZYGOUS, cgt
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-@contextmanager
-def open_db(db_name='population.sqlite3'):
-  conn = sq.connect(db_name)
-  conn.text_factory = str
-  c = conn.cursor()
-  yield conn, c
-  conn.close()
+def load_multi_fasta_gz(fa_fname):
+  """Given a gzipped multi fa.gz file load it into a dictionary
+  :param fa_fname: fasta.gz file with one or more fasta sequences
+  :returns ref_seq: a list of tuples of the form (seq_id, seq)
 
-
-def db(db_name='population.sqlite3'):
-  conn = sq.connect(db_name)
-  conn.text_factory = str
-  return conn
-
-
-def save_variant_master_list(chrom_name, ml, conn=None):
-  """Save the master list as a chromosome in a sqlite3 database
-  :param chrom_name: name of the chromosome. The table will be named
-  :param ml: dictionary representing the variant master list
-  :param conn: The connection object.
+  Pure Python 2min 9s to load hg38
+  Cythonized 2min 6s - since we are mostly in Python native functions, we are at speed limit
   """
-  table_name = 'chrom_' + chrom_name
-  conn.execute("DROP TABLE IF EXISTS {:s}".format(table_name))
-  conn.execute("CREATE TABLE {:s} (idx INTEGER PRIMARY KEY, pos INTEGER, ref TEXT, alt TEXT)".format(table_name))
-  for k, v in ml.iteritems():
-    conn.execute("INSERT INTO {:s}(idx, pos, ref, alt) VALUES (?, ?, ?, ?)".format(table_name), (k, v.POS, v.REF, v.ALT))
-  conn.commit()
-
-
-def load_variant_master_list(chrom_name, conn):
-  """Save the master list as a python pickle file
-  :param chrom_name: name of the chromosome. The table will be named
-  :param conn: The connection object.
-  :returns ml: dictionary representing the variant master list
-  """
-  table_name = 'chrom_' + chrom_name
-  return {row[0]: VD(row[1], row[1] + len(row[2]), row[2], row[3]) for row in conn.execute("SELECT * FROM {:s} ORDER BY idx".format(table_name))}
-  # ml = {}
-  # for row in conn.execute("SELECT * FROM {:s} ORDER BY idx".format(table_name)):
-  #   ml[row[0]] = VD(row[1], row[1] + len(row[2]), row[2], row[3])
-  # return ml
-
-
-def save_sample(sample_name, chrom_name, s, conn):
-  """Save the sample chromosome in a sqlite3 database
-  :param sample_name: name of the sample
-  :param chrom_name: name of the chromosome
-  :param s: list of Genotype objects
-  :param conn: The connection object.
-  """
-  table_name = 'sample_{:s}_chrom_'.format(sample_name, chrom_name)
-  conn.execute("DROP TABLE IF EXISTS {:s}".format(table_name))
-  conn.execute("CREATE TABLE {:s} (idx INTEGER PRIMARY KEY, gt INTEGER)".format(table_name))
-  for gt in s:
-    conn.execute("INSERT INTO {:s}(idx, gt) VALUES (?, ?)".format(table_name), (gt.index, gt.het))
-  conn.commit()
-
-
-def load_sample(sample_name, chrom_name, conn):
-  """Save the sample chromosome in a sqlite3 database
-  :param sample_name: name of the sample
-  :param chrom_name: name of the chromosome
-  :param conn: The connection object.
-  :returns s: list of Genotype objects
-  """
-  table_name = 'sample_{:s}_chrom_'.format(sample_name, chrom_name)
-  return [GT(row[0], row[1])  for row in conn.execute("SELECT * FROM {:s} ORDER BY idx".format(table_name))]
+  ref_seq = []
+  with gzip.open(fa_fname, 'r') as fp:
+    l = fp.read()
+  seq_strings = l.split('>')
+  for seq_string in seq_strings:
+    if seq_string == '':
+      continue
+    idx = seq_string.find('\n')
+    if idx == -1:
+      raise RuntimeError('Something wrong with the fasta file {:s}'.format(fa_fname))
+    if idx == 0:
+      continue  # Empty line, ignore
+    seq_id = seq_string[:idx]
+    seq = seq_string[idx:].replace('\n', '').upper()
+    ref_seq += [(seq_id, seq)]
+  return ref_seq
 
 
 def load_vcf(rdr, sample_labels=None, max_rows=-1):
-  """Given a VCF reader, create .
+  """UNTESTED. SHOULD WORK
+
+  Given a VCF reader from a particular chromosome, create master list and sample lists.
   :param rdr: VCF reader object (see below)
   :param sample_labels: list of sample names. If None, load all the samples in the file
   :returns l: master list of variants (dict)
@@ -124,6 +78,31 @@ def load_vcf(rdr, sample_labels=None, max_rows=-1):
   return l, samples
 
 
+def save_vcf(vcf_name, chrom, ml, samples, sample_names, bgzip_and_index=True):
+  """NOT IMPLEMENTED YET
+
+  Given a master list for a given chromosome and a set of samples, save them to a VCF file.
+  :param vcf_name: Name of output vcf file
+  :param chrom: Chromosome number
+  :param ml: master list of variants
+  :param samples: list of samples
+  :param sample_names: list of strings representing sample names
+  :param bgzip_and_index: If True (default)
+  """
+  with open(vcf_name, 'w') as fp:
+    # Write header
+    sample_header = '\t'.join(sample_names)
+    fp.write(
+      "##fileformat=VCFv4.1\n"
+      "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n"
+      "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{:s}\n".format(sample_header)
+    )
+    # Write lines
+    wr = fp.write
+    viter = get_variant_rows(ml, samples)
+    # TODO
+
+
 def sort_and_index_bam(bamfile):
   """Do the filename gymnastics required to end up with a sorted, indexed, bam file."""
   # samtools sort adds a '.bam' to the end of the file name.
@@ -134,7 +113,7 @@ def sort_and_index_bam(bamfile):
 
 
 def vcf2chrom(vcf_rdr):
-  """Given a vcf reader corresponding to one chromosome, read in the variant descriptions into our format. The result is
+  """Given a vcf reader corresponding to one chromosome, read in the data descriptions into our format. The result is
   sorted if the vcf file is sorted.
   """
   chrom = []  # deque()
