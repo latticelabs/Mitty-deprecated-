@@ -281,7 +281,7 @@ cpdef Sample pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Samp
   """
   cdef:
     int cp1 = chrom_copy1, cp2 = chrom_copy2
-    long co_pt1, co_pt2, p1, p2, max_pos
+    unsigned long co_pt1, co_pt2, p1, p2, st1, st2, max_pos
     Sample s3 = Sample()
     SampleVariant sv1 = s1.advance(), sv2 = s2.advance()
 
@@ -299,8 +299,14 @@ cpdef Sample pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Samp
   co_pt2 = next(co2_i, max_pos)
 
   while sv1 is not None or sv2 is not None:
-    p1 = sv1.data.pos if sv1 else max_pos
-    p2 = sv2.data.pos if sv2 else max_pos
+    p1, st1 = (sv1.data.pos, sv1.data.stop) if sv1 else (max_pos, max_pos)
+    p2, st2 = (sv2.data.pos, sv2.data.stop) if sv2 else (max_pos, max_pos)
+
+    # If the cross-over point falls in the middle of a deletion it will lead to a paradox, so we move it
+    if p1 < co_pt1 < st1:
+      co_pt1 = st1
+    if p2 < co_pt2 < st2:
+      co_pt2 = st2
 
     # Time to switch copies
     while p1 > co_pt1:
