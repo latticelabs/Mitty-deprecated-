@@ -41,6 +41,12 @@ cdef class Variant:
   def __repr__(self):
     return '({:d}, {:d}, {:s}, {:s})'.format(self.pos, self.stop, self.ref, self.alt)
 
+  def __richcmp__(self, Variant other, int op):
+    if op == 2:
+      return other.hash == self.hash
+    elif op == 3:
+      return not (other.hash == self.hash)
+
   def as_tuple(self):
     return self.pos, self.stop, self.ref, self.alt
 
@@ -236,7 +242,7 @@ cpdef add_denovo_variants_to_sample(Sample s, dnv, dict ml):
 
 
 cdef append_sv_copy(Sample s, int child_cp, SampleVariant sv, int parent_cp):
-  """Append correct copy of  SampleVariant to s."""
+  """Append correct copy of SampleVariant to s."""
   if (sv.gt == HOM) or (sv.gt == HET_01 and parent_cp == 1) or (sv.gt == HET_10 and parent_cp == 0):
     gt = HET_10 if child_cp == 0 else HET_01
     s.append(SampleVariant(gt, sv.data))
@@ -271,6 +277,7 @@ cpdef Sample pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Samp
   Algorithm:
     * Zip in sample variants from both parents in merge sort fashion until done.
     * For each parent, pick variants from one copy, until we reach a cross over point, then flip the copy
+    * By convention, parent0 supplies chrom copy 0 and parent1 supplies chrom copy 1 of the child
   """
   cdef:
     int cp1 = chrom_copy1, cp2 = chrom_copy2
@@ -315,6 +322,9 @@ cpdef Sample pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Samp
       sv2 = s2.advance()
 
   return s3
+
+
+
 
 
 # cpdef merge_variants(list c1, list c2):
