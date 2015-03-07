@@ -26,6 +26,10 @@ def avms(svs, ml):
     avm(sv.data, ml)
 
 
+def ngt(old_sv, new_gt):
+  return vr.SampleVariant(new_gt, old_sv.data)
+
+
 def addition_test():
   """Add variant to master list"""
   l = {}
@@ -132,7 +136,7 @@ def sample_test2():
 
 
 def denovo_add_test0():
-  """Add denovo, original list empty"""
+  """Add denovo: original list empty"""
   l = {}
   v20 = nsv(10, 13, 'CAA', 'C', HOM)
 
@@ -143,7 +147,7 @@ def denovo_add_test0():
 
 
 def denovo_add_test1():
-  """Add denovo, non overlapping, existing first (ED)."""
+  """Add denovo: non overlapping, existing first (ED)."""
   l = {}
   v10 = nsv(1, 4, 'CAA', 'C', HOM)
   v20 = nsv(10, 13, 'CAA', 'C', HOM)
@@ -156,7 +160,7 @@ def denovo_add_test1():
 
 
 def denovo_add_test2():
-  """Add denovo, non overlapping, denovo first (DE)."""
+  """Add denovo: non overlapping, denovo first (DE)."""
   l = {}
   v10 = nsv(10, 13, 'CAA', 'C', HOM)
   v20 = nsv(1, 4, 'CAA', 'C', HOM)
@@ -169,7 +173,7 @@ def denovo_add_test2():
 
 
 def denovo_add_test3():
-  """Add denovo, non overlapping (EDED)"""
+  """Add denovo: non overlapping (EDED)"""
   l = {}
   v10 = nsv(1, 4, 'CAA', 'C', HOM)
   v11 = nsv(13, 16, 'CTT', 'C', HOM)
@@ -184,7 +188,7 @@ def denovo_add_test3():
 
 
 def denovo_add_test4a():
-  """Add denovo, full overlapping (E-D-)"""
+  """Add denovo: full overlapping (E-D-)"""
   l = {}
   v10 = nsv(2, 5, 'CAA', 'C', HOM)
   v20 = nsv(2, 5, 'CAA', 'T', HOM)
@@ -197,7 +201,7 @@ def denovo_add_test4a():
 
 
 def denovo_add_test4b():
-  """Add denovo, full overlapping, SNP (D-E-)."""
+  """Add denovo: full overlapping, SNP (D-E-)."""
   l = {}
   v10 = nsv(2, 3, 'C', 'G', HET_10)
   v20 = nsv(2, 3, 'C', 'T', HET_10)
@@ -211,7 +215,7 @@ def denovo_add_test4b():
 
 # Important test - killed a nasty logic bug
 def denovo_add_test4c():
-  """Add denovo, full overlapping, with non-colliding preceder"""
+  """Add denovo: full overlapping, with non-colliding preceder"""
   l = {}
   v10 = nsv(1, 2, 'G', 'C', HET_01)
   v11 = nsv(2, 3, 'A', 'C', HET_10)
@@ -225,7 +229,7 @@ def denovo_add_test4c():
 
 
 def denovo_add_test4():
-  """Add denovo, overlapping (E-D). D will collide and will be rejected"""
+  """Add denovo: overlapping (E-D). D will collide and will be rejected"""
   l = {}
   v10 = nsv(1, 4, 'CAA', 'C', HOM)
   v20 = nsv(2, 5, 'CCC', 'C', HOM)
@@ -238,7 +242,7 @@ def denovo_add_test4():
 
 
 def denovo_add_test5():
-  """Add denovo, overlapping (D-E). D will collide and will be rejected"""
+  """Add denovo: overlapping (D-E). D will collide and will be rejected"""
   l = {}
   v10 = nsv(2, 5, 'CCC', 'C', HOM)
   v20 = nsv(1, 4, 'CAA', 'C', HOM)
@@ -251,7 +255,7 @@ def denovo_add_test5():
 
 
 def denovo_add_test6():
-  """Add denovo, overlapping heterozygous. Overlapping but with mixed zygosity"""
+  """Add denovo: overlapping heterozygous. Overlapping but with mixed zygosity"""
   l = {}
   v10 = nsv(1, 4, 'CAA', 'C', HOM)
   v11 = nsv(13, 16, 'CAA', 'C', HET_10)
@@ -303,9 +307,130 @@ def denovo_add_test8():
   assert_sequence_equal(c1.to_list(), [v21, v10])
 
 
+def pair_test0():
+  """Pair chromosomes: both empty"""
+  s1 = nsp([])
+  s2 = nsp([])
+  s3 = vr.pair_chromosomes(s1, [], 0, s2, [], 0)
+  assert_sequence_equal(s3.to_list(), [])
 
 
+def pair_test1():
+  """Pair chromosomes: one or the other empty"""
+  l = {}
+  v10 = nsv(1, 4, 'CAA', 'C', HET_10)
+  v20 = nsv(13, 16, 'CAA', 'C', HET_01)
+  avms([v10, v20], l)
 
+  s1 = nsp([v10])
+  s2 = nsp([])
+  s3 = vr.pair_chromosomes(s1, [], 0, s2, [], 0)
+  assert_sequence_equal(s3.to_list(), [v10])
+
+  s1 = nsp([])
+  s2 = nsp([v20])
+  s3 = vr.pair_chromosomes(s1, [], 0, s2, [], 1)
+  assert_sequence_equal(s3.to_list(), [v20])
+
+
+def pair_test2():
+  """Pair chromosomes: heterozygous, parent copy congruent/incongruent"""
+  l = {}
+  v10 = nsv(1, 4, 'CAA', 'C', HET_10)
+  v11 = nsv(5, 6, 'C', 'T', HOM)
+  v20 = nsv(13, 16, 'CAA', 'C', HET_01)
+  avms([v10, v11, v20], l)
+
+  s1 = nsp([v10])
+  s2 = nsp([v20])
+  s3 = vr.pair_chromosomes(s1, [], 1, s2, [], 0)
+  assert_sequence_equal(s3.to_list(), [])
+
+  s1 = nsp([v10])
+  s2 = nsp([v20])
+  s3 = vr.pair_chromosomes(s1, [], 0, s2, [], 1)
+  assert_sequence_equal(s3.to_list(), [v10, v20])
+
+  s1 = nsp([v11])
+  s2 = nsp([v20])
+  s3 = vr.pair_chromosomes(s1, [], 0, s2, [], 1)
+  assert_sequence_equal(s3.to_list(), [ngt(v11, HET_10), v20])
+
+  s1 = nsp([v11])
+  s2 = nsp([v20])
+  s3 = vr.pair_chromosomes(s1, [], 1, s2, [], 0)
+  assert_sequence_equal(s3.to_list(), [ngt(v11, HET_10)])
+
+
+def pair_test3():
+  """Pair chromosomes: zipper merge order correct?"""
+  l = {}
+  v10 = nsv(3, 7, 'ACTG', 'A', HOM)
+  v11 = nsv(10, 11, 'C', 'A', HOM)
+  v20 = nsv(1, 5, 'ACTG', 'A', HOM)
+  v21 = nsv(7, 8, 'C', 'T', HOM)
+  v22 = nsv(15, 16, 'A', 'T', HOM)
+  #v23 = nsv(16, 16, 'C', 'T', HOM)
+  avms([v10, v11, v20, v21, v22], l)
+
+  s1 = nsp([v10, v11])
+  s2 = nsp([v20, v21, v22])
+  s3 = vr.pair_chromosomes(s1, [], 1, s2, [], 0)
+  assert_sequence_equal(s3.to_list(),
+                        [ngt(v20, HET_01), ngt(v10, HET_10), ngt(v21, HET_01), ngt(v11, HET_10), ngt(v22, HET_01)])
+
+
+def pair_test4():
+  """Pair chromosomes: zipper merge, heterozygous, overlapping, order correct?"""
+  l = {}
+  v10 = nsv(3, 7, 'ACTG', 'A', HOM)
+  v11 = nsv(10, 11, 'C', 'A', HET_01)
+  v20 = nsv(1, 5, 'ACTG', 'A', HOM)
+  v21 = nsv(7, 8, 'C', 'T', HET_10)
+  v22 = nsv(15, 16, 'A', 'T', HET_10)
+  v23 = nsv(16, 16, 'C', 'T', HET_01)
+  avms([v10, v11, v20, v21, v22, v23], l)
+
+  s1 = nsp([v10, v11])
+  s2 = nsp([v20, v21, v22, v23])
+  s3 = vr.pair_chromosomes(s1, [], 1, s2, [], 0)
+  assert_sequence_equal(s3.to_list(),
+                        [ngt(v20, HET_01), ngt(v10, HET_10), ngt(v21, HET_01), ngt(v11, HET_10), ngt(v22, HET_01)])
+
+
+def pair_test5():
+  """Pair chromosomes: zipper merge, resolve homozygous"""
+  l = {}
+  v10 = nsv(3, 7, 'ACTG', 'A', HOM)
+  v11 = nsv(10, 11, 'C', 'A', HET_01)
+  v20 = nsv(1, 5, 'ACTG', 'A', HOM)
+  v21 = nsv(7, 8, 'C', 'T', HET_10)
+  v22 = nsv(10, 11, 'C', 'A', HET_01)
+  avms([v10, v11, v20, v21, v22], l)
+
+  s1 = nsp([v10, v11])
+  s2 = nsp([v20, v21, v22])
+  s3 = vr.pair_chromosomes(s1, [], 1, s2, [], 1)
+  assert_sequence_equal(s3.to_list(),
+                        [ngt(v20, HET_01), ngt(v10, HET_10), ngt(v22, HOM)])
+
+
+# def pair_test3():
+#   """Pair chromosomes, parent copy check"""
+#   l = {}
+#   v10 = nsv(1, 4, 'CAA', 'C', HET_10)
+#   v20 = nsv(13, 16, 'CAA', 'C', HET_01)
+#   avms([v10, v20], l)
+#
+#   s1 = nsp([v10])
+#   s2 = nsp([v20])
+#   s3 = vr.pair_chromosomes(s1, [], 1, s2, [], 0)
+#   assert_sequence_equal(s3.to_list(), [])
+#
+#   s1 = nsp([v10])
+#   s2 = nsp([v20])
+#   s3 = vr.pair_chromosomes(s1, [], 0, s2, [], 1)
+#   assert_sequence_equal(s3.to_list(), [v10, v20])
 
 # def copy_missing_chromosomes_test():
 #   """Copy missing chromosomes."""
