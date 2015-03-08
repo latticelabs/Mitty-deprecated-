@@ -110,9 +110,15 @@ cdef class Sample:
 
   Rules:
     There is a dummy node, which head (and, initially, tail) point to.
-    appends attach to tail.next and reposition tail. This is how we create the list
-    inserts attach in between cursor cursor.next
-    advance advances cursor and returns cursor.next
+    append: attaches to tail.next and repositions tail. This is how we create the list
+    insert: attaches in between cursor and cursor.next
+    advance: advances cursor and returns cursor.next
+
+  Note:
+    The implementation is specific to our use case, most notably in the use of the 'cursor' pointer and the 'advance'
+    method - which returns cursor.next, rather than cursor. Mutable state (in the form of the 'cursor' pointer)
+    requires us to remember to rewind when needed. Since this is not a general implementation of a data structure,
+    these are acceptable choices.
   """
   cdef public:
     SampleVariant head, cursor, tail
@@ -184,9 +190,8 @@ cdef class SampleIterator:
 
 cdef inline bint overlap(SampleVariant v1, SampleVariant v2):
   """Returns true if the footprints of the variations overlap. This is used when applying denovo mutations to a genome
-  :param v1: Variant from original sample
-  :param v2: Proposed Variant
-  :param gt: proposed genotype for this sample
+  :param v1: SampleVariant from original sample
+  :param v2: Proposed SampleVariant
   :returns Bool
   """
   if v2.data.pos - 1 <= v1.data.pos <= v2.data.stop + 1 or v2.data.pos - 1 <= v1.data.stop <= v2.data.stop + 1 or \
@@ -201,8 +206,9 @@ cpdef add_denovo_variants_to_sample(Sample s, dnv, dict ml):
   Given an existing Sample s (list of variants) merge a new list of variants (dnv) into it in zipper fashion. s has
   priority (collisions are resolved in favor of s). As new variants are accepted, add them to the master list
 
-  :param c1: The original variants
-  :param c2: The proposed new variants (iterator, convenient to use create_sample_iterable)
+  :param s: The original variant list
+  :param dnv: The proposed new variants (iterator, convenient to use create_sample_iterable)
+  :param ml: master list of Variants
 
   s and ml are modified in place
   Algorithm::
@@ -221,6 +227,7 @@ cpdef add_denovo_variants_to_sample(Sample s, dnv, dict ml):
                             = False: add(c2), c2++
 
   """
+  s.rewind_cursor()  # One of the evils of mutable state. Is there a way to avoid? Perhaps by making shallow copies?
   cdef:
     SampleVariant s1 = s.advance(), s2 = next(dnv, None)
   while s1 is not None and s2 is not None:
@@ -279,6 +286,9 @@ cpdef Sample pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Samp
     * For each parent, pick variants from one copy, until we reach a cross over point, then flip the copy
     * By convention, parent0 supplies chrom copy 0 and parent1 supplies chrom copy 1 of the child
   """
+  s1.rewind_cursor()  # One of the evils of mutable state. Is there a way to avoid? Perhaps by making shallow copies?
+  s2.rewind_cursor()
+
   cdef:
     int cp1 = chrom_copy1, cp2 = chrom_copy2
     unsigned long co_pt1, co_pt2, p1, p2, st1, st2, max_pos
