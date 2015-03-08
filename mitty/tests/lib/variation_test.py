@@ -415,6 +415,37 @@ def pair_test5():
                         [ngt(v20, HET_01), ngt(v10, HET_10), ngt(v22, HOM)])
 
 
+def pair_test6():
+  """Pair chromosomes: Cross-overs"""
+  l = {}
+  v10 = nsv(1, 2, 'A', 'C', HET_10)  # 1|0
+  v11 = nsv(4, 5, 'C', 'A', HET_01)  # 0|1
+
+  v20 = nsv(2, 3, 'T', 'G', HET_10)  # 1|0
+  v21 = nsv(6, 7, 'C', 'T', HET_01)  # 0|1
+
+  avms([v10, v11, v20, v21], l)
+
+  s1 = nsp([v10, v11])
+  s2 = nsp([v20, v21])
+
+  s3 = vr.pair_chromosomes(s1, [3], 0, s2, [4], 1)
+  # This means:
+  #  parent 1: pick chromosome copy 0 after simulating recombination at position 3
+  #  parent 2: pick chromosome copy 1 after simulating recombination at position 4
+  assert_sequence_equal(s3.to_list(),
+                        [ngt(v10, HET_10), ngt(v11, HET_10)])
+
+  s3 = vr.pair_chromosomes(s1, [3], 1, s2, [4], 1)
+  assert_sequence_equal(s3.to_list(), [])
+
+  s3 = vr.pair_chromosomes(s1, [3], 0, s2, [4], 0)
+  assert_sequence_equal(s3.to_list(),
+                        [ngt(v10, HET_10), ngt(v20, HET_01), ngt(v11, HET_10), ngt(v21, HET_01)])
+
+  # This sequence of tests also has the benefit of testing multiple uses of the same parents
+
+
 # def pair_test3():
 #   """Pair chromosomes, parent copy check"""
 #   l = {}
