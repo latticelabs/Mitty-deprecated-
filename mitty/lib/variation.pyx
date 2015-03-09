@@ -159,7 +159,7 @@ cdef class Sample:
     else:
       if self.cursor.next is not None:  # OK to advance
         self.cursor = self.cursor.next
-    return self.cursor.next  # Will be None for empty list
+    return self.cursor.next  # Will be None for empty list or end of list
 
   cpdef SampleVariant last(self):
     if self.head == self.tail:  # Empty list
@@ -284,6 +284,49 @@ cdef append_sv_copies(Sample s, SampleVariant sv1, int cp1, SampleVariant sv2, i
       s.append(new_sample_variant(HET_01, sv2.data))
 
 
+cdef class CrossOverPoints:
+  """We needed this rather than a simple iterator because we have to handle the paradoxes that arise when the cross over
+  point is in the middle of a footprint and adjust the cross over accordingly"""
+  cdef:
+    list point_list
+    int current_point, current_copy, current_point_idx, max_point_idx, max_pos
+
+  def __cinit__(self, list point_list, int max_pos, int copy):
+    self.point_list, self.max_pos, self.current_copy, self.current_point_idx = point_list, max_pos, copy, 0
+    self.max_point_idx = len(self.point_list)
+    if self.current_point_idx < self.max_point_idx:
+      self.current_point = self.point_list[self.current_point_idx]
+    else:
+      self.current_point = max_pos
+
+  cdef int update_crossover(self, Variant v):
+    """Given the current variant, update the current_copy variable as needed and return that"""
+    if v.pos < self.current_point < v.stop:
+      # If the cross-over point falls in the middle of a deletion it will lead to a paradox, so we:
+      # a) move the cross over point virtually
+      self.current_point = v.stop
+      # b) Advance the index so that the next advance will point it to beyond this cross over
+      while self.current_point_idx < self.max_point_idx:
+        if self.point_list[self.current_point_idx] <= self.current_point:
+          self.current_point_idx += 1
+        else:
+          self.current_point_idx -= 1  # We will advance this, so we need to rewind it a bit
+          break
+      # At the end of this loop, either our next point is past the moved point or we have run out of points
+      # No need to flip copies in this case
+    else:  # We need to figure out if we have gone past the last cross over and need to advance
+      while v.pos > self.current_point:
+        self.current_copy = 1 - self.current_copy
+        self.current_point_idx += 1
+        if self.current_point_idx >= self.max_point_idx:
+          self.current_point_idx = self.max_point_idx
+          self.current_point = self.max_pos
+          break
+        else:
+          self.current_point = self.point_list[self.current_point_idx]
+    return self.current_copy
+
+
 cpdef Sample pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Sample s2, list cross_over2, int chrom_copy2):
   """pair_chromosomes(s1, cross_over_points1, int cp1, s2, cross_over_points2, int cp2)
   Starting with a pair of parent samples, apply crossover points and pair the resulting gametes to make a child genome
@@ -316,29 +359,14 @@ cpdef Sample pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Samp
   if s2.last() is not None:
     max_pos = max(s2.last().data.pos + 1, max_pos)
 
-  co1_i = iter(cross_over1)
-  co2_i = iter(cross_over2)
-
-  co_pt1 = next(co1_i, max_pos)
-  co_pt2 = next(co2_i, max_pos)
+  cdef CrossOverPoints cop1 = CrossOverPoints(cross_over1, max_pos, chrom_copy1)
+  cdef CrossOverPoints cop2 = CrossOverPoints(cross_over2, max_pos, chrom_copy2)
 
   while sv1 is not None or sv2 is not None:
-    p1, st1 = (sv1.data.pos, sv1.data.stop) if sv1 else (max_pos, max_pos)
-    p2, st2 = (sv2.data.pos, sv2.data.stop) if sv2 else (max_pos, max_pos)
-
-    # If the cross-over point falls in the middle of a deletion it will lead to a paradox, so we move it
-    if p1 < co_pt1 < st1:
-      co_pt1 = st1
-    if p2 < co_pt2 < st2:
-      co_pt2 = st2
-
-    # Time to switch copies
-    while p1 > co_pt1:
-      cp1 = 1 - cp1
-      co_pt1 = next(co1_i, max_pos)
-    while p2 > co_pt2:  # Time to switch copies
-      cp2 = 1 - cp2
-      co_pt2 = next(co2_i, max_pos)
+    p1 = sv1.data.pos if sv1 else max_pos
+    p2 = sv2.data.pos if sv2 else max_pos
+    cp1 = cop1.update_crossover(sv1.data)
+    cp2 = cop2.update_crossover(sv2.data)
 
     if p1 < p2:    # Nothing tricky, just add sv1 to the sample
       append_sv_copy(s3, 0, sv1, cp1)  # By convention, parent1 contributes to copy0 of child chromosome
