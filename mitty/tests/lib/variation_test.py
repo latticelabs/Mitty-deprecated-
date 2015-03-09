@@ -446,22 +446,56 @@ def pair_test6():
   # This sequence of tests also has the benefit of testing multiple uses of the same parents
 
 
-# def pair_test3():
-#   """Pair chromosomes, parent copy check"""
-#   l = {}
-#   v10 = nsv(1, 4, 'CAA', 'C', HET_10)
-#   v20 = nsv(13, 16, 'CAA', 'C', HET_01)
-#   avms([v10, v20], l)
-#
-#   s1 = nsp([v10])
-#   s2 = nsp([v20])
-#   s3 = vr.pair_chromosomes(s1, [], 1, s2, [], 0)
-#   assert_sequence_equal(s3.to_list(), [])
-#
-#   s1 = nsp([v10])
-#   s2 = nsp([v20])
-#   s3 = vr.pair_chromosomes(s1, [], 0, s2, [], 1)
-#   assert_sequence_equal(s3.to_list(), [v10, v20])
+def pair_test7():
+  """Pair chromosomes: Multiple cross-overs"""
+  l = {}
+  v10 = nsv(1, 2, 'A', 'C', HET_10)  # 1|0
+  v11 = nsv(4, 5, 'C', 'A', HET_01)  # 0|1
+  v12 = nsv(7, 8, 'G', 'T', HET_01)  # 0|1
+
+  v20 = nsv(2, 3, 'T', 'G', HET_10)  # 1|0
+  v21 = nsv(5, 6, 'C', 'T', HET_01)  # 0|1
+  v22 = nsv(8, 9, 'T', 'C', HET_01)  # 0|1
+
+  avms([v10, v11, v12, v20, v21, v22], l)
+
+  s1 = nsp([v10, v11, v12])
+  s2 = nsp([v20, v21, v22])
+
+  s3 = vr.pair_chromosomes(s1, [3, 6], 0, s2, [4, 7], 1)
+  assert_sequence_equal(s3.to_list(),
+                        [ngt(v10, HET_10), ngt(v11, HET_10), ngt(v22, HET_01)])
+
+
+def pair_test8():
+  """Pair chromosomes: Cross-over (even multiple) overlap with footprint"""
+  l = {}
+  v10 = nsv(1, 6, 'ATCCG', 'A', HET_10)  # 1|0
+  v11 = nsv(4, 5, 'C', 'A', HET_01)  # 0|1
+  v12 = nsv(7, 8, 'G', 'T', HET_01)  # 0|1
+
+  v20 = nsv(2, 3, 'T', 'G', HET_10)  # 1|0
+  v21 = nsv(5, 6, 'C', 'T', HET_01)  # 0|1
+  v22 = nsv(8, 9, 'T', 'C', HET_01)  # 0|1
+
+  avms([v10, v11, v12, v20, v21, v22], l)
+
+  s1 = nsp([v10, v11, v12])
+  s2 = nsp([v20, v21, v22])
+
+  s3 = vr.pair_chromosomes(s1, [3], 0, s2, [4], 1)
+  assert_sequence_equal(s3.to_list(),
+                        [ngt(v10, HET_10), ngt(v12, HET_10)])
+
+  s3 = vr.pair_chromosomes(s1, [3], 1, s2, [4], 1)
+  assert_sequence_equal(s3.to_list(),
+                        [ngt(v11, HET_10)])
+
+  s3 = vr.pair_chromosomes(s1, [3, 6], 1, s2, [4], 1)
+  assert_sequence_equal(s3.to_list(),
+                        [ngt(v11, HET_10)])
+
+
 
 # def copy_missing_chromosomes_test():
 #   """Copy missing chromosomes."""
