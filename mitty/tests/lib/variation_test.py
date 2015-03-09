@@ -1,6 +1,6 @@
 import mitty.lib.variation as vr
 from nose.tools import assert_sequence_equal
-nvr = vr.Variant
+nvr = vr.new_variant
 avm = vr.add_novel_variant_to_master
 HOM = vr.HOM
 HET_01 = vr.HET_01
@@ -10,7 +10,7 @@ HET_10 = vr.HET_10
 # Some utility functions to make our life easier
 def nsv(pos, stop, ref, alt, gt):
   """New sample variant"""
-  return vr.SampleVariant(gt, vr.Variant(pos, stop, ref, alt))
+  return vr.new_sample_variant(gt, nvr(pos, stop, ref, alt))
 
 
 def nsp(svs):
@@ -27,7 +27,7 @@ def avms(svs, ml):
 
 
 def ngt(old_sv, new_gt):
-  return vr.SampleVariant(new_gt, old_sv.data)
+  return vr.new_sample_variant(new_gt, old_sv.data)
 
 
 def addition_test():

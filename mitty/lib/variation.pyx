@@ -34,9 +34,9 @@ cdef class Variant:
     unsigned long pos, stop, hash, index
     bytes ref, alt
 
-  def __cinit__(self, unsigned long pos, unsigned long stop, bytes ref, bytes alt):
-    self.pos, self.stop, self.ref, self.alt = pos, stop, ref, alt
-    self.hash = self.pos ^ hash(self.ref) ^ hash(self.alt)
+  # def __cinit__(self, unsigned long pos, unsigned long stop, bytes ref, bytes alt):
+  #   self.pos, self.stop, self.ref, self.alt = pos, stop, ref, alt
+  #   self.hash = self.pos ^ hash(self.ref) ^ hash(self.alt)
 
   def __repr__(self):
     return '({:d}, {:d}, {:s}, {:s})'.format(self.pos, self.stop, self.ref, self.alt)
@@ -49,6 +49,13 @@ cdef class Variant:
 
   def as_tuple(self):
     return self.pos, self.stop, self.ref, self.alt
+
+
+cpdef Variant new_variant(unsigned long pos, unsigned long stop, bytes ref, bytes alt):
+  cdef Variant v = Variant()
+  v.pos, v.stop, v.ref, v.alt = pos, stop, ref, alt
+  v.hash = v.pos ^ hash(v.ref) ^ hash(v.alt)
+  return v
 
 
 cpdef Variant add_novel_variant_to_master(Variant v, dict ml):
@@ -84,8 +91,8 @@ cdef class SampleVariant:
     Variant data
     SampleVariant next
 
-  def __cinit__(self, unsigned char gt, Variant variant):
-    self.gt, self.data, self.next = gt, variant, None
+  # def __cinit__(self, unsigned char gt, Variant variant):
+  #   self.gt, self.data, self.next = gt, variant, None
 
   def __repr__(self):
     return '{:s} {:s}'.format(self.data, GT[self.gt])
@@ -95,6 +102,12 @@ cdef class SampleVariant:
       return other.data.hash == self.data.hash and self.gt == other.gt
     elif op == 3:
       return not (other.data.hash == self.data.hash and self.gt == other.gt)
+
+
+cpdef SampleVariant new_sample_variant(unsigned char gt, Variant variant):
+  cdef SampleVariant sv = SampleVariant()
+  sv.gt, sv.data, sv.next = gt, variant, None
+  return sv
 
 
 def create_sample_iterable(pos, ref, alt, gt):
@@ -125,7 +138,7 @@ cdef class Sample:
     unsigned long length
 
   def __cinit__(self):
-    self.head = self.tail = SampleVariant(ABSENT, Variant(0, 0, '', ''))  # Dummy node
+    self.head = self.tail = new_sample_variant(ABSENT, new_variant(0, 0, b'', b''))  # Dummy node
     self.cursor, self.length = None, 0
 
   def __len__(self):
@@ -181,7 +194,6 @@ cdef class SampleIterator:
   def __next__(self):
     if self.this is None:
       raise StopIteration()
-      return None
     else:
       result = self.this
       self.this = self.this.next
@@ -250,9 +262,11 @@ cpdef add_denovo_variants_to_sample(Sample s, dnv, dict ml):
 
 cdef append_sv_copy(Sample s, int child_cp, SampleVariant sv, int parent_cp):
   """Append correct copy of SampleVariant to s."""
+  cdef:
+    unsigned char gt
+    SampleVariant new_sv
   if (sv.gt == HOM) or (sv.gt == HET_01 and parent_cp == 1) or (sv.gt == HET_10 and parent_cp == 0):
-    gt = HET_10 if child_cp == 0 else HET_01
-    s.append(SampleVariant(gt, sv.data))
+    s.append(new_sample_variant(HET_10 if child_cp == 0 else HET_01, sv.data))
 
 
 cdef append_sv_copies(Sample s, SampleVariant sv1, int cp1, SampleVariant sv2, int cp2):
@@ -264,10 +278,10 @@ cdef append_sv_copies(Sample s, SampleVariant sv1, int cp1, SampleVariant sv2, i
     append_sv_copy(s, 0, sv1, cp1)
   else:  # Both copies of the child genome will have a copy of sv1 abd sv2. Now we have to check more deeply
     if sv1.data == sv2.data:  # This will be HOM
-      s.append(SampleVariant(HOM, sv1.data))
+      s.append(new_sample_variant(HOM, sv1.data))
     else:  # OK, two variants at the same spot, but they are different
-      s.append(SampleVariant(HET_10, sv1.data))  # They will appear in a certain order
-      s.append(SampleVariant(HET_01, sv2.data))
+      s.append(new_sample_variant(HET_10, sv1.data))  # They will appear in a certain order
+      s.append(new_sample_variant(HET_01, sv2.data))
 
 
 cpdef Sample pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Sample s2, list cross_over2, int chrom_copy2):
