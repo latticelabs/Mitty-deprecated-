@@ -61,6 +61,7 @@ cpdef Variant new_variant(unsigned long pos, unsigned long stop, bytes ref, byte
 cpdef Variant add_novel_variant_to_master(Variant v, dict ml):
   """Add this new variant to the dictionary (master list). Intelligently handle case where we have an existing allele
   at the same locus.
+
   :param v: This variant in the form of a Variation instance
   :param ml: Python dictionary storing all variants in a chromosome
   :returns v or existing variant in master list to which this variant is identical
@@ -82,6 +83,7 @@ cdef class SampleVariant:
   pointer to the next SampleVariant so we can chain it together into a Sample
 
   SampleVariant(gt, Variant)
+
   Attributes:
     gt      - zygosity (genotype) information
     data - (pointer to) the Variant in the master list
@@ -114,7 +116,7 @@ def create_sample_iterable(pos, ref, alt, gt):
   """Given lists/generators of the bare variant data (e.g. from a plugin) return us an iterator that will produce a
   stream of individual SampleVariants."""
   for p, r, a, g in itertools.izip(pos, ref, alt, gt):
-    yield SampleVariant(g, Variant(p, p + len(r), r, a))
+    yield new_sample_variant(g, new_variant(p, p + len(r), r, a))
 
 
 cdef class Sample:
@@ -202,6 +204,7 @@ cdef class SampleIterator:
 
 cdef inline bint overlap(SampleVariant v1, SampleVariant v2):
   """Returns true if the footprints of the variations overlap. This is used when applying denovo mutations to a genome
+
   :param v1: SampleVariant from original sample
   :param v2: Proposed SampleVariant
   :returns Bool
@@ -223,6 +226,7 @@ cpdef add_denovo_variants_to_sample(Sample s, dnv, dict ml):
   :param ml: master list of Variants
 
   s and ml are modified in place
+
   Algorithm::
 
     o(x,y) = True if x and y overlap
@@ -330,6 +334,7 @@ cdef class CrossOverPoints:
 cpdef Sample pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Sample s2, list cross_over2, int chrom_copy2):
   """pair_chromosomes(s1, cross_over_points1, int cp1, s2, cross_over_points2, int cp2)
   Starting with a pair of parent samples, apply crossover points and pair the resulting gametes to make a child genome
+
   :param s1: first sample genome
   :param cross_over1: list of cross over points
   :param chrom_copy1: which copy of chrom to use for gamete [0, 1]
