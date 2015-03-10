@@ -113,7 +113,7 @@ cpdef GTVariant new_gt_variant(unsigned char gt, Variant variant):
   return sv
 
 
-def create_sample_iterable(pos, ref, alt, gt):
+def create_gtv_iterable(pos, ref, alt, gt):
   """Given lists/generators of the bare variant data (e.g. from a plugin) return us an iterator that will produce a
   stream of individual SampleVariants."""
   for p, r, a, g in itertools.izip(pos, ref, alt, gt):
@@ -148,7 +148,7 @@ cdef class Chromosome:
     return self.length
 
   def __iter__(self):
-    return SampleIterator(self)
+    return ChromosomeIterator(self)
 
   def to_list(self):
     return [sv for sv in self]
@@ -187,7 +187,7 @@ cdef class Chromosome:
     self.length += 1
 
 
-cdef class SampleIterator:
+cdef class ChromosomeIterator:
   """A class that lets us iterate over the sample."""
   cdef GTVariant this
 
@@ -223,7 +223,7 @@ cpdef add_denovo_variants_to_sample(Chromosome s, dnv, dict ml):
   priority (collisions are resolved in favor of s). As new variants are accepted, add them to the master list.
 
   :param s: The original variant list
-  :param dnv: The proposed new variants (iterator, convenient to use create_sample_iterable)
+  :param dnv: The proposed new variants (iterator, convenient to use create_gtv_iterable)
   :param ml: master list of Variants
 
   s and ml are modified in place
