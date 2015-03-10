@@ -13,8 +13,8 @@ def nsv(pos, stop, ref, alt, gt):
   return vr.new_gt_variant(gt, nvr(pos, stop, ref, alt))
 
 
-def nsp(svs):
-  """Given a list of SampleVariants, turn them into a Sample instance"""
+def nch(svs):
+  """Given a list of SampleVariants, turn them into a Chromosomes instance"""
   s = vr.Chromosome()
   for sv in svs:
     s.append(sv)
@@ -140,7 +140,7 @@ def denovo_add_test0():
   l = {}
   v20 = nsv(10, 13, 'CAA', 'C', HOM)
 
-  c1 = nsp([])
+  c1 = nch([])
   dnv = iter([v20])
   vr.add_denovo_variants_to_sample(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v20])
@@ -153,7 +153,7 @@ def denovo_add_test1():
   v20 = nsv(10, 13, 'CAA', 'C', HOM)
   avm(v10.data, l)
 
-  c1 = nsp([v10])
+  c1 = nch([v10])
   dnv = iter([v20])
   vr.add_denovo_variants_to_sample(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10, v20])
@@ -166,7 +166,7 @@ def denovo_add_test2():
   v20 = nsv(1, 4, 'CAA', 'C', HOM)
   avm(v10.data, l)
 
-  c1 = nsp([v10])
+  c1 = nch([v10])
   dnv = iter([v20])
   vr.add_denovo_variants_to_sample(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v20, v10])
@@ -181,7 +181,7 @@ def denovo_add_test3():
   v21 = nsv(20, 23, 'CAA', 'C', HOM)
   avms([v10, v11], l)
 
-  c1 = nsp([v10, v11])
+  c1 = nch([v10, v11])
   dnv = iter([v20, v21])
   vr.add_denovo_variants_to_sample(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10, v20, v11, v21])
@@ -194,7 +194,7 @@ def denovo_add_test4a():
   v20 = nsv(2, 5, 'CAA', 'T', HOM)
   avms([v10], l)
 
-  c1 = nsp([v10])
+  c1 = nch([v10])
   dnv = iter([v20])
   vr.add_denovo_variants_to_sample(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10])
@@ -207,7 +207,7 @@ def denovo_add_test4b():
   v20 = nsv(2, 3, 'C', 'T', HET_10)
   avms([v10], l)
 
-  c1 = nsp([v10])
+  c1 = nch([v10])
   dnv = iter([v20])
   vr.add_denovo_variants_to_sample(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10])
@@ -222,7 +222,7 @@ def denovo_add_test4c():
   v20 = nsv(2, 3, 'A', 'T', HET_10)
   avms([v10, v11], l)
 
-  c1 = nsp([v10, v11])
+  c1 = nch([v10, v11])
   dnv = iter([v20])
   vr.add_denovo_variants_to_sample(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10, v11])
@@ -235,7 +235,7 @@ def denovo_add_test4():
   v20 = nsv(2, 5, 'CCC', 'C', HOM)
   avms([v10], l)
 
-  c1 = nsp([v10])
+  c1 = nch([v10])
   dnv = iter([v20])
   vr.add_denovo_variants_to_sample(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10])
@@ -248,7 +248,7 @@ def denovo_add_test5():
   v20 = nsv(1, 4, 'CAA', 'C', HOM)
   avms([v10], l)
 
-  c1 = nsp([v10])
+  c1 = nch([v10])
   dnv = iter([v20])
   vr.add_denovo_variants_to_sample(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10])
@@ -268,7 +268,7 @@ def denovo_add_test6():
   v22 = nsv(20, 23, 'CTT', 'C', HOM)
   v23 = nsv(26, 29, 'CTT', 'C', HET_01)
 
-  c1 = nsp([v10, v11, v12, v13])
+  c1 = nch([v10, v11, v12, v13])
   dnv = iter([v20, v21, v22, v23])
   vr.add_denovo_variants_to_sample(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10, v11, v21, v12, v13])
@@ -286,7 +286,7 @@ def denovo_add_test7():
   v22 = nsv(15, 16, 'A', 'T', HOM)  # Too close together, second one should collide out
   v23 = nsv(16, 16, 'C', 'T', HOM)
 
-  c1 = nsp([v10, v11])
+  c1 = nch([v10, v11])
   dnv = iter([v20, v21, v22, v23])
   vr.add_denovo_variants_to_sample(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10, v11, v22])
@@ -301,7 +301,7 @@ def denovo_add_test8():
   v20 = nsv(24, 25, 'A', 'C', HET_01)
   v21 = nsv(25, 26, 'C', 'A', HET_10)
 
-  c1 = nsp([v10])
+  c1 = nch([v10])
   dnv = iter([v20, v21])
   vr.add_denovo_variants_to_sample(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v21, v10])
@@ -309,8 +309,8 @@ def denovo_add_test8():
 
 def pair_test0():
   """Pair chromosomes: both empty"""
-  s1 = nsp([])
-  s2 = nsp([])
+  s1 = nch([])
+  s2 = nch([])
   s3 = vr.pair_chromosomes(s1, [], 0, s2, [], 0)
   assert_sequence_equal(s3.to_list(), [])
 
@@ -322,13 +322,13 @@ def pair_test1():
   v20 = nsv(13, 16, 'CAA', 'C', HET_01)
   avms([v10, v20], l)
 
-  s1 = nsp([v10])
-  s2 = nsp([])
+  s1 = nch([v10])
+  s2 = nch([])
   s3 = vr.pair_chromosomes(s1, [], 0, s2, [], 0)
   assert_sequence_equal(s3.to_list(), [v10])
 
-  s1 = nsp([])
-  s2 = nsp([v20])
+  s1 = nch([])
+  s2 = nch([v20])
   s3 = vr.pair_chromosomes(s1, [], 0, s2, [], 1)
   assert_sequence_equal(s3.to_list(), [v20])
 
@@ -341,23 +341,23 @@ def pair_test2():
   v20 = nsv(13, 16, 'CAA', 'C', HET_01)
   avms([v10, v11, v20], l)
 
-  s1 = nsp([v10])
-  s2 = nsp([v20])
+  s1 = nch([v10])
+  s2 = nch([v20])
   s3 = vr.pair_chromosomes(s1, [], 1, s2, [], 0)
   assert_sequence_equal(s3.to_list(), [])
 
-  s1 = nsp([v10])
-  s2 = nsp([v20])
+  s1 = nch([v10])
+  s2 = nch([v20])
   s3 = vr.pair_chromosomes(s1, [], 0, s2, [], 1)
   assert_sequence_equal(s3.to_list(), [v10, v20])
 
-  s1 = nsp([v11])
-  s2 = nsp([v20])
+  s1 = nch([v11])
+  s2 = nch([v20])
   s3 = vr.pair_chromosomes(s1, [], 0, s2, [], 1)
   assert_sequence_equal(s3.to_list(), [ngt(v11, HET_10), v20])
 
-  s1 = nsp([v11])
-  s2 = nsp([v20])
+  s1 = nch([v11])
+  s2 = nch([v20])
   s3 = vr.pair_chromosomes(s1, [], 1, s2, [], 0)
   assert_sequence_equal(s3.to_list(), [ngt(v11, HET_10)])
 
@@ -373,8 +373,8 @@ def pair_test3():
   #v23 = nsv(16, 16, 'C', 'T', HOM)
   avms([v10, v11, v20, v21, v22], l)
 
-  s1 = nsp([v10, v11])
-  s2 = nsp([v20, v21, v22])
+  s1 = nch([v10, v11])
+  s2 = nch([v20, v21, v22])
   s3 = vr.pair_chromosomes(s1, [], 1, s2, [], 0)
   assert_sequence_equal(s3.to_list(),
                         [ngt(v20, HET_01), ngt(v10, HET_10), ngt(v21, HET_01), ngt(v11, HET_10), ngt(v22, HET_01)])
@@ -391,8 +391,8 @@ def pair_test4():
   v23 = nsv(16, 16, 'C', 'T', HET_01)
   avms([v10, v11, v20, v21, v22, v23], l)
 
-  s1 = nsp([v10, v11])
-  s2 = nsp([v20, v21, v22, v23])
+  s1 = nch([v10, v11])
+  s2 = nch([v20, v21, v22, v23])
   s3 = vr.pair_chromosomes(s1, [], 1, s2, [], 0)
   assert_sequence_equal(s3.to_list(),
                         [ngt(v20, HET_01), ngt(v10, HET_10), ngt(v21, HET_01), ngt(v11, HET_10), ngt(v22, HET_01)])
@@ -408,8 +408,8 @@ def pair_test5():
   v22 = nsv(10, 11, 'C', 'A', HET_01)
   avms([v10, v11, v20, v21, v22], l)
 
-  s1 = nsp([v10, v11])
-  s2 = nsp([v20, v21, v22])
+  s1 = nch([v10, v11])
+  s2 = nch([v20, v21, v22])
   s3 = vr.pair_chromosomes(s1, [], 1, s2, [], 1)
   assert_sequence_equal(s3.to_list(),
                         [ngt(v20, HET_01), ngt(v10, HET_10), ngt(v22, HOM)])
@@ -426,8 +426,8 @@ def pair_test6():
 
   avms([v10, v11, v20, v21], l)
 
-  s1 = nsp([v10, v11])
-  s2 = nsp([v20, v21])
+  s1 = nch([v10, v11])
+  s2 = nch([v20, v21])
 
   s3 = vr.pair_chromosomes(s1, [3], 0, s2, [4], 1)
   # This means:
@@ -459,8 +459,8 @@ def pair_test7():
 
   avms([v10, v11, v12, v20, v21, v22], l)
 
-  s1 = nsp([v10, v11, v12])
-  s2 = nsp([v20, v21, v22])
+  s1 = nch([v10, v11, v12])
+  s2 = nch([v20, v21, v22])
 
   s3 = vr.pair_chromosomes(s1, [3, 6], 0, s2, [4, 7], 1)
   assert_sequence_equal(s3.to_list(),
@@ -480,8 +480,8 @@ def pair_test8():
 
   avms([v10, v11, v12, v20, v21, v22], l)
 
-  s1 = nsp([v10, v11, v12])
-  s2 = nsp([v20, v21, v22])
+  s1 = nch([v10, v11, v12])
+  s2 = nch([v20, v21, v22])
 
   s3 = vr.pair_chromosomes(s1, [3], 0, s2, [4], 1)
   assert_sequence_equal(s3.to_list(),
@@ -495,6 +495,38 @@ def pair_test8():
   assert_sequence_equal(s3.to_list(),
                         [ngt(v11, HET_10)])
 
+
+def pair_samples_test():
+  """Pair samples"""
+  l = {}
+  v110 = nsv(1, 2, 'A', 'T', HET_01)
+  v111 = nsv(6, 7, 'G', 'A', HET_01)
+
+  v120 = nsv(2, 3, 'A', 'G', HET_10)
+
+  v210 = nsv(5, 6, 'T', 'G', HET_10)
+
+  v220 = nsv(3, 4, 'C', 'T', HET_01)
+  v221 = nsv(10, 11, 'G', 'C', HET_01)
+
+  avms([v110, v111, v120, v210, v220, v221], l)
+
+  c11 = nch([v110, v111])
+  c12 = nch([v120])
+  s1 = {1: c11, 3: c12}
+  cross1 = {1: [4]}
+  copy1 = {1: 1}
+
+  c21 = nch([v210])
+  c22 = nch([v220, v221])
+  s2 = {1: c21, 4: c22}
+  cross2 = {4: [7]}
+  copy2 = {4: 1}
+
+  s3 = vr.pair_samples(s1, cross1, copy1, s2, cross2, copy2)
+
+  assert_sequence_equal(s3[1].to_list(), [ngt(v110, HET_10), ngt(v210, HET_01)])
+  assert_sequence_equal(s3[3].to_list(), [ngt(v120, HET_10)])
 
 
 # def copy_missing_chromosomes_test():

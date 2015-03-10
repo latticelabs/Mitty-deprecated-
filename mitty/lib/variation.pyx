@@ -388,7 +388,24 @@ cpdef Chromosome pair_chromosomes(Chromosome s1, list cross_over1, int chrom_cop
   return s3
 
 
+cpdef dict pair_samples(dict s1, dict cross1, dict copy1, dict s2, dict cross2, dict copy2):
+  """pair_samples(dict s1, dict cross1, dict copy1, dict s2, dict cross2, dict copy2)
 
+  Convenience wrapper round pair_chromosomes to operate on all the chromosomes in the two samples
+
+  :param s1: dict with keys as chrom numbers and values as Chromosome objects
+  :param cross1: dict with keys as chrom numbers and values as list of crossover points
+  :param copy1: dict with keys as chrom numbers and values as [0, 1] indicating which chromosome copy to use
+  :param s2: dict with keys as chrom numbers and values as Chromosome objects
+  :param cross2: dict with keys as chrom numbers and values as list of crossover points
+  :param copy2: dict with keys as chrom numbers and values as [0, 1] indicating which chromosome copy to use
+  :returns s3: a dict with keys as chrom numbers and values as Chromosome objects representing the demon spawn of the mating
+
+  Note: If no cross over points or copy numbers are supplied for a chromosome they default to no crossovers and copy 0
+  """
+  return {chrom: pair_chromosomes(s1.get(chrom, Chromosome()), cross1.get(chrom, []), copy1.get(chrom, 0),
+                                  s2.get(chrom, Chromosome()), cross2.get(chrom, []), copy2.get(chrom, 0))
+          for chrom in set(s1.keys()) | set(s2.keys())}
 
 
 # cpdef merge_variants(list c1, list c2):
