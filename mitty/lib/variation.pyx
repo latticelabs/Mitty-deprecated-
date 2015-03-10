@@ -59,12 +59,13 @@ cpdef Variant new_variant(unsigned long pos, unsigned long stop, bytes ref, byte
 
 
 cpdef Variant add_novel_variant_to_master(Variant v, dict ml):
-  """Add this new variant to the dictionary (master list). Intelligently handle case where we have an existing allele
+  """add_novel_variant_to_master(Variant v, dict ml)
+  Add this new variant to the dictionary (master list). Intelligently handle case where we have an existing allele
   at the same locus.
 
   :param v: This variant in the form of a Variation instance
   :param ml: Python dictionary storing all variants in a chromosome
-  :returns v or existing variant in master list to which this variant is identical
+  :returns: v or existing variant in master list to which this variant is identical
   """
   cdef unsigned short n = 0
   cdef unsigned long index = v.pos << 16 | n
@@ -79,15 +80,15 @@ cpdef Variant add_novel_variant_to_master(Variant v, dict ml):
 
 
 cdef class SampleVariant:
-  """Represents a data in a sample. It points to the Variant information and carries genotype info. It also has a
-  pointer to the next SampleVariant so we can chain it together into a Sample
+  """SampleVariant(gt, Variant)
 
-  SampleVariant(gt, Variant)
+  Represents a data in a sample. It points to the Variant information and carries genotype info. It also has a
+  pointer to the next SampleVariant so we can chain it together into a Sample
 
   Attributes:
     gt      - zygosity (genotype) information
     data - (pointer to) the Variant in the master list
-    """
+  """
   cdef public:
     unsigned char gt
     Variant data
@@ -207,7 +208,7 @@ cdef inline bint overlap(SampleVariant v1, SampleVariant v2):
 
   :param v1: SampleVariant from original sample
   :param v2: Proposed SampleVariant
-  :returns Bool
+  :returns True/False: Bool
   """
   if v2.data.pos - 1 <= v1.data.pos <= v2.data.stop + 1 or v2.data.pos - 1 <= v1.data.stop <= v2.data.stop + 1 or \
      v1.data.pos <= v2.data.pos - 1 <= v2.data.stop + 1 <= v1.data.stop:  # Potential overlap
@@ -218,8 +219,8 @@ cdef inline bint overlap(SampleVariant v1, SampleVariant v2):
 
 cpdef add_denovo_variants_to_sample(Sample s, dnv, dict ml):
   """add_denovo_variants_to_sample(s, dnv, ml)
-  Given an existing Sample s (list of variants) merge a new list of variants (dnv) into it in zipper fashion. s has
-  priority (collisions are resolved in favor of s). As new variants are accepted, add them to the master list
+  Given an existing Sample, s,  merge a new list of SampleVariants (dnv) into it in zipper fashion. s has
+  priority (collisions are resolved in favor of s). As new variants are accepted, add them to the master list.
 
   :param s: The original variant list
   :param dnv: The proposed new variants (iterator, convenient to use create_sample_iterable)
