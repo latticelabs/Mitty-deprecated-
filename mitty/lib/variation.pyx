@@ -79,20 +79,20 @@ cpdef Variant add_novel_variant_to_master(Variant v, dict ml):
   return v
 
 
-cdef class SampleVariant:
-  """SampleVariant(gt, Variant)
+cdef class GTVariant:
+  """GTVariant(gt, Variant)
 
   Represents a data in a sample. It points to the Variant information and carries genotype info. It also has a
-  pointer to the next SampleVariant so we can chain it together into a Sample
+  pointer to the next GTVariant so we can chain it together into a Chromosome
 
   Attributes:
     gt      - zygosity (genotype) information
-    data - (pointer to) the Variant in the master list
+    data    - (pointer to) the Variant in the master list
   """
   cdef public:
     unsigned char gt
     Variant data
-    SampleVariant next
+    GTVariant next
 
   # def __cinit__(self, unsigned char gt, Variant variant):
   #   self.gt, self.data, self.next = gt, variant, None
@@ -100,15 +100,15 @@ cdef class SampleVariant:
   def __repr__(self):
     return '{:s} {:s}'.format(self.data, GT[self.gt])
 
-  def __richcmp__(self, SampleVariant other, int op):
+  def __richcmp__(self, GTVariant other, int op):
     if op == 2:
       return other.data.hash == self.data.hash and self.gt == other.gt
     elif op == 3:
       return not (other.data.hash == self.data.hash and self.gt == other.gt)
 
 
-cpdef SampleVariant new_sample_variant(unsigned char gt, Variant variant):
-  cdef SampleVariant sv = SampleVariant()
+cpdef GTVariant new_gt_variant(unsigned char gt, Variant variant):
+  cdef GTVariant sv = GTVariant()
   sv.gt, sv.data, sv.next = gt, variant, None
   return sv
 
@@ -117,12 +117,12 @@ def create_sample_iterable(pos, ref, alt, gt):
   """Given lists/generators of the bare variant data (e.g. from a plugin) return us an iterator that will produce a
   stream of individual SampleVariants."""
   for p, r, a, g in itertools.izip(pos, ref, alt, gt):
-    yield new_sample_variant(g, new_variant(p, p + len(r), r, a))
+    yield new_gt_variant(g, new_variant(p, p + len(r), r, a))
 
 
-cdef class Sample:
-  """Represents a sample as a linked list. We always go sequentially through a sample, and for denovo variants
-  we may add samples into the middle of the sample which is a good fit for a ll
+cdef class Chromosome:
+  """Represents a chromosome as a linked list of GTVariants. We always go sequentially through a chromosome, and for
+  denovo variants we may add GTVariants into the middle of the chromosome which is a good fit for a ll
 
   Rules:
     There is a dummy node, which head (and, initially, tail) point to.
@@ -137,11 +137,11 @@ cdef class Sample:
     these are acceptable choices.
   """
   cdef public:
-    SampleVariant head, cursor, tail
+    GTVariant head, cursor, tail
     unsigned long length
 
   def __cinit__(self):
-    self.head = self.tail = new_sample_variant(ABSENT, new_variant(0, 0, b'', b''))  # Dummy node
+    self.head = self.tail = new_gt_variant(ABSENT, new_variant(0, 0, b'', b''))  # Dummy node
     self.cursor, self.length = None, 0
 
   def __len__(self):
@@ -156,7 +156,7 @@ cdef class Sample:
   cpdef rewind_cursor(self):
     self.cursor = None
 
-  cpdef SampleVariant advance(self):
+  cpdef GTVariant advance(self):
     if self.cursor is None:  # We are at the head of the list
       self.cursor = self.head
     else:
@@ -164,13 +164,13 @@ cdef class Sample:
         self.cursor = self.cursor.next
     return self.cursor.next  # Will be None for empty list or end of list
 
-  cpdef SampleVariant last(self):
+  cpdef GTVariant last(self):
     if self.head == self.tail:  # Empty list
       return None
     else:
       return self.tail
 
-  cpdef insert(self, SampleVariant sv):
+  cpdef insert(self, GTVariant sv):
     """Place sv right after cursor. cursor will point to original cursor.next after this. In practice, this places
     sv right before the variant advance just spit out"""
     sv.next = self.cursor.next
@@ -180,7 +180,7 @@ cdef class Sample:
       self.tail = sv
     self.length += 1
 
-  cpdef append(self, SampleVariant sv):
+  cpdef append(self, GTVariant sv):
     """This is how we grow the list."""
     self.tail.next = sv
     self.tail = sv
@@ -189,9 +189,9 @@ cdef class Sample:
 
 cdef class SampleIterator:
   """A class that lets us iterate over the sample."""
-  cdef SampleVariant this
+  cdef GTVariant this
 
-  def __cinit__(self, Sample s):
+  def __cinit__(self, Chromosome s):
     self.this = s.head.next  # Head is a dummy!
 
   def __next__(self):
@@ -203,11 +203,11 @@ cdef class SampleIterator:
       return result
 
 
-cdef inline bint overlap(SampleVariant v1, SampleVariant v2):
+cdef inline bint overlap(GTVariant v1, GTVariant v2):
   """Returns true if the footprints of the variations overlap. This is used when applying denovo mutations to a genome
 
-  :param v1: SampleVariant from original sample
-  :param v2: Proposed SampleVariant
+  :param v1: GTVariant from original sample
+  :param v2: Proposed GTVariant
   :returns True/False: Bool
   """
   if v2.data.pos - 1 <= v1.data.pos <= v2.data.stop + 1 or v2.data.pos - 1 <= v1.data.stop <= v2.data.stop + 1 or \
@@ -217,9 +217,9 @@ cdef inline bint overlap(SampleVariant v1, SampleVariant v2):
   return False
 
 
-cpdef add_denovo_variants_to_sample(Sample s, dnv, dict ml):
+cpdef add_denovo_variants_to_sample(Chromosome s, dnv, dict ml):
   """add_denovo_variants_to_sample(s, dnv, ml)
-  Given an existing Sample, s,  merge a new list of SampleVariants (dnv) into it in zipper fashion. s has
+  Given an existing Chromosome, s,  merge a new list of SampleVariants (dnv) into it in zipper fashion. s has
   priority (collisions are resolved in favor of s). As new variants are accepted, add them to the master list.
 
   :param s: The original variant list
@@ -246,7 +246,7 @@ cpdef add_denovo_variants_to_sample(Sample s, dnv, dict ml):
   """
   s.rewind_cursor()  # One of the evils of mutable state. Is there a way to avoid? Perhaps by making shallow copies?
   cdef:
-    SampleVariant s1 = s.advance(), s2 = next(dnv, None)
+    GTVariant s1 = s.advance(), s2 = next(dnv, None)
   while s1 is not None and s2 is not None:
     if overlap(s1, s2): # This will collide. Advance dnv and redo. Fixes case for merge_test8
       s2 = next(dnv, None)
@@ -265,16 +265,16 @@ cpdef add_denovo_variants_to_sample(Sample s, dnv, dict ml):
     s2 = next(dnv, None)
 
 
-cdef append_sv_copy(Sample s, int child_cp, SampleVariant sv, int parent_cp):
-  """Append correct copy of SampleVariant to s."""
+cdef append_sv_copy(Chromosome s, int child_cp, GTVariant sv, int parent_cp):
+  """Append correct copy of GTVariant to s."""
   cdef:
     unsigned char gt
-    SampleVariant new_sv
+    GTVariant new_sv
   if (sv.gt == HOM) or (sv.gt == HET_01 and parent_cp == 1) or (sv.gt == HET_10 and parent_cp == 0):
-    s.append(new_sample_variant(HET_10 if child_cp == 0 else HET_01, sv.data))
+    s.append(new_gt_variant(HET_10 if child_cp == 0 else HET_01, sv.data))
 
 
-cdef append_sv_copies(Sample s, SampleVariant sv1, int cp1, SampleVariant sv2, int cp2):
+cdef append_sv_copies(Chromosome s, GTVariant sv1, int cp1, GTVariant sv2, int cp2):
   """Use this function when both variants have the same pos and we need to arbitrate genotype"""
   # If the variant is absent from one of the copies, don't have to worry about this
   if (sv1.gt == HET_10 and cp1 == 1) or (sv1.gt == HET_01 and cp1 == 0):
@@ -283,10 +283,10 @@ cdef append_sv_copies(Sample s, SampleVariant sv1, int cp1, SampleVariant sv2, i
     append_sv_copy(s, 0, sv1, cp1)
   else:  # Both copies of the child genome will have a copy of sv1 abd sv2. Now we have to check more deeply
     if sv1.data == sv2.data:  # This will be HOM
-      s.append(new_sample_variant(HOM, sv1.data))
+      s.append(new_gt_variant(HOM, sv1.data))
     else:  # OK, two variants at the same spot, but they are different
-      s.append(new_sample_variant(HET_10, sv1.data))  # They will appear in a certain order
-      s.append(new_sample_variant(HET_01, sv2.data))
+      s.append(new_gt_variant(HET_10, sv1.data))  # They will appear in a certain order
+      s.append(new_gt_variant(HET_01, sv2.data))
 
 
 cdef class CrossOverPoints:
@@ -332,7 +332,7 @@ cdef class CrossOverPoints:
     return self.current_copy
 
 
-cpdef Sample pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Sample s2, list cross_over2, int chrom_copy2):
+cpdef Chromosome pair_chromosomes(Chromosome s1, list cross_over1, int chrom_copy1, Chromosome s2, list cross_over2, int chrom_copy2):
   """pair_chromosomes(s1, cross_over_points1, int cp1, s2, cross_over_points2, int cp2)
   Starting with a pair of parent samples, apply crossover points and pair the resulting gametes to make a child genome
 
@@ -355,8 +355,8 @@ cpdef Sample pair_chromosomes(Sample s1, list cross_over1, int chrom_copy1, Samp
   cdef:
     int cp1 = chrom_copy1, cp2 = chrom_copy2
     unsigned long co_pt1, co_pt2, p1, p2, st1, st2, max_pos
-    Sample s3 = Sample()
-    SampleVariant sv1 = s1.advance(), sv2 = s2.advance()
+    Chromosome s3 = Chromosome()
+    GTVariant sv1 = s1.advance(), sv2 = s2.advance()
 
   if s1.last() is not None:
     max_pos = s1.last().data.pos + 1

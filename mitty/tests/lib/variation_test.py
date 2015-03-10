@@ -10,12 +10,12 @@ HET_10 = vr.HET_10
 # Some utility functions to make our life easier
 def nsv(pos, stop, ref, alt, gt):
   """New sample variant"""
-  return vr.new_sample_variant(gt, nvr(pos, stop, ref, alt))
+  return vr.new_gt_variant(gt, nvr(pos, stop, ref, alt))
 
 
 def nsp(svs):
   """Given a list of SampleVariants, turn them into a Sample instance"""
-  s = vr.Sample()
+  s = vr.Chromosome()
   for sv in svs:
     s.append(sv)
   return s
@@ -27,7 +27,7 @@ def avms(svs, ml):
 
 
 def ngt(old_sv, new_gt):
-  return vr.new_sample_variant(new_gt, old_sv.data)
+  return vr.new_gt_variant(new_gt, old_sv.data)
 
 
 def addition_test():
@@ -65,7 +65,7 @@ def addition_test3():
 
 def sample_test():
   """Appending to Sample linked list"""
-  s = vr.Sample()
+  s = vr.Chromosome()
   assert s.head == s.tail
   assert s.length == 0
 
@@ -85,7 +85,7 @@ def sample_test():
 
 def sample_test1():
   """Advancing through Sample"""
-  s = vr.Sample()
+  s = vr.Chromosome()
   sv1 = nsv(1, 4, 'CAA', 'C', HOM)
   sv2 = nsv(10, 13, 'CAA', 'C', HOM)
   s.append(sv1)
@@ -102,7 +102,7 @@ def sample_test1():
 
 def sample_test2():
   """Inserting into Sample linked list"""
-  s = vr.Sample()
+  s = vr.Chromosome()
   sv1 = nsv(1, 4, 'CAA', 'C', HOM)
   sv2 = nsv(10, 13, 'CAA', 'C', HOM)
   sv3 = nsv(2, 5, 'CAA', 'C', HOM)
@@ -117,7 +117,7 @@ def sample_test2():
   s.insert(sv4)
   assert_sequence_equal([sv for sv in s], [sv3, sv4, sv1, sv2])
 
-  s = vr.Sample()
+  s = vr.Chromosome()
   s.append(sv1)
   s.append(sv2)
   s.advance()
@@ -125,7 +125,7 @@ def sample_test2():
   s.insert(sv3)
   assert_sequence_equal([sv for sv in s], [sv1, sv3, sv2])
 
-  s = vr.Sample()
+  s = vr.Chromosome()
   s.append(sv1)
   s.append(sv2)
   s.advance()
