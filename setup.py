@@ -1,9 +1,10 @@
 from setuptools import setup, find_packages, Extension
 
+cy_modules = ['mitty.lib.variation', 'mitty.lib.util', 'mitty.lib.generations']
+
 
 def make_extension_modules(post_processor, source_file_extension):
-    return post_processor([Extension('mitty.lib.variation', ['mitty/lib/variation.{0}'.format(source_file_extension)]),
-                           Extension('mitty.lib.util', ['mitty/lib/util.{0}'.format(source_file_extension)])])
+    return post_processor([Extension(cl, ['{:s}.{:s}'.format(cl.replace('.', '/'), source_file_extension)]) for cl in cy_modules])
 
 
 def extension_modules():
@@ -16,7 +17,7 @@ def extension_modules():
 
 setup(
     name='mitty',
-    version='1.0.0.dev',
+    version='1.1.0.dev',
     description='Simulator for genomic data',
     author='Seven Bridges Genomics',
     author_email='kaushik.ghose@sbgenomics.com',
@@ -35,7 +36,7 @@ setup(
       # Register example tool wrapper
       'mitty.benchmarking.tools': ['bwa = mitty.benchmarking.tool_wrappers.bwa'],
       # Command line scripts
-      'console_scripts': ['denovo = mitty.denovo:cli',
+      'console_scripts': ['genomes = mitty.genomes:cli',
                           'population = mitty.population:cli',
                           'vcf2reads = mitty.vcf2reads:cli',
                           'reads2bam = mitty.reads2bam:cli',
