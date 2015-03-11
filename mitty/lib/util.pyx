@@ -1,6 +1,6 @@
 import numpy
 from mitty.lib import SEED_MAX
-from mitty.lib.variation import HOMOZYGOUS, HET_10, HET_01
+from mitty.lib.variation import HOM, HET_10, HET_01
 
 
 def initialize_rngs(unsigned long master_seed, int n_rngs=4):
@@ -48,7 +48,7 @@ def zygosity(int num_vars=0, float phet=0.5, het_rng=None, copy_rng=None):
   if num_vars == 0:
     return numpy.array([])
   het_type = numpy.empty((num_vars,), dtype='u1')
-  het_type.fill(HOMOZYGOUS)  # Homozygous
+  het_type.fill(HOM)  # Homozygous
   idx_het, = numpy.nonzero(het_rng.rand(het_type.size) < phet)  # Heterozygous locii
   het_type[idx_het] = HET_10  # On copy 1
   het_type[idx_het[numpy.nonzero(copy_rng.rand(idx_het.size) < 0.5)[0]]] = HET_01  # On copy 2
