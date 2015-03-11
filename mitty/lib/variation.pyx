@@ -217,8 +217,8 @@ cdef inline bint overlap(GTVariant v1, GTVariant v2):
   return False
 
 
-cpdef add_denovo_variants_to_sample(Chromosome s, dnv, dict ml):
-  """add_denovo_variants_to_sample(s, dnv, ml)
+cpdef add_denovo_variants_to_chromosome(Chromosome s, dnv, dict ml):
+  """add_denovo_variants_to_chromosome(s, dnv, ml)
   Given an existing Chromosome, s,  merge a new list of SampleVariants (dnv) into it in zipper fashion. s has
   priority (collisions are resolved in favor of s). As new variants are accepted, add them to the master list.
 

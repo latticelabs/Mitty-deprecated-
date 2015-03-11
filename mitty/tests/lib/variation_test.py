@@ -142,7 +142,7 @@ def denovo_add_test0():
 
   c1 = nch([])
   dnv = iter([v20])
-  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  vr.add_denovo_variants_to_chromosome(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v20])
 
 
@@ -155,7 +155,7 @@ def denovo_add_test1():
 
   c1 = nch([v10])
   dnv = iter([v20])
-  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  vr.add_denovo_variants_to_chromosome(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10, v20])
 
 
@@ -168,7 +168,7 @@ def denovo_add_test2():
 
   c1 = nch([v10])
   dnv = iter([v20])
-  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  vr.add_denovo_variants_to_chromosome(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v20, v10])
 
 
@@ -183,7 +183,7 @@ def denovo_add_test3():
 
   c1 = nch([v10, v11])
   dnv = iter([v20, v21])
-  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  vr.add_denovo_variants_to_chromosome(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10, v20, v11, v21])
 
 
@@ -196,7 +196,7 @@ def denovo_add_test4a():
 
   c1 = nch([v10])
   dnv = iter([v20])
-  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  vr.add_denovo_variants_to_chromosome(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10])
 
 
@@ -209,7 +209,7 @@ def denovo_add_test4b():
 
   c1 = nch([v10])
   dnv = iter([v20])
-  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  vr.add_denovo_variants_to_chromosome(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10])
 
 
@@ -224,7 +224,7 @@ def denovo_add_test4c():
 
   c1 = nch([v10, v11])
   dnv = iter([v20])
-  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  vr.add_denovo_variants_to_chromosome(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10, v11])
 
 
@@ -237,7 +237,7 @@ def denovo_add_test4():
 
   c1 = nch([v10])
   dnv = iter([v20])
-  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  vr.add_denovo_variants_to_chromosome(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10])
 
 
@@ -250,7 +250,7 @@ def denovo_add_test5():
 
   c1 = nch([v10])
   dnv = iter([v20])
-  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  vr.add_denovo_variants_to_chromosome(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10])
 
 
@@ -270,7 +270,7 @@ def denovo_add_test6():
 
   c1 = nch([v10, v11, v12, v13])
   dnv = iter([v20, v21, v22, v23])
-  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  vr.add_denovo_variants_to_chromosome(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10, v11, v21, v12, v13])
 
 
@@ -288,7 +288,7 @@ def denovo_add_test7():
 
   c1 = nch([v10, v11])
   dnv = iter([v20, v21, v22, v23])
-  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  vr.add_denovo_variants_to_chromosome(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v10, v11, v22])
 
 
@@ -303,7 +303,7 @@ def denovo_add_test8():
 
   c1 = nch([v10])
   dnv = iter([v20, v21])
-  vr.add_denovo_variants_to_sample(c1, dnv, l)
+  vr.add_denovo_variants_to_chromosome(c1, dnv, l)
   assert_sequence_equal(c1.to_list(), [v21, v10])
 
 
