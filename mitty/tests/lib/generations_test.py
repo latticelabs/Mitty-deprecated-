@@ -26,7 +26,9 @@ def test_incest():
   ch = [gen.Sample(2, n) for n in range(2)]
   for n in range(2):
     ch[n].parents = p
-  assert gen.incestuous_mating(ch[0], ch[1], incest_generations=1) == True
+
+  mtr = gen.StockMater(incest_generations=1)
+  assert mtr.incestuous_mating(ch[0], ch[1]) == True
 
   # With common grandparents
   gp = [gen.Sample(1, n) for n in range(2)]
@@ -38,15 +40,23 @@ def test_incest():
   for n in range(8):
     ch[n].parents = p[2*(n/4):2*(n/4) + 2]
 
-  assert not gen.incestuous_mating(ch[0], ch[4], incest_generations=1)
-  assert gen.incestuous_mating(ch[0], ch[4], incest_generations=2)
+  mtr = gen.StockMater(incest_generations=1)
+  assert not mtr.incestuous_mating(ch[0], ch[4])
 
+  mtr = gen.StockMater(incest_generations=2)
+  assert mtr.incestuous_mating(ch[0], ch[4])
 
   # With common great-grandparents
   g = make_generations(gens=4)
-  assert not gen.incestuous_mating(g[3][0], g[3][1], incest_generations=1)
-  assert not gen.incestuous_mating(g[3][0], g[3][1], incest_generations=2)
-  assert gen.incestuous_mating(g[3][0], g[3][1], incest_generations=3)
+
+  mtr = gen.StockMater(incest_generations=1)
+  assert not mtr.incestuous_mating(g[3][0], g[3][1])
+
+  mtr = gen.StockMater(incest_generations=2)
+  assert not mtr.incestuous_mating(g[3][0], g[3][1])
+
+  mtr = gen.StockMater(incest_generations=3)
+  assert mtr.incestuous_mating(g[3][0], g[3][1])
 
 
 def test_mating():
@@ -63,6 +73,52 @@ def test_mating():
   c[6].parents = [p[10], p[11]]
   c[7].parents = [p[10], p[11]]  # Related pair
 
-  mating_list, incest_list = gen.mate_in_sequence(list(c), incest_generations=1)
+  mtr = gen.StockMater(incest_generations=1)
+  mating_list, incest_list = mtr.mate_in_sequence(list(c))
   assert mating_list == [[c[5], c[4]], [c[1], c[0]]], mating_list
   assert incest_list == [[c[7], c[3]], [c[6], c[2]]], incest_list
+
+
+def test_stock_breeder():
+  """Stock breeding algorithm."""
+  brdr = gen.StockBreeder(child_factor=2.0)
+  p1 = gen.Sample(0, 0)
+  p1.fitness = 0
+  p2 = gen.Sample(0, 1)
+  p2.fitness = 0
+
+  c = brdr.breed([[p1, p2]], generation=1)
+  assert len(c) == 2  # Perfectly average parents
+  assert c[0].parents == [p1, p2]
+
+  p2.fitness = 1
+  c = brdr.breed([[p1, p2]], generation=1)
+  assert len(c) == 3
+
+  p3 = gen.Sample(0, 2)
+  p3.fitness = 0
+  p4 = gen.Sample(0, 3)
+  p4.fitness = 0
+
+  c = brdr.breed([[p1, p2], [p3, p4]], generation=1)
+  assert len(c) == 5
+  assert c[0].generation == 1
+  assert c[4].serial == 4
+  assert c[4].parents != [p1, p2]
+  assert c[4].parents == [p3, p4]
+
+
+def test_stock_culler():
+  """Stock culling algorithm."""
+  p = [gen.Sample(0, n) for n in range(10)]
+  p[3].fitness = -0.25
+  p[9].fitness = -0.5
+  p[5].fitness = -1.0
+
+  cull = gen.StockCuller(8)
+  cull.cull(p)
+
+  assert len(p) == 8
+  assert p[0].fitness == 0
+  assert p[3].serial == 3
+  assert p[5].serial == 6

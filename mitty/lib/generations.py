@@ -1,4 +1,7 @@
-"""This is to simulate sexual reproduction in a population of individuals complete with recombination (crossover).
+"""This is to simulate sexual reproduction in a population of individuals. This module takes care of the higher level
+methods and is designed to be independent on Variation. The idea is that plugins to determine fitness, place crossovers
+etc, do the actual crossing-over, will operate on the genome side (which is carried as a pointer in the Sample structure)
+but we don't need any of the details to do the overall population simulation.
 
 1. A founder population of completely unrelated samples is created
 2. A mate picker algorithm picks pairs of parents from the population for mating
@@ -32,12 +35,12 @@ class Sample:
     name       - string for the form 'generation:serial'
     parents    - list of references to parent Samples
     genome     - the genome dictionary of this sample
-    fitness    - computed fitness value of the genome
+    fitness    - computed fitness value of the genome. [-1.0,1.0]
   """
   def __init__(self, generation, serial):
     self.name = '{:d}:{:d}'.format(generation, serial)  # Our unique sample name
     self.generation, self.serial, self.parents = generation, serial, []
-    self.genome, self.fitness = {}, 0  # Fitness is filled by an external function
+    self.genome, self.fitness = {}, 0  # Fitness is filled by an external function.
 
   def __hash__(self):
     return self.name.__hash__()
@@ -49,344 +52,146 @@ class Sample:
     return '{:s} ({:d})'.format(self.name, self.fitness)
 
 
-def incestuous_mating(s1, s2, incest_generations=2):
-  """Return False if the samples are not related up to the generations indicated. (Find if there is an LCA within x levels)
-  :param s1, s2: samples to test
-  :param incest_generations: number of generations to go back for relatedness test
-  :returns boolean
+def create_initial_generation(generation_size):
+  """:returns: List of Sample with generation set to 0"""
+  return [Sample(0, n) for n in range(generation_size)]
+
+
+def create_next_generation(parent_generation, fitness, mater, breeder, culler):
+  """Wrapper round plugins to select mates from the population and create children.
+
+  :param parent_generation: list of Sample representing parent population
+  :param mater: mate picker function
+  :param breeder: child generator function
+  :fitness: fitness class
+  :returns: list of lists of children. Children are grouped by parent pair, though each child has their parent filled out
   """
-  parent_list = [p for s in [s1, s2] for p in s.parents]
-  for n in range(incest_generations):
-    if len(set(parent_list)) < len(parent_list):
-      return True
-    parent_list = [p for s in parent_list for p in s.parents]
-  return False
+  gen = parent_generation[0].generation if len(parent_generation) else 0
+  mate_list = mater.pick_mates(parent_generation)
+  children = breeder.breed(mate_list, gen)
+  fitness.fitness(children)
+  culler.cull(children)
+  return children
 
 
-def mate_in_sequence(parent_list, incest_generations=1):
-  """Simple mating algorithm that pops pairs of parents from the list, tests for incest, and then adds legal pairs to a
-  list and illegal pairs to another list
-  :param parent_list: list of Samples that will be parents. Items will be popped from this list, just so you know
-  :param incest_generations: How many generations back should we go to check for incest
-  :returns mating_list - list of pairs of legal mates
-           incest_list - two lists of samples. Corresponding samples in the lists are related
-  """
-  mating_list = []
-  incest_list = [[], []]  # The folks we couldn't mate, kept in separate lists to increase their chances of mating
-  while len(parent_list) > 1:
-    s1 = parent_list.pop()
-    s2 = parent_list.pop()
-    if incestuous_mating(s1, s2, incest_generations):
-      incest_list[0] += [s1]
-      incest_list[1] += [s2]
-      continue
-    mating_list += [[s1, s2]]
-  return mating_list, incest_list
+# ------------------ STOCK POPULATION SIM PLUGINS ----------------------------- #
 
 
-def stock_mate_picker(parent_list, incest_generations=1, master_seed=2):
-  """Simple mate picker that shuffles the parent_list and then pops pairs of parents off the shuffled list.
-  :param parent_list: list of Samples that will be parents. This will be shuffled in place and items will be popped
-                      from it, just so you know
-  :param incest_generations: How many generations back should we go to check for incest
-  :param master_seed: Integer seed for RNG
-  """
-  rnd = random.Random(master_seed)
-  rnd.shuffle(parent_list)
-  mating_list, incest_list = mate_in_sequence(parent_list, incest_generations)
+class StockFitness:
+  """Simple fitness computation. Rewards variations in second quarter of genome and penalized variations in third q"""
+  def __init__(self, ref):
+    """:param ref: list of tuples as returned by io.load_multi_fasta_gz"""
+    l = self.chromosome_lengths = [len(seq[1]) for seq in ref]
+    self.l0 = [0.25 * ll for ll in l]
+    self.l1 = [0.5 * ll for ll in l]
+    self.l2 = [0.75 * ll for ll in l]
 
-  # Make an attempt on the rejects
-  mating_list2, _ = mate_in_sequence(incest_list[0], incest_generations)
-  mating_list3, _ = mate_in_sequence(incest_list[1], incest_generations)
+  def sample_fitness(self, sample):
+    """Modifies fitness in place"""
+    g = sample.genome
+    fit = 0
+    v_count = 0
+    for ch, chrom in g:
+      for gtv in chrom:
+        if self.l0 < gtv.pos < self.l1:
+          fit += 1.0
+        elif self.l1 < gtv.pos < self.l2:
+          fit -= 1.0
+        else:
+          continue
+        v_count += 1
+    sample.fitness = fit / v_count if v_count else 0
 
-  return mating_list + mating_list2 + mating_list3
-
-
-def stock_fitness(sample):
-  """."""
-
-
-
-
-def add_denovo_variants(g):
-  """Add denovo genomes to the list ."""
-  pass
-
-
-def run_simulation(initial_size=10, maximum_size=20):
-  """Run a complete simulation"""
-  g = []  # This will be the generational tree
-  g += [[Sample(1, n) for n in xrange(initial_size)]]  # This is the initial parent population
+  def fitness(self, generation):
+    for g in generation:
+      self.sample_fitness(g)
+    #map(self.sample_fitness, generation)
 
 
+class StockMater:
+  """Simple stock mating algorithm. Shuffles parent list and returns mate pairs that are not related to N generations."""
+  def __init__(self, incest_generations=2, master_seed=2):
+    """
+    :param incest_generations: number of generations to go back for relatedness test
+    :param master_seed: Integer seed for RNG"""
+    self.incest_generations, self.rnd = incest_generations, random.Random(master_seed)
+
+  def incestuous_mating(self, s1, s2):
+    """Return False if the samples are not related up to the generations indicated. (Find if there is an LCA within x levels)
+    :param s1, s2: samples to test
+    :returns boolean
+    """
+    parent_list = [p for s in [s1, s2] for p in s.parents]
+    for n in range(self.incest_generations):
+      if len(set(parent_list)) < len(parent_list):
+        return True
+      parent_list = [p for s in parent_list for p in s.parents]
+    return False
+
+  def mate_in_sequence(self, parent_list):
+    """Simple mating algorithm that pops pairs of parents from the list, tests for incest, and then adds legal pairs to a
+    list and illegal pairs to another list
+    :param parent_list: list of Samples that will be parents. Items will be popped from this list, just so you know
+    :returns mating_list - list of pairs of legal mates
+             incest_list - two lists of samples. Corresponding samples in the lists are related
+    """
+    mating_list = []
+    incest_list = [[], []]  # The folks we couldn't mate, kept in separate lists to increase their chances of mating
+    while len(parent_list) > 1:
+      s1 = parent_list.pop()
+      s2 = parent_list.pop()
+      if self.incestuous_mating(s1, s2):
+        incest_list[0] += [s1]
+        incest_list[1] += [s2]
+        continue
+      mating_list += [[s1, s2]]
+    return mating_list, incest_list
+
+  def pick_mates(self, parent_list):
+    """Simple mate picker that shuffles the parent_list and then pops pairs of parents off the shuffled list.
+    :param parent_list: list of Samples that will be parents.
+    """
+    _parent_list = [p for p in parent_list]  # Better not mess with the original
+    self.rnd.shuffle(_parent_list)
+    mating_list, incest_list = self.mate_in_sequence(_parent_list)
+
+    # Make an attempt on the rejects
+    mating_list2, _ = self.mate_in_sequence(incest_list[0])
+    mating_list3, _ = self.mate_in_sequence(incest_list[1])
+
+    return mating_list + mating_list2 + mating_list3
 
 
+class StockBreeder:
+  """Stock breeding algorithm, creates children based on average fitness of parents."""
+  def __init__(self, child_factor=2.0):
+    """:param child_factor: Average number of children for average fitness parents"""
+    self.child_factor = child_factor
+
+  def breed(self, mate_list, generation):
+    """
+    :param mate_list: list of pairs of parents from which we generate children
+    :returns: list of Samples"""
+    children = []
+    cnt = 0
+    for p1, p2 in mate_list:
+      avg_fit = (p1.fitness + p2.fitness) / 2.0
+      n_children = int(self.child_factor * (avg_fit + 1.0))
+      these_children = []
+      for n in range(n_children):
+        this_child = Sample(generation, cnt)
+        this_child.parents = [p1, p2]
+        these_children += [this_child]
+        cnt += 1
+      children += these_children
+    return children
 
 
-#
-#
-# def chrom_crossover(c1, crossover_idx):
-#   """cross_over_idx is a list the same size as c1 with a 1 (indicating a crossover should be done) or 0 (no crossover).
-#   """
-#   c2 = []
-#   for c, idx in zip(c1, crossover_idx):
-#     new_c = vcopy(c)  # Valid for no crossover or HOM
-#     if idx == 1 and c.zygosity != HOM:
-#       if c.zygosity == HET_10:
-#         new_c.zygosity = HET_01
-#       else:
-#         new_c.zygosity = HET_10
-#     c2 += [new_c]
-#   return c2
-#
-#
-# def crossover_event(g1, crossover_idx):
-#   return {chrom: chrom_crossover(g1[chrom], crossover_idx[chrom]) for chrom in g1}
-#
-#
-# def pair_one_chrom(c1, c2, which_copy):
-#   """Has a resemblance to merge sort BUT WITH GENOMIC VARIANTS!
-#   Parameters
-#   ----------
-#   c1, c2     : tuple list
-#                (POS, POS2, REF, ALT, HET)
-#   which_copy : tuple
-#                e.g. (0, 1) telling us which chromosome of each individual to take
-#
-#   Returns
-#   -------
-#   c3         : tuple list
-#                (POS, POS2, REF, ALT, HET)
-#   """
-#   c1_iter, c2_iter = c1.__iter__(), c2.__iter__()
-#   c3 = []
-#   # Try the zipper
-#   l1, l2 = next(c1_iter, None), next(c2_iter, None)
-#   while l1 is not None and l2 is not None:
-#
-#     if (l1.zygosity == HET_10 and which_copy[0] == 1) or (l1.zygosity == HET_01 and which_copy[0] == 0):
-#       l1 = next(c1_iter, None)
-#       continue
-#
-#     if (l2.zygosity == HET_10 and which_copy[1] == 1) or (l2.zygosity == HET_01 and which_copy[1] == 0):
-#       l2 = next(c2_iter, None)
-#       continue
-#
-#     if vcopy(l1, zygosity=HOM) == vcopy(l2, zygosity=HOM):  # Homozygous
-#       c3 += [vcopy(l1, zygosity=HOM)]
-#       l1, l2 = next(c1_iter, None), next(c2_iter, None)
-#       continue
-#
-#     if l1.POS <= l2.POS:
-#       c3 += [vcopy(l1, zygosity=HET_10)]
-#       l1 = next(c1_iter, None)
-#     else:
-#       c3 += [vcopy(l2, zygosity=HET_01)]
-#       l2 = next(c2_iter, None)
-#
-#   # Now pick up any slack
-#   while l1 is not None:
-#     if (l1.zygosity == HOM) or (l1.zygosity == HET_10 and which_copy[0] == 0) or (l1.zygosity == HET_01 and which_copy[0] == 1):
-#       c3 += [vcopy(l1, zygosity=HET_10)]
-#     l1 = next(c1_iter, None)
-#
-#   while l2 is not None:
-#     if (l2.zygosity == HOM) or (l2.zygosity == HET_10 and which_copy[1] == 0) or (l2.zygosity == HET_01 and which_copy[1] == 1):
-#       c3 += [vcopy(l2, zygosity=HET_01)]
-#     l2 = next(c2_iter, None)
-#
-#   return c3
-#
-#
-# def fertilize_one(g1, g2, which_copy):
-#   #return {chrom: pair_one_chrom(c1, c2, wc) for (chrom, c1), (_, c2), wc in zip(g1.iteritems(), g2.iteritems(), which_copy)}
-#   return {chrom: pair_one_chrom(g1[chrom], g2[chrom], which_copy[chrom]) for chrom in g1}
-#
-#
-# def place_crossovers_on_chrom(c1, hot_spots, rng):
-#   """Stock cross over generator. Place segments based on gaussian distribution around hot_spots
-#   The model is a mixture-gaussian model: the hotspot has an amplitude and a width (sd of the gaussian). The amplitude of
-#   the gaussian at a certain locus determines the probability of the variants there crossing over. The probability of
-#   crossover at any point is the sum of all Gaussians clipped at +1.0
-#
-#   Parameters
-#   ----------
-#   c1               : list of tuples
-#                      [(start, stop, <any other payload>) ...]. Should be sorted
-#   hot_spots        : numpy array
-#                      n x 3
-#                      [(center, max_p, width) ... ] 0 <= max_p <= 1
-#   rng              : random number generator
-#
-#   Returns
-#   -------
-#   idx              : numpy array
-#                      As used by chrom_crossover
-#   """
-#   if hot_spots.shape[0] == 0:
-#     return [0] * len(c1)  # No hotspots, no crossovers
-#   #x = numpy.array(c1, dtype=[('st', float), ('a', 'c'), ('b', 'c'), ('c', 'c'), ('d', 'c')])['st']
-#   x = [v.POS for v in c1]
-#   X, C = numpy.meshgrid(x, hot_spots[:, 0])
-#   _, A = numpy.meshgrid(x, hot_spots[:, 1])
-#   _, W = numpy.meshgrid(x, hot_spots[:, 2])
-#   p = (A * numpy.exp(-(((X - C) / W) ** 2))).sum(axis=0).clip(0, 1.0)
-#   #return numpy.nonzero(rng.uniform(size=p.size) < p)[0]
-#   return rng.uniform(size=p.size) < p
-#
-#
-# def place_crossovers(g1, hot_spots, rng):
-#   return {chrom: place_crossovers_on_chrom(g1[chrom], hot_spots[chrom], rng) for chrom in g1}
-#
-#
-# def which_copies(g1, rng):
-#   """Simple 50/50 coin toss to decide which chromosome copy gets picked during fertilization."""
-#   return {chrom: wc for chrom, wc in zip(g1, rng.randint(0, 2, size=(len(g1), 2)))}
-#
-#
-# def get_rngs(seed):
-#   """Creates independent RNGs for our random processes from the master seed given."""
-#   rng_names = ['cross_over', 'chrom_copy', 'couple_chose']
-#   return {k: numpy.random.RandomState(seed=sub_seed)
-#           for k,sub_seed in zip(rng_names, numpy.random.RandomState(seed=seed).randint(100000000, size=len(rng_names)))}
-#
-#
-# def spawn(g1, g2, hot_spots={}, rngs={}, num_children=2, ref=None, models=[]):
-#   """If you don't want denovo mutations don't send in ref_fp and models"""
-#   if g1.keys() != g2.keys():
-#     raise RuntimeError('Two genomes have unequal chromosomes')
-#   children = []
-#   for _ in range(num_children):
-#     g1_cross = crossover_event(g1, place_crossovers(g1, hot_spots, rngs['cross_over']))
-#     g2_cross = crossover_event(g2, place_crossovers(g2, hot_spots, rngs['cross_over']))
-#     if ref is not None and len(models) > 0:  # We want denovo mutations
-#       g1_cross = mitty.denovo.apply_variant_models_to_genome(g1_cross, ref, models)
-#       g2_cross = mitty.denovo.apply_variant_models_to_genome(g2_cross, ref, models)
-#     children.append(fertilize_one(g1_cross, g2_cross, which_copies(g1, rngs['chrom_copy'])))
-#   return children
-#
-#
-# # def find_mates(pop, related_level=0, parent_list=[]):
-# #   """Related level is the number of generations we need to go back to ensure they are not related."""
-# #   our_pop = list(pop)
-# #   pairs = []
-# #   n = 0
-# #   while n < len(our_pop):
-# #     if our_pop[n] is None:
-# #       n += 1
-# #       continue
-# #     m = 0
-# #     while m < len(pop):
-# #
-# #     this_pair = [n]
-#
-#
-# def one_generation(pop, hot_spots={}, rngs={}, num_children_per_couple=2, ref=None, models=[]):
-#   """We take pairs from the population without replacement, cross over the chromosomes, sprinkle in denovo mutations
-#   then shuffle the chromosomes during fertilization. If the population size is odd, we discard one parent"""
-#   assert len(pop) >= 2, 'Need at least two parents'
-#   mates = rngs['couple_chose'].permutation(len(pop))
-#   children = []
-#   parents = []
-#   for n in range(2*(len(mates)/2))[::2]:  #Todo fix handling of odd sizes
-#     children += spawn(pop[mates[n]], pop[mates[n + 1]], hot_spots=hot_spots, rngs=rngs, num_children=num_children_per_couple,
-#                       ref=ref, models=models)
-#     parents += [(mates[n], mates[n + 1])]
-#   return children, parents
-#
-#
-# def population_simulation(ref, denovo_models=[], initial_size=10,
-#                           hot_spots={}, rngs={}, num_children_per_couple=2, ss_models=[],
-#                           num_generations=10,
-#                           store_all_generations=True,
-#                           vcf_prefix=''):
-#   # The initial population
-#   pop = de_novo_population(ref, denovo_models, size=initial_size)
-#   logger.debug('Created de novo population of {:d} individuals'.format(len(pop)))
-#   save_one_generation(pop, generation=0, vcf_prefix=vcf_prefix)
-#
-#   parent_list = []
-#   # The generational loop
-#   this_gen = children = pop
-#   for n in range(1, num_generations + 1):
-#     children, parents = one_generation(this_gen, hot_spots=hot_spots, rngs=rngs,
-#                                        num_children_per_couple=num_children_per_couple,
-#                                        ref=ref, models=ss_models)
-#     logger.debug('Created generation {:d} ({:d})'.format(n, len(children)))
-#     parent_list.append(parents)
-#     if store_all_generations:
-#       save_one_generation(children, generation=n, vcf_prefix=vcf_prefix)
-#     this_gen = children
-#
-#   if not store_all_generations:
-#       save_one_generation(pop, generation=n, vcf_prefix=vcf_prefix)
-#
-#   return parent_list, children
-#
-#
-# def save_one_generation(pop, generation=0, vcf_prefix='pop'):
-#   """Given a population of genomes same them as a collection of vcf files with a prefix and sequential numbering."""
-#   for n, p in enumerate(pop):
-#     vcf_save_gz(p, vcf_gz_name='{:s}_g{:d}_p{:d}.vcf.gz'.format(vcf_prefix, generation, n),
-#                 sample_name='g{:d}p{:d}'.format(generation, n))
-#
-#
-# def save_multiple_generations(gen_pop, vcf_prefix='pop'):
-#   for gen, pop in enumerate(gen_pop):
-#     save_one_generation(pop, generation=gen, vcf_prefix=vcf_prefix)
-#
-#
-# def main(ref_fname='../../Data/ashbya_gossypii/ashbya.h5', hot_spots={}, params_json={}, master_seed=None,
-#          initial_size=10, num_children_per_couple=2, num_generations=20,
-#          store_all_generations=True,
-#          out_dir='out',
-#          out_prefix='pop'):
-#   import mitty.denovo as denovo
-#   import shutil
-#   import os
-#   shutil.rmtree(out_dir)
-#   os.makedirs(out_dir)
-#
-#   models = denovo.load_variant_models(params_json['denovo_variant_models'])
-#   if master_seed is not None:
-#     denovo.apply_master_seed(models, master_seed=int(master_seed))
-#     rngs = get_rngs(seed=int(master_seed))
-#   else:
-#     rngs = get_rngs(seed=1)
-#   ss_models = denovo.load_variant_models(params_json['ss_variant_models'])
-#   ref = genome.FastaGenome(ref_fname)
-#   parent_list, _ = \
-#     population_simulation(ref, denovo_models=models, initial_size=initial_size,
-#                           hot_spots=hot_spots, rngs=rngs, num_children_per_couple=num_children_per_couple,
-#                           ss_models=ss_models,
-#                           num_generations=num_generations,
-#                           store_all_generations=store_all_generations,
-#                           vcf_prefix=os.path.join(out_dir, out_prefix))
-#
-# if __name__ == "__main__":
-#   import json
-#   import docopt
-#
-#   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
-#     docopt.docopt(__doc__, ['-h'])
-#   else:
-#     args = docopt.docopt(__doc__, version=__version__)
-#   if args['plugins']:
-#     mitty.denovo.print_plugin_list()
-#     exit(0)
-#   if args['explain']:
-#     mitty.denovo.explain_plugin(args['<plugin>'])
-#     exit(0)
-#
-#   logging.basicConfig(level=logging.WARNING)
-#   if args['-v']:
-#     logger.setLevel(logging.DEBUG)
-#
-#   hs = json.load(open(args['--hs'], 'r'))
-#   hot_spots = {int(c): numpy.array(v) for c, v in hs.iteritems()}
-#   pj = json.load(open(args['--paramfile'], 'r'))
-#   main(ref_fname=args['--wg'], hot_spots=hot_spots, params_json=pj, master_seed=args['--master_seed'],
-#        initial_size=int(args['--init_size']), num_children_per_couple=int(args['--children']),
-#        num_generations=int(args['--gens']), store_all_generations=False,
-#        out_dir=args['--outdir'], out_prefix=args['--outprefix'])
+class StockCuller:
+  """Given a maximum population size, cut down the least fit children"""
+  def __init__(self, max_pop_size):
+    self.max_pop_size = max_pop_size
 
+  def cull(self, population):
+    while len(population) > self.max_pop_size:
+      population.remove(min(population, key=lambda x: x.fitness))
