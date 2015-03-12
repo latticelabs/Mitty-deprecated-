@@ -40,7 +40,7 @@ class Deletion(define.Wrapper):
   	del_len_high = define.integer(default=10000, min=1, category='Model params',
   	                         description='Upper bound on deletion lengths')
   	del_loc_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='Model params: RNG',
-  	      description='Seed for variant location random number generator')
+  	      description='Seed for data location random number generator')
   	del_len_rng_seed = define.integer(default=2, min=0, max=2**32 - 1, category='Model params: RNG',
   	      description='Seed for deletion length random number generator')
   	het_rng_seed = define.integer(default=3, min=0, max=2**32 - 1, category='Model params: RNG',

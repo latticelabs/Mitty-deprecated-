@@ -41,7 +41,7 @@ class Inversion(define.Wrapper):
   	inv_len_hi = define.integer(default=100, min=1, category='Model params',
   	                         description='Upper bound on inversion lengths')
   	inv_loc_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='Model params: RNG',
-  	      description='Seed for variant location random number generator')
+  	      description='Seed for data location random number generator')
   	inv_len_rng_seed = define.integer(default=2, min=0, max=2**32 - 1, category='Model params: RNG',
   	      description='Seed for inversion length random number generator')
   	het_rng_seed = define.integer(default=3, min=0, max=2**32 - 1, category='Model params: RNG',

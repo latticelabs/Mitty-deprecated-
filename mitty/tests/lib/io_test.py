@@ -7,7 +7,7 @@ import mitty.lib.io as mio
 import mitty.lib.variation as vr
 #from mitty.lib.io import *
 from mitty.tests import *  # To get definitions from the setup script
-from nose.tools import assert_sequence_equal, assert_dict_equal
+from nose.tools import assert_list_equal, assert_dict_equal
 
 
 def master_list_round_trip_test():
@@ -23,6 +23,24 @@ def master_list_round_trip_test():
   mio.save_variant_master_list('chr1', l, conn)
   rt_l = mio.load_variant_master_list('chr1', conn)
   assert_dict_equal(l, rt_l, rt_l)
+  os.remove(temp_name)
+
+
+def sample_list_round_trip_test():
+  """Save a sample and then load it back."""
+  l = {}
+  sample = [vr.cgt(l, 1, 4, 'CAA', 'C', vr.HOMOZYGOUS),
+            vr.cgt(l, 13, 16, 'CAA', 'C', vr.HET_10),
+            vr.cgt(l, 20, 23, 'CAA', 'C', vr.HET_10),
+            vr.cgt(l, 26, 29, 'CAA', 'C', vr.HOMOZYGOUS)]
+  temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
+  os.close(temp_fp)
+  conn = mio.db(temp_name)
+  mio.save_sample('s1', 'chr1', sample, conn)
+  rt_sample = mio.load_sample('s1', 'chr1', conn)
+  #mio.save_variant_master_list('chr1', l, conn)
+  #rt_l = mio.load_variant_master_list('chr1', conn)
+  assert_list_equal(sample, rt_sample, rt_sample)
   os.remove(temp_name)
 
 
@@ -47,7 +65,7 @@ def master_list_round_trip_test():
 #       new_variation(3, 6, 'CAG', 'C', HET_10),
 #       new_variation(7, 8, 'G', 'T', HET_01),
 #       new_variation(9, 12, 'GTT', '', HET_10),
-#       new_variation(13, 16, 'GTT', 'TTG', HOMOZYGOUS)
+#       new_variation(13, 16, 'GTT', 'TTG', HOM)
 #   ]
 #   chrom = vcf2chrom(vcf.Reader(fsock=io.BytesIO(vcf_str)))
 #   assert_sequence_equal(chrom, correct_chrom)
@@ -66,11 +84,11 @@ def master_list_round_trip_test():
 #   )
 #
 #   correct_chrom = [
-#       new_variation(1, 2, 'C', 'CAA', HOMOZYGOUS),
-#       new_variation(3, 6, 'CAG', 'C', HOMOZYGOUS),
-#       new_variation(7, 8, 'G', 'T', HOMOZYGOUS),
-#       new_variation(9, 12, 'GTT', '', HOMOZYGOUS),
-#       new_variation(13, 16, 'GTT', 'TTG', HOMOZYGOUS)
+#       new_variation(1, 2, 'C', 'CAA', HOM),
+#       new_variation(3, 6, 'CAG', 'C', HOM),
+#       new_variation(7, 8, 'G', 'T', HOM),
+#       new_variation(9, 12, 'GTT', '', HOM),
+#       new_variation(13, 16, 'GTT', 'TTG', HOM)
 #   ]
 #   chrom = vcf2chrom(vcf.Reader(fsock=io.BytesIO(vcf_str)))
 #   assert_sequence_equal(chrom, correct_chrom)

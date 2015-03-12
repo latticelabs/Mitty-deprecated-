@@ -10,16 +10,16 @@ logger = logging.getLogger(__name__)
 
 __example_param_text__ = """
 {
-  "chromosome": [1],    # List of chromosomes to apply the variant to
+  "chromosome": [1],    # List of chromosomes to apply the data to
   "p": 0.01,            # probability that the deletion will happen at any given base
-  "phet": 0.5,          # probability that the variant will be heterozygous
+  "phet": 0.5,          # probability that the data will be heterozygous
   "del_len_lo": 10,      # lower bound on deletion lengths
   "del_len_hi": 20,     # upper bound on deletion lengths
 }
 """
 
 _description = """
-This is the stock, bounded length deletion plugin. Use it when you want to test variant callers meant for deletions that
+This is the stock, bounded length deletion plugin. Use it when you want to test data callers meant for deletions that
 are mostly larger than what the empirical power law gives you. A typical parameter set resembles
 """ + __example_param_text__
 

@@ -5,17 +5,17 @@ def make_generations(gens=1):
   """Give us a mating pair that have common parents only 'gens' generations back."""
   g = [[gen.Sample(0, 0), gen.Sample(0, 1)]] + [[gen.Sample(i + 1, n) for n in range(2 ** (gens - m))] for i, m in enumerate(range(gens))]
   for i, x in enumerate(g[1]):
-    x.parents = [g[0][0], g[0][1]]
+    x.p1, x.p2 = g[0][0], g[0][1]
   for m in range(2, gens + 1):
     for i, x in enumerate(g[m]):
-      x.parents = [g[m - 1][2 * i], g[m - 1][2 * i + 1]]
+      x.p1, x.p2 = g[m - 1][2 * i], g[m - 1][2 * i + 1]
   return g
 
 
 def print_ancestors(s):
   m = [s]
   while len(m):
-    m = [ll for l in m for ll in l.parents]
+    m = [ll for l in m for ll in [l.p1, l.p2]]
     print([p.name for p in m])
 
 
@@ -25,7 +25,7 @@ def test_incest():
   p = [gen.Sample(1, n) for n in range(2)]
   ch = [gen.Sample(2, n) for n in range(2)]
   for n in range(2):
-    ch[n].parents = p
+    ch[n].p1, ch[n].p2 = p[0], p[1]
 
   mtr = gen.StockMater(incest_generations=1)
   assert mtr.incestuous_mating(ch[0], ch[1]) == True
@@ -36,9 +36,9 @@ def test_incest():
   ch = [gen.Sample(3, n) for n in range(8)]
 
   for n in range(4):
-    p[n].parents = gp
+    p[n].p1, p[n].p2 = gp[0], gp[1]
   for n in range(8):
-    ch[n].parents = p[2*(n/4):2*(n/4) + 2]
+    ch[n].p1, ch[n].p2 = p[2*(n/4)], p[2*(n/4) + 1]
 
   mtr = gen.StockMater(incest_generations=1)
   assert not mtr.incestuous_mating(ch[0], ch[4])
@@ -64,14 +64,14 @@ def test_mating():
   # Create a parent list, then a child list such that there are four pairs, alternately unrelated and related
   p = [gen.Sample(0, n) for n in range(12)]
   c = [gen.Sample(1, n) for n in range(8)]
-  c[0].parents = [p[0], p[1]]
-  c[1].parents = [p[2], p[3]]  # Unrelated pair
-  c[2].parents = [p[4], p[5]]
-  c[3].parents = [p[4], p[5]]  # Related pair
-  c[4].parents = [p[6], p[7]]
-  c[5].parents = [p[8], p[9]]  # Unrelated pair
-  c[6].parents = [p[10], p[11]]
-  c[7].parents = [p[10], p[11]]  # Related pair
+  c[0].p1, c[0].p2 = p[0], p[1]
+  c[1].p1, c[1].p2 = p[2], p[3]  # Unrelated pair
+  c[2].p1, c[2].p2 = p[4], p[5]
+  c[3].p1, c[3].p2 = p[4], p[5]  # Related pair
+  c[4].p1, c[4].p2 = p[6], p[7]
+  c[5].p1, c[5].p2 = p[8], p[9]  # Unrelated pair
+  c[6].p1, c[6].p2 = p[10], p[11]
+  c[7].p1, c[7].p2 = p[10], p[11]  # Related pair
 
   mtr = gen.StockMater(incest_generations=1)
   mating_list, incest_list = mtr.mate_in_sequence(list(c))
@@ -89,7 +89,7 @@ def test_stock_breeder():
 
   c = brdr.breed([[p1, p2]], generation=1)
   assert len(c) == 2  # Perfectly average parents
-  assert c[0].parents == [p1, p2]
+  assert [c[0].p1, c[0].p2] == [p1, p2]
 
   p2.fitness = 1
   c = brdr.breed([[p1, p2]], generation=1)
@@ -104,8 +104,8 @@ def test_stock_breeder():
   assert len(c) == 5
   assert c[0].generation == 1
   assert c[4].serial == 4
-  assert c[4].parents != [p1, p2]
-  assert c[4].parents == [p3, p4]
+  assert [c[4].p1, c[4].p2] != [p1, p2]
+  assert [c[4].p1, c[4].p2] == [p3, p4]
 
 
 def test_stock_culler():

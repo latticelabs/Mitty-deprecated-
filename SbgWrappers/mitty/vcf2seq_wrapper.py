@@ -18,7 +18,7 @@ class Vcf2Seq(define.Wrapper):
 
   class Outputs(define.Outputs):
     var_seqs = define.output(name='Output sequence (s)',
-      description='smalla file(s) containing variant sequence(s) with listed variants (.smalla + .pos)', list=True)
+      description='smalla file(s) containing data sequence(s) with listed variants (.smalla + .pos)', list=True)
 
   class Params(define.Params):
     var_seq_prefix = define.string(required=True, default='',

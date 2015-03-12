@@ -32,7 +32,7 @@ def generator_test1():
 
 
 def generator_test2():
-  """Sequence expand with one variant"""
+  """Sequence expand with one data"""
   seq = 'ACTGACTGACTGACT'
   #     'ATGACTGACTGACT'
   c1 = [new_variation(1, 3, 'AC', 'A', HOMOZYGOUS)]
@@ -277,7 +277,7 @@ def reads_from_genome_test1():
   model_params = {'read_len': 2, 'template_len': 5, 'read_advance': 2}
   ref = {1: 'ACTGACTG'}
   chrom_list = [1, 2]  # The '2' should return us no reads, as genome has no chromosome 2
-  # Generate variant sequence in one go
+  # Generate data sequence in one go
   rg = reads_from_genome(ref=ref, g1={}, chrom_list=chrom_list,
                          read_model=read_model, model_params=model_params,
                          block_len=10, master_seed=1)

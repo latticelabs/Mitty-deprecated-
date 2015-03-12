@@ -51,9 +51,9 @@ class Insert(define.Wrapper):
     het_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='Model params: RNG',
           description='Seed for random number generator used to decide if genotype is heterozygous or not')
     strand_rng_seed = define.integer(default=2, min=0, max=2**32 - 1, category='Model params: RNG',
-          description='Seed for random number generator used to decide which strand the variant will be on')
+          description='Seed for random number generator used to decide which strand the data will be on')
     ins_loc_rng_seed = define.integer(default=3, min=0, max=2**32 - 1, category='Model params: RNG',
-          description='Seed for variant location random number generator')
+          description='Seed for data location random number generator')
     ins_len_rng_seed = define.integer(default=4, min=0, max=2**32 - 1, category='Model params: RNG',
           description='Seed for insert length random number generator')
     base_sel_rng_seed = define.integer(default=5, min=0, max=2**32 - 1, category='Model params: RNG',

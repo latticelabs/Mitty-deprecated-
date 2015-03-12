@@ -1,16 +1,17 @@
 Mitty components
 ================
 
+
+
+
+
+
+
 Create single or multiple genomes
 ---------------------------------
 (For a detailed description of the algorithms/structures please see :doc:`genomes`)
 
-
-todo: see if we can shorten the headings as displayed in the contents
-
-Create a single genome: ``denovo.py``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. automodule:: mitty.denovo
+.. automodule:: mitty.genomes
 
 
 Create a population of genomes: ``population.py``

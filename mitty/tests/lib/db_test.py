@@ -3,6 +3,7 @@ import os
 from nose.tools import assert_list_equal, assert_dict_equal
 
 from mitty.lib import db
+from mitty.lib.variation import HOMOZYGOUS as HOM, HET_01, HET_10
 
 
 def sample_roundtrip_test():
@@ -11,10 +12,10 @@ def sample_roundtrip_test():
   os.close(temp_fp)
   conn = db.connect(temp_name)
 
-  c1 = [(1, 4, db.HOMOZYGOUS, 'CAA', 'C'),
-        (13, 14, db.HET_10, 'C', 'G'),
-        (20, 21, db.HET_10, 'T', 'C'),
-        (26, 27, db.HOMOZYGOUS, 'T', 'TCGA')]
+  c1 = [(1, 4, HOM, 'CAA', 'C'),
+        (13, 14, HET_10, 'C', 'G'),
+        (20, 21, HET_10, 'T', 'C'),
+        (26, 27, HOM, 'T', 'TCGA')]
   c2 = [(4, 6, db.HOMOZYGOUS, 'CA', 'C'),
         (13, 14, db.HET_10, 'C', 'G'),
         (20, 21, db.HET_10, 'T', 'C'),

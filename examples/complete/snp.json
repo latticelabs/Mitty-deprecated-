@@ -1,24 +1,29 @@
 {
   "files": {
-    "genome": "../data/",
-    "output vcf": "out/snp.vcf.gz"
+    "reference": "../data/chimera.fa.gz",
+    "dbfile": "Out/test.vcf.gz"          
   },
   "rng": {
     "master_seed": 1
   },
-  "denovo_variant_models": [
+  "generations": 10,
+  "initial_pop_size": 10,
+  "generations_to_keep": 100,
+  "initial_pop_variant_models": [   
     {
-      "snp": {
-        "chromosome": [1],
-        "phet": 0.5,
-        "p": 0.0001
+      "snp": {                 
+        "chromosome": [1, 2],  
+        "phet": 0.5,           
+        "p": 0.01
       }
-    },
+    }
+  ],
+  "steady_state_variant_models": [
     {
       "snp": {
-        "chromosome": [2],
+        "chromosome": [1, 2],
         "phet": 0.5,
-        "p": 0.001
+        "p": 0.01
       }
     }
   ]

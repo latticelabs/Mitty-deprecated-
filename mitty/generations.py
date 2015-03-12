@@ -22,6 +22,14 @@ N generations back. The number of children is determined by the combined fitness
 mutations are recessive and dominant
 
 4. fracture: break the given population into two separate parts
+
+
+NOTES:
+
+Should be able to start from the middle of a simulation - basically, we send the same file in and mention a generation
+in the sim and we should be able to pickup from there, given the descendant tree, random number seed sequence and the
+full genomes of the last generation are available. We should, similarly, be able to take an arbitrary, existing
+population as the parent list and move the simulation forward.
 """
 import random
 
@@ -118,8 +126,8 @@ def generate_pair():
 #   """
 #   c2 = []
 #   for c, idx in zip(c1, crossover_idx):
-#     new_c = vcopy(c)  # Valid for no crossover or HOMOZYGOUS
-#     if idx == 1 and c.zygosity != HOMOZYGOUS:
+#     new_c = vcopy(c)  # Valid for no crossover or HOM
+#     if idx == 1 and c.zygosity != HOM:
 #       if c.zygosity == HET_10:
 #         new_c.zygosity = HET_01
 #       else:
@@ -160,8 +168,8 @@ def generate_pair():
 #       l2 = next(c2_iter, None)
 #       continue
 #
-#     if vcopy(l1, zygosity=HOMOZYGOUS) == vcopy(l2, zygosity=HOMOZYGOUS):  # Homozygous
-#       c3 += [vcopy(l1, zygosity=HOMOZYGOUS)]
+#     if vcopy(l1, zygosity=HOM) == vcopy(l2, zygosity=HOM):  # Homozygous
+#       c3 += [vcopy(l1, zygosity=HOM)]
 #       l1, l2 = next(c1_iter, None), next(c2_iter, None)
 #       continue
 #
@@ -174,12 +182,12 @@ def generate_pair():
 #
 #   # Now pick up any slack
 #   while l1 is not None:
-#     if (l1.zygosity == HOMOZYGOUS) or (l1.zygosity == HET_10 and which_copy[0] == 0) or (l1.zygosity == HET_01 and which_copy[0] == 1):
+#     if (l1.zygosity == HOM) or (l1.zygosity == HET_10 and which_copy[0] == 0) or (l1.zygosity == HET_01 and which_copy[0] == 1):
 #       c3 += [vcopy(l1, zygosity=HET_10)]
 #     l1 = next(c1_iter, None)
 #
 #   while l2 is not None:
-#     if (l2.zygosity == HOMOZYGOUS) or (l2.zygosity == HET_10 and which_copy[1] == 0) or (l2.zygosity == HET_01 and which_copy[1] == 1):
+#     if (l2.zygosity == HOM) or (l2.zygosity == HET_10 and which_copy[1] == 0) or (l2.zygosity == HET_01 and which_copy[1] == 1):
 #       c3 += [vcopy(l2, zygosity=HET_01)]
 #     l2 = next(c2_iter, None)
 #

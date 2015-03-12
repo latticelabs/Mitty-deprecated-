@@ -436,109 +436,163 @@ static const char *__pyx_f[] = {
 };
 
 /*--- Type declarations ---*/
-struct __pyx_obj_5mitty_3lib_9variation_VariationData;
-struct __pyx_obj_5mitty_3lib_9variation_Genotype;
-struct __pyx_obj_5mitty_3lib_9variation_Variation;
-struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows;
+struct __pyx_obj_5mitty_3lib_9variation_Variant;
+struct __pyx_obj_5mitty_3lib_9variation_GTVariant;
+struct __pyx_obj_5mitty_3lib_9variation_Chromosome;
+struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator;
+struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints;
+struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable;
 
-/* "mitty/lib/variation.pyx":14
+/* "mitty/lib/variation.pyx":8
  * 
- * 
- * cdef class VariationData:             # <<<<<<<<<<<<<<
- *   """VD(pos, stop, REF, ALT)
- *   A lightweight class to carry a single variant
+ * # Types of zygosity
+ * cpdef enum:             # <<<<<<<<<<<<<<
+ *   ABSENT = 0
+ *   HET_01 = 1
  */
-struct __pyx_obj_5mitty_3lib_9variation_VariationData {
+enum  {
+  __pyx_e_5mitty_3lib_9variation_ABSENT = 0,
+  __pyx_e_5mitty_3lib_9variation_HET_01 = 1,
+  __pyx_e_5mitty_3lib_9variation_HET_10 = 2,
+  __pyx_e_5mitty_3lib_9variation_HOM = 3
+};
+
+/* "mitty/lib/variation.pyx":19
+ * # Copy 1 -> 0|1
+ * 
+ * cdef class Variant:             # <<<<<<<<<<<<<<
+ *   """Variant(pos, stop, REF, ALT)
+ *   A lightweight class to carry a single data
+ */
+struct __pyx_obj_5mitty_3lib_9variation_Variant {
   PyObject_HEAD
-  long POS;
-  long stop;
-  long hash;
-  PyObject *REF;
-  PyObject *ALT;
+  unsigned long pos;
+  unsigned long stop;
+  unsigned long hash;
+  unsigned long index;
+  PyObject *ref;
+  PyObject *alt;
 };
 
 
-/* "mitty/lib/variation.pyx":35
+/* "mitty/lib/variation.pyx":82
  * 
  * 
- * cdef class Genotype:             # <<<<<<<<<<<<<<
- *   """Represents a variant genotype in a sample
- *   Genotype(index, het)
+ * cdef class GTVariant:             # <<<<<<<<<<<<<<
+ *   """GTVariant(gt, Variant)
+ * 
  */
-struct __pyx_obj_5mitty_3lib_9variation_Genotype {
+struct __pyx_obj_5mitty_3lib_9variation_GTVariant {
   PyObject_HEAD
-  struct __pyx_vtabstruct_5mitty_3lib_9variation_Genotype *__pyx_vtab;
-  long index;
-  unsigned char het;
+  unsigned char gt;
+  struct __pyx_obj_5mitty_3lib_9variation_Variant *data;
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *next;
 };
 
 
-/* "mitty/lib/variation.pyx":143
+/* "mitty/lib/variation.pyx":123
  * 
- * # Will be deprecated in favor of Genotype
- * cdef class Variation:             # <<<<<<<<<<<<<<
- *   """Carries *reference* to a VariationData instance and heterozygosity, recessiveness and fitness data."""
- *   cdef public:
+ * 
+ * cdef class Chromosome:             # <<<<<<<<<<<<<<
+ *   """Represents a chromosome as a linked list of GTVariants. We always go sequentially through a chromosome, and for
+ *   denovo variants we may add GTVariants into the middle of the chromosome which is a good fit for a ll
  */
-struct __pyx_obj_5mitty_3lib_9variation_Variation {
+struct __pyx_obj_5mitty_3lib_9variation_Chromosome {
   PyObject_HEAD
-  struct __pyx_vtabstruct_5mitty_3lib_9variation_Variation *__pyx_vtab;
-  struct __pyx_obj_5mitty_3lib_9variation_VariationData *vd;
-  unsigned char het;
-  unsigned char recessive;
-  unsigned char fitness;
+  struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *__pyx_vtab;
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *head;
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *cursor;
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *tail;
+  unsigned long length;
+};
+
+
+/* "mitty/lib/variation.pyx":190
+ * 
+ * 
+ * cdef class ChromosomeIterator:             # <<<<<<<<<<<<<<
+ *   """A class that lets us iterate over the sample."""
+ *   cdef GTVariant this
+ */
+struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator {
+  PyObject_HEAD
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *this;
+};
+
+
+/* "mitty/lib/variation.pyx":292
+ * 
+ * 
+ * cdef class CrossOverPoints:             # <<<<<<<<<<<<<<
+ *   """We needed this rather than a simple iterator because we have to handle the paradoxes that arise when the cross over
+ *   point is in the middle of a footprint and adjust the cross over accordingly"""
+ */
+struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints {
+  PyObject_HEAD
+  struct __pyx_vtabstruct_5mitty_3lib_9variation_CrossOverPoints *__pyx_vtab;
+  PyObject *point_list;
+  int current_point;
+  int current_copy;
+  int current_point_idx;
+  int max_point_idx;
+  int max_pos;
 };
 
 
 /* "mitty/lib/variation.pyx":116
  * 
  * 
- * def get_variant_rows(l, samples):             # <<<<<<<<<<<<<<
- *   """Iterator to write out the collection of samples in multi-sample format
- *   :param l: the master variant dictionary
+ * def create_gtv_iterable(pos, ref, alt, gt):             # <<<<<<<<<<<<<<
+ *   """Given lists/generators of the bare variant data (e.g. from a plugin) return us an iterator that will produce a
+ *   stream of individual SampleVariants."""
  */
-struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows {
+struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable {
   PyObject_HEAD
-  PyObject *__pyx_v_csc;
-  PyObject *__pyx_v_i;
-  PyObject *__pyx_v_l;
-  PyObject *__pyx_v_msi;
-  PyObject *__pyx_v_n;
-  Py_ssize_t __pyx_v_n_samples;
-  PyObject *__pyx_v_s;
-  PyObject *__pyx_v_samples;
-  PyObject *__pyx_v_this_line;
+  PyObject *__pyx_v_a;
+  PyObject *__pyx_v_alt;
+  PyObject *__pyx_v_g;
+  PyObject *__pyx_v_gt;
+  PyObject *__pyx_v_p;
+  PyObject *__pyx_v_pos;
+  PyObject *__pyx_v_r;
+  PyObject *__pyx_v_ref;
+  PyObject *__pyx_t_0;
+  Py_ssize_t __pyx_t_1;
+  PyObject *(*__pyx_t_2)(PyObject *);
 };
 
 
 
-/* "mitty/lib/variation.pyx":35
+/* "mitty/lib/variation.pyx":123
  * 
  * 
- * cdef class Genotype:             # <<<<<<<<<<<<<<
- *   """Represents a variant genotype in a sample
- *   Genotype(index, het)
+ * cdef class Chromosome:             # <<<<<<<<<<<<<<
+ *   """Represents a chromosome as a linked list of GTVariants. We always go sequentially through a chromosome, and for
+ *   denovo variants we may add GTVariants into the middle of the chromosome which is a good fit for a ll
  */
 
-struct __pyx_vtabstruct_5mitty_3lib_9variation_Genotype {
-  unsigned long (*pos)(struct __pyx_obj_5mitty_3lib_9variation_Genotype *, int __pyx_skip_dispatch);
-  unsigned int (*alts)(struct __pyx_obj_5mitty_3lib_9variation_Genotype *, int __pyx_skip_dispatch);
+struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome {
+  PyObject *(*rewind_cursor)(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, int __pyx_skip_dispatch);
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *(*advance)(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, int __pyx_skip_dispatch);
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *(*last)(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, int __pyx_skip_dispatch);
+  PyObject *(*insert)(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *, int __pyx_skip_dispatch);
+  PyObject *(*append)(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *, int __pyx_skip_dispatch);
 };
-static struct __pyx_vtabstruct_5mitty_3lib_9variation_Genotype *__pyx_vtabptr_5mitty_3lib_9variation_Genotype;
+static struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *__pyx_vtabptr_5mitty_3lib_9variation_Chromosome;
 
 
-/* "mitty/lib/variation.pyx":143
+/* "mitty/lib/variation.pyx":292
  * 
- * # Will be deprecated in favor of Genotype
- * cdef class Variation:             # <<<<<<<<<<<<<<
- *   """Carries *reference* to a VariationData instance and heterozygosity, recessiveness and fitness data."""
- *   cdef public:
+ * 
+ * cdef class CrossOverPoints:             # <<<<<<<<<<<<<<
+ *   """We needed this rather than a simple iterator because we have to handle the paradoxes that arise when the cross over
+ *   point is in the middle of a footprint and adjust the cross over accordingly"""
  */
 
-struct __pyx_vtabstruct_5mitty_3lib_9variation_Variation {
-  int (*eq)(struct __pyx_obj_5mitty_3lib_9variation_Variation *, struct __pyx_obj_5mitty_3lib_9variation_Variation *, int __pyx_skip_dispatch);
+struct __pyx_vtabstruct_5mitty_3lib_9variation_CrossOverPoints {
+  int (*update_crossover)(struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *, struct __pyx_obj_5mitty_3lib_9variation_Variant *);
 };
-static struct __pyx_vtabstruct_5mitty_3lib_9variation_Variation *__pyx_vtabptr_5mitty_3lib_9variation_Variation;
+static struct __pyx_vtabstruct_5mitty_3lib_9variation_CrossOverPoints *__pyx_vtabptr_5mitty_3lib_9variation_CrossOverPoints;
 
 /* --- Runtime support code (head) --- */
 #ifndef CYTHON_REFNANNY
@@ -620,47 +674,52 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_GetAttrStr(PyObject* obj, PyObject
 
 static PyObject *__Pyx_GetBuiltinName(PyObject *name);
 
-static void __Pyx_RaiseDoubleKeywordsError(const char* func_name, PyObject* kw_name);
-
-static int __Pyx_ParseOptionalKeywords(PyObject *kwds, PyObject **argnames[], \
-    PyObject *kwds2, PyObject *values[], Py_ssize_t num_pos_args, \
-    const char* function_name);
-
-static void __Pyx_RaiseArgtupleInvalid(const char* func_name, int exact,
-    Py_ssize_t num_min, Py_ssize_t num_max, Py_ssize_t num_found);
-
-static CYTHON_INLINE int __Pyx_ArgTypeTest(PyObject *obj, PyTypeObject *type, int none_allowed,
-    const char *name, int exact);
-
 #if CYTHON_COMPILING_IN_CPYTHON
 static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg, PyObject *kw);
 #else
 #define __Pyx_PyObject_Call(func, arg, kw) PyObject_Call(func, arg, kw)
 #endif
 
-#if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE PyObject* __Pyx_PyObject_CallMethO(PyObject *func, PyObject *arg);
-#endif
+static CYTHON_INLINE int __Pyx_ArgTypeTest(PyObject *obj, PyTypeObject *type, int none_allowed,
+    const char *name, int exact);
 
-static CYTHON_INLINE PyObject* __Pyx_PyObject_CallOneArg(PyObject *func, PyObject *arg);
+static void __Pyx_RaiseArgtupleInvalid(const char* func_name, int exact,
+    Py_ssize_t num_min, Py_ssize_t num_max, Py_ssize_t num_found);
 
-#if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE PyObject* __Pyx_PyObject_CallNoArg(PyObject *func);
-#else
-#define __Pyx_PyObject_CallNoArg(func) __Pyx_PyObject_Call(func, __pyx_empty_tuple, NULL)
-#endif
+static void __Pyx_RaiseDoubleKeywordsError(const char* func_name, PyObject* kw_name);
 
-static CYTHON_INLINE void __Pyx_ErrRestore(PyObject *type, PyObject *value, PyObject *tb);
-static CYTHON_INLINE void __Pyx_ErrFetch(PyObject **type, PyObject **value, PyObject **tb);
+static int __Pyx_ParseOptionalKeywords(PyObject *kwds, PyObject **argnames[], \
+    PyObject *kwds2, PyObject *values[], Py_ssize_t num_pos_args, \
+    const char* function_name);
 
-static void __Pyx_WriteUnraisable(const char *name, int clineno,
-                                  int lineno, const char *filename,
-                                  int full_traceback);
-
-static CYTHON_INLINE int __Pyx_PySequence_Contains(PyObject* item, PyObject* seq, int eq) {
-    int result = PySequence_Contains(seq, item);
+static CYTHON_INLINE int __Pyx_PyDict_Contains(PyObject* item, PyObject* dict, int eq) {
+    int result = PyDict_Contains(dict, item);
     return unlikely(result < 0) ? result : (result == (eq == Py_EQ));
 }
+
+#if PY_MAJOR_VERSION >= 3
+static PyObject *__Pyx_PyDict_GetItem(PyObject *d, PyObject* key) {
+    PyObject *value;
+    value = PyDict_GetItemWithError(d, key);
+    if (unlikely(!value)) {
+        if (!PyErr_Occurred()) {
+            PyObject* args = PyTuple_Pack(1, key);
+            if (likely(args))
+                PyErr_SetObject(PyExc_KeyError, args);
+            Py_XDECREF(args);
+        }
+        return NULL;
+    }
+    Py_INCREF(value);
+    return value;
+}
+#else
+    #define __Pyx_PyDict_GetItem(d, key) PyObject_GetItem(d, key)
+#endif
+
+static CYTHON_INLINE int __Pyx_TypeTest(PyObject *obj, PyTypeObject *type);
+
+static CYTHON_INLINE PyObject *__Pyx_GetModuleGlobalName(PyObject *name);
 
 #define __Pyx_GetItemInt(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck) \
     (__Pyx_fits_Py_ssize_t(i, type, is_signed) ? \
@@ -683,6 +742,16 @@ static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j
 static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i,
                                                      int is_list, int wraparound, int boundscheck);
 
+static CYTHON_INLINE void __Pyx_RaiseTooManyValuesError(Py_ssize_t expected);
+
+static CYTHON_INLINE void __Pyx_RaiseNeedMoreValuesError(Py_ssize_t index);
+
+static CYTHON_INLINE int __Pyx_IterFinish(void);
+
+static int __Pyx_IternextUnpackEndCheck(PyObject *retval, Py_ssize_t expected);
+
+static CYTHON_INLINE int __Pyx_CheckKeywordStrings(PyObject *kwdict, const char* function_name, int kw_allowed);
+
 #if CYTHON_COMPILING_IN_CPYTHON
 static CYTHON_INLINE int __Pyx_ListComp_Append(PyObject* list, PyObject* x) {
     PyListObject* L = (PyListObject*) list;
@@ -699,82 +768,37 @@ static CYTHON_INLINE int __Pyx_ListComp_Append(PyObject* list, PyObject* x) {
 #define __Pyx_ListComp_Append(L,x) PyList_Append(L,x)
 #endif
 
-#include <string.h>
-
-static CYTHON_INLINE int __Pyx_PyBytes_Equals(PyObject* s1, PyObject* s2, int equals);
-
-static CYTHON_INLINE int __Pyx_PyUnicode_Equals(PyObject* s1, PyObject* s2, int equals);
-
-#if PY_MAJOR_VERSION >= 3
-#define __Pyx_PyString_Equals __Pyx_PyUnicode_Equals
-#else
-#define __Pyx_PyString_Equals __Pyx_PyBytes_Equals
+#if CYTHON_COMPILING_IN_CPYTHON
+static CYTHON_INLINE PyObject* __Pyx_PyObject_CallMethO(PyObject *func, PyObject *arg);
 #endif
 
-static CYTHON_INLINE PyObject *__Pyx_GetModuleGlobalName(PyObject *name);
-
-static CYTHON_INLINE int __Pyx_TypeTest(PyObject *obj, PyTypeObject *type);
-
-#if PY_MAJOR_VERSION >= 3
-static PyObject *__Pyx_PyDict_GetItem(PyObject *d, PyObject* key) {
-    PyObject *value;
-    value = PyDict_GetItemWithError(d, key);
-    if (unlikely(!value)) {
-        if (!PyErr_Occurred()) {
-            PyObject* args = PyTuple_Pack(1, key);
-            if (likely(args))
-                PyErr_SetObject(PyExc_KeyError, args);
-            Py_XDECREF(args);
-        }
-        return NULL;
-    }
-    Py_INCREF(value);
-    return value;
-}
-#else
-    #define __Pyx_PyDict_GetItem(d, key) PyObject_GetItem(d, key)
-#endif
-
-#define __Pyx_SetItemInt(o, i, v, type, is_signed, to_py_func, is_list, wraparound, boundscheck) \
-    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ? \
-    __Pyx_SetItemInt_Fast(o, (Py_ssize_t)i, v, is_list, wraparound, boundscheck) : \
-    (is_list ? (PyErr_SetString(PyExc_IndexError, "list assignment index out of range"), -1) : \
-               __Pyx_SetItemInt_Generic(o, to_py_func(i), v)))
-static CYTHON_INLINE int __Pyx_SetItemInt_Generic(PyObject *o, PyObject *j, PyObject *v);
-static CYTHON_INLINE int __Pyx_SetItemInt_Fast(PyObject *o, Py_ssize_t i, PyObject *v,
-                                               int is_list, int wraparound, int boundscheck);
+static CYTHON_INLINE PyObject* __Pyx_PyObject_CallOneArg(PyObject *func, PyObject *arg);
 
 #if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE PyObject* __Pyx_PyList_GetSlice(PyObject* src, Py_ssize_t start, Py_ssize_t stop);
-static CYTHON_INLINE PyObject* __Pyx_PyTuple_GetSlice(PyObject* src, Py_ssize_t start, Py_ssize_t stop);
+static CYTHON_INLINE PyObject* __Pyx_PyObject_CallNoArg(PyObject *func);
 #else
-#define __Pyx_PyList_GetSlice(seq, start, stop)   PySequence_GetSlice(seq, start, stop)
-#define __Pyx_PyTuple_GetSlice(seq, start, stop)  PySequence_GetSlice(seq, start, stop)
+#define __Pyx_PyObject_CallNoArg(func) __Pyx_PyObject_Call(func, __pyx_empty_tuple, NULL)
 #endif
 
-static CYTHON_INLINE int __Pyx_IterFinish(void);
+static CYTHON_INLINE void __Pyx_ErrRestore(PyObject *type, PyObject *value, PyObject *tb);
+static CYTHON_INLINE void __Pyx_ErrFetch(PyObject **type, PyObject **value, PyObject **tb);
 
-static PyObject* __Pyx_PyObject_CallMethod0(PyObject* obj, PyObject* method_name);
+static void __Pyx_Raise(PyObject *type, PyObject *value, PyObject *tb, PyObject *cause);
 
-static CYTHON_INLINE void __Pyx_RaiseNeedMoreValuesError(Py_ssize_t index);
+#define __Pyx_PyIter_Next(obj) __Pyx_PyIter_Next2(obj, NULL)
+static CYTHON_INLINE PyObject *__Pyx_PyIter_Next2(PyObject *, PyObject *);
 
-static CYTHON_INLINE void __Pyx_RaiseTooManyValuesError(Py_ssize_t expected);
+static void __Pyx_WriteUnraisable(const char *name, int clineno,
+                                  int lineno, const char *filename,
+                                  int full_traceback);
 
-static int __Pyx_IternextUnpackEndCheck(PyObject *retval, Py_ssize_t expected);
+static PyObject* __Pyx_PyObject_CallMethod1(PyObject* obj, PyObject* method_name, PyObject* arg);
 
-static CYTHON_INLINE void __Pyx_RaiseNoneNotIterableError(void);
-
-static void __Pyx_UnpackTupleError(PyObject *, Py_ssize_t index);
-
-static CYTHON_INLINE int __Pyx_unpack_tuple2(PyObject* tuple, PyObject** value1, PyObject** value2,
-                                             int is_tuple, int has_known_size, int decref_tuple);
-
-static CYTHON_INLINE PyObject* __Pyx_dict_iterator(PyObject* dict, int is_dict, PyObject* method_name,
-                                                   Py_ssize_t* p_orig_length, int* p_is_dict);
-static CYTHON_INLINE int __Pyx_dict_iter_next(PyObject* dict_or_iter, Py_ssize_t orig_length, Py_ssize_t* ppos,
-                                              PyObject** pkey, PyObject** pvalue, PyObject** pitem, int is_dict);
+static CYTHON_INLINE PyObject* __Pyx_PyDict_Keys(PyObject* d);
 
 static PyObject* __Pyx_PyDict_GetItemDefault(PyObject* d, PyObject* key, PyObject* default_value);
+
+#include <string.h>
 
 static int __Pyx_SetVtable(PyObject *dict, void *vtable);
 
@@ -795,37 +819,27 @@ static void __pyx_insert_code_object(int code_line, PyCodeObject* code_object);
 static void __Pyx_AddTraceback(const char *funcname, int c_line,
                                int py_line, const char *filename);
 
+static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level);
+
 static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *);
-
-static CYTHON_INLINE char __Pyx_PyInt_As_char(PyObject *);
-
-static CYTHON_INLINE unsigned char __Pyx_PyInt_As_unsigned_char(PyObject *);
-
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
-
-static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *);
 
 static CYTHON_INLINE unsigned long __Pyx_PyInt_As_unsigned_long(PyObject *);
 
+static CYTHON_INLINE unsigned char __Pyx_PyInt_As_unsigned_char(PyObject *);
+
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_unsigned_long(unsigned long value);
-
-static CYTHON_INLINE unsigned int __Pyx_PyInt_As_unsigned_int(PyObject *);
-
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_unsigned_int(unsigned int value);
 
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_unsigned_char(unsigned char value);
 
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value);
 
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_char(char value);
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
+
+static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *);
 
 static PyTypeObject* __Pyx_FetchCommonType(PyTypeObject* type);
 
-static void __Pyx_Raise(PyObject *type, PyObject *value, PyObject *tb, PyObject *cause);
-
 static CYTHON_INLINE void __Pyx_ExceptionSwap(PyObject **type, PyObject **value, PyObject **tb);
-
-static PyObject* __Pyx_PyObject_CallMethod1(PyObject* obj, PyObject* method_name, PyObject* arg);
 
 #define __Pyx_Generator_USED
 #include <structmember.h>
@@ -860,533 +874,573 @@ static int __Pyx_check_binary_version(void);
 
 static int __Pyx_InitStrings(__Pyx_StringTabEntry *t);
 
-static unsigned long __pyx_f_5mitty_3lib_9variation_8Genotype_pos(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self, int __pyx_skip_dispatch); /* proto*/
-static unsigned int __pyx_f_5mitty_3lib_9variation_8Genotype_alts(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self, int __pyx_skip_dispatch); /* proto*/
-static int __pyx_f_5mitty_3lib_9variation_9Variation_eq(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_other, int __pyx_skip_dispatch); /* proto*/
+static PyObject *__pyx_f_5mitty_3lib_9variation_10Chromosome_rewind_cursor(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, int __pyx_skip_dispatch); /* proto*/
+static struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_f_5mitty_3lib_9variation_10Chromosome_advance(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, int __pyx_skip_dispatch); /* proto*/
+static struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_f_5mitty_3lib_9variation_10Chromosome_last(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, int __pyx_skip_dispatch); /* proto*/
+static PyObject *__pyx_f_5mitty_3lib_9variation_10Chromosome_insert(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv, int __pyx_skip_dispatch); /* proto*/
+static PyObject *__pyx_f_5mitty_3lib_9variation_10Chromosome_append(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv, int __pyx_skip_dispatch); /* proto*/
+static int __pyx_f_5mitty_3lib_9variation_15CrossOverPoints_update_crossover(struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_v); /* proto*/
 
 /* Module declarations from 'mitty.lib.variation' */
-static PyTypeObject *__pyx_ptype_5mitty_3lib_9variation_VariationData = 0;
-static PyTypeObject *__pyx_ptype_5mitty_3lib_9variation_Genotype = 0;
-static PyTypeObject *__pyx_ptype_5mitty_3lib_9variation_Variation = 0;
-static PyTypeObject *__pyx_ptype_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows = 0;
-static unsigned long __pyx_f_5mitty_3lib_9variation_add_novel_variant_to_master(PyObject *, PyObject *, int __pyx_skip_dispatch); /*proto*/
-static struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_f_5mitty_3lib_9variation_add_as_genotype(PyObject *, PyObject *, PyObject *, int __pyx_skip_dispatch); /*proto*/
-static PyObject *__pyx_f_5mitty_3lib_9variation_find_next_line(PyObject *, PyObject *, PyObject *, int __pyx_skip_dispatch); /*proto*/
-static CYTHON_INLINE int __pyx_f_5mitty_3lib_9variation_overlap(struct __pyx_obj_5mitty_3lib_9variation_VariationData *, unsigned char, struct __pyx_obj_5mitty_3lib_9variation_VariationData *, unsigned char); /*proto*/
-static PyObject *__pyx_f_5mitty_3lib_9variation_merge_variants(PyObject *, PyObject *, PyObject *, int __pyx_skip_dispatch); /*proto*/
+static PyTypeObject *__pyx_ptype_5mitty_3lib_9variation_Variant = 0;
+static PyTypeObject *__pyx_ptype_5mitty_3lib_9variation_GTVariant = 0;
+static PyTypeObject *__pyx_ptype_5mitty_3lib_9variation_Chromosome = 0;
+static PyTypeObject *__pyx_ptype_5mitty_3lib_9variation_ChromosomeIterator = 0;
+static PyTypeObject *__pyx_ptype_5mitty_3lib_9variation_CrossOverPoints = 0;
+static PyTypeObject *__pyx_ptype_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable = 0;
+static struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_f_5mitty_3lib_9variation_new_variant(unsigned long, unsigned long, PyObject *, PyObject *, int __pyx_skip_dispatch); /*proto*/
+static struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_f_5mitty_3lib_9variation_add_novel_variant_to_master(struct __pyx_obj_5mitty_3lib_9variation_Variant *, PyObject *, int __pyx_skip_dispatch); /*proto*/
+static struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_f_5mitty_3lib_9variation_new_gt_variant(unsigned char, struct __pyx_obj_5mitty_3lib_9variation_Variant *, int __pyx_skip_dispatch); /*proto*/
+static CYTHON_INLINE int __pyx_f_5mitty_3lib_9variation_overlap(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *); /*proto*/
+static PyObject *__pyx_f_5mitty_3lib_9variation_add_denovo_variants_to_chromosome(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, PyObject *, PyObject *, int __pyx_skip_dispatch); /*proto*/
+static PyObject *__pyx_f_5mitty_3lib_9variation_append_sv_copy(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, int, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *, int); /*proto*/
+static PyObject *__pyx_f_5mitty_3lib_9variation_append_sv_copies(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *, int, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *, int); /*proto*/
+static struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_f_5mitty_3lib_9variation_pair_chromosomes(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, PyObject *, int, struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, PyObject *, int, int __pyx_skip_dispatch); /*proto*/
+static PyObject *__pyx_f_5mitty_3lib_9variation_pair_samples(PyObject *, PyObject *, PyObject *, PyObject *, PyObject *, PyObject *, int __pyx_skip_dispatch); /*proto*/
 #define __Pyx_MODULE_NAME "mitty.lib.variation"
 int __pyx_module_is_main_mitty__lib__variation = 0;
 
 /* Implementation of 'mitty.lib.variation' */
-static PyObject *__pyx_builtin_range;
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData___cinit__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self, int __pyx_v__pos, int __pyx_v__stop, PyObject *__pyx_v__ref, PyObject *__pyx_v__alt); /* proto */
-static Py_hash_t __pyx_pf_5mitty_3lib_9variation_13VariationData_2__hash__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_3POS___get__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_3POS_2__set__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_4stop___get__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_4stop_2__set__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_4hash___get__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_4hash_2__set__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_3REF___get__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_3REF_2__set__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_3REF_4__del__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_3ALT___get__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_3ALT_2__set__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_3ALT_4__del__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_8Genotype___cinit__(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self, PyObject *__pyx_v_index, PyObject *__pyx_v_het); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_8Genotype_2__repr__(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_8Genotype_4pos(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_8Genotype_6alts(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_8Genotype_5index___get__(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_8Genotype_5index_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_8Genotype_3het___get__(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_8Genotype_3het_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_add_novel_variant_to_master(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_vd, PyObject *__pyx_v_l); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_2add_as_genotype(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_vd, PyObject *__pyx_v_l, PyObject *__pyx_v_het); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_4find_next_line(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_samples, PyObject *__pyx_v_n_samples, PyObject *__pyx_v_csc); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_6get_variant_rows(CYTHON_UNUSED PyObject *__pyx_self, CYTHON_UNUSED PyObject *__pyx_v_l, PyObject *__pyx_v_samples); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9add_sample_variant(CYTHON_UNUSED PyObject *__pyx_self, CYTHON_UNUSED PyObject *__pyx_v_gt, CYTHON_UNUSED PyObject *__pyx_v_l); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_11new_variation(CYTHON_UNUSED PyObject *__pyx_self, int __pyx_v__pos, int __pyx_v__stop, PyObject *__pyx_v__ref, PyObject *__pyx_v__alt, char __pyx_v_het, char __pyx_v_recessive, float __pyx_v_fitness); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_9Variation___cinit__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v__vd, unsigned char __pyx_v_het, unsigned char __pyx_v_rec, unsigned char __pyx_v_fit); /* proto */
-static Py_hash_t __pyx_pf_5mitty_3lib_9variation_9Variation_2__hash__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_4eq(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_other); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_6__richcmp__(PyObject *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_other, int __pyx_v_op); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_8__repr__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_2vd___get__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_9Variation_2vd_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_9Variation_2vd_4__del__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_3het___get__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_9Variation_3het_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_9recessive___get__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_9Variation_9recessive_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_7fitness___get__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self); /* proto */
-static int __pyx_pf_5mitty_3lib_9variation_9Variation_7fitness_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_13merge_variants(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_c1, PyObject *__pyx_v_c2, PyObject *__pyx_v_ml); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_15copy_missing_chromosomes(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_g1, PyObject *__pyx_v_g2); /* proto */
-static PyObject *__pyx_pf_5mitty_3lib_9variation_17merge_genomes(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_g1, PyObject *__pyx_v_g2, PyObject *__pyx_v_ml); /* proto */
-static PyObject *__pyx_tp_new_5mitty_3lib_9variation_VariationData(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
-static PyObject *__pyx_tp_new_5mitty_3lib_9variation_Genotype(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
-static PyObject *__pyx_tp_new_5mitty_3lib_9variation_Variation(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
-static PyObject *__pyx_tp_new_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
+static PyObject *__pyx_builtin_StopIteration;
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant___repr__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_2__richcmp__(PyObject *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_other, int __pyx_v_op); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_4as_tuple(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_3pos___get__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_3pos_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_4stop___get__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_4stop_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_4hash___get__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_4hash_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_5index___get__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_5index_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_3ref___get__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_3ref_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_3ref_4__del__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_3alt___get__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_3alt_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_3alt_4__del__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_new_variant(CYTHON_UNUSED PyObject *__pyx_self, unsigned long __pyx_v_pos, unsigned long __pyx_v_stop, PyObject *__pyx_v_ref, PyObject *__pyx_v_alt); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_2add_novel_variant_to_master(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_v, PyObject *__pyx_v_ml); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_9GTVariant___repr__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_9GTVariant_2__richcmp__(PyObject *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_other, int __pyx_v_op); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_9GTVariant_2gt___get__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_9GTVariant_2gt_2__set__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_9GTVariant_4data___get__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_9GTVariant_4data_2__set__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_9GTVariant_4data_4__del__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_9GTVariant_4next___get__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_9GTVariant_4next_2__set__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_9GTVariant_4next_4__del__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_4new_gt_variant(CYTHON_UNUSED PyObject *__pyx_self, unsigned char __pyx_v_gt, struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_variant); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_6create_gtv_iterable(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_pos, PyObject *__pyx_v_ref, PyObject *__pyx_v_alt, PyObject *__pyx_v_gt); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome___cinit__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static Py_ssize_t __pyx_pf_5mitty_3lib_9variation_10Chromosome_2__len__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_4__iter__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_6to_list(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_8rewind_cursor(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_10advance(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_12last(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_14insert(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_16append(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_4head___get__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_4head_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_4head_4__del__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_6cursor___get__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_6cursor_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_6cursor_4__del__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_4tail___get__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_4tail_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_4tail_4__del__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_6length___get__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_6length_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_18ChromosomeIterator___cinit__(struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_18ChromosomeIterator_2__next__(struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_9add_denovo_variants_to_chromosome(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s, PyObject *__pyx_v_dnv, PyObject *__pyx_v_ml); /* proto */
+static int __pyx_pf_5mitty_3lib_9variation_15CrossOverPoints___cinit__(struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *__pyx_v_self, PyObject *__pyx_v_point_list, int __pyx_v_max_pos, int __pyx_v_copy); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_11pair_chromosomes(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s1, PyObject *__pyx_v_cross_over1, int __pyx_v_chrom_copy1, struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s2, PyObject *__pyx_v_cross_over2, int __pyx_v_chrom_copy2); /* proto */
+static PyObject *__pyx_pf_5mitty_3lib_9variation_13pair_samples(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_s1, PyObject *__pyx_v_cross1, PyObject *__pyx_v_copy1, PyObject *__pyx_v_s2, PyObject *__pyx_v_cross2, PyObject *__pyx_v_copy2); /* proto */
+static PyObject *__pyx_tp_new_5mitty_3lib_9variation_Variant(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
+static PyObject *__pyx_tp_new_5mitty_3lib_9variation_GTVariant(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
+static PyObject *__pyx_tp_new_5mitty_3lib_9variation_Chromosome(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
+static PyObject *__pyx_tp_new_5mitty_3lib_9variation_ChromosomeIterator(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
+static PyObject *__pyx_tp_new_5mitty_3lib_9variation_CrossOverPoints(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
+static PyObject *__pyx_tp_new_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static char __pyx_k_[] = "";
-static char __pyx_k_d[] = "{:d}";
-static char __pyx_k_i[] = "i";
-static char __pyx_k_l[] = "l";
-static char __pyx_k_n[] = "n";
+static char __pyx_k_a[] = "a";
+static char __pyx_k_g[] = "g";
+static char __pyx_k_p[] = "p";
+static char __pyx_k_r[] = "r";
 static char __pyx_k_s[] = "s";
+static char __pyx_k_v[] = "v";
 static char __pyx_k_GT[] = "GT";
-static char __pyx_k_c1[] = "c1";
-static char __pyx_k_c2[] = "c2";
-static char __pyx_k_ch[] = "ch";
-static char __pyx_k_eq[] = "eq";
-static char __pyx_k_g1[] = "g1";
-static char __pyx_k_g2[] = "g2";
-static char __pyx_k_g3[] = "g3";
 static char __pyx_k_gt[] = "gt";
 static char __pyx_k_ml[] = "ml";
-static char __pyx_k_vd[] = "vd";
+static char __pyx_k_s1[] = "s1";
+static char __pyx_k_s2[] = "s2";
 static char __pyx_k_0_0[] = "0|0";
 static char __pyx_k_0_1[] = "0|1";
 static char __pyx_k_1_0[] = "1|0";
 static char __pyx_k_1_1[] = "1|1";
-static char __pyx_k_POS[] = "POS";
-static char __pyx_k_alt[] = "_alt";
-static char __pyx_k_csc[] = "csc";
-static char __pyx_k_fit[] = "fit";
+static char __pyx_k_alt[] = "alt";
+static char __pyx_k_dnv[] = "dnv";
 static char __pyx_k_get[] = "get";
-static char __pyx_k_het[] = "het";
-static char __pyx_k_msi[] = "msi";
-static char __pyx_k_pos[] = "_pos";
-static char __pyx_k_rec[] = "rec";
-static char __pyx_k_ref[] = "_ref";
-static char __pyx_k_alts[] = "alts";
+static char __pyx_k_pos[] = "pos";
+static char __pyx_k_ref[] = "ref";
+static char __pyx_k_s_s[] = "{:s} {:s}";
 static char __pyx_k_args[] = "args";
-static char __pyx_k_hash[] = "__hash__";
+static char __pyx_k_copy[] = "copy";
+static char __pyx_k_data[] = "data";
+static char __pyx_k_hash[] = "hash";
+static char __pyx_k_izip[] = "izip";
 static char __pyx_k_keys[] = "keys";
+static char __pyx_k_last[] = "last";
 static char __pyx_k_main[] = "__main__";
 static char __pyx_k_send[] = "send";
-static char __pyx_k_stop[] = "_stop";
+static char __pyx_k_stop[] = "stop";
 static char __pyx_k_test[] = "__test__";
-static char __pyx_k_vd_2[] = "_vd";
-static char __pyx_k_chrom[] = "chrom";
 static char __pyx_k_close[] = "close";
-static char __pyx_k_index[] = "index";
-static char __pyx_k_pos_2[] = "pos";
-static char __pyx_k_range[] = "range";
+static char __pyx_k_copy1[] = "copy1";
+static char __pyx_k_copy2[] = "copy2";
 static char __pyx_k_throw[] = "throw";
-static char __pyx_k_ABSENT[] = "ABSENT";
-static char __pyx_k_HET_01[] = "HET_01";
-static char __pyx_k_HET_10[] = "HET_10";
+static char __pyx_k_append[] = "append";
+static char __pyx_k_cross1[] = "cross1";
+static char __pyx_k_cross2[] = "cross2";
 static char __pyx_k_format[] = "format";
-static char __pyx_k_hash_2[] = "hash";
-static char __pyx_k_fitness[] = "fitness";
-static char __pyx_k_samples[] = "samples";
-static char __pyx_k_iteritems[] = "iteritems";
-static char __pyx_k_n_samples[] = "n_samples";
-static char __pyx_k_recessive[] = "recessive";
-static char __pyx_k_this_line[] = "this_line";
-static char __pyx_k_HOMOZYGOUS[] = "HOMOZYGOUS";
+static char __pyx_k_import[] = "__import__";
+static char __pyx_k_insert[] = "insert";
+static char __pyx_k_advance[] = "advance";
+static char __pyx_k_d_d_s_s[] = "({:d}, {:d}, {:s}, {:s})";
+static char __pyx_k_max_pos[] = "max_pos";
+static char __pyx_k_variant[] = "variant";
+static char __pyx_k_itertools[] = "itertools";
+static char __pyx_k_point_list[] = "point_list";
 static char __pyx_k_pyx_vtable[] = "__pyx_vtable__";
-static char __pyx_k_merge_genomes[] = "merge_genomes";
-static char __pyx_k_missing_chrom[] = "missing_chrom";
-static char __pyx_k_new_variation[] = "new_variation";
-static char __pyx_k_get_variant_rows[] = "get_variant_rows";
-static char __pyx_k_add_sample_variant[] = "add_sample_variant";
+static char __pyx_k_chrom_copy1[] = "chrom_copy1";
+static char __pyx_k_chrom_copy2[] = "chrom_copy2";
+static char __pyx_k_cross_over1[] = "cross_over1";
+static char __pyx_k_cross_over2[] = "cross_over2";
+static char __pyx_k_StopIteration[] = "StopIteration";
+static char __pyx_k_rewind_cursor[] = "rewind_cursor";
+static char __pyx_k_create_gtv_iterable[] = "create_gtv_iterable";
 static char __pyx_k_mitty_lib_variation[] = "mitty.lib.variation";
-static char __pyx_k_copy_missing_chromosomes[] = "copy_missing_chromosomes";
-static char __pyx_k_POS_0_stop_1_REF_2_ALT_3_zygosi[] = "(POS={0},stop={1},REF={2},ALT={3},zygosity={4},r={5},fit={6})";
 static char __pyx_k_This_module_defines_a_structure[] = "This module defines a structure to carry variation information and some functions to perform operations on\ngenomes (collections of variations). For a description of design choices and algorithms please see the developer\ndocumentation\n";
 static char __pyx_k_Users_kghose_Code_Mitty_mitty_l[] = "/Users/kghose/Code/Mitty/mitty/lib/variation.pyx";
-static PyObject *__pyx_kp_s_;
+static PyObject *__pyx_kp_b_;
 static PyObject *__pyx_kp_s_0_0;
 static PyObject *__pyx_kp_s_0_1;
 static PyObject *__pyx_kp_s_1_0;
 static PyObject *__pyx_kp_s_1_1;
-static PyObject *__pyx_n_s_ABSENT;
 static PyObject *__pyx_n_s_GT;
-static PyObject *__pyx_n_s_HET_01;
-static PyObject *__pyx_n_s_HET_10;
-static PyObject *__pyx_n_s_HOMOZYGOUS;
-static PyObject *__pyx_n_s_POS;
-static PyObject *__pyx_kp_s_POS_0_stop_1_REF_2_ALT_3_zygosi;
+static PyObject *__pyx_n_s_StopIteration;
 static PyObject *__pyx_kp_s_Users_kghose_Code_Mitty_mitty_l;
-static PyObject *__pyx_n_s_add_sample_variant;
+static PyObject *__pyx_n_s_a;
+static PyObject *__pyx_n_s_advance;
 static PyObject *__pyx_n_s_alt;
-static PyObject *__pyx_n_s_alts;
+static PyObject *__pyx_n_s_append;
 static PyObject *__pyx_n_s_args;
-static PyObject *__pyx_n_s_c1;
-static PyObject *__pyx_n_s_c2;
-static PyObject *__pyx_n_s_ch;
-static PyObject *__pyx_n_s_chrom;
+static PyObject *__pyx_n_s_chrom_copy1;
+static PyObject *__pyx_n_s_chrom_copy2;
 static PyObject *__pyx_n_s_close;
-static PyObject *__pyx_n_s_copy_missing_chromosomes;
-static PyObject *__pyx_n_s_csc;
-static PyObject *__pyx_kp_s_d;
-static PyObject *__pyx_n_s_eq;
-static PyObject *__pyx_n_s_fit;
-static PyObject *__pyx_n_s_fitness;
+static PyObject *__pyx_n_s_copy;
+static PyObject *__pyx_n_s_copy1;
+static PyObject *__pyx_n_s_copy2;
+static PyObject *__pyx_n_s_create_gtv_iterable;
+static PyObject *__pyx_n_s_cross1;
+static PyObject *__pyx_n_s_cross2;
+static PyObject *__pyx_n_s_cross_over1;
+static PyObject *__pyx_n_s_cross_over2;
+static PyObject *__pyx_kp_s_d_d_s_s;
+static PyObject *__pyx_n_s_data;
+static PyObject *__pyx_n_s_dnv;
 static PyObject *__pyx_n_s_format;
-static PyObject *__pyx_n_s_g1;
-static PyObject *__pyx_n_s_g2;
-static PyObject *__pyx_n_s_g3;
+static PyObject *__pyx_n_s_g;
 static PyObject *__pyx_n_s_get;
-static PyObject *__pyx_n_s_get_variant_rows;
 static PyObject *__pyx_n_s_gt;
 static PyObject *__pyx_n_s_hash;
-static PyObject *__pyx_n_s_hash_2;
-static PyObject *__pyx_n_s_het;
-static PyObject *__pyx_n_s_i;
-static PyObject *__pyx_n_s_index;
-static PyObject *__pyx_n_s_iteritems;
+static PyObject *__pyx_n_s_import;
+static PyObject *__pyx_n_s_insert;
+static PyObject *__pyx_n_s_itertools;
+static PyObject *__pyx_n_s_izip;
 static PyObject *__pyx_n_s_keys;
-static PyObject *__pyx_n_s_l;
+static PyObject *__pyx_n_s_last;
 static PyObject *__pyx_n_s_main;
-static PyObject *__pyx_n_s_merge_genomes;
-static PyObject *__pyx_n_s_missing_chrom;
+static PyObject *__pyx_n_s_max_pos;
 static PyObject *__pyx_n_s_mitty_lib_variation;
 static PyObject *__pyx_n_s_ml;
-static PyObject *__pyx_n_s_msi;
-static PyObject *__pyx_n_s_n;
-static PyObject *__pyx_n_s_n_samples;
-static PyObject *__pyx_n_s_new_variation;
+static PyObject *__pyx_n_s_p;
+static PyObject *__pyx_n_s_point_list;
 static PyObject *__pyx_n_s_pos;
-static PyObject *__pyx_n_s_pos_2;
 static PyObject *__pyx_n_s_pyx_vtable;
-static PyObject *__pyx_n_s_range;
-static PyObject *__pyx_n_s_rec;
-static PyObject *__pyx_n_s_recessive;
+static PyObject *__pyx_n_s_r;
 static PyObject *__pyx_n_s_ref;
+static PyObject *__pyx_n_s_rewind_cursor;
 static PyObject *__pyx_n_s_s;
-static PyObject *__pyx_n_s_samples;
+static PyObject *__pyx_n_s_s1;
+static PyObject *__pyx_n_s_s2;
+static PyObject *__pyx_kp_s_s_s;
 static PyObject *__pyx_n_s_send;
 static PyObject *__pyx_n_s_stop;
 static PyObject *__pyx_n_s_test;
-static PyObject *__pyx_n_s_this_line;
 static PyObject *__pyx_n_s_throw;
-static PyObject *__pyx_n_s_vd;
-static PyObject *__pyx_n_s_vd_2;
+static PyObject *__pyx_n_s_v;
+static PyObject *__pyx_n_s_variant;
 static PyObject *__pyx_int_0;
-static PyObject *__pyx_int_1;
-static PyObject *__pyx_int_2;
-static PyObject *__pyx_int_3;
-static PyObject *__pyx_int_16;
-static unsigned char __pyx_k__2;
-static PyObject *__pyx_tuple__3;
-static PyObject *__pyx_tuple__5;
-static PyObject *__pyx_tuple__7;
-static PyObject *__pyx_tuple__9;
-static PyObject *__pyx_tuple__11;
-static PyObject *__pyx_codeobj__4;
-static PyObject *__pyx_codeobj__6;
-static PyObject *__pyx_codeobj__8;
-static PyObject *__pyx_codeobj__10;
-static PyObject *__pyx_codeobj__12;
+static PyObject *__pyx_tuple__2;
+static PyObject *__pyx_codeobj__3;
 
-/* "mitty/lib/variation.pyx":27
- *     str REF, ALT
+/* "mitty/lib/variation.pyx":41
+ *   #   self.hash = self.pos ^ hash(self.ref) ^ hash(self.alt)
  * 
- *   def __cinit__(self, int _pos=0, int _stop=0, str _ref='', str _alt=''):             # <<<<<<<<<<<<<<
- *     self.POS, self.stop, self.REF, self.ALT = _pos, _stop, _ref, _alt
- *     self.hash = self.POS ^ self.REF.__hash__() ^ self.ALT.__hash__()
+ *   def __repr__(self):             # <<<<<<<<<<<<<<
+ *     return '({:d}, {:d}, {:s}, {:s})'.format(self.pos, self.stop, self.ref, self.alt)
+ * 
  */
 
 /* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_1__cinit__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_1__cinit__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  int __pyx_v__pos;
-  int __pyx_v__stop;
-  PyObject *__pyx_v__ref = 0;
-  PyObject *__pyx_v__alt = 0;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  int __pyx_r;
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_1__repr__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_1__repr__(PyObject *__pyx_v_self) {
+  PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__cinit__ (wrapper)", 0);
-  {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_pos,&__pyx_n_s_stop,&__pyx_n_s_ref,&__pyx_n_s_alt,0};
-    PyObject* values[4] = {0,0,0,0};
-    values[2] = ((PyObject*)__pyx_kp_s_);
-    values[3] = ((PyObject*)__pyx_kp_s_);
-    if (unlikely(__pyx_kwds)) {
-      Py_ssize_t kw_args;
-      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
-      switch (pos_args) {
-        case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
-        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
-        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-        case  0: break;
-        default: goto __pyx_L5_argtuple_error;
-      }
-      kw_args = PyDict_Size(__pyx_kwds);
-      switch (pos_args) {
-        case  0:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_pos);
-          if (value) { values[0] = value; kw_args--; }
-        }
-        case  1:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_stop);
-          if (value) { values[1] = value; kw_args--; }
-        }
-        case  2:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_ref);
-          if (value) { values[2] = value; kw_args--; }
-        }
-        case  3:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_alt);
-          if (value) { values[3] = value; kw_args--; }
-        }
-      }
-      if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 27; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-      }
-    } else {
-      switch (PyTuple_GET_SIZE(__pyx_args)) {
-        case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
-        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
-        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-        case  0: break;
-        default: goto __pyx_L5_argtuple_error;
-      }
-    }
-    if (values[0]) {
-      __pyx_v__pos = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v__pos == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 27; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-    } else {
-      __pyx_v__pos = ((int)0);
-    }
-    if (values[1]) {
-      __pyx_v__stop = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v__stop == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 27; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-    } else {
-      __pyx_v__stop = ((int)0);
-    }
-    __pyx_v__ref = ((PyObject*)values[2]);
-    __pyx_v__alt = ((PyObject*)values[3]);
-  }
-  goto __pyx_L4_argument_unpacking_done;
-  __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 0, 0, 4, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 27; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-  __pyx_L3_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.VariationData.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __Pyx_RefNannyFinishContext();
-  return -1;
-  __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v__ref), (&PyString_Type), 1, "_ref", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 27; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v__alt), (&PyString_Type), 1, "_alt", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 27; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData___cinit__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self), __pyx_v__pos, __pyx_v__stop, __pyx_v__ref, __pyx_v__alt);
+  __Pyx_RefNannySetupContext("__repr__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant___repr__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self));
 
   /* function exit code */
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __pyx_r = -1;
-  __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData___cinit__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self, int __pyx_v__pos, int __pyx_v__stop, PyObject *__pyx_v__ref, PyObject *__pyx_v__alt) {
-  int __pyx_r;
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant___repr__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
-  int __pyx_t_1;
-  int __pyx_t_2;
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
   PyObject *__pyx_t_3 = NULL;
   PyObject *__pyx_t_4 = NULL;
   PyObject *__pyx_t_5 = NULL;
-  PyObject *__pyx_t_6 = NULL;
-  long __pyx_t_7;
+  Py_ssize_t __pyx_t_6;
+  PyObject *__pyx_t_7 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__cinit__", 0);
+  __Pyx_RefNannySetupContext("__repr__", 0);
 
-  /* "mitty/lib/variation.pyx":28
+  /* "mitty/lib/variation.pyx":42
  * 
- *   def __cinit__(self, int _pos=0, int _stop=0, str _ref='', str _alt=''):
- *     self.POS, self.stop, self.REF, self.ALT = _pos, _stop, _ref, _alt             # <<<<<<<<<<<<<<
- *     self.hash = self.POS ^ self.REF.__hash__() ^ self.ALT.__hash__()
+ *   def __repr__(self):
+ *     return '({:d}, {:d}, {:s}, {:s})'.format(self.pos, self.stop, self.ref, self.alt)             # <<<<<<<<<<<<<<
  * 
+ *   def __richcmp__(self, Variant other, int op):
  */
-  __pyx_t_1 = __pyx_v__pos;
-  __pyx_t_2 = __pyx_v__stop;
-  __pyx_t_3 = __pyx_v__ref;
-  __Pyx_INCREF(__pyx_t_3);
-  __pyx_t_4 = __pyx_v__alt;
-  __Pyx_INCREF(__pyx_t_4);
-  __pyx_v_self->POS = __pyx_t_1;
-  __pyx_v_self->stop = __pyx_t_2;
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_d_d_s_s, __pyx_n_s_format); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 42; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_3 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->pos); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 42; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_4 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->stop); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 42; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_5 = NULL;
+  __pyx_t_6 = 0;
+  if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_2))) {
+    __pyx_t_5 = PyMethod_GET_SELF(__pyx_t_2);
+    if (likely(__pyx_t_5)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
+      __Pyx_INCREF(__pyx_t_5);
+      __Pyx_INCREF(function);
+      __Pyx_DECREF_SET(__pyx_t_2, function);
+      __pyx_t_6 = 1;
+    }
+  }
+  __pyx_t_7 = PyTuple_New(4+__pyx_t_6); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 42; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_7);
+  if (__pyx_t_5) {
+    PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_t_5); __Pyx_GIVEREF(__pyx_t_5); __pyx_t_5 = NULL;
+  }
+  PyTuple_SET_ITEM(__pyx_t_7, 0+__pyx_t_6, __pyx_t_3);
   __Pyx_GIVEREF(__pyx_t_3);
-  __Pyx_GOTREF(__pyx_v_self->REF);
-  __Pyx_DECREF(__pyx_v_self->REF);
-  __pyx_v_self->REF = ((PyObject*)__pyx_t_3);
-  __pyx_t_3 = 0;
+  PyTuple_SET_ITEM(__pyx_t_7, 1+__pyx_t_6, __pyx_t_4);
   __Pyx_GIVEREF(__pyx_t_4);
-  __Pyx_GOTREF(__pyx_v_self->ALT);
-  __Pyx_DECREF(__pyx_v_self->ALT);
-  __pyx_v_self->ALT = ((PyObject*)__pyx_t_4);
+  __Pyx_INCREF(__pyx_v_self->ref);
+  PyTuple_SET_ITEM(__pyx_t_7, 2+__pyx_t_6, __pyx_v_self->ref);
+  __Pyx_GIVEREF(__pyx_v_self->ref);
+  __Pyx_INCREF(__pyx_v_self->alt);
+  PyTuple_SET_ITEM(__pyx_t_7, 3+__pyx_t_6, __pyx_v_self->alt);
+  __Pyx_GIVEREF(__pyx_v_self->alt);
+  __pyx_t_3 = 0;
   __pyx_t_4 = 0;
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_7, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 42; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
 
-  /* "mitty/lib/variation.pyx":29
- *   def __cinit__(self, int _pos=0, int _stop=0, str _ref='', str _alt=''):
- *     self.POS, self.stop, self.REF, self.ALT = _pos, _stop, _ref, _alt
- *     self.hash = self.POS ^ self.REF.__hash__() ^ self.ALT.__hash__()             # <<<<<<<<<<<<<<
+  /* "mitty/lib/variation.pyx":41
+ *   #   self.hash = self.pos ^ hash(self.ref) ^ hash(self.alt)
  * 
- *   def __hash__(self):
- */
-  __pyx_t_4 = __Pyx_PyInt_From_long(__pyx_v_self->POS); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 29; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_self->REF, __pyx_n_s_hash); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 29; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_5);
-  __pyx_t_6 = NULL;
-  if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_5))) {
-    __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_5);
-    if (likely(__pyx_t_6)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_5);
-      __Pyx_INCREF(__pyx_t_6);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_5, function);
-    }
-  }
-  if (__pyx_t_6) {
-    __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_5, __pyx_t_6); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 29; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  } else {
-    __pyx_t_3 = __Pyx_PyObject_CallNoArg(__pyx_t_5); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 29; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  }
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_t_5 = PyNumber_Xor(__pyx_t_4, __pyx_t_3); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 29; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_5);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_self->ALT, __pyx_n_s_hash); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 29; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_6 = NULL;
-  if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_4))) {
-    __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_4);
-    if (likely(__pyx_t_6)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_4);
-      __Pyx_INCREF(__pyx_t_6);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_4, function);
-    }
-  }
-  if (__pyx_t_6) {
-    __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_t_6); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 29; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  } else {
-    __pyx_t_3 = __Pyx_PyObject_CallNoArg(__pyx_t_4); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 29; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  }
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = PyNumber_Xor(__pyx_t_5, __pyx_t_3); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 29; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_7 = __Pyx_PyInt_As_long(__pyx_t_4); if (unlikely((__pyx_t_7 == (long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 29; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_v_self->hash = __pyx_t_7;
-
-  /* "mitty/lib/variation.pyx":27
- *     str REF, ALT
+ *   def __repr__(self):             # <<<<<<<<<<<<<<
+ *     return '({:d}, {:d}, {:s}, {:s})'.format(self.pos, self.stop, self.ref, self.alt)
  * 
- *   def __cinit__(self, int _pos=0, int _stop=0, str _ref='', str _alt=''):             # <<<<<<<<<<<<<<
- *     self.POS, self.stop, self.REF, self.ALT = _pos, _stop, _ref, _alt
- *     self.hash = self.POS ^ self.REF.__hash__() ^ self.ALT.__hash__()
  */
 
   /* function exit code */
-  __pyx_r = 0;
-  goto __pyx_L0;
   __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
   __Pyx_XDECREF(__pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4);
   __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_XDECREF(__pyx_t_6);
-  __Pyx_AddTraceback("mitty.lib.variation.VariationData.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = -1;
+  __Pyx_XDECREF(__pyx_t_7);
+  __Pyx_AddTraceback("mitty.lib.variation.Variant.__repr__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":44
+ *     return '({:d}, {:d}, {:s}, {:s})'.format(self.pos, self.stop, self.ref, self.alt)
+ * 
+ *   def __richcmp__(self, Variant other, int op):             # <<<<<<<<<<<<<<
+ *     if op == 2:
+ *       return other.hash == self.hash
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_3__richcmp__(PyObject *__pyx_v_self, PyObject *__pyx_v_other, int __pyx_v_op); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_3__richcmp__(PyObject *__pyx_v_self, PyObject *__pyx_v_other, int __pyx_v_op) {
+  CYTHON_UNUSED int __pyx_lineno = 0;
+  CYTHON_UNUSED const char *__pyx_filename = NULL;
+  CYTHON_UNUSED int __pyx_clineno = 0;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__richcmp__ (wrapper)", 0);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_other), __pyx_ptype_5mitty_3lib_9variation_Variant, 1, "other", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 44; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_2__richcmp__(((PyObject *)__pyx_v_self), ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_other), ((int)__pyx_v_op));
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-/* "mitty/lib/variation.pyx":31
- *     self.hash = self.POS ^ self.REF.__hash__() ^ self.ALT.__hash__()
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_2__richcmp__(PyObject *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_other, int __pyx_v_op) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
+  int __pyx_t_4;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__richcmp__", 0);
+
+  /* "mitty/lib/variation.pyx":47
+ *     if op == 2:
+ *       return other.hash == self.hash
+ *     elif op == 3:             # <<<<<<<<<<<<<<
+ *       return not (other.hash == self.hash)
  * 
- *   def __hash__(self):             # <<<<<<<<<<<<<<
- *     return self.hash
+ */
+  switch (__pyx_v_op) {
+
+    /* "mitty/lib/variation.pyx":45
+ * 
+ *   def __richcmp__(self, Variant other, int op):
+ *     if op == 2:             # <<<<<<<<<<<<<<
+ *       return other.hash == self.hash
+ *     elif op == 3:
+ */
+    case 2:
+
+    /* "mitty/lib/variation.pyx":46
+ *   def __richcmp__(self, Variant other, int op):
+ *     if op == 2:
+ *       return other.hash == self.hash             # <<<<<<<<<<<<<<
+ *     elif op == 3:
+ *       return not (other.hash == self.hash)
+ */
+    __Pyx_XDECREF(__pyx_r);
+    __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_other->hash); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 46; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_self, __pyx_n_s_hash); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 46; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_3 = PyObject_RichCompare(__pyx_t_1, __pyx_t_2, Py_EQ); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 46; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_r = __pyx_t_3;
+    __pyx_t_3 = 0;
+    goto __pyx_L0;
+    break;
+
+    /* "mitty/lib/variation.pyx":47
+ *     if op == 2:
+ *       return other.hash == self.hash
+ *     elif op == 3:             # <<<<<<<<<<<<<<
+ *       return not (other.hash == self.hash)
+ * 
+ */
+    case 3:
+
+    /* "mitty/lib/variation.pyx":48
+ *       return other.hash == self.hash
+ *     elif op == 3:
+ *       return not (other.hash == self.hash)             # <<<<<<<<<<<<<<
+ * 
+ *   def as_tuple(self):
+ */
+    __Pyx_XDECREF(__pyx_r);
+    __pyx_t_3 = __Pyx_PyInt_From_unsigned_long(__pyx_v_other->hash); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 48; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_3);
+    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_self, __pyx_n_s_hash); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 48; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_1 = PyObject_RichCompare(__pyx_t_3, __pyx_t_2, Py_EQ); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 48; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_t_4 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely(__pyx_t_4 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 48; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __pyx_t_1 = __Pyx_PyBool_FromLong((!__pyx_t_4)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 48; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    __pyx_r = __pyx_t_1;
+    __pyx_t_1 = 0;
+    goto __pyx_L0;
+    break;
+    default: break;
+  }
+
+  /* "mitty/lib/variation.pyx":44
+ *     return '({:d}, {:d}, {:s}, {:s})'.format(self.pos, self.stop, self.ref, self.alt)
+ * 
+ *   def __richcmp__(self, Variant other, int op):             # <<<<<<<<<<<<<<
+ *     if op == 2:
+ *       return other.hash == self.hash
+ */
+
+  /* function exit code */
+  __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_AddTraceback("mitty.lib.variation.Variant.__richcmp__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":50
+ *       return not (other.hash == self.hash)
+ * 
+ *   def as_tuple(self):             # <<<<<<<<<<<<<<
+ *     return self.pos, self.stop, self.ref, self.alt
  * 
  */
 
 /* Python wrapper */
-static Py_hash_t __pyx_pw_5mitty_3lib_9variation_13VariationData_3__hash__(PyObject *__pyx_v_self); /*proto*/
-static Py_hash_t __pyx_pw_5mitty_3lib_9variation_13VariationData_3__hash__(PyObject *__pyx_v_self) {
-  Py_hash_t __pyx_r;
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_5as_tuple(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_5as_tuple(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
+  PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__hash__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData_2__hash__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self));
+  __Pyx_RefNannySetupContext("as_tuple (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_4as_tuple(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static Py_hash_t __pyx_pf_5mitty_3lib_9variation_13VariationData_2__hash__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self) {
-  Py_hash_t __pyx_r;
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_4as_tuple(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__hash__", 0);
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("as_tuple", 0);
 
-  /* "mitty/lib/variation.pyx":32
+  /* "mitty/lib/variation.pyx":51
  * 
- *   def __hash__(self):
- *     return self.hash             # <<<<<<<<<<<<<<
+ *   def as_tuple(self):
+ *     return self.pos, self.stop, self.ref, self.alt             # <<<<<<<<<<<<<<
  * 
  * 
  */
-  __pyx_r = __pyx_v_self->hash;
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->pos); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->stop); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_3 = PyTuple_New(4); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_3);
+  PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_t_2);
+  __Pyx_GIVEREF(__pyx_t_2);
+  __Pyx_INCREF(__pyx_v_self->ref);
+  PyTuple_SET_ITEM(__pyx_t_3, 2, __pyx_v_self->ref);
+  __Pyx_GIVEREF(__pyx_v_self->ref);
+  __Pyx_INCREF(__pyx_v_self->alt);
+  PyTuple_SET_ITEM(__pyx_t_3, 3, __pyx_v_self->alt);
+  __Pyx_GIVEREF(__pyx_v_self->alt);
+  __pyx_t_1 = 0;
+  __pyx_t_2 = 0;
+  __pyx_r = __pyx_t_3;
+  __pyx_t_3 = 0;
   goto __pyx_L0;
 
-  /* "mitty/lib/variation.pyx":31
- *     self.hash = self.POS ^ self.REF.__hash__() ^ self.ALT.__hash__()
+  /* "mitty/lib/variation.pyx":50
+ *       return not (other.hash == self.hash)
  * 
- *   def __hash__(self):             # <<<<<<<<<<<<<<
- *     return self.hash
+ *   def as_tuple(self):             # <<<<<<<<<<<<<<
+ *     return self.pos, self.stop, self.ref, self.alt
  * 
  */
 
   /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_AddTraceback("mitty.lib.variation.Variant.as_tuple", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
   __pyx_L0:;
-  if (unlikely(__pyx_r == -1) && !PyErr_Occurred()) __pyx_r = -2;
+  __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-/* "mitty/lib/variation.pyx":24
- *     ALT  - alternate sequence"""
+/* "mitty/lib/variation.pyx":34
+ *   """
  *   cdef public:
- *     long int POS, stop, hash             # <<<<<<<<<<<<<<
- *     str REF, ALT
+ *     unsigned long pos, stop, hash, index             # <<<<<<<<<<<<<<
+ *     bytes ref, alt
  * 
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_13VariationData_3POS_1__get__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_13VariationData_3POS_1__get__(PyObject *__pyx_v_self) {
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_3pos_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_3pos_1__get__(PyObject *__pyx_v_self) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData_3POS___get__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self));
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_3pos___get__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_3POS___get__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self) {
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_3pos___get__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -1395,7 +1449,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_3POS___get__(st
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_long(__pyx_v_self->POS); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 24; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->pos); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 34; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -1404,7 +1458,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_3POS___get__(st
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.VariationData.POS.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.Variant.pos.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -1413,34 +1467,34 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_3POS___get__(st
 }
 
 /* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_3POS_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_3POS_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_3pos_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_3pos_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData_3POS_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_3pos_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self), ((PyObject *)__pyx_v_value));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_3POS_2__set__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self, PyObject *__pyx_v_value) {
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_3pos_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self, PyObject *__pyx_v_value) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  long __pyx_t_1;
+  unsigned long __pyx_t_1;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__set__", 0);
-  __pyx_t_1 = __Pyx_PyInt_As_long(__pyx_v_value); if (unlikely((__pyx_t_1 == (long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 24; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_v_self->POS = __pyx_t_1;
+  __pyx_t_1 = __Pyx_PyInt_As_unsigned_long(__pyx_v_value); if (unlikely((__pyx_t_1 == (unsigned long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 34; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_v_self->pos = __pyx_t_1;
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.VariationData.POS.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.Variant.pos.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
@@ -1448,19 +1502,19 @@ static int __pyx_pf_5mitty_3lib_9variation_13VariationData_3POS_2__set__(struct 
 }
 
 /* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_13VariationData_4stop_1__get__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_13VariationData_4stop_1__get__(PyObject *__pyx_v_self) {
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_4stop_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_4stop_1__get__(PyObject *__pyx_v_self) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData_4stop___get__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self));
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_4stop___get__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_4stop___get__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self) {
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_4stop___get__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -1469,7 +1523,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_4stop___get__(s
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_long(__pyx_v_self->stop); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 24; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->stop); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 34; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -1478,7 +1532,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_4stop___get__(s
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.VariationData.stop.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.Variant.stop.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -1487,34 +1541,34 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_4stop___get__(s
 }
 
 /* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_4stop_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_4stop_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_4stop_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_4stop_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData_4stop_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_4stop_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self), ((PyObject *)__pyx_v_value));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_4stop_2__set__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self, PyObject *__pyx_v_value) {
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_4stop_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self, PyObject *__pyx_v_value) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  long __pyx_t_1;
+  unsigned long __pyx_t_1;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__set__", 0);
-  __pyx_t_1 = __Pyx_PyInt_As_long(__pyx_v_value); if (unlikely((__pyx_t_1 == (long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 24; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_As_unsigned_long(__pyx_v_value); if (unlikely((__pyx_t_1 == (unsigned long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 34; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_v_self->stop = __pyx_t_1;
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.VariationData.stop.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.Variant.stop.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
@@ -1522,19 +1576,19 @@ static int __pyx_pf_5mitty_3lib_9variation_13VariationData_4stop_2__set__(struct
 }
 
 /* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_13VariationData_4hash_1__get__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_13VariationData_4hash_1__get__(PyObject *__pyx_v_self) {
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_4hash_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_4hash_1__get__(PyObject *__pyx_v_self) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData_4hash___get__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self));
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_4hash___get__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_4hash___get__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self) {
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_4hash___get__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -1543,7 +1597,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_4hash___get__(s
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_long(__pyx_v_self->hash); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 24; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->hash); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 34; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -1552,7 +1606,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_4hash___get__(s
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.VariationData.hash.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.Variant.hash.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -1561,567 +1615,63 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_4hash___get__(s
 }
 
 /* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_4hash_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_4hash_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_4hash_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_4hash_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData_4hash_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_4hash_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self), ((PyObject *)__pyx_v_value));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_4hash_2__set__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self, PyObject *__pyx_v_value) {
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_4hash_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self, PyObject *__pyx_v_value) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  long __pyx_t_1;
+  unsigned long __pyx_t_1;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__set__", 0);
-  __pyx_t_1 = __Pyx_PyInt_As_long(__pyx_v_value); if (unlikely((__pyx_t_1 == (long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 24; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_As_unsigned_long(__pyx_v_value); if (unlikely((__pyx_t_1 == (unsigned long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 34; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_v_self->hash = __pyx_t_1;
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.VariationData.hash.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.Variant.hash.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-/* "mitty/lib/variation.pyx":25
- *   cdef public:
- *     long int POS, stop, hash
- *     str REF, ALT             # <<<<<<<<<<<<<<
- * 
- *   def __cinit__(self, int _pos=0, int _stop=0, str _ref='', str _alt=''):
- */
-
 /* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_13VariationData_3REF_1__get__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_13VariationData_3REF_1__get__(PyObject *__pyx_v_self) {
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_5index_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_5index_1__get__(PyObject *__pyx_v_self) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData_3REF___get__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self));
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_5index___get__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_3REF___get__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self) {
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_5index___get__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF(__pyx_v_self->REF);
-  __pyx_r = __pyx_v_self->REF;
-  goto __pyx_L0;
-
-  /* function exit code */
-  __pyx_L0:;
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_3REF_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_3REF_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData_3REF_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self), ((PyObject *)__pyx_v_value));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_3REF_2__set__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self, PyObject *__pyx_v_value) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__set__", 0);
-  if (!(likely(PyString_CheckExact(__pyx_v_value))||((__pyx_v_value) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "str", Py_TYPE(__pyx_v_value)->tp_name), 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 25; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_t_1 = __pyx_v_value;
-  __Pyx_INCREF(__pyx_t_1);
-  __Pyx_GIVEREF(__pyx_t_1);
-  __Pyx_GOTREF(__pyx_v_self->REF);
-  __Pyx_DECREF(__pyx_v_self->REF);
-  __pyx_v_self->REF = ((PyObject*)__pyx_t_1);
-  __pyx_t_1 = 0;
-
-  /* function exit code */
-  __pyx_r = 0;
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.VariationData.REF.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = -1;
-  __pyx_L0:;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_3REF_5__del__(PyObject *__pyx_v_self); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_3REF_5__del__(PyObject *__pyx_v_self) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__del__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData_3REF_4__del__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_3REF_4__del__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__del__", 0);
-  __Pyx_INCREF(Py_None);
-  __Pyx_GIVEREF(Py_None);
-  __Pyx_GOTREF(__pyx_v_self->REF);
-  __Pyx_DECREF(__pyx_v_self->REF);
-  __pyx_v_self->REF = ((PyObject*)Py_None);
-
-  /* function exit code */
-  __pyx_r = 0;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_13VariationData_3ALT_1__get__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_13VariationData_3ALT_1__get__(PyObject *__pyx_v_self) {
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData_3ALT___get__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_13VariationData_3ALT___get__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self) {
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__get__", 0);
-  __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF(__pyx_v_self->ALT);
-  __pyx_r = __pyx_v_self->ALT;
-  goto __pyx_L0;
-
-  /* function exit code */
-  __pyx_L0:;
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_3ALT_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_3ALT_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData_3ALT_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self), ((PyObject *)__pyx_v_value));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_3ALT_2__set__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self, PyObject *__pyx_v_value) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__set__", 0);
-  if (!(likely(PyString_CheckExact(__pyx_v_value))||((__pyx_v_value) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "str", Py_TYPE(__pyx_v_value)->tp_name), 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 25; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_t_1 = __pyx_v_value;
-  __Pyx_INCREF(__pyx_t_1);
-  __Pyx_GIVEREF(__pyx_t_1);
-  __Pyx_GOTREF(__pyx_v_self->ALT);
-  __Pyx_DECREF(__pyx_v_self->ALT);
-  __pyx_v_self->ALT = ((PyObject*)__pyx_t_1);
-  __pyx_t_1 = 0;
-
-  /* function exit code */
-  __pyx_r = 0;
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.VariationData.ALT.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = -1;
-  __pyx_L0:;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_3ALT_5__del__(PyObject *__pyx_v_self); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_13VariationData_3ALT_5__del__(PyObject *__pyx_v_self) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__del__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13VariationData_3ALT_4__del__(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_v_self));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static int __pyx_pf_5mitty_3lib_9variation_13VariationData_3ALT_4__del__(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_self) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__del__", 0);
-  __Pyx_INCREF(Py_None);
-  __Pyx_GIVEREF(Py_None);
-  __Pyx_GOTREF(__pyx_v_self->ALT);
-  __Pyx_DECREF(__pyx_v_self->ALT);
-  __pyx_v_self->ALT = ((PyObject*)Py_None);
-
-  /* function exit code */
-  __pyx_r = 0;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* "mitty/lib/variation.pyx":45
- *     unsigned char het
- * 
- *   def __cinit__(self, index, het):             # <<<<<<<<<<<<<<
- *     self.index, self.het = index, het
- * 
- */
-
-/* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_8Genotype_1__cinit__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_8Genotype_1__cinit__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  PyObject *__pyx_v_index = 0;
-  PyObject *__pyx_v_het = 0;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__cinit__ (wrapper)", 0);
-  {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_index,&__pyx_n_s_het,0};
-    PyObject* values[2] = {0,0};
-    if (unlikely(__pyx_kwds)) {
-      Py_ssize_t kw_args;
-      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
-      switch (pos_args) {
-        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-        case  0: break;
-        default: goto __pyx_L5_argtuple_error;
-      }
-      kw_args = PyDict_Size(__pyx_kwds);
-      switch (pos_args) {
-        case  0:
-        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_index)) != 0)) kw_args--;
-        else goto __pyx_L5_argtuple_error;
-        case  1:
-        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_het)) != 0)) kw_args--;
-        else {
-          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 45; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-        }
-      }
-      if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 45; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-      }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
-      goto __pyx_L5_argtuple_error;
-    } else {
-      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-    }
-    __pyx_v_index = values[0];
-    __pyx_v_het = values[1];
-  }
-  goto __pyx_L4_argument_unpacking_done;
-  __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 45; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-  __pyx_L3_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.Genotype.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __Pyx_RefNannyFinishContext();
-  return -1;
-  __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_8Genotype___cinit__(((struct __pyx_obj_5mitty_3lib_9variation_Genotype *)__pyx_v_self), __pyx_v_index, __pyx_v_het);
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static int __pyx_pf_5mitty_3lib_9variation_8Genotype___cinit__(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self, PyObject *__pyx_v_index, PyObject *__pyx_v_het) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  long __pyx_t_1;
-  unsigned char __pyx_t_2;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__cinit__", 0);
-
-  /* "mitty/lib/variation.pyx":46
- * 
- *   def __cinit__(self, index, het):
- *     self.index, self.het = index, het             # <<<<<<<<<<<<<<
- * 
- *   def __repr__(self):
- */
-  __pyx_t_1 = __Pyx_PyInt_As_long(__pyx_v_index); if (unlikely((__pyx_t_1 == (long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 46; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_t_2 = __Pyx_PyInt_As_unsigned_char(__pyx_v_het); if (unlikely((__pyx_t_2 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 46; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_v_self->index = __pyx_t_1;
-  __pyx_v_self->het = __pyx_t_2;
-
-  /* "mitty/lib/variation.pyx":45
- *     unsigned char het
- * 
- *   def __cinit__(self, index, het):             # <<<<<<<<<<<<<<
- *     self.index, self.het = index, het
- * 
- */
-
-  /* function exit code */
-  __pyx_r = 0;
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.Genotype.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = -1;
-  __pyx_L0:;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* "mitty/lib/variation.pyx":48
- *     self.index, self.het = index, het
- * 
- *   def __repr__(self):             # <<<<<<<<<<<<<<
- *     return '{:d}'.format(self.index)
- * 
- */
-
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_8Genotype_3__repr__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_8Genotype_3__repr__(PyObject *__pyx_v_self) {
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__repr__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_8Genotype_2__repr__(((struct __pyx_obj_5mitty_3lib_9variation_Genotype *)__pyx_v_self));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_8Genotype_2__repr__(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self) {
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
-  PyObject *__pyx_t_4 = NULL;
-  PyObject *__pyx_t_5 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__repr__", 0);
-
-  /* "mitty/lib/variation.pyx":49
- * 
- *   def __repr__(self):
- *     return '{:d}'.format(self.index)             # <<<<<<<<<<<<<<
- * 
- *   cpdef unsigned long pos(self):
- */
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_d, __pyx_n_s_format); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 49; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_From_long(__pyx_v_self->index); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 49; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = NULL;
-  if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_2))) {
-    __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_2);
-    if (likely(__pyx_t_4)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-      __Pyx_INCREF(__pyx_t_4);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_2, function);
-    }
-  }
-  if (!__pyx_t_4) {
-    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 49; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __Pyx_GOTREF(__pyx_t_1);
-  } else {
-    __pyx_t_5 = PyTuple_New(1+1); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 49; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_5);
-    PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_4); __Pyx_GIVEREF(__pyx_t_4); __pyx_t_4 = NULL;
-    PyTuple_SET_ITEM(__pyx_t_5, 0+1, __pyx_t_3);
-    __Pyx_GIVEREF(__pyx_t_3);
-    __pyx_t_3 = 0;
-    __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_5, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 49; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_1);
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  }
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_r = __pyx_t_1;
-  __pyx_t_1 = 0;
-  goto __pyx_L0;
-
-  /* "mitty/lib/variation.pyx":48
- *     self.index, self.het = index, het
- * 
- *   def __repr__(self):             # <<<<<<<<<<<<<<
- *     return '{:d}'.format(self.index)
- * 
- */
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_4);
-  __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_AddTraceback("mitty.lib.variation.Genotype.__repr__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
-  __pyx_L0:;
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* "mitty/lib/variation.pyx":51
- *     return '{:d}'.format(self.index)
- * 
- *   cpdef unsigned long pos(self):             # <<<<<<<<<<<<<<
- *     return self.index >> 16
- * 
- */
-
-static PyObject *__pyx_pw_5mitty_3lib_9variation_8Genotype_5pos(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
-static unsigned long __pyx_f_5mitty_3lib_9variation_8Genotype_pos(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self, int __pyx_skip_dispatch) {
-  unsigned long __pyx_r;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
-  PyObject *__pyx_t_4 = NULL;
-  unsigned long __pyx_t_5;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("pos", 0);
-  /* Check if called by wrapper */
-  if (unlikely(__pyx_skip_dispatch)) ;
-  /* Check if overridden in Python */
-  else if (unlikely(Py_TYPE(((PyObject *)__pyx_v_self))->tp_dictoffset != 0)) {
-    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_pos_2); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_1);
-    if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)__pyx_pw_5mitty_3lib_9variation_8Genotype_5pos)) {
-      __Pyx_INCREF(__pyx_t_1);
-      __pyx_t_3 = __pyx_t_1; __pyx_t_4 = NULL;
-      if (CYTHON_COMPILING_IN_CPYTHON && unlikely(PyMethod_Check(__pyx_t_3))) {
-        __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_3);
-        if (likely(__pyx_t_4)) {
-          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
-          __Pyx_INCREF(__pyx_t_4);
-          __Pyx_INCREF(function);
-          __Pyx_DECREF_SET(__pyx_t_3, function);
-        }
-      }
-      if (__pyx_t_4) {
-        __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      } else {
-        __pyx_t_2 = __Pyx_PyObject_CallNoArg(__pyx_t_3); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      }
-      __Pyx_GOTREF(__pyx_t_2);
-      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-      __pyx_t_5 = __Pyx_PyInt_As_unsigned_long(__pyx_t_2); if (unlikely((__pyx_t_5 == (unsigned long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __pyx_r = __pyx_t_5;
-      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      goto __pyx_L0;
-    }
-    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  }
-
-  /* "mitty/lib/variation.pyx":52
- * 
- *   cpdef unsigned long pos(self):
- *     return self.index >> 16             # <<<<<<<<<<<<<<
- * 
- *   cpdef unsigned int alts(self):
- */
-  __pyx_r = (__pyx_v_self->index >> 16);
-  goto __pyx_L0;
-
-  /* "mitty/lib/variation.pyx":51
- *     return '{:d}'.format(self.index)
- * 
- *   cpdef unsigned long pos(self):             # <<<<<<<<<<<<<<
- *     return self.index >> 16
- * 
- */
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_4);
-  __Pyx_WriteUnraisable("mitty.lib.variation.Genotype.pos", __pyx_clineno, __pyx_lineno, __pyx_filename, 0);
-  __pyx_r = 0;
-  __pyx_L0:;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_8Genotype_5pos(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_8Genotype_5pos(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("pos (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_8Genotype_4pos(((struct __pyx_obj_5mitty_3lib_9variation_Genotype *)__pyx_v_self));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_8Genotype_4pos(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self) {
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("pos", 0);
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_f_5mitty_3lib_9variation_8Genotype_pos(__pyx_v_self, 1)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->index); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 34; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -2130,494 +1680,391 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_8Genotype_4pos(struct __pyx_obj
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.Genotype.pos", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.Variant.index.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_5index_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_5index_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_5index_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_5index_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  unsigned long __pyx_t_1;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__set__", 0);
+  __pyx_t_1 = __Pyx_PyInt_As_unsigned_long(__pyx_v_value); if (unlikely((__pyx_t_1 == (unsigned long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 34; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_v_self->index = __pyx_t_1;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_AddTraceback("mitty.lib.variation.Variant.index.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":35
+ *   cdef public:
+ *     unsigned long pos, stop, hash, index
+ *     bytes ref, alt             # <<<<<<<<<<<<<<
+ * 
+ *   # def __cinit__(self, unsigned long pos, unsigned long stop, bytes ref, bytes alt):
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_3ref_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_3ref_1__get__(PyObject *__pyx_v_self) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_3ref___get__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_3ref___get__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __Pyx_INCREF(__pyx_v_self->ref);
+  __pyx_r = __pyx_v_self->ref;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_3ref_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_3ref_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_3ref_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_3ref_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__set__", 0);
+  if (!(likely(PyBytes_CheckExact(__pyx_v_value))||((__pyx_v_value) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "bytes", Py_TYPE(__pyx_v_value)->tp_name), 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 35; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __pyx_v_value;
+  __Pyx_INCREF(__pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_self->ref);
+  __Pyx_DECREF(__pyx_v_self->ref);
+  __pyx_v_self->ref = ((PyObject*)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.Variant.ref.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_3ref_5__del__(PyObject *__pyx_v_self); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_3ref_5__del__(PyObject *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_3ref_4__del__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_3ref_4__del__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__", 0);
+  __Pyx_INCREF(Py_None);
+  __Pyx_GIVEREF(Py_None);
+  __Pyx_GOTREF(__pyx_v_self->ref);
+  __Pyx_DECREF(__pyx_v_self->ref);
+  __pyx_v_self->ref = ((PyObject*)Py_None);
+
+  /* function exit code */
+  __pyx_r = 0;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_3alt_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7Variant_3alt_1__get__(PyObject *__pyx_v_self) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_3alt___get__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_3alt___get__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __Pyx_INCREF(__pyx_v_self->alt);
+  __pyx_r = __pyx_v_self->alt;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_3alt_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_3alt_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_3alt_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_3alt_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__set__", 0);
+  if (!(likely(PyBytes_CheckExact(__pyx_v_value))||((__pyx_v_value) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "bytes", Py_TYPE(__pyx_v_value)->tp_name), 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 35; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __pyx_v_value;
+  __Pyx_INCREF(__pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_self->alt);
+  __Pyx_DECREF(__pyx_v_self->alt);
+  __pyx_v_self->alt = ((PyObject*)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.Variant.alt.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_3alt_5__del__(PyObject *__pyx_v_self); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_7Variant_3alt_5__del__(PyObject *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_7Variant_3alt_4__del__(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_7Variant_3alt_4__del__(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__", 0);
+  __Pyx_INCREF(Py_None);
+  __Pyx_GIVEREF(Py_None);
+  __Pyx_GOTREF(__pyx_v_self->alt);
+  __Pyx_DECREF(__pyx_v_self->alt);
+  __pyx_v_self->alt = ((PyObject*)Py_None);
+
+  /* function exit code */
+  __pyx_r = 0;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
 /* "mitty/lib/variation.pyx":54
- *     return self.index >> 16
  * 
- *   cpdef unsigned int alts(self):             # <<<<<<<<<<<<<<
- *     return self.index & 0xffff
  * 
+ * cpdef Variant new_variant(unsigned long pos, unsigned long stop, bytes ref, bytes alt):             # <<<<<<<<<<<<<<
+ *   cdef Variant v = Variant()
+ *   v.pos, v.stop, v.ref, v.alt = pos, stop, ref, alt
  */
 
-static PyObject *__pyx_pw_5mitty_3lib_9variation_8Genotype_7alts(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
-static unsigned int __pyx_f_5mitty_3lib_9variation_8Genotype_alts(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self, int __pyx_skip_dispatch) {
-  unsigned int __pyx_r;
+static PyObject *__pyx_pw_5mitty_3lib_9variation_1new_variant(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_f_5mitty_3lib_9variation_new_variant(unsigned long __pyx_v_pos, unsigned long __pyx_v_stop, PyObject *__pyx_v_ref, PyObject *__pyx_v_alt, CYTHON_UNUSED int __pyx_skip_dispatch) {
+  struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_v = 0;
+  struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
+  unsigned long __pyx_t_2;
+  unsigned long __pyx_t_3;
   PyObject *__pyx_t_4 = NULL;
-  unsigned int __pyx_t_5;
+  Py_hash_t __pyx_t_5;
+  Py_hash_t __pyx_t_6;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("alts", 0);
-  /* Check if called by wrapper */
-  if (unlikely(__pyx_skip_dispatch)) ;
-  /* Check if overridden in Python */
-  else if (unlikely(Py_TYPE(((PyObject *)__pyx_v_self))->tp_dictoffset != 0)) {
-    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_alts); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_1);
-    if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)__pyx_pw_5mitty_3lib_9variation_8Genotype_7alts)) {
-      __Pyx_INCREF(__pyx_t_1);
-      __pyx_t_3 = __pyx_t_1; __pyx_t_4 = NULL;
-      if (CYTHON_COMPILING_IN_CPYTHON && unlikely(PyMethod_Check(__pyx_t_3))) {
-        __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_3);
-        if (likely(__pyx_t_4)) {
-          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
-          __Pyx_INCREF(__pyx_t_4);
-          __Pyx_INCREF(function);
-          __Pyx_DECREF_SET(__pyx_t_3, function);
-        }
-      }
-      if (__pyx_t_4) {
-        __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      } else {
-        __pyx_t_2 = __Pyx_PyObject_CallNoArg(__pyx_t_3); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      }
-      __Pyx_GOTREF(__pyx_t_2);
-      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-      __pyx_t_5 = __Pyx_PyInt_As_unsigned_int(__pyx_t_2); if (unlikely((__pyx_t_5 == (unsigned int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __pyx_r = __pyx_t_5;
-      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      goto __pyx_L0;
-    }
-    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  }
+  __Pyx_RefNannySetupContext("new_variant", 0);
 
   /* "mitty/lib/variation.pyx":55
  * 
- *   cpdef unsigned int alts(self):
- *     return self.index & 0xffff             # <<<<<<<<<<<<<<
+ * cpdef Variant new_variant(unsigned long pos, unsigned long stop, bytes ref, bytes alt):
+ *   cdef Variant v = Variant()             # <<<<<<<<<<<<<<
+ *   v.pos, v.stop, v.ref, v.alt = pos, stop, ref, alt
+ *   v.hash = v.pos ^ hash(v.ref) ^ hash(v.alt)
+ */
+  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_5mitty_3lib_9variation_Variant)), __pyx_empty_tuple, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 55; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_v_v = ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* "mitty/lib/variation.pyx":56
+ * cpdef Variant new_variant(unsigned long pos, unsigned long stop, bytes ref, bytes alt):
+ *   cdef Variant v = Variant()
+ *   v.pos, v.stop, v.ref, v.alt = pos, stop, ref, alt             # <<<<<<<<<<<<<<
+ *   v.hash = v.pos ^ hash(v.ref) ^ hash(v.alt)
+ *   return v
+ */
+  __pyx_t_2 = __pyx_v_pos;
+  __pyx_t_3 = __pyx_v_stop;
+  __pyx_t_1 = __pyx_v_ref;
+  __Pyx_INCREF(__pyx_t_1);
+  __pyx_t_4 = __pyx_v_alt;
+  __Pyx_INCREF(__pyx_t_4);
+  __pyx_v_v->pos = __pyx_t_2;
+  __pyx_v_v->stop = __pyx_t_3;
+  __Pyx_GIVEREF(__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_v->ref);
+  __Pyx_DECREF(__pyx_v_v->ref);
+  __pyx_v_v->ref = ((PyObject*)__pyx_t_1);
+  __pyx_t_1 = 0;
+  __Pyx_GIVEREF(__pyx_t_4);
+  __Pyx_GOTREF(__pyx_v_v->alt);
+  __Pyx_DECREF(__pyx_v_v->alt);
+  __pyx_v_v->alt = ((PyObject*)__pyx_t_4);
+  __pyx_t_4 = 0;
+
+  /* "mitty/lib/variation.pyx":57
+ *   cdef Variant v = Variant()
+ *   v.pos, v.stop, v.ref, v.alt = pos, stop, ref, alt
+ *   v.hash = v.pos ^ hash(v.ref) ^ hash(v.alt)             # <<<<<<<<<<<<<<
+ *   return v
+ * 
+ */
+  __pyx_t_4 = __pyx_v_v->ref;
+  __Pyx_INCREF(__pyx_t_4);
+  __pyx_t_5 = PyObject_Hash(__pyx_t_4); if (unlikely(__pyx_t_5 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 57; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_t_4 = __pyx_v_v->alt;
+  __Pyx_INCREF(__pyx_t_4);
+  __pyx_t_6 = PyObject_Hash(__pyx_t_4); if (unlikely(__pyx_t_6 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 57; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_v_v->hash = ((__pyx_v_v->pos ^ __pyx_t_5) ^ __pyx_t_6);
+
+  /* "mitty/lib/variation.pyx":58
+ *   v.pos, v.stop, v.ref, v.alt = pos, stop, ref, alt
+ *   v.hash = v.pos ^ hash(v.ref) ^ hash(v.alt)
+ *   return v             # <<<<<<<<<<<<<<
  * 
  * 
  */
-  __pyx_r = (__pyx_v_self->index & 0xffff);
+  __Pyx_XDECREF(((PyObject *)__pyx_r));
+  __Pyx_INCREF(((PyObject *)__pyx_v_v));
+  __pyx_r = __pyx_v_v;
   goto __pyx_L0;
 
   /* "mitty/lib/variation.pyx":54
- *     return self.index >> 16
  * 
- *   cpdef unsigned int alts(self):             # <<<<<<<<<<<<<<
- *     return self.index & 0xffff
  * 
+ * cpdef Variant new_variant(unsigned long pos, unsigned long stop, bytes ref, bytes alt):             # <<<<<<<<<<<<<<
+ *   cdef Variant v = Variant()
+ *   v.pos, v.stop, v.ref, v.alt = pos, stop, ref, alt
  */
 
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4);
-  __Pyx_WriteUnraisable("mitty.lib.variation.Genotype.alts", __pyx_clineno, __pyx_lineno, __pyx_filename, 0);
+  __Pyx_AddTraceback("mitty.lib.variation.new_variant", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = 0;
   __pyx_L0:;
+  __Pyx_XDECREF((PyObject *)__pyx_v_v);
+  __Pyx_XGIVEREF((PyObject *)__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
 /* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_8Genotype_7alts(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_8Genotype_7alts(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("alts (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_8Genotype_6alts(((struct __pyx_obj_5mitty_3lib_9variation_Genotype *)__pyx_v_self));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_8Genotype_6alts(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self) {
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("alts", 0);
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_unsigned_int(__pyx_f_5mitty_3lib_9variation_8Genotype_alts(__pyx_v_self, 1)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_r = __pyx_t_1;
-  __pyx_t_1 = 0;
-  goto __pyx_L0;
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.Genotype.alts", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
-  __pyx_L0:;
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* "mitty/lib/variation.pyx":42
- *     het    - zygosity (genotype) information"""
- *   cdef public:
- *     long int index             # <<<<<<<<<<<<<<
- *     unsigned char het
- * 
- */
-
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_8Genotype_5index_1__get__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_8Genotype_5index_1__get__(PyObject *__pyx_v_self) {
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_8Genotype_5index___get__(((struct __pyx_obj_5mitty_3lib_9variation_Genotype *)__pyx_v_self));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_8Genotype_5index___get__(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self) {
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__get__", 0);
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_long(__pyx_v_self->index); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 42; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_r = __pyx_t_1;
-  __pyx_t_1 = 0;
-  goto __pyx_L0;
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.Genotype.index.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
-  __pyx_L0:;
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_8Genotype_5index_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_8Genotype_5index_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_8Genotype_5index_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Genotype *)__pyx_v_self), ((PyObject *)__pyx_v_value));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static int __pyx_pf_5mitty_3lib_9variation_8Genotype_5index_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self, PyObject *__pyx_v_value) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  long __pyx_t_1;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__set__", 0);
-  __pyx_t_1 = __Pyx_PyInt_As_long(__pyx_v_value); if (unlikely((__pyx_t_1 == (long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 42; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_v_self->index = __pyx_t_1;
-
-  /* function exit code */
-  __pyx_r = 0;
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.Genotype.index.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = -1;
-  __pyx_L0:;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* "mitty/lib/variation.pyx":43
- *   cdef public:
- *     long int index
- *     unsigned char het             # <<<<<<<<<<<<<<
- * 
- *   def __cinit__(self, index, het):
- */
-
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_8Genotype_3het_1__get__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_8Genotype_3het_1__get__(PyObject *__pyx_v_self) {
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_8Genotype_3het___get__(((struct __pyx_obj_5mitty_3lib_9variation_Genotype *)__pyx_v_self));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_8Genotype_3het___get__(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self) {
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__get__", 0);
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_unsigned_char(__pyx_v_self->het); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 43; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_r = __pyx_t_1;
-  __pyx_t_1 = 0;
-  goto __pyx_L0;
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.Genotype.het.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
-  __pyx_L0:;
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_8Genotype_3het_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_8Genotype_3het_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_8Genotype_3het_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Genotype *)__pyx_v_self), ((PyObject *)__pyx_v_value));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static int __pyx_pf_5mitty_3lib_9variation_8Genotype_3het_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_v_self, PyObject *__pyx_v_value) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  unsigned char __pyx_t_1;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__set__", 0);
-  __pyx_t_1 = __Pyx_PyInt_As_unsigned_char(__pyx_v_value); if (unlikely((__pyx_t_1 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 43; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_v_self->het = __pyx_t_1;
-
-  /* function exit code */
-  __pyx_r = 0;
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.Genotype.het.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = -1;
-  __pyx_L0:;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* "mitty/lib/variation.pyx":58
- * 
- * 
- * cpdef unsigned long add_novel_variant_to_master(vd, l):             # <<<<<<<<<<<<<<
- *   """Add this new variant to the dictionary. Intelligently handle case where we have an existing allele
- *   at the same locus.
- */
-
-static PyObject *__pyx_pw_5mitty_3lib_9variation_1add_novel_variant_to_master(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static unsigned long __pyx_f_5mitty_3lib_9variation_add_novel_variant_to_master(PyObject *__pyx_v_vd, PyObject *__pyx_v_l, CYTHON_UNUSED int __pyx_skip_dispatch) {
-  PyObject *__pyx_v_n = NULL;
-  PyObject *__pyx_v_index = NULL;
-  unsigned long __pyx_r;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
-  int __pyx_t_3;
-  int __pyx_t_4;
-  PyObject *__pyx_t_5 = NULL;
-  unsigned long __pyx_t_6;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("add_novel_variant_to_master", 0);
-
-  /* "mitty/lib/variation.pyx":65
- *   :returns index
- *   """
- *   n = 0             # <<<<<<<<<<<<<<
- *   index = vd.POS << 16 | n
- *   while index in l:  # Find us an empty spot
- */
-  __Pyx_INCREF(__pyx_int_0);
-  __pyx_v_n = __pyx_int_0;
-
-  /* "mitty/lib/variation.pyx":66
- *   """
- *   n = 0
- *   index = vd.POS << 16 | n             # <<<<<<<<<<<<<<
- *   while index in l:  # Find us an empty spot
- *     if l[index].hash == vd.hash:
- */
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_vd, __pyx_n_s_POS); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 66; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = PyNumber_Lshift(__pyx_t_1, __pyx_int_16); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 66; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = PyNumber_Or(__pyx_t_2, __pyx_v_n); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 66; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_index = __pyx_t_1;
-  __pyx_t_1 = 0;
-
-  /* "mitty/lib/variation.pyx":67
- *   n = 0
- *   index = vd.POS << 16 | n
- *   while index in l:  # Find us an empty spot             # <<<<<<<<<<<<<<
- *     if l[index].hash == vd.hash:
- *       return index # This is identical to an existing variant
- */
-  while (1) {
-    __pyx_t_3 = (__Pyx_PySequence_Contains(__pyx_v_index, __pyx_v_l, Py_EQ)); if (unlikely(__pyx_t_3 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 67; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __pyx_t_4 = (__pyx_t_3 != 0);
-    if (!__pyx_t_4) break;
-
-    /* "mitty/lib/variation.pyx":68
- *   index = vd.POS << 16 | n
- *   while index in l:  # Find us an empty spot
- *     if l[index].hash == vd.hash:             # <<<<<<<<<<<<<<
- *       return index # This is identical to an existing variant
- *     n += 1
- */
-    __pyx_t_1 = PyObject_GetItem(__pyx_v_l, __pyx_v_index); if (unlikely(__pyx_t_1 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 68; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_hash_2); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 68; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_2);
-    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_vd, __pyx_n_s_hash_2); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 68; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_5 = PyObject_RichCompare(__pyx_t_2, __pyx_t_1, Py_EQ); __Pyx_XGOTREF(__pyx_t_5); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 68; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_4 = __Pyx_PyObject_IsTrue(__pyx_t_5); if (unlikely(__pyx_t_4 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 68; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    if (__pyx_t_4) {
-
-      /* "mitty/lib/variation.pyx":69
- *   while index in l:  # Find us an empty spot
- *     if l[index].hash == vd.hash:
- *       return index # This is identical to an existing variant             # <<<<<<<<<<<<<<
- *     n += 1
- *     index = vd.POS << 16 | n
- */
-      __pyx_t_6 = __Pyx_PyInt_As_unsigned_long(__pyx_v_index); if (unlikely((__pyx_t_6 == (unsigned long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 69; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __pyx_r = __pyx_t_6;
-      goto __pyx_L0;
-    }
-
-    /* "mitty/lib/variation.pyx":70
- *     if l[index].hash == vd.hash:
- *       return index # This is identical to an existing variant
- *     n += 1             # <<<<<<<<<<<<<<
- *     index = vd.POS << 16 | n
- *   l[index] = vd
- */
-    __pyx_t_5 = PyNumber_InPlaceAdd(__pyx_v_n, __pyx_int_1); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 70; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_5);
-    __Pyx_DECREF_SET(__pyx_v_n, __pyx_t_5);
-    __pyx_t_5 = 0;
-
-    /* "mitty/lib/variation.pyx":71
- *       return index # This is identical to an existing variant
- *     n += 1
- *     index = vd.POS << 16 | n             # <<<<<<<<<<<<<<
- *   l[index] = vd
- *   return index
- */
-    __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_v_vd, __pyx_n_s_POS); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 71; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_1 = PyNumber_Lshift(__pyx_t_5, __pyx_int_16); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 71; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_1);
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __pyx_t_5 = PyNumber_Or(__pyx_t_1, __pyx_v_n); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 71; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_5);
-    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __Pyx_DECREF_SET(__pyx_v_index, __pyx_t_5);
-    __pyx_t_5 = 0;
-  }
-
-  /* "mitty/lib/variation.pyx":72
- *     n += 1
- *     index = vd.POS << 16 | n
- *   l[index] = vd             # <<<<<<<<<<<<<<
- *   return index
- * 
- */
-  if (unlikely(PyObject_SetItem(__pyx_v_l, __pyx_v_index, __pyx_v_vd) < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 72; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-
-  /* "mitty/lib/variation.pyx":73
- *     index = vd.POS << 16 | n
- *   l[index] = vd
- *   return index             # <<<<<<<<<<<<<<
- * 
- * 
- */
-  __pyx_t_6 = __Pyx_PyInt_As_unsigned_long(__pyx_v_index); if (unlikely((__pyx_t_6 == (unsigned long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 73; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_r = __pyx_t_6;
-  goto __pyx_L0;
-
-  /* "mitty/lib/variation.pyx":58
- * 
- * 
- * cpdef unsigned long add_novel_variant_to_master(vd, l):             # <<<<<<<<<<<<<<
- *   """Add this new variant to the dictionary. Intelligently handle case where we have an existing allele
- *   at the same locus.
- */
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_WriteUnraisable("mitty.lib.variation.add_novel_variant_to_master", __pyx_clineno, __pyx_lineno, __pyx_filename, 0);
-  __pyx_r = 0;
-  __pyx_L0:;
-  __Pyx_XDECREF(__pyx_v_n);
-  __Pyx_XDECREF(__pyx_v_index);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_1add_novel_variant_to_master(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_5mitty_3lib_9variation_add_novel_variant_to_master[] = "Add this new variant to the dictionary. Intelligently handle case where we have an existing allele\n  at the same locus.\n  :param vd: This variant in the form of a VariationData instance\n  :param l: Python dictionary storing all variants in a chromosome\n  :returns index\n  ";
-static PyObject *__pyx_pw_5mitty_3lib_9variation_1add_novel_variant_to_master(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  PyObject *__pyx_v_vd = 0;
-  PyObject *__pyx_v_l = 0;
+static PyObject *__pyx_pw_5mitty_3lib_9variation_1new_variant(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_1new_variant(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  unsigned long __pyx_v_pos;
+  unsigned long __pyx_v_stop;
+  PyObject *__pyx_v_ref = 0;
+  PyObject *__pyx_v_alt = 0;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("add_novel_variant_to_master (wrapper)", 0);
+  __Pyx_RefNannySetupContext("new_variant (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_vd,&__pyx_n_s_l,0};
-    PyObject* values[2] = {0,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_pos,&__pyx_n_s_stop,&__pyx_n_s_ref,&__pyx_n_s_alt,0};
+    PyObject* values[4] = {0,0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
       const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
       switch (pos_args) {
+        case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
+        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
         case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
         case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
         case  0: break;
@@ -2626,51 +2073,71 @@ static PyObject *__pyx_pw_5mitty_3lib_9variation_1add_novel_variant_to_master(Py
       kw_args = PyDict_Size(__pyx_kwds);
       switch (pos_args) {
         case  0:
-        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_vd)) != 0)) kw_args--;
+        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_pos)) != 0)) kw_args--;
         else goto __pyx_L5_argtuple_error;
         case  1:
-        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_l)) != 0)) kw_args--;
+        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_stop)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("add_novel_variant_to_master", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 58; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+          __Pyx_RaiseArgtupleInvalid("new_variant", 1, 4, 4, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        }
+        case  2:
+        if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_ref)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("new_variant", 1, 4, 4, 2); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        }
+        case  3:
+        if (likely((values[3] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_alt)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("new_variant", 1, 4, 4, 3); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "add_novel_variant_to_master") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 58; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "new_variant") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
       }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 4) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+      values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+      values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
     }
-    __pyx_v_vd = values[0];
-    __pyx_v_l = values[1];
+    __pyx_v_pos = __Pyx_PyInt_As_unsigned_long(values[0]); if (unlikely((__pyx_v_pos == (unsigned long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+    __pyx_v_stop = __Pyx_PyInt_As_unsigned_long(values[1]); if (unlikely((__pyx_v_stop == (unsigned long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+    __pyx_v_ref = ((PyObject*)values[2]);
+    __pyx_v_alt = ((PyObject*)values[3]);
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("add_novel_variant_to_master", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 58; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __Pyx_RaiseArgtupleInvalid("new_variant", 1, 4, 4, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   __pyx_L3_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.add_novel_variant_to_master", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.new_variant", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_add_novel_variant_to_master(__pyx_self, __pyx_v_vd, __pyx_v_l);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_ref), (&PyBytes_Type), 1, "ref", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alt), (&PyBytes_Type), 1, "alt", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_new_variant(__pyx_self, __pyx_v_pos, __pyx_v_stop, __pyx_v_ref, __pyx_v_alt);
 
   /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = NULL;
+  __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_5mitty_3lib_9variation_add_novel_variant_to_master(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_vd, PyObject *__pyx_v_l) {
+static PyObject *__pyx_pf_5mitty_3lib_9variation_new_variant(CYTHON_UNUSED PyObject *__pyx_self, unsigned long __pyx_v_pos, unsigned long __pyx_v_stop, PyObject *__pyx_v_ref, PyObject *__pyx_v_alt) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("add_novel_variant_to_master", 0);
+  __Pyx_RefNannySetupContext("new_variant", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_f_5mitty_3lib_9variation_add_novel_variant_to_master(__pyx_v_vd, __pyx_v_l, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 58; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_new_variant(__pyx_v_pos, __pyx_v_stop, __pyx_v_ref, __pyx_v_alt, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 54; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -2679,7 +2146,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_add_novel_variant_to_master(CYT
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.add_novel_variant_to_master", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.new_variant", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -2687,73 +2154,188 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_add_novel_variant_to_master(CYT
   return __pyx_r;
 }
 
-/* "mitty/lib/variation.pyx":76
+/* "mitty/lib/variation.pyx":61
  * 
  * 
- * cpdef Genotype add_as_genotype(vd, l, het):             # <<<<<<<<<<<<<<
- *   """Wrapper around add_novel_variant_to_master to yield a properly filled in genotype
- *   :param vd: This variant in the form of a VariationData instance
+ * cpdef Variant add_novel_variant_to_master(Variant v, dict ml):             # <<<<<<<<<<<<<<
+ *   """add_novel_variant_to_master(Variant v, dict ml)
+ *   Add this new variant to the dictionary (master list). Intelligently handle case where we have an existing allele
  */
 
-static PyObject *__pyx_pw_5mitty_3lib_9variation_3add_as_genotype(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_f_5mitty_3lib_9variation_add_as_genotype(PyObject *__pyx_v_vd, PyObject *__pyx_v_l, PyObject *__pyx_v_het, CYTHON_UNUSED int __pyx_skip_dispatch) {
+static PyObject *__pyx_pw_5mitty_3lib_9variation_3add_novel_variant_to_master(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_f_5mitty_3lib_9variation_add_novel_variant_to_master(struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_v, PyObject *__pyx_v_ml, CYTHON_UNUSED int __pyx_skip_dispatch) {
+  unsigned short __pyx_v_n;
   unsigned long __pyx_v_index;
-  struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_r = NULL;
+  struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
+  int __pyx_t_2;
+  int __pyx_t_3;
+  PyObject *__pyx_t_4 = NULL;
+  PyObject *__pyx_t_5 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("add_as_genotype", 0);
+  __Pyx_RefNannySetupContext("add_novel_variant_to_master", 0);
 
-  /* "mitty/lib/variation.pyx":83
- *   :returns Genotype object
+  /* "mitty/lib/variation.pyx":70
+ *   :returns: v or existing variant in master list to which this variant is identical
  *   """
- *   index = add_novel_variant_to_master(vd, l)             # <<<<<<<<<<<<<<
- *   return Genotype(index, het)
+ *   cdef unsigned short n = 0             # <<<<<<<<<<<<<<
+ *   cdef unsigned long index = v.pos << 16 | n
+ *   while index in ml:  # Find us an empty spot
+ */
+  __pyx_v_n = 0;
+
+  /* "mitty/lib/variation.pyx":71
+ *   """
+ *   cdef unsigned short n = 0
+ *   cdef unsigned long index = v.pos << 16 | n             # <<<<<<<<<<<<<<
+ *   while index in ml:  # Find us an empty spot
+ *     if ml[index].hash == v.hash:
+ */
+  __pyx_v_index = ((__pyx_v_v->pos << 16) | __pyx_v_n);
+
+  /* "mitty/lib/variation.pyx":72
+ *   cdef unsigned short n = 0
+ *   cdef unsigned long index = v.pos << 16 | n
+ *   while index in ml:  # Find us an empty spot             # <<<<<<<<<<<<<<
+ *     if ml[index].hash == v.hash:
+ *       return ml[index] # This is identical to an existing variant
+ */
+  while (1) {
+    __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_index); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 72; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    if (unlikely(__pyx_v_ml == Py_None)) {
+      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
+      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 72; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    }
+    __pyx_t_2 = (__Pyx_PyDict_Contains(__pyx_t_1, __pyx_v_ml, Py_EQ)); if (unlikely(__pyx_t_2 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 72; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __pyx_t_3 = (__pyx_t_2 != 0);
+    if (!__pyx_t_3) break;
+
+    /* "mitty/lib/variation.pyx":73
+ *   cdef unsigned long index = v.pos << 16 | n
+ *   while index in ml:  # Find us an empty spot
+ *     if ml[index].hash == v.hash:             # <<<<<<<<<<<<<<
+ *       return ml[index] # This is identical to an existing variant
+ *     n += 1
+ */
+    if (unlikely(__pyx_v_ml == Py_None)) {
+      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
+      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 73; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    }
+    __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_index); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 73; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    __pyx_t_4 = __Pyx_PyDict_GetItem(__pyx_v_ml, __pyx_t_1); if (unlikely(__pyx_t_4 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 73; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+    __Pyx_GOTREF(__pyx_t_4);
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_hash); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 73; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __pyx_t_4 = __Pyx_PyInt_From_unsigned_long(__pyx_v_v->hash); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 73; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_4);
+    __pyx_t_5 = PyObject_RichCompare(__pyx_t_1, __pyx_t_4, Py_EQ); __Pyx_XGOTREF(__pyx_t_5); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 73; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_5); if (unlikely(__pyx_t_3 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 73; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+    if (__pyx_t_3) {
+
+      /* "mitty/lib/variation.pyx":74
+ *   while index in ml:  # Find us an empty spot
+ *     if ml[index].hash == v.hash:
+ *       return ml[index] # This is identical to an existing variant             # <<<<<<<<<<<<<<
+ *     n += 1
+ *     index = v.pos << 16 | n
+ */
+      __Pyx_XDECREF(((PyObject *)__pyx_r));
+      if (unlikely(__pyx_v_ml == Py_None)) {
+        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
+        {__pyx_filename = __pyx_f[0]; __pyx_lineno = 74; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      }
+      __pyx_t_5 = __Pyx_PyInt_From_unsigned_long(__pyx_v_index); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 74; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_5);
+      __pyx_t_4 = __Pyx_PyDict_GetItem(__pyx_v_ml, __pyx_t_5); if (unlikely(__pyx_t_4 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 74; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+      __Pyx_GOTREF(__pyx_t_4);
+      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+      if (!(likely(((__pyx_t_4) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_4, __pyx_ptype_5mitty_3lib_9variation_Variant))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 74; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __pyx_r = ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_4);
+      __pyx_t_4 = 0;
+      goto __pyx_L0;
+    }
+
+    /* "mitty/lib/variation.pyx":75
+ *     if ml[index].hash == v.hash:
+ *       return ml[index] # This is identical to an existing variant
+ *     n += 1             # <<<<<<<<<<<<<<
+ *     index = v.pos << 16 | n
+ *   ml[index] = v
+ */
+    __pyx_v_n = (__pyx_v_n + 1);
+
+    /* "mitty/lib/variation.pyx":76
+ *       return ml[index] # This is identical to an existing variant
+ *     n += 1
+ *     index = v.pos << 16 | n             # <<<<<<<<<<<<<<
+ *   ml[index] = v
+ *   v.index = index
+ */
+    __pyx_v_index = ((__pyx_v_v->pos << 16) | __pyx_v_n);
+  }
+
+  /* "mitty/lib/variation.pyx":77
+ *     n += 1
+ *     index = v.pos << 16 | n
+ *   ml[index] = v             # <<<<<<<<<<<<<<
+ *   v.index = index
+ *   return v
+ */
+  if (unlikely(__pyx_v_ml == Py_None)) {
+    PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
+    {__pyx_filename = __pyx_f[0]; __pyx_lineno = 77; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  }
+  __pyx_t_4 = __Pyx_PyInt_From_unsigned_long(__pyx_v_index); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 77; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_4);
+  if (unlikely(PyDict_SetItem(__pyx_v_ml, __pyx_t_4, ((PyObject *)__pyx_v_v)) < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 77; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+
+  /* "mitty/lib/variation.pyx":78
+ *     index = v.pos << 16 | n
+ *   ml[index] = v
+ *   v.index = index             # <<<<<<<<<<<<<<
+ *   return v
  * 
  */
-  __pyx_v_index = __pyx_f_5mitty_3lib_9variation_add_novel_variant_to_master(__pyx_v_vd, __pyx_v_l, 0);
+  __pyx_v_v->index = __pyx_v_index;
 
-  /* "mitty/lib/variation.pyx":84
- *   """
- *   index = add_novel_variant_to_master(vd, l)
- *   return Genotype(index, het)             # <<<<<<<<<<<<<<
+  /* "mitty/lib/variation.pyx":79
+ *   ml[index] = v
+ *   v.index = index
+ *   return v             # <<<<<<<<<<<<<<
  * 
  * 
  */
   __Pyx_XDECREF(((PyObject *)__pyx_r));
-  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_index); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 84; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = PyTuple_New(2); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 84; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_2);
-  PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_t_1);
-  __Pyx_GIVEREF(__pyx_t_1);
-  __Pyx_INCREF(__pyx_v_het);
-  PyTuple_SET_ITEM(__pyx_t_2, 1, __pyx_v_het);
-  __Pyx_GIVEREF(__pyx_v_het);
-  __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_5mitty_3lib_9variation_Genotype)), __pyx_t_2, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 84; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_r = ((struct __pyx_obj_5mitty_3lib_9variation_Genotype *)__pyx_t_1);
-  __pyx_t_1 = 0;
+  __Pyx_INCREF(((PyObject *)__pyx_v_v));
+  __pyx_r = __pyx_v_v;
   goto __pyx_L0;
 
-  /* "mitty/lib/variation.pyx":76
+  /* "mitty/lib/variation.pyx":61
  * 
  * 
- * cpdef Genotype add_as_genotype(vd, l, het):             # <<<<<<<<<<<<<<
- *   """Wrapper around add_novel_variant_to_master to yield a properly filled in genotype
- *   :param vd: This variant in the form of a VariationData instance
+ * cpdef Variant add_novel_variant_to_master(Variant v, dict ml):             # <<<<<<<<<<<<<<
+ *   """add_novel_variant_to_master(Variant v, dict ml)
+ *   Add this new variant to the dictionary (master list). Intelligently handle case where we have an existing allele
  */
 
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_AddTraceback("mitty.lib.variation.add_as_genotype", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_XDECREF(__pyx_t_5);
+  __Pyx_AddTraceback("mitty.lib.variation.add_novel_variant_to_master", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = 0;
   __pyx_L0:;
   __Pyx_XGIVEREF((PyObject *)__pyx_r);
@@ -2762,585 +2344,19 @@ static struct __pyx_obj_5mitty_3lib_9variation_Genotype *__pyx_f_5mitty_3lib_9va
 }
 
 /* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_3add_as_genotype(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_5mitty_3lib_9variation_2add_as_genotype[] = "Wrapper around add_novel_variant_to_master to yield a properly filled in genotype\n  :param vd: This variant in the form of a VariationData instance\n  :param l: Python dictionary storing all variants in a chromosome\n  :param het: Zygosity (genotype) information\n  :returns Genotype object\n  ";
-static PyObject *__pyx_pw_5mitty_3lib_9variation_3add_as_genotype(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  PyObject *__pyx_v_vd = 0;
-  PyObject *__pyx_v_l = 0;
-  PyObject *__pyx_v_het = 0;
+static PyObject *__pyx_pw_5mitty_3lib_9variation_3add_novel_variant_to_master(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static char __pyx_doc_5mitty_3lib_9variation_2add_novel_variant_to_master[] = "add_novel_variant_to_master(Variant v, dict ml)\n  Add this new variant to the dictionary (master list). Intelligently handle case where we have an existing allele\n  at the same locus.\n\n  :param v: This variant in the form of a Variation instance\n  :param ml: Python dictionary storing all variants in a chromosome\n  :returns: v or existing variant in master list to which this variant is identical\n  ";
+static PyObject *__pyx_pw_5mitty_3lib_9variation_3add_novel_variant_to_master(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_v = 0;
+  PyObject *__pyx_v_ml = 0;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("add_as_genotype (wrapper)", 0);
+  __Pyx_RefNannySetupContext("add_novel_variant_to_master (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_vd,&__pyx_n_s_l,&__pyx_n_s_het,0};
-    PyObject* values[3] = {0,0,0};
-    if (unlikely(__pyx_kwds)) {
-      Py_ssize_t kw_args;
-      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
-      switch (pos_args) {
-        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
-        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-        case  0: break;
-        default: goto __pyx_L5_argtuple_error;
-      }
-      kw_args = PyDict_Size(__pyx_kwds);
-      switch (pos_args) {
-        case  0:
-        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_vd)) != 0)) kw_args--;
-        else goto __pyx_L5_argtuple_error;
-        case  1:
-        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_l)) != 0)) kw_args--;
-        else {
-          __Pyx_RaiseArgtupleInvalid("add_as_genotype", 1, 3, 3, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 76; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-        }
-        case  2:
-        if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_het)) != 0)) kw_args--;
-        else {
-          __Pyx_RaiseArgtupleInvalid("add_as_genotype", 1, 3, 3, 2); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 76; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-        }
-      }
-      if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "add_as_genotype") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 76; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-      }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 3) {
-      goto __pyx_L5_argtuple_error;
-    } else {
-      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-      values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
-    }
-    __pyx_v_vd = values[0];
-    __pyx_v_l = values[1];
-    __pyx_v_het = values[2];
-  }
-  goto __pyx_L4_argument_unpacking_done;
-  __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("add_as_genotype", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 76; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-  __pyx_L3_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.add_as_genotype", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __Pyx_RefNannyFinishContext();
-  return NULL;
-  __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_2add_as_genotype(__pyx_self, __pyx_v_vd, __pyx_v_l, __pyx_v_het);
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_2add_as_genotype(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_vd, PyObject *__pyx_v_l, PyObject *__pyx_v_het) {
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("add_as_genotype", 0);
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_add_as_genotype(__pyx_v_vd, __pyx_v_l, __pyx_v_het, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 76; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_r = __pyx_t_1;
-  __pyx_t_1 = 0;
-  goto __pyx_L0;
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.add_as_genotype", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
-  __pyx_L0:;
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* "mitty/lib/variation.pyx":87
- * 
- * 
- * cpdef list find_next_line(samples, n_samples, csc):             # <<<<<<<<<<<<<<
- *   """Find the next line
- *   :param samples: list of samples
- */
-
-static PyObject *__pyx_pw_5mitty_3lib_9variation_5find_next_line(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_5mitty_3lib_9variation_find_next_line(PyObject *__pyx_v_samples, PyObject *__pyx_v_n_samples, PyObject *__pyx_v_csc, CYTHON_UNUSED int __pyx_skip_dispatch) {
-  PyObject *__pyx_v_idx_of_min = NULL;
-  PyObject *__pyx_v_min_pos = NULL;
-  PyObject *__pyx_v_n = NULL;
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
-  PyObject *__pyx_t_4 = NULL;
-  Py_ssize_t __pyx_t_5;
-  PyObject *(*__pyx_t_6)(PyObject *);
-  int __pyx_t_7;
-  int __pyx_t_8;
-  PyObject *__pyx_t_9 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("find_next_line", 0);
-
-  /* "mitty/lib/variation.pyx":95
- *   For the current list of sample cursors, find out the ones that form a common line (i.e. share POS, if not REF and ALT)
- *   """
- *   idx_of_min = []             # <<<<<<<<<<<<<<
- *   min_pos = samples[0][csc[0]].pos()
- *   for n in range(n_samples):
- */
-  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 95; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_v_idx_of_min = ((PyObject*)__pyx_t_1);
-  __pyx_t_1 = 0;
-
-  /* "mitty/lib/variation.pyx":96
- *   """
- *   idx_of_min = []
- *   min_pos = samples[0][csc[0]].pos()             # <<<<<<<<<<<<<<
- *   for n in range(n_samples):
- *     if csc[n] is not None:
- */
-  __pyx_t_2 = __Pyx_GetItemInt(__pyx_v_samples, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(__pyx_t_2 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 96; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_csc, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(__pyx_t_3 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 96; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = PyObject_GetItem(__pyx_t_2, __pyx_t_3); if (unlikely(__pyx_t_4 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 96; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_pos_2); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 96; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_4 = NULL;
-  if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_3))) {
-    __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_3);
-    if (likely(__pyx_t_4)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
-      __Pyx_INCREF(__pyx_t_4);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_3, function);
-    }
-  }
-  if (__pyx_t_4) {
-    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 96; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  } else {
-    __pyx_t_1 = __Pyx_PyObject_CallNoArg(__pyx_t_3); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 96; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  }
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_v_min_pos = __pyx_t_1;
-  __pyx_t_1 = 0;
-
-  /* "mitty/lib/variation.pyx":97
- *   idx_of_min = []
- *   min_pos = samples[0][csc[0]].pos()
- *   for n in range(n_samples):             # <<<<<<<<<<<<<<
- *     if csc[n] is not None:
- *       if samples[n][csc[n]].pos() < min_pos:
- */
-  __pyx_t_1 = PyTuple_New(1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 97; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_INCREF(__pyx_v_n_samples);
-  PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_n_samples);
-  __Pyx_GIVEREF(__pyx_v_n_samples);
-  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_range, __pyx_t_1, NULL); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 97; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (likely(PyList_CheckExact(__pyx_t_3)) || PyTuple_CheckExact(__pyx_t_3)) {
-    __pyx_t_1 = __pyx_t_3; __Pyx_INCREF(__pyx_t_1); __pyx_t_5 = 0;
-    __pyx_t_6 = NULL;
-  } else {
-    __pyx_t_5 = -1; __pyx_t_1 = PyObject_GetIter(__pyx_t_3); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 97; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_6 = Py_TYPE(__pyx_t_1)->tp_iternext; if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 97; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  }
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  for (;;) {
-    if (likely(!__pyx_t_6)) {
-      if (likely(PyList_CheckExact(__pyx_t_1))) {
-        if (__pyx_t_5 >= PyList_GET_SIZE(__pyx_t_1)) break;
-        #if CYTHON_COMPILING_IN_CPYTHON
-        __pyx_t_3 = PyList_GET_ITEM(__pyx_t_1, __pyx_t_5); __Pyx_INCREF(__pyx_t_3); __pyx_t_5++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 97; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #else
-        __pyx_t_3 = PySequence_ITEM(__pyx_t_1, __pyx_t_5); __pyx_t_5++; if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 97; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #endif
-      } else {
-        if (__pyx_t_5 >= PyTuple_GET_SIZE(__pyx_t_1)) break;
-        #if CYTHON_COMPILING_IN_CPYTHON
-        __pyx_t_3 = PyTuple_GET_ITEM(__pyx_t_1, __pyx_t_5); __Pyx_INCREF(__pyx_t_3); __pyx_t_5++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 97; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #else
-        __pyx_t_3 = PySequence_ITEM(__pyx_t_1, __pyx_t_5); __pyx_t_5++; if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 97; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #endif
-      }
-    } else {
-      __pyx_t_3 = __pyx_t_6(__pyx_t_1);
-      if (unlikely(!__pyx_t_3)) {
-        PyObject* exc_type = PyErr_Occurred();
-        if (exc_type) {
-          if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else {__pyx_filename = __pyx_f[0]; __pyx_lineno = 97; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        }
-        break;
-      }
-      __Pyx_GOTREF(__pyx_t_3);
-    }
-    __Pyx_XDECREF_SET(__pyx_v_n, __pyx_t_3);
-    __pyx_t_3 = 0;
-
-    /* "mitty/lib/variation.pyx":98
- *   min_pos = samples[0][csc[0]].pos()
- *   for n in range(n_samples):
- *     if csc[n] is not None:             # <<<<<<<<<<<<<<
- *       if samples[n][csc[n]].pos() < min_pos:
- *         idx_of_min = [n]
- */
-    __pyx_t_3 = PyObject_GetItem(__pyx_v_csc, __pyx_v_n); if (unlikely(__pyx_t_3 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 98; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_7 = (__pyx_t_3 != Py_None);
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_8 = (__pyx_t_7 != 0);
-    if (__pyx_t_8) {
-
-      /* "mitty/lib/variation.pyx":99
- *   for n in range(n_samples):
- *     if csc[n] is not None:
- *       if samples[n][csc[n]].pos() < min_pos:             # <<<<<<<<<<<<<<
- *         idx_of_min = [n]
- *         min_pos = samples[n][csc[n]].pos()
- */
-      __pyx_t_4 = PyObject_GetItem(__pyx_v_samples, __pyx_v_n); if (unlikely(__pyx_t_4 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 99; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-      __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_2 = PyObject_GetItem(__pyx_v_csc, __pyx_v_n); if (unlikely(__pyx_t_2 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 99; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-      __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_9 = PyObject_GetItem(__pyx_t_4, __pyx_t_2); if (unlikely(__pyx_t_9 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 99; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-      __Pyx_GOTREF(__pyx_t_9);
-      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_9, __pyx_n_s_pos_2); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 99; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_GOTREF(__pyx_t_2);
-      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-      __pyx_t_9 = NULL;
-      if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_2))) {
-        __pyx_t_9 = PyMethod_GET_SELF(__pyx_t_2);
-        if (likely(__pyx_t_9)) {
-          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-          __Pyx_INCREF(__pyx_t_9);
-          __Pyx_INCREF(function);
-          __Pyx_DECREF_SET(__pyx_t_2, function);
-        }
-      }
-      if (__pyx_t_9) {
-        __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_9); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 99; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-      } else {
-        __pyx_t_3 = __Pyx_PyObject_CallNoArg(__pyx_t_2); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 99; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      }
-      __Pyx_GOTREF(__pyx_t_3);
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __pyx_t_2 = PyObject_RichCompare(__pyx_t_3, __pyx_v_min_pos, Py_LT); __Pyx_XGOTREF(__pyx_t_2); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 99; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-      __pyx_t_8 = __Pyx_PyObject_IsTrue(__pyx_t_2); if (unlikely(__pyx_t_8 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 99; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      if (__pyx_t_8) {
-
-        /* "mitty/lib/variation.pyx":100
- *     if csc[n] is not None:
- *       if samples[n][csc[n]].pos() < min_pos:
- *         idx_of_min = [n]             # <<<<<<<<<<<<<<
- *         min_pos = samples[n][csc[n]].pos()
- *       elif samples[n][csc[n]].pos() == min_pos:
- */
-        __pyx_t_2 = PyList_New(1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 100; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_GOTREF(__pyx_t_2);
-        __Pyx_INCREF(__pyx_v_n);
-        PyList_SET_ITEM(__pyx_t_2, 0, __pyx_v_n);
-        __Pyx_GIVEREF(__pyx_v_n);
-        __Pyx_DECREF_SET(__pyx_v_idx_of_min, ((PyObject*)__pyx_t_2));
-        __pyx_t_2 = 0;
-
-        /* "mitty/lib/variation.pyx":101
- *       if samples[n][csc[n]].pos() < min_pos:
- *         idx_of_min = [n]
- *         min_pos = samples[n][csc[n]].pos()             # <<<<<<<<<<<<<<
- *       elif samples[n][csc[n]].pos() == min_pos:
- *         idx_of_min += [n]
- */
-        __pyx_t_3 = PyObject_GetItem(__pyx_v_samples, __pyx_v_n); if (unlikely(__pyx_t_3 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-        __Pyx_GOTREF(__pyx_t_3);
-        __pyx_t_9 = PyObject_GetItem(__pyx_v_csc, __pyx_v_n); if (unlikely(__pyx_t_9 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-        __Pyx_GOTREF(__pyx_t_9);
-        __pyx_t_4 = PyObject_GetItem(__pyx_t_3, __pyx_t_9); if (unlikely(__pyx_t_4 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-        __Pyx_GOTREF(__pyx_t_4);
-        __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-        __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-        __pyx_t_9 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_pos_2); if (unlikely(!__pyx_t_9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_GOTREF(__pyx_t_9);
-        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-        __pyx_t_4 = NULL;
-        if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_9))) {
-          __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_9);
-          if (likely(__pyx_t_4)) {
-            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_9);
-            __Pyx_INCREF(__pyx_t_4);
-            __Pyx_INCREF(function);
-            __Pyx_DECREF_SET(__pyx_t_9, function);
-          }
-        }
-        if (__pyx_t_4) {
-          __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_t_9, __pyx_t_4); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-          __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-        } else {
-          __pyx_t_2 = __Pyx_PyObject_CallNoArg(__pyx_t_9); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        }
-        __Pyx_GOTREF(__pyx_t_2);
-        __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-        __Pyx_DECREF_SET(__pyx_v_min_pos, __pyx_t_2);
-        __pyx_t_2 = 0;
-        goto __pyx_L6;
-      }
-
-      /* "mitty/lib/variation.pyx":102
- *         idx_of_min = [n]
- *         min_pos = samples[n][csc[n]].pos()
- *       elif samples[n][csc[n]].pos() == min_pos:             # <<<<<<<<<<<<<<
- *         idx_of_min += [n]
- *   return idx_of_min
- */
-      __pyx_t_9 = PyObject_GetItem(__pyx_v_samples, __pyx_v_n); if (unlikely(__pyx_t_9 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 102; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-      __Pyx_GOTREF(__pyx_t_9);
-      __pyx_t_4 = PyObject_GetItem(__pyx_v_csc, __pyx_v_n); if (unlikely(__pyx_t_4 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 102; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-      __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_3 = PyObject_GetItem(__pyx_t_9, __pyx_t_4); if (unlikely(__pyx_t_3 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 102; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-      __Pyx_GOTREF(__pyx_t_3);
-      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
-      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_pos_2); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 102; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_GOTREF(__pyx_t_4);
-      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-      __pyx_t_3 = NULL;
-      if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_4))) {
-        __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_4);
-        if (likely(__pyx_t_3)) {
-          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_4);
-          __Pyx_INCREF(__pyx_t_3);
-          __Pyx_INCREF(function);
-          __Pyx_DECREF_SET(__pyx_t_4, function);
-        }
-      }
-      if (__pyx_t_3) {
-        __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_t_3); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 102; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-      } else {
-        __pyx_t_2 = __Pyx_PyObject_CallNoArg(__pyx_t_4); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 102; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      }
-      __Pyx_GOTREF(__pyx_t_2);
-      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      __pyx_t_4 = PyObject_RichCompare(__pyx_t_2, __pyx_v_min_pos, Py_EQ); __Pyx_XGOTREF(__pyx_t_4); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 102; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __pyx_t_8 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely(__pyx_t_8 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 102; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-      if (__pyx_t_8) {
-
-        /* "mitty/lib/variation.pyx":103
- *         min_pos = samples[n][csc[n]].pos()
- *       elif samples[n][csc[n]].pos() == min_pos:
- *         idx_of_min += [n]             # <<<<<<<<<<<<<<
- *   return idx_of_min
- * 
- */
-        __pyx_t_4 = PyList_New(1); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 103; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_GOTREF(__pyx_t_4);
-        __Pyx_INCREF(__pyx_v_n);
-        PyList_SET_ITEM(__pyx_t_4, 0, __pyx_v_n);
-        __Pyx_GIVEREF(__pyx_v_n);
-        __pyx_t_2 = PyNumber_InPlaceAdd(__pyx_v_idx_of_min, __pyx_t_4); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 103; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_GOTREF(__pyx_t_2);
-        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-        __Pyx_DECREF_SET(__pyx_v_idx_of_min, ((PyObject*)__pyx_t_2));
-        __pyx_t_2 = 0;
-        goto __pyx_L6;
-      }
-      __pyx_L6:;
-      goto __pyx_L5;
-    }
-    __pyx_L5:;
-
-    /* "mitty/lib/variation.pyx":97
- *   idx_of_min = []
- *   min_pos = samples[0][csc[0]].pos()
- *   for n in range(n_samples):             # <<<<<<<<<<<<<<
- *     if csc[n] is not None:
- *       if samples[n][csc[n]].pos() < min_pos:
- */
-  }
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
-  /* "mitty/lib/variation.pyx":104
- *       elif samples[n][csc[n]].pos() == min_pos:
- *         idx_of_min += [n]
- *   return idx_of_min             # <<<<<<<<<<<<<<
- * 
- * 
- */
-  __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF(__pyx_v_idx_of_min);
-  __pyx_r = __pyx_v_idx_of_min;
-  goto __pyx_L0;
-
-  /* "mitty/lib/variation.pyx":87
- * 
- * 
- * cpdef list find_next_line(samples, n_samples, csc):             # <<<<<<<<<<<<<<
- *   """Find the next line
- *   :param samples: list of samples
- */
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_4);
-  __Pyx_XDECREF(__pyx_t_9);
-  __Pyx_AddTraceback("mitty.lib.variation.find_next_line", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = 0;
-  __pyx_L0:;
-  __Pyx_XDECREF(__pyx_v_idx_of_min);
-  __Pyx_XDECREF(__pyx_v_min_pos);
-  __Pyx_XDECREF(__pyx_v_n);
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_5find_next_line(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_5mitty_3lib_9variation_4find_next_line[] = "Find the next line\n  :param samples: list of samples\n  :param n_samples: number of sample\n  :param csc: list of cursors pointing to where we are in each sample\n  :returns idx_of_min: a list of indexes (into the sample list) indicating which of them currently form a common line\n  For the current list of sample cursors, find out the ones that form a common line (i.e. share POS, if not REF and ALT)\n  ";
-static PyObject *__pyx_pw_5mitty_3lib_9variation_5find_next_line(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  PyObject *__pyx_v_samples = 0;
-  PyObject *__pyx_v_n_samples = 0;
-  PyObject *__pyx_v_csc = 0;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("find_next_line (wrapper)", 0);
-  {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_samples,&__pyx_n_s_n_samples,&__pyx_n_s_csc,0};
-    PyObject* values[3] = {0,0,0};
-    if (unlikely(__pyx_kwds)) {
-      Py_ssize_t kw_args;
-      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
-      switch (pos_args) {
-        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
-        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-        case  0: break;
-        default: goto __pyx_L5_argtuple_error;
-      }
-      kw_args = PyDict_Size(__pyx_kwds);
-      switch (pos_args) {
-        case  0:
-        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_samples)) != 0)) kw_args--;
-        else goto __pyx_L5_argtuple_error;
-        case  1:
-        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_n_samples)) != 0)) kw_args--;
-        else {
-          __Pyx_RaiseArgtupleInvalid("find_next_line", 1, 3, 3, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 87; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-        }
-        case  2:
-        if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_csc)) != 0)) kw_args--;
-        else {
-          __Pyx_RaiseArgtupleInvalid("find_next_line", 1, 3, 3, 2); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 87; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-        }
-      }
-      if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "find_next_line") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 87; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-      }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 3) {
-      goto __pyx_L5_argtuple_error;
-    } else {
-      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-      values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
-    }
-    __pyx_v_samples = values[0];
-    __pyx_v_n_samples = values[1];
-    __pyx_v_csc = values[2];
-  }
-  goto __pyx_L4_argument_unpacking_done;
-  __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("find_next_line", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 87; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-  __pyx_L3_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.find_next_line", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __Pyx_RefNannyFinishContext();
-  return NULL;
-  __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_4find_next_line(__pyx_self, __pyx_v_samples, __pyx_v_n_samples, __pyx_v_csc);
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_4find_next_line(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_samples, PyObject *__pyx_v_n_samples, PyObject *__pyx_v_csc) {
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("find_next_line", 0);
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_f_5mitty_3lib_9variation_find_next_line(__pyx_v_samples, __pyx_v_n_samples, __pyx_v_csc, 0); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 87; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_r = __pyx_t_1;
-  __pyx_t_1 = 0;
-  goto __pyx_L0;
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.find_next_line", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
-  __pyx_L0:;
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-static PyObject *__pyx_gb_5mitty_3lib_9variation_8generator(__pyx_GeneratorObject *__pyx_generator, PyObject *__pyx_sent_value); /* proto */
-
-/* "mitty/lib/variation.pyx":116
- * 
- * 
- * def get_variant_rows(l, samples):             # <<<<<<<<<<<<<<
- *   """Iterator to write out the collection of samples in multi-sample format
- *   :param l: the master variant dictionary
- */
-
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_7get_variant_rows(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_5mitty_3lib_9variation_6get_variant_rows[] = "Iterator to write out the collection of samples in multi-sample format\n  :param l: the master variant dictionary\n  :param samples: list of samples (each of which is a list of Genotype structures)\n  ";
-static PyMethodDef __pyx_mdef_5mitty_3lib_9variation_7get_variant_rows = {"get_variant_rows", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_7get_variant_rows, METH_VARARGS|METH_KEYWORDS, __pyx_doc_5mitty_3lib_9variation_6get_variant_rows};
-static PyObject *__pyx_pw_5mitty_3lib_9variation_7get_variant_rows(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  CYTHON_UNUSED PyObject *__pyx_v_l = 0;
-  PyObject *__pyx_v_samples = 0;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("get_variant_rows (wrapper)", 0);
-  {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_l,&__pyx_n_s_samples,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_v,&__pyx_n_s_ml,0};
     PyObject* values[2] = {0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
@@ -3354,16 +2370,16 @@ static PyObject *__pyx_pw_5mitty_3lib_9variation_7get_variant_rows(PyObject *__p
       kw_args = PyDict_Size(__pyx_kwds);
       switch (pos_args) {
         case  0:
-        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_l)) != 0)) kw_args--;
+        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_v)) != 0)) kw_args--;
         else goto __pyx_L5_argtuple_error;
         case  1:
-        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_samples)) != 0)) kw_args--;
+        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_ml)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("get_variant_rows", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+          __Pyx_RaiseArgtupleInvalid("add_novel_variant_to_master", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 61; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_variant_rows") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "add_novel_variant_to_master") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 61; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
       goto __pyx_L5_argtuple_error;
@@ -3371,440 +2387,743 @@ static PyObject *__pyx_pw_5mitty_3lib_9variation_7get_variant_rows(PyObject *__p
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
     }
-    __pyx_v_l = values[0];
-    __pyx_v_samples = values[1];
+    __pyx_v_v = ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)values[0]);
+    __pyx_v_ml = ((PyObject*)values[1]);
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("get_variant_rows", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __Pyx_RaiseArgtupleInvalid("add_novel_variant_to_master", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 61; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   __pyx_L3_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.get_variant_rows", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.add_novel_variant_to_master", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_6get_variant_rows(__pyx_self, __pyx_v_l, __pyx_v_samples);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_v), __pyx_ptype_5mitty_3lib_9variation_Variant, 1, "v", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 61; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_ml), (&PyDict_Type), 1, "ml", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 61; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_2add_novel_variant_to_master(__pyx_self, __pyx_v_v, __pyx_v_ml);
 
   /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = NULL;
+  __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_5mitty_3lib_9variation_6get_variant_rows(CYTHON_UNUSED PyObject *__pyx_self, CYTHON_UNUSED PyObject *__pyx_v_l, PyObject *__pyx_v_samples) {
-  struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows *__pyx_cur_scope;
+static PyObject *__pyx_pf_5mitty_3lib_9variation_2add_novel_variant_to_master(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_v, PyObject *__pyx_v_ml) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("get_variant_rows", 0);
-  __pyx_cur_scope = (struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows *)__pyx_tp_new_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows(__pyx_ptype_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows, __pyx_empty_tuple, NULL);
-  if (unlikely(!__pyx_cur_scope)) {
-    __Pyx_RefNannyFinishContext();
-    return NULL;
-  }
-  __Pyx_GOTREF(__pyx_cur_scope);
-  __pyx_cur_scope->__pyx_v_l = __pyx_v_l;
-  __Pyx_INCREF(__pyx_cur_scope->__pyx_v_l);
-  __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_l);
-  __pyx_cur_scope->__pyx_v_samples = __pyx_v_samples;
-  __Pyx_INCREF(__pyx_cur_scope->__pyx_v_samples);
-  __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_samples);
-  {
-    __pyx_GeneratorObject *gen = __Pyx_Generator_New((__pyx_generator_body_t) __pyx_gb_5mitty_3lib_9variation_8generator, (PyObject *) __pyx_cur_scope, __pyx_n_s_get_variant_rows, __pyx_n_s_get_variant_rows); if (unlikely(!gen)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_cur_scope);
-    __Pyx_RefNannyFinishContext();
-    return (PyObject *) gen;
-  }
+  __Pyx_RefNannySetupContext("add_novel_variant_to_master", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_add_novel_variant_to_master(__pyx_v_v, __pyx_v_ml, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 61; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
 
   /* function exit code */
   __pyx_L1_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.get_variant_rows", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.add_novel_variant_to_master", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
-  __Pyx_DECREF(((PyObject *)__pyx_cur_scope));
+  __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_gb_5mitty_3lib_9variation_8generator(__pyx_GeneratorObject *__pyx_generator, PyObject *__pyx_sent_value) /* generator body */
-{
-  struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows *__pyx_cur_scope = ((struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows *)__pyx_generator->closure);
-  PyObject *__pyx_r = NULL;
-  Py_ssize_t __pyx_t_1;
-  PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
-  PyObject *(*__pyx_t_4)(PyObject *);
-  PyObject *__pyx_t_5 = NULL;
-  Py_ssize_t __pyx_t_6;
-  PyObject *__pyx_t_7 = NULL;
-  int __pyx_t_8;
-  int __pyx_t_9;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("None", 0);
-  switch (__pyx_generator->resume_label) {
-    case 0: goto __pyx_L3_first_run;
-    case 1: goto __pyx_L13_resume_from_yield;
-    default: /* CPython raises the right error here */
-    __Pyx_RefNannyFinishContext();
-    return NULL;
-  }
-  __pyx_L3_first_run:;
-  if (unlikely(!__pyx_sent_value)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-
-  /* "mitty/lib/variation.pyx":121
- *   :param samples: list of samples (each of which is a list of Genotype structures)
- *   """
- *   n_samples = len(samples)             # <<<<<<<<<<<<<<
- *   msi = [len(s) for s in samples]  # Maximum sample index
- *   csc = [0 if msi[n] else None for n in range(n_samples)]  # Current sample cursor
- */
-  __pyx_t_1 = PyObject_Length(__pyx_cur_scope->__pyx_v_samples); if (unlikely(__pyx_t_1 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 121; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_cur_scope->__pyx_v_n_samples = __pyx_t_1;
-
-  /* "mitty/lib/variation.pyx":122
- *   """
- *   n_samples = len(samples)
- *   msi = [len(s) for s in samples]  # Maximum sample index             # <<<<<<<<<<<<<<
- *   csc = [0 if msi[n] else None for n in range(n_samples)]  # Current sample cursor
+/* "mitty/lib/variation.pyx":100
+ *   #   self.gt, self.data, self.next = gt, variant, None
  * 
- */
-  __pyx_t_2 = PyList_New(0); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 122; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_2);
-  if (likely(PyList_CheckExact(__pyx_cur_scope->__pyx_v_samples)) || PyTuple_CheckExact(__pyx_cur_scope->__pyx_v_samples)) {
-    __pyx_t_3 = __pyx_cur_scope->__pyx_v_samples; __Pyx_INCREF(__pyx_t_3); __pyx_t_1 = 0;
-    __pyx_t_4 = NULL;
-  } else {
-    __pyx_t_1 = -1; __pyx_t_3 = PyObject_GetIter(__pyx_cur_scope->__pyx_v_samples); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 122; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_4 = Py_TYPE(__pyx_t_3)->tp_iternext; if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 122; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  }
-  for (;;) {
-    if (likely(!__pyx_t_4)) {
-      if (likely(PyList_CheckExact(__pyx_t_3))) {
-        if (__pyx_t_1 >= PyList_GET_SIZE(__pyx_t_3)) break;
-        #if CYTHON_COMPILING_IN_CPYTHON
-        __pyx_t_5 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_1); __Pyx_INCREF(__pyx_t_5); __pyx_t_1++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 122; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #else
-        __pyx_t_5 = PySequence_ITEM(__pyx_t_3, __pyx_t_1); __pyx_t_1++; if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 122; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #endif
-      } else {
-        if (__pyx_t_1 >= PyTuple_GET_SIZE(__pyx_t_3)) break;
-        #if CYTHON_COMPILING_IN_CPYTHON
-        __pyx_t_5 = PyTuple_GET_ITEM(__pyx_t_3, __pyx_t_1); __Pyx_INCREF(__pyx_t_5); __pyx_t_1++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 122; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #else
-        __pyx_t_5 = PySequence_ITEM(__pyx_t_3, __pyx_t_1); __pyx_t_1++; if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 122; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #endif
-      }
-    } else {
-      __pyx_t_5 = __pyx_t_4(__pyx_t_3);
-      if (unlikely(!__pyx_t_5)) {
-        PyObject* exc_type = PyErr_Occurred();
-        if (exc_type) {
-          if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else {__pyx_filename = __pyx_f[0]; __pyx_lineno = 122; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        }
-        break;
-      }
-      __Pyx_GOTREF(__pyx_t_5);
-    }
-    __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_s);
-    __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_s, __pyx_t_5);
-    __Pyx_GIVEREF(__pyx_t_5);
-    __pyx_t_5 = 0;
-    __pyx_t_6 = PyObject_Length(__pyx_cur_scope->__pyx_v_s); if (unlikely(__pyx_t_6 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 122; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __pyx_t_5 = PyInt_FromSsize_t(__pyx_t_6); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 122; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_5);
-    if (unlikely(__Pyx_ListComp_Append(__pyx_t_2, (PyObject*)__pyx_t_5))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 122; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  }
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __Pyx_GIVEREF(__pyx_t_2);
-  __pyx_cur_scope->__pyx_v_msi = ((PyObject*)__pyx_t_2);
-  __pyx_t_2 = 0;
-
-  /* "mitty/lib/variation.pyx":123
- *   n_samples = len(samples)
- *   msi = [len(s) for s in samples]  # Maximum sample index
- *   csc = [0 if msi[n] else None for n in range(n_samples)]  # Current sample cursor             # <<<<<<<<<<<<<<
- * 
- *   while len([i for i in csc if i is not None]):
- */
-  __pyx_t_2 = PyList_New(0); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = PyInt_FromSsize_t(__pyx_cur_scope->__pyx_v_n_samples); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_5 = PyTuple_New(1); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_5);
-  PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_3);
-  __Pyx_GIVEREF(__pyx_t_3);
-  __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_range, __pyx_t_5, NULL); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  if (likely(PyList_CheckExact(__pyx_t_3)) || PyTuple_CheckExact(__pyx_t_3)) {
-    __pyx_t_5 = __pyx_t_3; __Pyx_INCREF(__pyx_t_5); __pyx_t_1 = 0;
-    __pyx_t_4 = NULL;
-  } else {
-    __pyx_t_1 = -1; __pyx_t_5 = PyObject_GetIter(__pyx_t_3); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_4 = Py_TYPE(__pyx_t_5)->tp_iternext; if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  }
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  for (;;) {
-    if (likely(!__pyx_t_4)) {
-      if (likely(PyList_CheckExact(__pyx_t_5))) {
-        if (__pyx_t_1 >= PyList_GET_SIZE(__pyx_t_5)) break;
-        #if CYTHON_COMPILING_IN_CPYTHON
-        __pyx_t_3 = PyList_GET_ITEM(__pyx_t_5, __pyx_t_1); __Pyx_INCREF(__pyx_t_3); __pyx_t_1++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #else
-        __pyx_t_3 = PySequence_ITEM(__pyx_t_5, __pyx_t_1); __pyx_t_1++; if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #endif
-      } else {
-        if (__pyx_t_1 >= PyTuple_GET_SIZE(__pyx_t_5)) break;
-        #if CYTHON_COMPILING_IN_CPYTHON
-        __pyx_t_3 = PyTuple_GET_ITEM(__pyx_t_5, __pyx_t_1); __Pyx_INCREF(__pyx_t_3); __pyx_t_1++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #else
-        __pyx_t_3 = PySequence_ITEM(__pyx_t_5, __pyx_t_1); __pyx_t_1++; if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #endif
-      }
-    } else {
-      __pyx_t_3 = __pyx_t_4(__pyx_t_5);
-      if (unlikely(!__pyx_t_3)) {
-        PyObject* exc_type = PyErr_Occurred();
-        if (exc_type) {
-          if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        }
-        break;
-      }
-      __Pyx_GOTREF(__pyx_t_3);
-    }
-    __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_n);
-    __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_n, __pyx_t_3);
-    __Pyx_GIVEREF(__pyx_t_3);
-    __pyx_t_3 = 0;
-    __pyx_t_7 = PyObject_GetItem(__pyx_cur_scope->__pyx_v_msi, __pyx_cur_scope->__pyx_v_n); if (unlikely(__pyx_t_7 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_7);
-    __pyx_t_8 = __Pyx_PyObject_IsTrue(__pyx_t_7); if (unlikely(__pyx_t_8 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-    if (__pyx_t_8) {
-      __Pyx_INCREF(__pyx_int_0);
-      __pyx_t_3 = __pyx_int_0;
-    } else {
-      __Pyx_INCREF(Py_None);
-      __pyx_t_3 = Py_None;
-    }
-    if (unlikely(__Pyx_ListComp_Append(__pyx_t_2, (PyObject*)__pyx_t_3))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  }
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __Pyx_GIVEREF(__pyx_t_2);
-  __pyx_cur_scope->__pyx_v_csc = ((PyObject*)__pyx_t_2);
-  __pyx_t_2 = 0;
-
-  /* "mitty/lib/variation.pyx":125
- *   csc = [0 if msi[n] else None for n in range(n_samples)]  # Current sample cursor
- * 
- *   while len([i for i in csc if i is not None]):             # <<<<<<<<<<<<<<
- *     this_line = find_next_line(samples, n_samples, csc)
- *     yield this_line
- */
-  while (1) {
-    __pyx_t_2 = PyList_New(0); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 125; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_5 = __pyx_cur_scope->__pyx_v_csc; __Pyx_INCREF(__pyx_t_5); __pyx_t_1 = 0;
-    for (;;) {
-      if (__pyx_t_1 >= PyList_GET_SIZE(__pyx_t_5)) break;
-      #if CYTHON_COMPILING_IN_CPYTHON
-      __pyx_t_3 = PyList_GET_ITEM(__pyx_t_5, __pyx_t_1); __Pyx_INCREF(__pyx_t_3); __pyx_t_1++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 125; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      #else
-      __pyx_t_3 = PySequence_ITEM(__pyx_t_5, __pyx_t_1); __pyx_t_1++; if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 125; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      #endif
-      __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_i);
-      __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_i, __pyx_t_3);
-      __Pyx_GIVEREF(__pyx_t_3);
-      __pyx_t_3 = 0;
-      __pyx_t_8 = (__pyx_cur_scope->__pyx_v_i != Py_None);
-      __pyx_t_9 = (__pyx_t_8 != 0);
-      if (__pyx_t_9) {
-        if (unlikely(__Pyx_ListComp_Append(__pyx_t_2, (PyObject*)__pyx_cur_scope->__pyx_v_i))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 125; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        goto __pyx_L12;
-      }
-      __pyx_L12:;
-    }
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __pyx_t_1 = PyList_GET_SIZE(__pyx_t_2); if (unlikely(__pyx_t_1 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 125; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_9 = (__pyx_t_1 != 0);
-    if (!__pyx_t_9) break;
-
-    /* "mitty/lib/variation.pyx":126
- * 
- *   while len([i for i in csc if i is not None]):
- *     this_line = find_next_line(samples, n_samples, csc)             # <<<<<<<<<<<<<<
- *     yield this_line
- *     for n in this_line:  # Now move all cursors forward
- */
-    __pyx_t_2 = PyInt_FromSsize_t(__pyx_cur_scope->__pyx_v_n_samples); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 126; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_5 = __pyx_f_5mitty_3lib_9variation_find_next_line(__pyx_cur_scope->__pyx_v_samples, __pyx_t_2, __pyx_cur_scope->__pyx_v_csc, 0); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 126; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_5);
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_this_line);
-    __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_this_line, ((PyObject*)__pyx_t_5));
-    __Pyx_GIVEREF(__pyx_t_5);
-    __pyx_t_5 = 0;
-
-    /* "mitty/lib/variation.pyx":127
- *   while len([i for i in csc if i is not None]):
- *     this_line = find_next_line(samples, n_samples, csc)
- *     yield this_line             # <<<<<<<<<<<<<<
- *     for n in this_line:  # Now move all cursors forward
- *       csc[n] += 1
- */
-    __Pyx_INCREF(__pyx_cur_scope->__pyx_v_this_line);
-    __pyx_r = __pyx_cur_scope->__pyx_v_this_line;
-    __Pyx_XGIVEREF(__pyx_r);
-    __Pyx_RefNannyFinishContext();
-    /* return from generator, yielding value */
-    __pyx_generator->resume_label = 1;
-    return __pyx_r;
-    __pyx_L13_resume_from_yield:;
-    if (unlikely(!__pyx_sent_value)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 127; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-
-    /* "mitty/lib/variation.pyx":128
- *     this_line = find_next_line(samples, n_samples, csc)
- *     yield this_line
- *     for n in this_line:  # Now move all cursors forward             # <<<<<<<<<<<<<<
- *       csc[n] += 1
- *       if csc[n] == msi[n]:
- */
-    if (unlikely(__pyx_cur_scope->__pyx_v_this_line == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 128; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    }
-    __pyx_t_5 = __pyx_cur_scope->__pyx_v_this_line; __Pyx_INCREF(__pyx_t_5); __pyx_t_1 = 0;
-    for (;;) {
-      if (__pyx_t_1 >= PyList_GET_SIZE(__pyx_t_5)) break;
-      #if CYTHON_COMPILING_IN_CPYTHON
-      __pyx_t_2 = PyList_GET_ITEM(__pyx_t_5, __pyx_t_1); __Pyx_INCREF(__pyx_t_2); __pyx_t_1++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 128; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      #else
-      __pyx_t_2 = PySequence_ITEM(__pyx_t_5, __pyx_t_1); __pyx_t_1++; if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 128; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      #endif
-      __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_n);
-      __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_n, __pyx_t_2);
-      __Pyx_GIVEREF(__pyx_t_2);
-      __pyx_t_2 = 0;
-
-      /* "mitty/lib/variation.pyx":129
- *     yield this_line
- *     for n in this_line:  # Now move all cursors forward
- *       csc[n] += 1             # <<<<<<<<<<<<<<
- *       if csc[n] == msi[n]:
- *         csc[n] = None
- */
-      __Pyx_INCREF(__pyx_cur_scope->__pyx_v_n);
-      __pyx_t_2 = __pyx_cur_scope->__pyx_v_n;
-      __pyx_t_3 = PyObject_GetItem(__pyx_cur_scope->__pyx_v_csc, __pyx_t_2); if (unlikely(__pyx_t_3 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 129; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-      __Pyx_GOTREF(__pyx_t_3);
-      __pyx_t_7 = PyNumber_InPlaceAdd(__pyx_t_3, __pyx_int_1); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 129; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_GOTREF(__pyx_t_7);
-      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-      if (unlikely(PyObject_SetItem(__pyx_cur_scope->__pyx_v_csc, __pyx_t_2, __pyx_t_7) < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 129; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-
-      /* "mitty/lib/variation.pyx":130
- *     for n in this_line:  # Now move all cursors forward
- *       csc[n] += 1
- *       if csc[n] == msi[n]:             # <<<<<<<<<<<<<<
- *         csc[n] = None
- * 
- */
-      __pyx_t_2 = PyObject_GetItem(__pyx_cur_scope->__pyx_v_csc, __pyx_cur_scope->__pyx_v_n); if (unlikely(__pyx_t_2 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 130; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-      __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_7 = PyObject_GetItem(__pyx_cur_scope->__pyx_v_msi, __pyx_cur_scope->__pyx_v_n); if (unlikely(__pyx_t_7 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 130; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-      __Pyx_GOTREF(__pyx_t_7);
-      __pyx_t_3 = PyObject_RichCompare(__pyx_t_2, __pyx_t_7, Py_EQ); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 130; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-      __pyx_t_9 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely(__pyx_t_9 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 130; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-      if (__pyx_t_9) {
-
-        /* "mitty/lib/variation.pyx":131
- *       csc[n] += 1
- *       if csc[n] == msi[n]:
- *         csc[n] = None             # <<<<<<<<<<<<<<
- * 
- * 
- */
-        if (unlikely(PyObject_SetItem(__pyx_cur_scope->__pyx_v_csc, __pyx_cur_scope->__pyx_v_n, Py_None) < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 131; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        goto __pyx_L16;
-      }
-      __pyx_L16:;
-
-      /* "mitty/lib/variation.pyx":128
- *     this_line = find_next_line(samples, n_samples, csc)
- *     yield this_line
- *     for n in this_line:  # Now move all cursors forward             # <<<<<<<<<<<<<<
- *       csc[n] += 1
- *       if csc[n] == msi[n]:
- */
-    }
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  }
-
-  /* "mitty/lib/variation.pyx":116
- * 
- * 
- * def get_variant_rows(l, samples):             # <<<<<<<<<<<<<<
- *   """Iterator to write out the collection of samples in multi-sample format
- *   :param l: the master variant dictionary
- */
-
-  /* function exit code */
-  PyErr_SetNone(PyExc_StopIteration);
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_XDECREF(__pyx_t_7);
-  __Pyx_AddTraceback("get_variant_rows", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_L0:;
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_generator->resume_label = -1;
-  __Pyx_Generator_clear((PyObject*)__pyx_generator);
-  __Pyx_RefNannyFinishContext();
-  return NULL;
-}
-
-/* "mitty/lib/variation.pyx":134
- * 
- * 
- * def add_sample_variant(gt, l):             # <<<<<<<<<<<<<<
- *   pass
+ *   def __repr__(self):             # <<<<<<<<<<<<<<
+ *     return '{:s} {:s}'.format(self.data, GT[self.gt])
  * 
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_10add_sample_variant(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyMethodDef __pyx_mdef_5mitty_3lib_9variation_10add_sample_variant = {"add_sample_variant", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_10add_sample_variant, METH_VARARGS|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_5mitty_3lib_9variation_10add_sample_variant(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  CYTHON_UNUSED PyObject *__pyx_v_gt = 0;
-  CYTHON_UNUSED PyObject *__pyx_v_l = 0;
+static PyObject *__pyx_pw_5mitty_3lib_9variation_9GTVariant_1__repr__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_9GTVariant_1__repr__(PyObject *__pyx_v_self) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__repr__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9GTVariant___repr__(((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_9GTVariant___repr__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
+  Py_ssize_t __pyx_t_5;
+  PyObject *__pyx_t_6 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__repr__", 0);
+
+  /* "mitty/lib/variation.pyx":101
+ * 
+ *   def __repr__(self):
+ *     return '{:s} {:s}'.format(self.data, GT[self.gt])             # <<<<<<<<<<<<<<
+ * 
+ *   def __richcmp__(self, GTVariant other, int op):
+ */
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_s_s, __pyx_n_s_format); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_3 = __Pyx_GetModuleGlobalName(__pyx_n_s_GT); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_4 = __Pyx_GetItemInt(__pyx_t_3, __pyx_v_self->gt, unsigned char, 0, __Pyx_PyInt_From_unsigned_char, 0, 0, 1); if (unlikely(__pyx_t_4 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_t_3 = NULL;
+  __pyx_t_5 = 0;
+  if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_2))) {
+    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_2);
+    if (likely(__pyx_t_3)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
+      __Pyx_INCREF(__pyx_t_3);
+      __Pyx_INCREF(function);
+      __Pyx_DECREF_SET(__pyx_t_2, function);
+      __pyx_t_5 = 1;
+    }
+  }
+  __pyx_t_6 = PyTuple_New(2+__pyx_t_5); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_6);
+  if (__pyx_t_3) {
+    PyTuple_SET_ITEM(__pyx_t_6, 0, __pyx_t_3); __Pyx_GIVEREF(__pyx_t_3); __pyx_t_3 = NULL;
+  }
+  __Pyx_INCREF(((PyObject *)__pyx_v_self->data));
+  PyTuple_SET_ITEM(__pyx_t_6, 0+__pyx_t_5, ((PyObject *)__pyx_v_self->data));
+  __Pyx_GIVEREF(((PyObject *)__pyx_v_self->data));
+  PyTuple_SET_ITEM(__pyx_t_6, 1+__pyx_t_5, __pyx_t_4);
+  __Pyx_GIVEREF(__pyx_t_4);
+  __pyx_t_4 = 0;
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_6, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* "mitty/lib/variation.pyx":100
+ *   #   self.gt, self.data, self.next = gt, variant, None
+ * 
+ *   def __repr__(self):             # <<<<<<<<<<<<<<
+ *     return '{:s} {:s}'.format(self.data, GT[self.gt])
+ * 
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_XDECREF(__pyx_t_6);
+  __Pyx_AddTraceback("mitty.lib.variation.GTVariant.__repr__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":103
+ *     return '{:s} {:s}'.format(self.data, GT[self.gt])
+ * 
+ *   def __richcmp__(self, GTVariant other, int op):             # <<<<<<<<<<<<<<
+ *     if op == 2:
+ *       return other.data.hash == self.data.hash and self.gt == other.gt
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_9GTVariant_3__richcmp__(PyObject *__pyx_v_self, PyObject *__pyx_v_other, int __pyx_v_op); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_9GTVariant_3__richcmp__(PyObject *__pyx_v_self, PyObject *__pyx_v_other, int __pyx_v_op) {
+  CYTHON_UNUSED int __pyx_lineno = 0;
+  CYTHON_UNUSED const char *__pyx_filename = NULL;
+  CYTHON_UNUSED int __pyx_clineno = 0;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__richcmp__ (wrapper)", 0);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_other), __pyx_ptype_5mitty_3lib_9variation_GTVariant, 1, "other", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 103; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9GTVariant_2__richcmp__(((PyObject *)__pyx_v_self), ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_v_other), ((int)__pyx_v_op));
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_9GTVariant_2__richcmp__(PyObject *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_other, int __pyx_v_op) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
+  int __pyx_t_5;
+  int __pyx_t_6;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__richcmp__", 0);
+
+  /* "mitty/lib/variation.pyx":106
+ *     if op == 2:
+ *       return other.data.hash == self.data.hash and self.gt == other.gt
+ *     elif op == 3:             # <<<<<<<<<<<<<<
+ *       return not (other.data.hash == self.data.hash and self.gt == other.gt)
+ * 
+ */
+  switch (__pyx_v_op) {
+
+    /* "mitty/lib/variation.pyx":104
+ * 
+ *   def __richcmp__(self, GTVariant other, int op):
+ *     if op == 2:             # <<<<<<<<<<<<<<
+ *       return other.data.hash == self.data.hash and self.gt == other.gt
+ *     elif op == 3:
+ */
+    case 2:
+
+    /* "mitty/lib/variation.pyx":105
+ *   def __richcmp__(self, GTVariant other, int op):
+ *     if op == 2:
+ *       return other.data.hash == self.data.hash and self.gt == other.gt             # <<<<<<<<<<<<<<
+ *     elif op == 3:
+ *       return not (other.data.hash == self.data.hash and self.gt == other.gt)
+ */
+    __Pyx_XDECREF(__pyx_r);
+    __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_other->data->hash); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 105; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_self, __pyx_n_s_data); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 105; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_3);
+    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_hash); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 105; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_4);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __pyx_t_3 = PyObject_RichCompare(__pyx_t_2, __pyx_t_4, Py_EQ); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 105; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __pyx_t_5 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely(__pyx_t_5 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 105; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    if (__pyx_t_5) {
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    } else {
+      __Pyx_INCREF(__pyx_t_3);
+      __pyx_t_1 = __pyx_t_3;
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+      goto __pyx_L3_bool_binop_done;
+    }
+    __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_self, __pyx_n_s_gt); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 105; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_3);
+    __pyx_t_4 = __Pyx_PyInt_From_unsigned_char(__pyx_v_other->gt); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 105; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_4);
+    __pyx_t_2 = PyObject_RichCompare(__pyx_t_3, __pyx_t_4, Py_EQ); __Pyx_XGOTREF(__pyx_t_2); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 105; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __Pyx_INCREF(__pyx_t_2);
+    __pyx_t_1 = __pyx_t_2;
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_L3_bool_binop_done:;
+    __pyx_r = __pyx_t_1;
+    __pyx_t_1 = 0;
+    goto __pyx_L0;
+    break;
+
+    /* "mitty/lib/variation.pyx":106
+ *     if op == 2:
+ *       return other.data.hash == self.data.hash and self.gt == other.gt
+ *     elif op == 3:             # <<<<<<<<<<<<<<
+ *       return not (other.data.hash == self.data.hash and self.gt == other.gt)
+ * 
+ */
+    case 3:
+
+    /* "mitty/lib/variation.pyx":107
+ *       return other.data.hash == self.data.hash and self.gt == other.gt
+ *     elif op == 3:
+ *       return not (other.data.hash == self.data.hash and self.gt == other.gt)             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+    __Pyx_XDECREF(__pyx_r);
+    __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_other->data->hash); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 107; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_self, __pyx_n_s_data); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 107; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_hash); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 107; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_4);
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_t_2 = PyObject_RichCompare(__pyx_t_1, __pyx_t_4, Py_EQ); __Pyx_XGOTREF(__pyx_t_2); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 107; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __pyx_t_6 = __Pyx_PyObject_IsTrue(__pyx_t_2); if (unlikely(__pyx_t_6 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 107; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    if (__pyx_t_6) {
+    } else {
+      __pyx_t_5 = __pyx_t_6;
+      goto __pyx_L5_bool_binop_done;
+    }
+    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_self, __pyx_n_s_gt); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 107; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_4 = __Pyx_PyInt_From_unsigned_char(__pyx_v_other->gt); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 107; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_4);
+    __pyx_t_1 = PyObject_RichCompare(__pyx_t_2, __pyx_t_4, Py_EQ); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 107; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __pyx_t_6 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely(__pyx_t_6 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 107; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __pyx_t_5 = __pyx_t_6;
+    __pyx_L5_bool_binop_done:;
+    __pyx_t_1 = __Pyx_PyBool_FromLong((!__pyx_t_5)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 107; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    __pyx_r = __pyx_t_1;
+    __pyx_t_1 = 0;
+    goto __pyx_L0;
+    break;
+    default: break;
+  }
+
+  /* "mitty/lib/variation.pyx":103
+ *     return '{:s} {:s}'.format(self.data, GT[self.gt])
+ * 
+ *   def __richcmp__(self, GTVariant other, int op):             # <<<<<<<<<<<<<<
+ *     if op == 2:
+ *       return other.data.hash == self.data.hash and self.gt == other.gt
+ */
+
+  /* function exit code */
+  __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_AddTraceback("mitty.lib.variation.GTVariant.__richcmp__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":93
+ *   """
+ *   cdef public:
+ *     unsigned char gt             # <<<<<<<<<<<<<<
+ *     Variant data
+ *     GTVariant next
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_9GTVariant_2gt_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_9GTVariant_2gt_1__get__(PyObject *__pyx_v_self) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9GTVariant_2gt___get__(((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_9GTVariant_2gt___get__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__get__", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = __Pyx_PyInt_From_unsigned_char(__pyx_v_self->gt); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 93; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.GTVariant.gt.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_9GTVariant_2gt_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_9GTVariant_2gt_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9GTVariant_2gt_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_9GTVariant_2gt_2__set__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  unsigned char __pyx_t_1;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__set__", 0);
+  __pyx_t_1 = __Pyx_PyInt_As_unsigned_char(__pyx_v_value); if (unlikely((__pyx_t_1 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 93; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_v_self->gt = __pyx_t_1;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_AddTraceback("mitty.lib.variation.GTVariant.gt.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":94
+ *   cdef public:
+ *     unsigned char gt
+ *     Variant data             # <<<<<<<<<<<<<<
+ *     GTVariant next
+ * 
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_9GTVariant_4data_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_9GTVariant_4data_1__get__(PyObject *__pyx_v_self) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9GTVariant_4data___get__(((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_9GTVariant_4data___get__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __Pyx_INCREF(((PyObject *)__pyx_v_self->data));
+  __pyx_r = ((PyObject *)__pyx_v_self->data);
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_9GTVariant_4data_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_9GTVariant_4data_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9GTVariant_4data_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_9GTVariant_4data_2__set__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__set__", 0);
+  if (!(likely(((__pyx_v_value) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_value, __pyx_ptype_5mitty_3lib_9variation_Variant))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 94; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __pyx_v_value;
+  __Pyx_INCREF(__pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_self->data);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->data));
+  __pyx_v_self->data = ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.GTVariant.data.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_9GTVariant_4data_5__del__(PyObject *__pyx_v_self); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_9GTVariant_4data_5__del__(PyObject *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9GTVariant_4data_4__del__(((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_9GTVariant_4data_4__del__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__", 0);
+  __Pyx_INCREF(Py_None);
+  __Pyx_GIVEREF(Py_None);
+  __Pyx_GOTREF(__pyx_v_self->data);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->data));
+  __pyx_v_self->data = ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)Py_None);
+
+  /* function exit code */
+  __pyx_r = 0;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":95
+ *     unsigned char gt
+ *     Variant data
+ *     GTVariant next             # <<<<<<<<<<<<<<
+ * 
+ *   # def __cinit__(self, unsigned char gt, Variant variant):
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_9GTVariant_4next_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_9GTVariant_4next_1__get__(PyObject *__pyx_v_self) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9GTVariant_4next___get__(((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_9GTVariant_4next___get__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __Pyx_INCREF(((PyObject *)__pyx_v_self->next));
+  __pyx_r = ((PyObject *)__pyx_v_self->next);
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_9GTVariant_4next_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_9GTVariant_4next_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9GTVariant_4next_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_9GTVariant_4next_2__set__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__set__", 0);
+  if (!(likely(((__pyx_v_value) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_value, __pyx_ptype_5mitty_3lib_9variation_GTVariant))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 95; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __pyx_v_value;
+  __Pyx_INCREF(__pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_self->next);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->next));
+  __pyx_v_self->next = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.GTVariant.next.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_9GTVariant_4next_5__del__(PyObject *__pyx_v_self); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_9GTVariant_4next_5__del__(PyObject *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9GTVariant_4next_4__del__(((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_9GTVariant_4next_4__del__(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__", 0);
+  __Pyx_INCREF(Py_None);
+  __Pyx_GIVEREF(Py_None);
+  __Pyx_GOTREF(__pyx_v_self->next);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->next));
+  __pyx_v_self->next = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None);
+
+  /* function exit code */
+  __pyx_r = 0;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":110
+ * 
+ * 
+ * cpdef GTVariant new_gt_variant(unsigned char gt, Variant variant):             # <<<<<<<<<<<<<<
+ *   cdef GTVariant sv = GTVariant()
+ *   sv.gt, sv.data, sv.next = gt, variant, None
+ */
+
+static PyObject *__pyx_pw_5mitty_3lib_9variation_5new_gt_variant(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_f_5mitty_3lib_9variation_new_gt_variant(unsigned char __pyx_v_gt, struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_variant, CYTHON_UNUSED int __pyx_skip_dispatch) {
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv = 0;
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  unsigned char __pyx_t_2;
+  PyObject *__pyx_t_3 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("new_gt_variant", 0);
+
+  /* "mitty/lib/variation.pyx":111
+ * 
+ * cpdef GTVariant new_gt_variant(unsigned char gt, Variant variant):
+ *   cdef GTVariant sv = GTVariant()             # <<<<<<<<<<<<<<
+ *   sv.gt, sv.data, sv.next = gt, variant, None
+ *   return sv
+ */
+  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_5mitty_3lib_9variation_GTVariant)), __pyx_empty_tuple, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 111; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_v_sv = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* "mitty/lib/variation.pyx":112
+ * cpdef GTVariant new_gt_variant(unsigned char gt, Variant variant):
+ *   cdef GTVariant sv = GTVariant()
+ *   sv.gt, sv.data, sv.next = gt, variant, None             # <<<<<<<<<<<<<<
+ *   return sv
+ * 
+ */
+  __pyx_t_2 = __pyx_v_gt;
+  __pyx_t_1 = ((PyObject *)__pyx_v_variant);
+  __Pyx_INCREF(__pyx_t_1);
+  __pyx_t_3 = Py_None;
+  __Pyx_INCREF(__pyx_t_3);
+  __pyx_v_sv->gt = __pyx_t_2;
+  __Pyx_GIVEREF(__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_sv->data);
+  __Pyx_DECREF(((PyObject *)__pyx_v_sv->data));
+  __pyx_v_sv->data = ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_1);
+  __pyx_t_1 = 0;
+  __Pyx_GIVEREF(__pyx_t_3);
+  __Pyx_GOTREF(__pyx_v_sv->next);
+  __Pyx_DECREF(((PyObject *)__pyx_v_sv->next));
+  __pyx_v_sv->next = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_3);
+  __pyx_t_3 = 0;
+
+  /* "mitty/lib/variation.pyx":113
+ *   cdef GTVariant sv = GTVariant()
+ *   sv.gt, sv.data, sv.next = gt, variant, None
+ *   return sv             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+  __Pyx_XDECREF(((PyObject *)__pyx_r));
+  __Pyx_INCREF(((PyObject *)__pyx_v_sv));
+  __pyx_r = __pyx_v_sv;
+  goto __pyx_L0;
+
+  /* "mitty/lib/variation.pyx":110
+ * 
+ * 
+ * cpdef GTVariant new_gt_variant(unsigned char gt, Variant variant):             # <<<<<<<<<<<<<<
+ *   cdef GTVariant sv = GTVariant()
+ *   sv.gt, sv.data, sv.next = gt, variant, None
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_AddTraceback("mitty.lib.variation.new_gt_variant", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_XDECREF((PyObject *)__pyx_v_sv);
+  __Pyx_XGIVEREF((PyObject *)__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_5new_gt_variant(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_5new_gt_variant(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  unsigned char __pyx_v_gt;
+  struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_variant = 0;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("add_sample_variant (wrapper)", 0);
+  __Pyx_RefNannySetupContext("new_gt_variant (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_gt,&__pyx_n_s_l,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_gt,&__pyx_n_s_variant,0};
     PyObject* values[2] = {0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
@@ -3821,13 +3140,13 @@ static PyObject *__pyx_pw_5mitty_3lib_9variation_10add_sample_variant(PyObject *
         if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_gt)) != 0)) kw_args--;
         else goto __pyx_L5_argtuple_error;
         case  1:
-        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_l)) != 0)) kw_args--;
+        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_variant)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("add_sample_variant", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 134; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+          __Pyx_RaiseArgtupleInvalid("new_gt_variant", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 110; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "add_sample_variant") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 134; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "new_gt_variant") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 110; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
       goto __pyx_L5_argtuple_error;
@@ -3835,298 +3154,81 @@ static PyObject *__pyx_pw_5mitty_3lib_9variation_10add_sample_variant(PyObject *
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
     }
-    __pyx_v_gt = values[0];
-    __pyx_v_l = values[1];
+    __pyx_v_gt = __Pyx_PyInt_As_unsigned_char(values[0]); if (unlikely((__pyx_v_gt == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 110; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+    __pyx_v_variant = ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)values[1]);
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("add_sample_variant", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 134; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __Pyx_RaiseArgtupleInvalid("new_gt_variant", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 110; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   __pyx_L3_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.add_sample_variant", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.new_gt_variant", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9add_sample_variant(__pyx_self, __pyx_v_gt, __pyx_v_l);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_variant), __pyx_ptype_5mitty_3lib_9variation_Variant, 1, "variant", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 110; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_4new_gt_variant(__pyx_self, __pyx_v_gt, __pyx_v_variant);
 
   /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = NULL;
+  __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9add_sample_variant(CYTHON_UNUSED PyObject *__pyx_self, CYTHON_UNUSED PyObject *__pyx_v_gt, CYTHON_UNUSED PyObject *__pyx_v_l) {
+static PyObject *__pyx_pf_5mitty_3lib_9variation_4new_gt_variant(CYTHON_UNUSED PyObject *__pyx_self, unsigned char __pyx_v_gt, struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_variant) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("add_sample_variant", 0);
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("new_gt_variant", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_new_gt_variant(__pyx_v_gt, __pyx_v_variant, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 110; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
 
   /* function exit code */
-  __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.new_gt_variant", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
+static PyObject *__pyx_gb_5mitty_3lib_9variation_8generator(__pyx_GeneratorObject *__pyx_generator, PyObject *__pyx_sent_value); /* proto */
 
-/* "mitty/lib/variation.pyx":138
+/* "mitty/lib/variation.pyx":116
  * 
  * 
- * def new_variation(int _pos=0, int _stop=0, str _ref='', str _alt='', char het=0, char recessive=0, float fitness=0):             # <<<<<<<<<<<<<<
- *   return Variation(VariationData(_pos, _stop, _ref, _alt), het, recessive, fitness)
- * 
+ * def create_gtv_iterable(pos, ref, alt, gt):             # <<<<<<<<<<<<<<
+ *   """Given lists/generators of the bare variant data (e.g. from a plugin) return us an iterator that will produce a
+ *   stream of individual SampleVariants."""
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_12new_variation(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyMethodDef __pyx_mdef_5mitty_3lib_9variation_12new_variation = {"new_variation", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_12new_variation, METH_VARARGS|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_5mitty_3lib_9variation_12new_variation(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  int __pyx_v__pos;
-  int __pyx_v__stop;
-  PyObject *__pyx_v__ref = 0;
-  PyObject *__pyx_v__alt = 0;
-  char __pyx_v_het;
-  char __pyx_v_recessive;
-  float __pyx_v_fitness;
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7create_gtv_iterable(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static char __pyx_doc_5mitty_3lib_9variation_6create_gtv_iterable[] = "Given lists/generators of the bare variant data (e.g. from a plugin) return us an iterator that will produce a\n  stream of individual SampleVariants.";
+static PyMethodDef __pyx_mdef_5mitty_3lib_9variation_7create_gtv_iterable = {"create_gtv_iterable", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_7create_gtv_iterable, METH_VARARGS|METH_KEYWORDS, __pyx_doc_5mitty_3lib_9variation_6create_gtv_iterable};
+static PyObject *__pyx_pw_5mitty_3lib_9variation_7create_gtv_iterable(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  PyObject *__pyx_v_pos = 0;
+  PyObject *__pyx_v_ref = 0;
+  PyObject *__pyx_v_alt = 0;
+  PyObject *__pyx_v_gt = 0;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("new_variation (wrapper)", 0);
+  __Pyx_RefNannySetupContext("create_gtv_iterable (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_pos,&__pyx_n_s_stop,&__pyx_n_s_ref,&__pyx_n_s_alt,&__pyx_n_s_het,&__pyx_n_s_recessive,&__pyx_n_s_fitness,0};
-    PyObject* values[7] = {0,0,0,0,0,0,0};
-    values[2] = ((PyObject*)__pyx_kp_s_);
-    values[3] = ((PyObject*)__pyx_kp_s_);
-    if (unlikely(__pyx_kwds)) {
-      Py_ssize_t kw_args;
-      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
-      switch (pos_args) {
-        case  7: values[6] = PyTuple_GET_ITEM(__pyx_args, 6);
-        case  6: values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
-        case  5: values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
-        case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
-        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
-        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-        case  0: break;
-        default: goto __pyx_L5_argtuple_error;
-      }
-      kw_args = PyDict_Size(__pyx_kwds);
-      switch (pos_args) {
-        case  0:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_pos);
-          if (value) { values[0] = value; kw_args--; }
-        }
-        case  1:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_stop);
-          if (value) { values[1] = value; kw_args--; }
-        }
-        case  2:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_ref);
-          if (value) { values[2] = value; kw_args--; }
-        }
-        case  3:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_alt);
-          if (value) { values[3] = value; kw_args--; }
-        }
-        case  4:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_het);
-          if (value) { values[4] = value; kw_args--; }
-        }
-        case  5:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_recessive);
-          if (value) { values[5] = value; kw_args--; }
-        }
-        case  6:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_fitness);
-          if (value) { values[6] = value; kw_args--; }
-        }
-      }
-      if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "new_variation") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-      }
-    } else {
-      switch (PyTuple_GET_SIZE(__pyx_args)) {
-        case  7: values[6] = PyTuple_GET_ITEM(__pyx_args, 6);
-        case  6: values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
-        case  5: values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
-        case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
-        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
-        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-        case  0: break;
-        default: goto __pyx_L5_argtuple_error;
-      }
-    }
-    if (values[0]) {
-      __pyx_v__pos = __Pyx_PyInt_As_int(values[0]); if (unlikely((__pyx_v__pos == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-    } else {
-      __pyx_v__pos = ((int)0);
-    }
-    if (values[1]) {
-      __pyx_v__stop = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v__stop == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-    } else {
-      __pyx_v__stop = ((int)0);
-    }
-    __pyx_v__ref = ((PyObject*)values[2]);
-    __pyx_v__alt = ((PyObject*)values[3]);
-    if (values[4]) {
-      __pyx_v_het = __Pyx_PyInt_As_char(values[4]); if (unlikely((__pyx_v_het == (char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-    } else {
-      __pyx_v_het = ((char)0);
-    }
-    if (values[5]) {
-      __pyx_v_recessive = __Pyx_PyInt_As_char(values[5]); if (unlikely((__pyx_v_recessive == (char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-    } else {
-      __pyx_v_recessive = ((char)0);
-    }
-    if (values[6]) {
-      __pyx_v_fitness = __pyx_PyFloat_AsFloat(values[6]); if (unlikely((__pyx_v_fitness == (float)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-    } else {
-      __pyx_v_fitness = ((float)0.0);
-    }
-  }
-  goto __pyx_L4_argument_unpacking_done;
-  __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("new_variation", 0, 0, 7, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-  __pyx_L3_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.new_variation", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __Pyx_RefNannyFinishContext();
-  return NULL;
-  __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v__ref), (&PyString_Type), 1, "_ref", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v__alt), (&PyString_Type), 1, "_alt", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_11new_variation(__pyx_self, __pyx_v__pos, __pyx_v__stop, __pyx_v__ref, __pyx_v__alt, __pyx_v_het, __pyx_v_recessive, __pyx_v_fitness);
-
-  /* function exit code */
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __pyx_r = NULL;
-  __pyx_L0:;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_11new_variation(CYTHON_UNUSED PyObject *__pyx_self, int __pyx_v__pos, int __pyx_v__stop, PyObject *__pyx_v__ref, PyObject *__pyx_v__alt, char __pyx_v_het, char __pyx_v_recessive, float __pyx_v_fitness) {
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
-  PyObject *__pyx_t_4 = NULL;
-  PyObject *__pyx_t_5 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("new_variation", 0);
-
-  /* "mitty/lib/variation.pyx":139
- * 
- * def new_variation(int _pos=0, int _stop=0, str _ref='', str _alt='', char het=0, char recessive=0, float fitness=0):
- *   return Variation(VariationData(_pos, _stop, _ref, _alt), het, recessive, fitness)             # <<<<<<<<<<<<<<
- * 
- * 
- */
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v__pos); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 139; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v__stop); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 139; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = PyTuple_New(4); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 139; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_3);
-  PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_1);
-  __Pyx_GIVEREF(__pyx_t_1);
-  PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_t_2);
-  __Pyx_GIVEREF(__pyx_t_2);
-  __Pyx_INCREF(__pyx_v__ref);
-  PyTuple_SET_ITEM(__pyx_t_3, 2, __pyx_v__ref);
-  __Pyx_GIVEREF(__pyx_v__ref);
-  __Pyx_INCREF(__pyx_v__alt);
-  PyTuple_SET_ITEM(__pyx_t_3, 3, __pyx_v__alt);
-  __Pyx_GIVEREF(__pyx_v__alt);
-  __pyx_t_1 = 0;
-  __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_5mitty_3lib_9variation_VariationData)), __pyx_t_3, NULL); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 139; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_PyInt_From_char(__pyx_v_het); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 139; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_1 = __Pyx_PyInt_From_char(__pyx_v_recessive); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 139; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_4 = PyFloat_FromDouble(__pyx_v_fitness); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 139; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = PyTuple_New(4); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 139; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_5);
-  PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_2);
-  __Pyx_GIVEREF(__pyx_t_2);
-  PyTuple_SET_ITEM(__pyx_t_5, 1, __pyx_t_3);
-  __Pyx_GIVEREF(__pyx_t_3);
-  PyTuple_SET_ITEM(__pyx_t_5, 2, __pyx_t_1);
-  __Pyx_GIVEREF(__pyx_t_1);
-  PyTuple_SET_ITEM(__pyx_t_5, 3, __pyx_t_4);
-  __Pyx_GIVEREF(__pyx_t_4);
-  __pyx_t_2 = 0;
-  __pyx_t_3 = 0;
-  __pyx_t_1 = 0;
-  __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_5mitty_3lib_9variation_Variation)), __pyx_t_5, NULL); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 139; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_r = __pyx_t_4;
-  __pyx_t_4 = 0;
-  goto __pyx_L0;
-
-  /* "mitty/lib/variation.pyx":138
- * 
- * 
- * def new_variation(int _pos=0, int _stop=0, str _ref='', str _alt='', char het=0, char recessive=0, float fitness=0):             # <<<<<<<<<<<<<<
- *   return Variation(VariationData(_pos, _stop, _ref, _alt), het, recessive, fitness)
- * 
- */
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_4);
-  __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_AddTraceback("mitty.lib.variation.new_variation", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
-  __pyx_L0:;
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* "mitty/lib/variation.pyx":150
- * 
- *   # http://docs.cython.org/src/userguide/special_methods.html
- *   def __cinit__(self, VariationData _vd, unsigned char het=HOMOZYGOUS, unsigned char rec=1, unsigned char fit=128):             # <<<<<<<<<<<<<<
- *     self.vd, self.het, self.recessive, self.fitness = _vd, het, rec, fit
- * 
- */
-
-/* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_9Variation_1__cinit__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_9Variation_1__cinit__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v__vd = 0;
-  unsigned char __pyx_v_het;
-  unsigned char __pyx_v_rec;
-  unsigned char __pyx_v_fit;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__cinit__ (wrapper)", 0);
-  {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_vd_2,&__pyx_n_s_het,&__pyx_n_s_rec,&__pyx_n_s_fit,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_pos,&__pyx_n_s_ref,&__pyx_n_s_alt,&__pyx_n_s_gt,0};
     PyObject* values[4] = {0,0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
@@ -4142,180 +3244,1196 @@ static int __pyx_pw_5mitty_3lib_9variation_9Variation_1__cinit__(PyObject *__pyx
       kw_args = PyDict_Size(__pyx_kwds);
       switch (pos_args) {
         case  0:
-        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_vd_2)) != 0)) kw_args--;
+        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_pos)) != 0)) kw_args--;
         else goto __pyx_L5_argtuple_error;
         case  1:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_het);
-          if (value) { values[1] = value; kw_args--; }
+        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_ref)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("create_gtv_iterable", 1, 4, 4, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
         case  2:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_rec);
-          if (value) { values[2] = value; kw_args--; }
+        if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_alt)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("create_gtv_iterable", 1, 4, 4, 2); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
         case  3:
-        if (kw_args > 0) {
-          PyObject* value = PyDict_GetItem(__pyx_kwds, __pyx_n_s_fit);
-          if (value) { values[3] = value; kw_args--; }
+        if (likely((values[3] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_gt)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("create_gtv_iterable", 1, 4, 4, 3); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 150; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "create_gtv_iterable") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
       }
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 4) {
+      goto __pyx_L5_argtuple_error;
     } else {
-      switch (PyTuple_GET_SIZE(__pyx_args)) {
-        case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
-        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
-        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-        break;
-        default: goto __pyx_L5_argtuple_error;
-      }
+      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+      values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+      values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
     }
-    __pyx_v__vd = ((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)values[0]);
-    if (values[1]) {
-      __pyx_v_het = __Pyx_PyInt_As_unsigned_char(values[1]); if (unlikely((__pyx_v_het == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 150; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-    } else {
-      __pyx_v_het = __pyx_k__2;
-    }
-    if (values[2]) {
-      __pyx_v_rec = __Pyx_PyInt_As_unsigned_char(values[2]); if (unlikely((__pyx_v_rec == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 150; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-    } else {
-      __pyx_v_rec = ((unsigned char)1);
-    }
-    if (values[3]) {
-      __pyx_v_fit = __Pyx_PyInt_As_unsigned_char(values[3]); if (unlikely((__pyx_v_fit == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 150; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-    } else {
-      __pyx_v_fit = ((unsigned char)128);
-    }
+    __pyx_v_pos = values[0];
+    __pyx_v_ref = values[1];
+    __pyx_v_alt = values[2];
+    __pyx_v_gt = values[3];
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("__cinit__", 0, 1, 4, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 150; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __Pyx_RaiseArgtupleInvalid("create_gtv_iterable", 1, 4, 4, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   __pyx_L3_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.Variation.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.create_gtv_iterable", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
-  return -1;
+  return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v__vd), __pyx_ptype_5mitty_3lib_9variation_VariationData, 1, "_vd", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 150; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation___cinit__(((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_self), __pyx_v__vd, __pyx_v_het, __pyx_v_rec, __pyx_v_fit);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_6create_gtv_iterable(__pyx_self, __pyx_v_pos, __pyx_v_ref, __pyx_v_alt, __pyx_v_gt);
 
   /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_6create_gtv_iterable(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_pos, PyObject *__pyx_v_ref, PyObject *__pyx_v_alt, PyObject *__pyx_v_gt) {
+  struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable *__pyx_cur_scope;
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("create_gtv_iterable", 0);
+  __pyx_cur_scope = (struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable *)__pyx_tp_new_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable(__pyx_ptype_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable, __pyx_empty_tuple, NULL);
+  if (unlikely(!__pyx_cur_scope)) {
+    __Pyx_RefNannyFinishContext();
+    return NULL;
+  }
+  __Pyx_GOTREF(__pyx_cur_scope);
+  __pyx_cur_scope->__pyx_v_pos = __pyx_v_pos;
+  __Pyx_INCREF(__pyx_cur_scope->__pyx_v_pos);
+  __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_pos);
+  __pyx_cur_scope->__pyx_v_ref = __pyx_v_ref;
+  __Pyx_INCREF(__pyx_cur_scope->__pyx_v_ref);
+  __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_ref);
+  __pyx_cur_scope->__pyx_v_alt = __pyx_v_alt;
+  __Pyx_INCREF(__pyx_cur_scope->__pyx_v_alt);
+  __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_alt);
+  __pyx_cur_scope->__pyx_v_gt = __pyx_v_gt;
+  __Pyx_INCREF(__pyx_cur_scope->__pyx_v_gt);
+  __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_gt);
+  {
+    __pyx_GeneratorObject *gen = __Pyx_Generator_New((__pyx_generator_body_t) __pyx_gb_5mitty_3lib_9variation_8generator, (PyObject *) __pyx_cur_scope, __pyx_n_s_create_gtv_iterable, __pyx_n_s_create_gtv_iterable); if (unlikely(!gen)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_cur_scope);
+    __Pyx_RefNannyFinishContext();
+    return (PyObject *) gen;
+  }
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_AddTraceback("mitty.lib.variation.create_gtv_iterable", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __Pyx_DECREF(((PyObject *)__pyx_cur_scope));
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_gb_5mitty_3lib_9variation_8generator(__pyx_GeneratorObject *__pyx_generator, PyObject *__pyx_sent_value) /* generator body */
+{
+  struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable *__pyx_cur_scope = ((struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable *)__pyx_generator->closure);
+  PyObject *__pyx_r = NULL;
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
+  Py_ssize_t __pyx_t_4;
+  PyObject *__pyx_t_5 = NULL;
+  PyObject *(*__pyx_t_6)(PyObject *);
+  PyObject *__pyx_t_7 = NULL;
+  PyObject *__pyx_t_8 = NULL;
+  PyObject *__pyx_t_9 = NULL;
+  PyObject *(*__pyx_t_10)(PyObject *);
+  unsigned char __pyx_t_11;
+  unsigned long __pyx_t_12;
+  Py_ssize_t __pyx_t_13;
+  unsigned long __pyx_t_14;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("None", 0);
+  switch (__pyx_generator->resume_label) {
+    case 0: goto __pyx_L3_first_run;
+    case 1: goto __pyx_L8_resume_from_yield;
+    default: /* CPython raises the right error here */
+    __Pyx_RefNannyFinishContext();
+    return NULL;
+  }
+  __pyx_L3_first_run:;
+  if (unlikely(!__pyx_sent_value)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+
+  /* "mitty/lib/variation.pyx":119
+ *   """Given lists/generators of the bare variant data (e.g. from a plugin) return us an iterator that will produce a
+ *   stream of individual SampleVariants."""
+ *   for p, r, a, g in itertools.izip(pos, ref, alt, gt):             # <<<<<<<<<<<<<<
+ *     yield new_gt_variant(g, new_variant(p, p + len(r), r, a))
+ * 
+ */
+  __pyx_t_2 = __Pyx_GetModuleGlobalName(__pyx_n_s_itertools); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_izip); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_2 = NULL;
+  __pyx_t_4 = 0;
+  if (CYTHON_COMPILING_IN_CPYTHON && unlikely(PyMethod_Check(__pyx_t_3))) {
+    __pyx_t_2 = PyMethod_GET_SELF(__pyx_t_3);
+    if (likely(__pyx_t_2)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
+      __Pyx_INCREF(__pyx_t_2);
+      __Pyx_INCREF(function);
+      __Pyx_DECREF_SET(__pyx_t_3, function);
+      __pyx_t_4 = 1;
+    }
+  }
+  __pyx_t_5 = PyTuple_New(4+__pyx_t_4); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_5);
+  if (__pyx_t_2) {
+    PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_2); __Pyx_GIVEREF(__pyx_t_2); __pyx_t_2 = NULL;
+  }
+  __Pyx_INCREF(__pyx_cur_scope->__pyx_v_pos);
+  PyTuple_SET_ITEM(__pyx_t_5, 0+__pyx_t_4, __pyx_cur_scope->__pyx_v_pos);
+  __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_pos);
+  __Pyx_INCREF(__pyx_cur_scope->__pyx_v_ref);
+  PyTuple_SET_ITEM(__pyx_t_5, 1+__pyx_t_4, __pyx_cur_scope->__pyx_v_ref);
+  __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_ref);
+  __Pyx_INCREF(__pyx_cur_scope->__pyx_v_alt);
+  PyTuple_SET_ITEM(__pyx_t_5, 2+__pyx_t_4, __pyx_cur_scope->__pyx_v_alt);
+  __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_alt);
+  __Pyx_INCREF(__pyx_cur_scope->__pyx_v_gt);
+  PyTuple_SET_ITEM(__pyx_t_5, 3+__pyx_t_4, __pyx_cur_scope->__pyx_v_gt);
+  __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_gt);
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_5, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  if (likely(PyList_CheckExact(__pyx_t_1)) || PyTuple_CheckExact(__pyx_t_1)) {
+    __pyx_t_3 = __pyx_t_1; __Pyx_INCREF(__pyx_t_3); __pyx_t_4 = 0;
+    __pyx_t_6 = NULL;
+  } else {
+    __pyx_t_4 = -1; __pyx_t_3 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_3);
+    __pyx_t_6 = Py_TYPE(__pyx_t_3)->tp_iternext; if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  }
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  for (;;) {
+    if (likely(!__pyx_t_6)) {
+      if (likely(PyList_CheckExact(__pyx_t_3))) {
+        if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_3)) break;
+        #if CYTHON_COMPILING_IN_CPYTHON
+        __pyx_t_1 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_1); __pyx_t_4++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        #else
+        __pyx_t_1 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        #endif
+      } else {
+        if (__pyx_t_4 >= PyTuple_GET_SIZE(__pyx_t_3)) break;
+        #if CYTHON_COMPILING_IN_CPYTHON
+        __pyx_t_1 = PyTuple_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_1); __pyx_t_4++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        #else
+        __pyx_t_1 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        #endif
+      }
+    } else {
+      __pyx_t_1 = __pyx_t_6(__pyx_t_3);
+      if (unlikely(!__pyx_t_1)) {
+        PyObject* exc_type = PyErr_Occurred();
+        if (exc_type) {
+          if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
+          else {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        }
+        break;
+      }
+      __Pyx_GOTREF(__pyx_t_1);
+    }
+    if ((likely(PyTuple_CheckExact(__pyx_t_1))) || (PyList_CheckExact(__pyx_t_1))) {
+      PyObject* sequence = __pyx_t_1;
+      #if CYTHON_COMPILING_IN_CPYTHON
+      Py_ssize_t size = Py_SIZE(sequence);
+      #else
+      Py_ssize_t size = PySequence_Size(sequence);
+      #endif
+      if (unlikely(size != 4)) {
+        if (size > 4) __Pyx_RaiseTooManyValuesError(4);
+        else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
+        {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      }
+      #if CYTHON_COMPILING_IN_CPYTHON
+      if (likely(PyTuple_CheckExact(sequence))) {
+        __pyx_t_5 = PyTuple_GET_ITEM(sequence, 0); 
+        __pyx_t_2 = PyTuple_GET_ITEM(sequence, 1); 
+        __pyx_t_7 = PyTuple_GET_ITEM(sequence, 2); 
+        __pyx_t_8 = PyTuple_GET_ITEM(sequence, 3); 
+      } else {
+        __pyx_t_5 = PyList_GET_ITEM(sequence, 0); 
+        __pyx_t_2 = PyList_GET_ITEM(sequence, 1); 
+        __pyx_t_7 = PyList_GET_ITEM(sequence, 2); 
+        __pyx_t_8 = PyList_GET_ITEM(sequence, 3); 
+      }
+      __Pyx_INCREF(__pyx_t_5);
+      __Pyx_INCREF(__pyx_t_2);
+      __Pyx_INCREF(__pyx_t_7);
+      __Pyx_INCREF(__pyx_t_8);
+      #else
+      {
+        Py_ssize_t i;
+        PyObject** temps[4] = {&__pyx_t_5,&__pyx_t_2,&__pyx_t_7,&__pyx_t_8};
+        for (i=0; i < 4; i++) {
+          PyObject* item = PySequence_ITEM(sequence, i); if (unlikely(!item)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+          __Pyx_GOTREF(item);
+          *(temps[i]) = item;
+        }
+      }
+      #endif
+      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    } else {
+      Py_ssize_t index = -1;
+      PyObject** temps[4] = {&__pyx_t_5,&__pyx_t_2,&__pyx_t_7,&__pyx_t_8};
+      __pyx_t_9 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_9);
+      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+      __pyx_t_10 = Py_TYPE(__pyx_t_9)->tp_iternext;
+      for (index=0; index < 4; index++) {
+        PyObject* item = __pyx_t_10(__pyx_t_9); if (unlikely(!item)) goto __pyx_L6_unpacking_failed;
+        __Pyx_GOTREF(item);
+        *(temps[index]) = item;
+      }
+      if (__Pyx_IternextUnpackEndCheck(__pyx_t_10(__pyx_t_9), 4) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __pyx_t_10 = NULL;
+      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+      goto __pyx_L7_unpacking_done;
+      __pyx_L6_unpacking_failed:;
+      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+      __pyx_t_10 = NULL;
+      if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
+      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 119; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __pyx_L7_unpacking_done:;
+    }
+    __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_p);
+    __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_p, __pyx_t_5);
+    __Pyx_GIVEREF(__pyx_t_5);
+    __pyx_t_5 = 0;
+    __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_r);
+    __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_r, __pyx_t_2);
+    __Pyx_GIVEREF(__pyx_t_2);
+    __pyx_t_2 = 0;
+    __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_a);
+    __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_a, __pyx_t_7);
+    __Pyx_GIVEREF(__pyx_t_7);
+    __pyx_t_7 = 0;
+    __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_g);
+    __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_g, __pyx_t_8);
+    __Pyx_GIVEREF(__pyx_t_8);
+    __pyx_t_8 = 0;
+
+    /* "mitty/lib/variation.pyx":120
+ *   stream of individual SampleVariants."""
+ *   for p, r, a, g in itertools.izip(pos, ref, alt, gt):
+ *     yield new_gt_variant(g, new_variant(p, p + len(r), r, a))             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+    __pyx_t_11 = __Pyx_PyInt_As_unsigned_char(__pyx_cur_scope->__pyx_v_g); if (unlikely((__pyx_t_11 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 120; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_12 = __Pyx_PyInt_As_unsigned_long(__pyx_cur_scope->__pyx_v_p); if (unlikely((__pyx_t_12 == (unsigned long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 120; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_13 = PyObject_Length(__pyx_cur_scope->__pyx_v_r); if (unlikely(__pyx_t_13 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 120; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_1 = PyInt_FromSsize_t(__pyx_t_13); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 120; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    __pyx_t_8 = PyNumber_Add(__pyx_cur_scope->__pyx_v_p, __pyx_t_1); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 120; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_8);
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __pyx_t_14 = __Pyx_PyInt_As_unsigned_long(__pyx_t_8); if (unlikely((__pyx_t_14 == (unsigned long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 120; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+    if (!(likely(PyBytes_CheckExact(__pyx_cur_scope->__pyx_v_r))||((__pyx_cur_scope->__pyx_v_r) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "bytes", Py_TYPE(__pyx_cur_scope->__pyx_v_r)->tp_name), 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 120; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    if (!(likely(PyBytes_CheckExact(__pyx_cur_scope->__pyx_v_a))||((__pyx_cur_scope->__pyx_v_a) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "bytes", Py_TYPE(__pyx_cur_scope->__pyx_v_a)->tp_name), 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 120; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_8 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_new_variant(__pyx_t_12, __pyx_t_14, ((PyObject*)__pyx_cur_scope->__pyx_v_r), ((PyObject*)__pyx_cur_scope->__pyx_v_a), 0)); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 120; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_8);
+    __pyx_t_1 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_new_gt_variant(__pyx_t_11, ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_8), 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 120; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+    __pyx_r = __pyx_t_1;
+    __pyx_t_1 = 0;
+    __Pyx_XGIVEREF(__pyx_t_3);
+    __pyx_cur_scope->__pyx_t_0 = __pyx_t_3;
+    __pyx_cur_scope->__pyx_t_1 = __pyx_t_4;
+    __pyx_cur_scope->__pyx_t_2 = __pyx_t_6;
+    __Pyx_XGIVEREF(__pyx_r);
+    __Pyx_RefNannyFinishContext();
+    /* return from generator, yielding value */
+    __pyx_generator->resume_label = 1;
+    return __pyx_r;
+    __pyx_L8_resume_from_yield:;
+    __pyx_t_3 = __pyx_cur_scope->__pyx_t_0;
+    __pyx_cur_scope->__pyx_t_0 = 0;
+    __Pyx_XGOTREF(__pyx_t_3);
+    __pyx_t_4 = __pyx_cur_scope->__pyx_t_1;
+    __pyx_t_6 = __pyx_cur_scope->__pyx_t_2;
+    if (unlikely(!__pyx_sent_value)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 120; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+
+    /* "mitty/lib/variation.pyx":119
+ *   """Given lists/generators of the bare variant data (e.g. from a plugin) return us an iterator that will produce a
+ *   stream of individual SampleVariants."""
+ *   for p, r, a, g in itertools.izip(pos, ref, alt, gt):             # <<<<<<<<<<<<<<
+ *     yield new_gt_variant(g, new_variant(p, p + len(r), r, a))
+ * 
+ */
+  }
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+
+  /* "mitty/lib/variation.pyx":116
+ * 
+ * 
+ * def create_gtv_iterable(pos, ref, alt, gt):             # <<<<<<<<<<<<<<
+ *   """Given lists/generators of the bare variant data (e.g. from a plugin) return us an iterator that will produce a
+ *   stream of individual SampleVariants."""
+ */
+
+  /* function exit code */
+  PyErr_SetNone(PyExc_StopIteration);
   goto __pyx_L0;
   __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_5);
+  __Pyx_XDECREF(__pyx_t_7);
+  __Pyx_XDECREF(__pyx_t_8);
+  __Pyx_XDECREF(__pyx_t_9);
+  __Pyx_AddTraceback("create_gtv_iterable", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_L0:;
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_generator->resume_label = -1;
+  __Pyx_Generator_clear((PyObject*)__pyx_generator);
+  __Pyx_RefNannyFinishContext();
+  return NULL;
+}
+
+/* "mitty/lib/variation.pyx":143
+ *     unsigned long length
+ * 
+ *   def __cinit__(self):             # <<<<<<<<<<<<<<
+ *     self.head = self.tail = new_gt_variant(ABSENT, new_variant(0, 0, b'', b''))  # Dummy node
+ *     self.cursor, self.length = None, 0
+ */
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_1__cinit__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_1__cinit__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__cinit__ (wrapper)", 0);
+  if (unlikely(PyTuple_GET_SIZE(__pyx_args) > 0)) {
+    __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 0, 0, PyTuple_GET_SIZE(__pyx_args)); return -1;}
+  if (unlikely(__pyx_kwds) && unlikely(PyDict_Size(__pyx_kwds) > 0) && unlikely(!__Pyx_CheckKeywordStrings(__pyx_kwds, "__cinit__", 0))) return -1;
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome___cinit__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome___cinit__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  unsigned long __pyx_t_3;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__cinit__", 0);
+
+  /* "mitty/lib/variation.pyx":144
+ * 
+ *   def __cinit__(self):
+ *     self.head = self.tail = new_gt_variant(ABSENT, new_variant(0, 0, b'', b''))  # Dummy node             # <<<<<<<<<<<<<<
+ *     self.cursor, self.length = None, 0
+ * 
+ */
+  __pyx_t_1 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_new_variant(0, 0, __pyx_kp_b_, __pyx_kp_b_, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 144; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_new_gt_variant(__pyx_e_5mitty_3lib_9variation_ABSENT, ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_1), 0)); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 144; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __Pyx_INCREF(__pyx_t_2);
+  __Pyx_GIVEREF(__pyx_t_2);
+  __Pyx_GOTREF(__pyx_v_self->head);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->head));
+  __pyx_v_self->head = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_2);
+  __Pyx_INCREF(__pyx_t_2);
+  __Pyx_GIVEREF(__pyx_t_2);
+  __Pyx_GOTREF(__pyx_v_self->tail);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->tail));
+  __pyx_v_self->tail = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+
+  /* "mitty/lib/variation.pyx":145
+ *   def __cinit__(self):
+ *     self.head = self.tail = new_gt_variant(ABSENT, new_variant(0, 0, b'', b''))  # Dummy node
+ *     self.cursor, self.length = None, 0             # <<<<<<<<<<<<<<
+ * 
+ *   def __len__(self):
+ */
+  __pyx_t_2 = Py_None;
+  __Pyx_INCREF(__pyx_t_2);
+  __pyx_t_3 = 0;
+  __Pyx_GIVEREF(__pyx_t_2);
+  __Pyx_GOTREF(__pyx_v_self->cursor);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->cursor));
+  __pyx_v_self->cursor = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_2);
+  __pyx_t_2 = 0;
+  __pyx_v_self->length = __pyx_t_3;
+
+  /* "mitty/lib/variation.pyx":143
+ *     unsigned long length
+ * 
+ *   def __cinit__(self):             # <<<<<<<<<<<<<<
+ *     self.head = self.tail = new_gt_variant(ABSENT, new_variant(0, 0, b'', b''))  # Dummy node
+ *     self.cursor, self.length = None, 0
+ */
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_5mitty_3lib_9variation_9Variation___cinit__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v__vd, unsigned char __pyx_v_het, unsigned char __pyx_v_rec, unsigned char __pyx_v_fit) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  unsigned char __pyx_t_2;
-  unsigned char __pyx_t_3;
-  unsigned char __pyx_t_4;
-  __Pyx_RefNannySetupContext("__cinit__", 0);
-
-  /* "mitty/lib/variation.pyx":151
- *   # http://docs.cython.org/src/userguide/special_methods.html
- *   def __cinit__(self, VariationData _vd, unsigned char het=HOMOZYGOUS, unsigned char rec=1, unsigned char fit=128):
- *     self.vd, self.het, self.recessive, self.fitness = _vd, het, rec, fit             # <<<<<<<<<<<<<<
+/* "mitty/lib/variation.pyx":147
+ *     self.cursor, self.length = None, 0
  * 
+ *   def __len__(self):             # <<<<<<<<<<<<<<
+ *     return self.length
  * 
- */
-  __pyx_t_1 = ((PyObject *)__pyx_v__vd);
-  __Pyx_INCREF(__pyx_t_1);
-  __pyx_t_2 = __pyx_v_het;
-  __pyx_t_3 = __pyx_v_rec;
-  __pyx_t_4 = __pyx_v_fit;
-  __Pyx_GIVEREF(__pyx_t_1);
-  __Pyx_GOTREF(__pyx_v_self->vd);
-  __Pyx_DECREF(((PyObject *)__pyx_v_self->vd));
-  __pyx_v_self->vd = ((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_t_1);
-  __pyx_t_1 = 0;
-  __pyx_v_self->het = __pyx_t_2;
-  __pyx_v_self->recessive = __pyx_t_3;
-  __pyx_v_self->fitness = __pyx_t_4;
-
-  /* "mitty/lib/variation.pyx":150
- * 
- *   # http://docs.cython.org/src/userguide/special_methods.html
- *   def __cinit__(self, VariationData _vd, unsigned char het=HOMOZYGOUS, unsigned char rec=1, unsigned char fit=128):             # <<<<<<<<<<<<<<
- *     self.vd, self.het, self.recessive, self.fitness = _vd, het, rec, fit
- * 
- */
-
-  /* function exit code */
-  __pyx_r = 0;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* "mitty/lib/variation.pyx":155
- * 
- *   # Need this for set to work (https://docs.python.org/2/reference/datamodel.html#object.__hash__)
- *   def  __hash__(self):             # <<<<<<<<<<<<<<
- *     #return self.vd.POS ^ self.vd.REF.__hash__() ^ self.vd.ALT.__hash__()
- *     return self.vd.hash
  */
 
 /* Python wrapper */
-static Py_hash_t __pyx_pw_5mitty_3lib_9variation_9Variation_3__hash__(PyObject *__pyx_v_self); /*proto*/
-static Py_hash_t __pyx_pw_5mitty_3lib_9variation_9Variation_3__hash__(PyObject *__pyx_v_self) {
-  Py_hash_t __pyx_r;
+static Py_ssize_t __pyx_pw_5mitty_3lib_9variation_10Chromosome_3__len__(PyObject *__pyx_v_self); /*proto*/
+static Py_ssize_t __pyx_pw_5mitty_3lib_9variation_10Chromosome_3__len__(PyObject *__pyx_v_self) {
+  Py_ssize_t __pyx_r;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__hash__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation_2__hash__(((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_self));
+  __Pyx_RefNannySetupContext("__len__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_2__len__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static Py_hash_t __pyx_pf_5mitty_3lib_9variation_9Variation_2__hash__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self) {
-  Py_hash_t __pyx_r;
+static Py_ssize_t __pyx_pf_5mitty_3lib_9variation_10Chromosome_2__len__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
+  Py_ssize_t __pyx_r;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__hash__", 0);
+  __Pyx_RefNannySetupContext("__len__", 0);
 
-  /* "mitty/lib/variation.pyx":157
- *   def  __hash__(self):
- *     #return self.vd.POS ^ self.vd.REF.__hash__() ^ self.vd.ALT.__hash__()
- *     return self.vd.hash             # <<<<<<<<<<<<<<
+  /* "mitty/lib/variation.pyx":148
  * 
- *   cpdef bint eq(self, Variation other):
+ *   def __len__(self):
+ *     return self.length             # <<<<<<<<<<<<<<
+ * 
+ *   def __iter__(self):
  */
-  __pyx_r = __pyx_v_self->vd->hash;
+  __pyx_r = __pyx_v_self->length;
   goto __pyx_L0;
 
-  /* "mitty/lib/variation.pyx":155
+  /* "mitty/lib/variation.pyx":147
+ *     self.cursor, self.length = None, 0
  * 
- *   # Need this for set to work (https://docs.python.org/2/reference/datamodel.html#object.__hash__)
- *   def  __hash__(self):             # <<<<<<<<<<<<<<
- *     #return self.vd.POS ^ self.vd.REF.__hash__() ^ self.vd.ALT.__hash__()
- *     return self.vd.hash
+ *   def __len__(self):             # <<<<<<<<<<<<<<
+ *     return self.length
+ * 
  */
 
   /* function exit code */
   __pyx_L0:;
-  if (unlikely(__pyx_r == -1) && !PyErr_Occurred()) __pyx_r = -2;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":150
+ *     return self.length
+ * 
+ *   def __iter__(self):             # <<<<<<<<<<<<<<
+ *     return ChromosomeIterator(self)
+ * 
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_5__iter__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_5__iter__(PyObject *__pyx_v_self) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__iter__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_4__iter__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_4__iter__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__iter__", 0);
+
+  /* "mitty/lib/variation.pyx":151
+ * 
+ *   def __iter__(self):
+ *     return ChromosomeIterator(self)             # <<<<<<<<<<<<<<
+ * 
+ *   def to_list(self):
+ */
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = PyTuple_New(1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 151; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_INCREF(((PyObject *)__pyx_v_self));
+  PyTuple_SET_ITEM(__pyx_t_1, 0, ((PyObject *)__pyx_v_self));
+  __Pyx_GIVEREF(((PyObject *)__pyx_v_self));
+  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_5mitty_3lib_9variation_ChromosomeIterator)), __pyx_t_1, NULL); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 151; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_r = __pyx_t_2;
+  __pyx_t_2 = 0;
+  goto __pyx_L0;
+
+  /* "mitty/lib/variation.pyx":150
+ *     return self.length
+ * 
+ *   def __iter__(self):             # <<<<<<<<<<<<<<
+ *     return ChromosomeIterator(self)
+ * 
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.__iter__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":153
+ *     return ChromosomeIterator(self)
+ * 
+ *   def to_list(self):             # <<<<<<<<<<<<<<
+ *     return [sv for sv in self]
+ * 
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_7to_list(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_7to_list(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("to_list (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_6to_list(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_6to_list(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
+  PyObject *__pyx_v_sv = NULL;
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  Py_ssize_t __pyx_t_3;
+  PyObject *(*__pyx_t_4)(PyObject *);
+  PyObject *__pyx_t_5 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("to_list", 0);
+
+  /* "mitty/lib/variation.pyx":154
+ * 
+ *   def to_list(self):
+ *     return [sv for sv in self]             # <<<<<<<<<<<<<<
+ * 
+ *   cpdef rewind_cursor(self):
+ */
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 154; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  if (likely(PyList_CheckExact(((PyObject *)__pyx_v_self))) || PyTuple_CheckExact(((PyObject *)__pyx_v_self))) {
+    __pyx_t_2 = ((PyObject *)__pyx_v_self); __Pyx_INCREF(__pyx_t_2); __pyx_t_3 = 0;
+    __pyx_t_4 = NULL;
+  } else {
+    __pyx_t_3 = -1; __pyx_t_2 = PyObject_GetIter(((PyObject *)__pyx_v_self)); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 154; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_4 = Py_TYPE(__pyx_t_2)->tp_iternext; if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 154; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  }
+  for (;;) {
+    if (likely(!__pyx_t_4)) {
+      if (likely(PyList_CheckExact(__pyx_t_2))) {
+        if (__pyx_t_3 >= PyList_GET_SIZE(__pyx_t_2)) break;
+        #if CYTHON_COMPILING_IN_CPYTHON
+        __pyx_t_5 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_5); __pyx_t_3++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 154; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        #else
+        __pyx_t_5 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 154; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        #endif
+      } else {
+        if (__pyx_t_3 >= PyTuple_GET_SIZE(__pyx_t_2)) break;
+        #if CYTHON_COMPILING_IN_CPYTHON
+        __pyx_t_5 = PyTuple_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_5); __pyx_t_3++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 154; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        #else
+        __pyx_t_5 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 154; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        #endif
+      }
+    } else {
+      __pyx_t_5 = __pyx_t_4(__pyx_t_2);
+      if (unlikely(!__pyx_t_5)) {
+        PyObject* exc_type = PyErr_Occurred();
+        if (exc_type) {
+          if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
+          else {__pyx_filename = __pyx_f[0]; __pyx_lineno = 154; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        }
+        break;
+      }
+      __Pyx_GOTREF(__pyx_t_5);
+    }
+    __Pyx_XDECREF_SET(__pyx_v_sv, __pyx_t_5);
+    __pyx_t_5 = 0;
+    if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_v_sv))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 154; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  }
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* "mitty/lib/variation.pyx":153
+ *     return ChromosomeIterator(self)
+ * 
+ *   def to_list(self):             # <<<<<<<<<<<<<<
+ *     return [sv for sv in self]
+ * 
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_5);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.to_list", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XDECREF(__pyx_v_sv);
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":156
+ *     return [sv for sv in self]
+ * 
+ *   cpdef rewind_cursor(self):             # <<<<<<<<<<<<<<
+ *     self.cursor = None
+ * 
+ */
+
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_9rewind_cursor(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_f_5mitty_3lib_9variation_10Chromosome_rewind_cursor(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, int __pyx_skip_dispatch) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("rewind_cursor", 0);
+  /* Check if called by wrapper */
+  if (unlikely(__pyx_skip_dispatch)) ;
+  /* Check if overridden in Python */
+  else if (unlikely(Py_TYPE(((PyObject *)__pyx_v_self))->tp_dictoffset != 0)) {
+    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_rewind_cursor); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 156; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)__pyx_pw_5mitty_3lib_9variation_10Chromosome_9rewind_cursor)) {
+      __Pyx_XDECREF(__pyx_r);
+      __Pyx_INCREF(__pyx_t_1);
+      __pyx_t_3 = __pyx_t_1; __pyx_t_4 = NULL;
+      if (CYTHON_COMPILING_IN_CPYTHON && unlikely(PyMethod_Check(__pyx_t_3))) {
+        __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_3);
+        if (likely(__pyx_t_4)) {
+          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
+          __Pyx_INCREF(__pyx_t_4);
+          __Pyx_INCREF(function);
+          __Pyx_DECREF_SET(__pyx_t_3, function);
+        }
+      }
+      if (__pyx_t_4) {
+        __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 156; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+      } else {
+        __pyx_t_2 = __Pyx_PyObject_CallNoArg(__pyx_t_3); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 156; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      }
+      __Pyx_GOTREF(__pyx_t_2);
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+      __pyx_r = __pyx_t_2;
+      __pyx_t_2 = 0;
+      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+      goto __pyx_L0;
+    }
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  }
+
+  /* "mitty/lib/variation.pyx":157
+ * 
+ *   cpdef rewind_cursor(self):
+ *     self.cursor = None             # <<<<<<<<<<<<<<
+ * 
+ *   cpdef GTVariant advance(self):
+ */
+  __Pyx_INCREF(Py_None);
+  __Pyx_GIVEREF(Py_None);
+  __Pyx_GOTREF(__pyx_v_self->cursor);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->cursor));
+  __pyx_v_self->cursor = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None);
+
+  /* "mitty/lib/variation.pyx":156
+ *     return [sv for sv in self]
+ * 
+ *   cpdef rewind_cursor(self):             # <<<<<<<<<<<<<<
+ *     self.cursor = None
+ * 
+ */
+
+  /* function exit code */
+  __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.rewind_cursor", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_9rewind_cursor(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_9rewind_cursor(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("rewind_cursor (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_8rewind_cursor(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_8rewind_cursor(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("rewind_cursor", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = __pyx_f_5mitty_3lib_9variation_10Chromosome_rewind_cursor(__pyx_v_self, 1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 156; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.rewind_cursor", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
 /* "mitty/lib/variation.pyx":159
- *     return self.vd.hash
+ *     self.cursor = None
  * 
- *   cpdef bint eq(self, Variation other):             # <<<<<<<<<<<<<<
- *     # We don't consider zygosity, fitness or recessiveness
- *     return self.vd.POS == other.vd.POS and self.vd.stop == other.vd.stop and \
+ *   cpdef GTVariant advance(self):             # <<<<<<<<<<<<<<
+ *     if self.cursor is None:  # We are at the head of the list
+ *       self.cursor = self.head
  */
 
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_5eq(PyObject *__pyx_v_self, PyObject *__pyx_v_other); /*proto*/
-static int __pyx_f_5mitty_3lib_9variation_9Variation_eq(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_other, int __pyx_skip_dispatch) {
-  int __pyx_r;
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_11advance(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_f_5mitty_3lib_9variation_10Chromosome_advance(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, int __pyx_skip_dispatch) {
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
+  int __pyx_t_5;
+  int __pyx_t_6;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("advance", 0);
+  /* Check if called by wrapper */
+  if (unlikely(__pyx_skip_dispatch)) ;
+  /* Check if overridden in Python */
+  else if (unlikely(Py_TYPE(((PyObject *)__pyx_v_self))->tp_dictoffset != 0)) {
+    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_advance); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 159; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)__pyx_pw_5mitty_3lib_9variation_10Chromosome_11advance)) {
+      __Pyx_XDECREF(((PyObject *)__pyx_r));
+      __Pyx_INCREF(__pyx_t_1);
+      __pyx_t_3 = __pyx_t_1; __pyx_t_4 = NULL;
+      if (CYTHON_COMPILING_IN_CPYTHON && unlikely(PyMethod_Check(__pyx_t_3))) {
+        __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_3);
+        if (likely(__pyx_t_4)) {
+          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
+          __Pyx_INCREF(__pyx_t_4);
+          __Pyx_INCREF(function);
+          __Pyx_DECREF_SET(__pyx_t_3, function);
+        }
+      }
+      if (__pyx_t_4) {
+        __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 159; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+      } else {
+        __pyx_t_2 = __Pyx_PyObject_CallNoArg(__pyx_t_3); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 159; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      }
+      __Pyx_GOTREF(__pyx_t_2);
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+      if (!(likely(((__pyx_t_2) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_2, __pyx_ptype_5mitty_3lib_9variation_GTVariant))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 159; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __pyx_r = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_2);
+      __pyx_t_2 = 0;
+      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+      goto __pyx_L0;
+    }
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  }
+
+  /* "mitty/lib/variation.pyx":160
+ * 
+ *   cpdef GTVariant advance(self):
+ *     if self.cursor is None:  # We are at the head of the list             # <<<<<<<<<<<<<<
+ *       self.cursor = self.head
+ *     else:
+ */
+  __pyx_t_5 = (((PyObject *)__pyx_v_self->cursor) == Py_None);
+  __pyx_t_6 = (__pyx_t_5 != 0);
+  if (__pyx_t_6) {
+
+    /* "mitty/lib/variation.pyx":161
+ *   cpdef GTVariant advance(self):
+ *     if self.cursor is None:  # We are at the head of the list
+ *       self.cursor = self.head             # <<<<<<<<<<<<<<
+ *     else:
+ *       if self.cursor.next is not None:  # OK to advance
+ */
+    __pyx_t_1 = ((PyObject *)__pyx_v_self->head);
+    __Pyx_INCREF(__pyx_t_1);
+    __Pyx_GIVEREF(__pyx_t_1);
+    __Pyx_GOTREF(__pyx_v_self->cursor);
+    __Pyx_DECREF(((PyObject *)__pyx_v_self->cursor));
+    __pyx_v_self->cursor = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1);
+    __pyx_t_1 = 0;
+    goto __pyx_L3;
+  }
+  /*else*/ {
+
+    /* "mitty/lib/variation.pyx":163
+ *       self.cursor = self.head
+ *     else:
+ *       if self.cursor.next is not None:  # OK to advance             # <<<<<<<<<<<<<<
+ *         self.cursor = self.cursor.next
+ *     return self.cursor.next  # Will be None for empty list or end of list
+ */
+    __pyx_t_6 = (((PyObject *)__pyx_v_self->cursor->next) != Py_None);
+    __pyx_t_5 = (__pyx_t_6 != 0);
+    if (__pyx_t_5) {
+
+      /* "mitty/lib/variation.pyx":164
+ *     else:
+ *       if self.cursor.next is not None:  # OK to advance
+ *         self.cursor = self.cursor.next             # <<<<<<<<<<<<<<
+ *     return self.cursor.next  # Will be None for empty list or end of list
+ * 
+ */
+      __pyx_t_1 = ((PyObject *)__pyx_v_self->cursor->next);
+      __Pyx_INCREF(__pyx_t_1);
+      __Pyx_GIVEREF(__pyx_t_1);
+      __Pyx_GOTREF(__pyx_v_self->cursor);
+      __Pyx_DECREF(((PyObject *)__pyx_v_self->cursor));
+      __pyx_v_self->cursor = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1);
+      __pyx_t_1 = 0;
+      goto __pyx_L4;
+    }
+    __pyx_L4:;
+  }
+  __pyx_L3:;
+
+  /* "mitty/lib/variation.pyx":165
+ *       if self.cursor.next is not None:  # OK to advance
+ *         self.cursor = self.cursor.next
+ *     return self.cursor.next  # Will be None for empty list or end of list             # <<<<<<<<<<<<<<
+ * 
+ *   cpdef GTVariant last(self):
+ */
+  __Pyx_XDECREF(((PyObject *)__pyx_r));
+  __Pyx_INCREF(((PyObject *)__pyx_v_self->cursor->next));
+  __pyx_r = __pyx_v_self->cursor->next;
+  goto __pyx_L0;
+
+  /* "mitty/lib/variation.pyx":159
+ *     self.cursor = None
+ * 
+ *   cpdef GTVariant advance(self):             # <<<<<<<<<<<<<<
+ *     if self.cursor is None:  # We are at the head of the list
+ *       self.cursor = self.head
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.advance", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_XGIVEREF((PyObject *)__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_11advance(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_11advance(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("advance (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_10advance(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_10advance(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("advance", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_10Chromosome_advance(__pyx_v_self, 1)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 159; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.advance", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":167
+ *     return self.cursor.next  # Will be None for empty list or end of list
+ * 
+ *   cpdef GTVariant last(self):             # <<<<<<<<<<<<<<
+ *     if self.head == self.tail:  # Empty list
+ *       return None
+ */
+
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_13last(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_f_5mitty_3lib_9variation_10Chromosome_last(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, int __pyx_skip_dispatch) {
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
+  int __pyx_t_5;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("last", 0);
+  /* Check if called by wrapper */
+  if (unlikely(__pyx_skip_dispatch)) ;
+  /* Check if overridden in Python */
+  else if (unlikely(Py_TYPE(((PyObject *)__pyx_v_self))->tp_dictoffset != 0)) {
+    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_last); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 167; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)__pyx_pw_5mitty_3lib_9variation_10Chromosome_13last)) {
+      __Pyx_XDECREF(((PyObject *)__pyx_r));
+      __Pyx_INCREF(__pyx_t_1);
+      __pyx_t_3 = __pyx_t_1; __pyx_t_4 = NULL;
+      if (CYTHON_COMPILING_IN_CPYTHON && unlikely(PyMethod_Check(__pyx_t_3))) {
+        __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_3);
+        if (likely(__pyx_t_4)) {
+          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
+          __Pyx_INCREF(__pyx_t_4);
+          __Pyx_INCREF(function);
+          __Pyx_DECREF_SET(__pyx_t_3, function);
+        }
+      }
+      if (__pyx_t_4) {
+        __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 167; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+      } else {
+        __pyx_t_2 = __Pyx_PyObject_CallNoArg(__pyx_t_3); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 167; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      }
+      __Pyx_GOTREF(__pyx_t_2);
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+      if (!(likely(((__pyx_t_2) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_2, __pyx_ptype_5mitty_3lib_9variation_GTVariant))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 167; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __pyx_r = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_2);
+      __pyx_t_2 = 0;
+      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+      goto __pyx_L0;
+    }
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  }
+
+  /* "mitty/lib/variation.pyx":168
+ * 
+ *   cpdef GTVariant last(self):
+ *     if self.head == self.tail:  # Empty list             # <<<<<<<<<<<<<<
+ *       return None
+ *     else:
+ */
+  __pyx_t_1 = PyObject_RichCompare(((PyObject *)__pyx_v_self->head), ((PyObject *)__pyx_v_self->tail), Py_EQ); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 168; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_5 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely(__pyx_t_5 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 168; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  if (__pyx_t_5) {
+
+    /* "mitty/lib/variation.pyx":169
+ *   cpdef GTVariant last(self):
+ *     if self.head == self.tail:  # Empty list
+ *       return None             # <<<<<<<<<<<<<<
+ *     else:
+ *       return self.tail
+ */
+    __Pyx_XDECREF(((PyObject *)__pyx_r));
+    __Pyx_INCREF(Py_None);
+    __pyx_r = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None);
+    goto __pyx_L0;
+  }
+  /*else*/ {
+
+    /* "mitty/lib/variation.pyx":171
+ *       return None
+ *     else:
+ *       return self.tail             # <<<<<<<<<<<<<<
+ * 
+ *   cpdef insert(self, GTVariant sv):
+ */
+    __Pyx_XDECREF(((PyObject *)__pyx_r));
+    __Pyx_INCREF(((PyObject *)__pyx_v_self->tail));
+    __pyx_r = __pyx_v_self->tail;
+    goto __pyx_L0;
+  }
+
+  /* "mitty/lib/variation.pyx":167
+ *     return self.cursor.next  # Will be None for empty list or end of list
+ * 
+ *   cpdef GTVariant last(self):             # <<<<<<<<<<<<<<
+ *     if self.head == self.tail:  # Empty list
+ *       return None
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.last", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_XGIVEREF((PyObject *)__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_13last(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_13last(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("last (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_12last(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_12last(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("last", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_10Chromosome_last(__pyx_v_self, 1)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 167; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.last", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":173
+ *       return self.tail
+ * 
+ *   cpdef insert(self, GTVariant sv):             # <<<<<<<<<<<<<<
+ *     """Place sv right after cursor. cursor will point to original cursor.next after this. In practice, this places
+ *     sv right before the variant advance just spit out"""
+ */
+
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_15insert(PyObject *__pyx_v_self, PyObject *__pyx_v_sv); /*proto*/
+static PyObject *__pyx_f_5mitty_3lib_9variation_10Chromosome_insert(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv, int __pyx_skip_dispatch) {
+  PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   PyObject *__pyx_t_2 = NULL;
@@ -4324,18 +4442,18 @@ static int __pyx_f_5mitty_3lib_9variation_9Variation_eq(struct __pyx_obj_5mitty_
   PyObject *__pyx_t_5 = NULL;
   int __pyx_t_6;
   int __pyx_t_7;
-  int __pyx_t_8;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("eq", 0);
+  __Pyx_RefNannySetupContext("insert", 0);
   /* Check if called by wrapper */
   if (unlikely(__pyx_skip_dispatch)) ;
   /* Check if overridden in Python */
   else if (unlikely(Py_TYPE(((PyObject *)__pyx_v_self))->tp_dictoffset != 0)) {
-    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_eq); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 159; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_insert); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 173; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_1);
-    if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)__pyx_pw_5mitty_3lib_9variation_9Variation_5eq)) {
+    if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)__pyx_pw_5mitty_3lib_9variation_10Chromosome_15insert)) {
+      __Pyx_XDECREF(__pyx_r);
       __Pyx_INCREF(__pyx_t_1);
       __pyx_t_3 = __pyx_t_1; __pyx_t_4 = NULL;
       if (CYTHON_COMPILING_IN_CPYTHON && unlikely(PyMethod_Check(__pyx_t_3))) {
@@ -4348,103 +4466,142 @@ static int __pyx_f_5mitty_3lib_9variation_9Variation_eq(struct __pyx_obj_5mitty_
         }
       }
       if (!__pyx_t_4) {
-        __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_t_3, ((PyObject *)__pyx_v_other)); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 159; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_t_3, ((PyObject *)__pyx_v_sv)); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 173; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         __Pyx_GOTREF(__pyx_t_2);
       } else {
-        __pyx_t_5 = PyTuple_New(1+1); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 159; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __pyx_t_5 = PyTuple_New(1+1); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 173; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         __Pyx_GOTREF(__pyx_t_5);
         PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_4); __Pyx_GIVEREF(__pyx_t_4); __pyx_t_4 = NULL;
-        __Pyx_INCREF(((PyObject *)__pyx_v_other));
-        PyTuple_SET_ITEM(__pyx_t_5, 0+1, ((PyObject *)__pyx_v_other));
-        __Pyx_GIVEREF(((PyObject *)__pyx_v_other));
-        __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_5, NULL); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 159; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __Pyx_INCREF(((PyObject *)__pyx_v_sv));
+        PyTuple_SET_ITEM(__pyx_t_5, 0+1, ((PyObject *)__pyx_v_sv));
+        __Pyx_GIVEREF(((PyObject *)__pyx_v_sv));
+        __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_5, NULL); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 173; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         __Pyx_GOTREF(__pyx_t_2);
         __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       }
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-      __pyx_t_6 = __Pyx_PyObject_IsTrue(__pyx_t_2); if (unlikely((__pyx_t_6 == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 159; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __pyx_r = __pyx_t_6;
+      __pyx_r = __pyx_t_2;
+      __pyx_t_2 = 0;
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       goto __pyx_L0;
     }
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   }
 
-  /* "mitty/lib/variation.pyx":161
- *   cpdef bint eq(self, Variation other):
- *     # We don't consider zygosity, fitness or recessiveness
- *     return self.vd.POS == other.vd.POS and self.vd.stop == other.vd.stop and \             # <<<<<<<<<<<<<<
- *            self.vd.REF == other.vd.REF and self.vd.ALT == other.vd.ALT
+  /* "mitty/lib/variation.pyx":176
+ *     """Place sv right after cursor. cursor will point to original cursor.next after this. In practice, this places
+ *     sv right before the variant advance just spit out"""
+ *     sv.next = self.cursor.next             # <<<<<<<<<<<<<<
+ *     self.cursor.next = sv
+ *     self.cursor = sv
+ */
+  __pyx_t_1 = ((PyObject *)__pyx_v_self->cursor->next);
+  __Pyx_INCREF(__pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_sv->next);
+  __Pyx_DECREF(((PyObject *)__pyx_v_sv->next));
+  __pyx_v_sv->next = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* "mitty/lib/variation.pyx":177
+ *     sv right before the variant advance just spit out"""
+ *     sv.next = self.cursor.next
+ *     self.cursor.next = sv             # <<<<<<<<<<<<<<
+ *     self.cursor = sv
+ *     if sv.next is None:
+ */
+  __Pyx_INCREF(((PyObject *)__pyx_v_sv));
+  __Pyx_GIVEREF(((PyObject *)__pyx_v_sv));
+  __Pyx_GOTREF(__pyx_v_self->cursor->next);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->cursor->next));
+  __pyx_v_self->cursor->next = __pyx_v_sv;
+
+  /* "mitty/lib/variation.pyx":178
+ *     sv.next = self.cursor.next
+ *     self.cursor.next = sv
+ *     self.cursor = sv             # <<<<<<<<<<<<<<
+ *     if sv.next is None:
+ *       self.tail = sv
+ */
+  __Pyx_INCREF(((PyObject *)__pyx_v_sv));
+  __Pyx_GIVEREF(((PyObject *)__pyx_v_sv));
+  __Pyx_GOTREF(__pyx_v_self->cursor);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->cursor));
+  __pyx_v_self->cursor = __pyx_v_sv;
+
+  /* "mitty/lib/variation.pyx":179
+ *     self.cursor.next = sv
+ *     self.cursor = sv
+ *     if sv.next is None:             # <<<<<<<<<<<<<<
+ *       self.tail = sv
+ *     self.length += 1
+ */
+  __pyx_t_6 = (((PyObject *)__pyx_v_sv->next) == Py_None);
+  __pyx_t_7 = (__pyx_t_6 != 0);
+  if (__pyx_t_7) {
+
+    /* "mitty/lib/variation.pyx":180
+ *     self.cursor = sv
+ *     if sv.next is None:
+ *       self.tail = sv             # <<<<<<<<<<<<<<
+ *     self.length += 1
  * 
  */
-  __pyx_t_7 = ((__pyx_v_self->vd->POS == __pyx_v_other->vd->POS) != 0);
-  if (__pyx_t_7) {
-  } else {
-    __pyx_t_6 = __pyx_t_7;
-    goto __pyx_L3_bool_binop_done;
+    __Pyx_INCREF(((PyObject *)__pyx_v_sv));
+    __Pyx_GIVEREF(((PyObject *)__pyx_v_sv));
+    __Pyx_GOTREF(__pyx_v_self->tail);
+    __Pyx_DECREF(((PyObject *)__pyx_v_self->tail));
+    __pyx_v_self->tail = __pyx_v_sv;
+    goto __pyx_L3;
   }
-  __pyx_t_7 = ((__pyx_v_self->vd->stop == __pyx_v_other->vd->stop) != 0);
-  if (__pyx_t_7) {
-  } else {
-    __pyx_t_6 = __pyx_t_7;
-    goto __pyx_L3_bool_binop_done;
-  }
+  __pyx_L3:;
 
-  /* "mitty/lib/variation.pyx":162
- *     # We don't consider zygosity, fitness or recessiveness
- *     return self.vd.POS == other.vd.POS and self.vd.stop == other.vd.stop and \
- *            self.vd.REF == other.vd.REF and self.vd.ALT == other.vd.ALT             # <<<<<<<<<<<<<<
+  /* "mitty/lib/variation.pyx":181
+ *     if sv.next is None:
+ *       self.tail = sv
+ *     self.length += 1             # <<<<<<<<<<<<<<
  * 
- *   # http://docs.cython.org/src/userguide/special_methods.html
+ *   cpdef append(self, GTVariant sv):
  */
-  __pyx_t_7 = (__Pyx_PyString_Equals(__pyx_v_self->vd->REF, __pyx_v_other->vd->REF, Py_EQ)); if (unlikely(__pyx_t_7 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 162; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_t_8 = (__pyx_t_7 != 0);
-  if (__pyx_t_8) {
-  } else {
-    __pyx_t_6 = __pyx_t_8;
-    goto __pyx_L3_bool_binop_done;
-  }
-  __pyx_t_8 = (__Pyx_PyString_Equals(__pyx_v_self->vd->ALT, __pyx_v_other->vd->ALT, Py_EQ)); if (unlikely(__pyx_t_8 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 162; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_t_7 = (__pyx_t_8 != 0);
-  __pyx_t_6 = __pyx_t_7;
-  __pyx_L3_bool_binop_done:;
-  __pyx_r = __pyx_t_6;
-  goto __pyx_L0;
+  __pyx_v_self->length = (__pyx_v_self->length + 1);
 
-  /* "mitty/lib/variation.pyx":159
- *     return self.vd.hash
+  /* "mitty/lib/variation.pyx":173
+ *       return self.tail
  * 
- *   cpdef bint eq(self, Variation other):             # <<<<<<<<<<<<<<
- *     # We don't consider zygosity, fitness or recessiveness
- *     return self.vd.POS == other.vd.POS and self.vd.stop == other.vd.stop and \
+ *   cpdef insert(self, GTVariant sv):             # <<<<<<<<<<<<<<
+ *     """Place sv right after cursor. cursor will point to original cursor.next after this. In practice, this places
+ *     sv right before the variant advance just spit out"""
  */
 
   /* function exit code */
+  __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  goto __pyx_L0;
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
   __Pyx_XDECREF(__pyx_t_2);
   __Pyx_XDECREF(__pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4);
   __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_WriteUnraisable("mitty.lib.variation.Variation.eq", __pyx_clineno, __pyx_lineno, __pyx_filename, 0);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.insert", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = 0;
   __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
 /* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_5eq(PyObject *__pyx_v_self, PyObject *__pyx_v_other); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_5eq(PyObject *__pyx_v_self, PyObject *__pyx_v_other) {
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_15insert(PyObject *__pyx_v_self, PyObject *__pyx_v_sv); /*proto*/
+static char __pyx_doc_5mitty_3lib_9variation_10Chromosome_14insert[] = "Place sv right after cursor. cursor will point to original cursor.next after this. In practice, this places\n    sv right before the variant advance just spit out";
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_15insert(PyObject *__pyx_v_self, PyObject *__pyx_v_sv) {
   CYTHON_UNUSED int __pyx_lineno = 0;
   CYTHON_UNUSED const char *__pyx_filename = NULL;
   CYTHON_UNUSED int __pyx_clineno = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("eq (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_other), __pyx_ptype_5mitty_3lib_9variation_Variation, 1, "other", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 159; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation_4eq(((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_self), ((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_other));
+  __Pyx_RefNannySetupContext("insert (wrapper)", 0);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_sv), __pyx_ptype_5mitty_3lib_9variation_GTVariant, 1, "sv", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 173; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_14insert(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self), ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_v_sv));
 
   /* function exit code */
   goto __pyx_L0;
@@ -4455,16 +4612,16 @@ static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_5eq(PyObject *__pyx_
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_4eq(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_other) {
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_14insert(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("eq", 0);
+  __Pyx_RefNannySetupContext("insert", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyBool_FromLong(__pyx_f_5mitty_3lib_9variation_9Variation_eq(__pyx_v_self, __pyx_v_other, 1)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 159; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __pyx_f_5mitty_3lib_9variation_10Chromosome_insert(__pyx_v_self, __pyx_v_sv, 1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 173; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -4473,7 +4630,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_4eq(struct __pyx_obj
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.Variation.eq", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.insert", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -4481,222 +4638,16 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_4eq(struct __pyx_obj
   return __pyx_r;
 }
 
-/* "mitty/lib/variation.pyx":165
+/* "mitty/lib/variation.pyx":183
+ *     self.length += 1
  * 
- *   # http://docs.cython.org/src/userguide/special_methods.html
- *   def __richcmp__(self, Variation other, int op):             # <<<<<<<<<<<<<<
- *     if op == 2:
- *       return self.eq(other)
+ *   cpdef append(self, GTVariant sv):             # <<<<<<<<<<<<<<
+ *     """This is how we grow the list."""
+ *     self.tail.next = sv
  */
 
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_7__richcmp__(PyObject *__pyx_v_self, PyObject *__pyx_v_other, int __pyx_v_op); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_7__richcmp__(PyObject *__pyx_v_self, PyObject *__pyx_v_other, int __pyx_v_op) {
-  CYTHON_UNUSED int __pyx_lineno = 0;
-  CYTHON_UNUSED const char *__pyx_filename = NULL;
-  CYTHON_UNUSED int __pyx_clineno = 0;
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__richcmp__ (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_other), __pyx_ptype_5mitty_3lib_9variation_Variation, 1, "other", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 165; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation_6__richcmp__(((PyObject *)__pyx_v_self), ((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_other), ((int)__pyx_v_op));
-
-  /* function exit code */
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __pyx_r = NULL;
-  __pyx_L0:;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_6__richcmp__(PyObject *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_other, int __pyx_v_op) {
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
-  PyObject *__pyx_t_4 = NULL;
-  int __pyx_t_5;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__richcmp__", 0);
-
-  /* "mitty/lib/variation.pyx":168
- *     if op == 2:
- *       return self.eq(other)
- *     elif op == 3:             # <<<<<<<<<<<<<<
- *       return not self.eq(other)
- *     else:
- */
-  switch (__pyx_v_op) {
-
-    /* "mitty/lib/variation.pyx":166
- *   # http://docs.cython.org/src/userguide/special_methods.html
- *   def __richcmp__(self, Variation other, int op):
- *     if op == 2:             # <<<<<<<<<<<<<<
- *       return self.eq(other)
- *     elif op == 3:
- */
-    case 2:
-
-    /* "mitty/lib/variation.pyx":167
- *   def __richcmp__(self, Variation other, int op):
- *     if op == 2:
- *       return self.eq(other)             # <<<<<<<<<<<<<<
- *     elif op == 3:
- *       return not self.eq(other)
- */
-    __Pyx_XDECREF(__pyx_r);
-    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_self, __pyx_n_s_eq); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 167; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_3 = NULL;
-    if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_2))) {
-      __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_2);
-      if (likely(__pyx_t_3)) {
-        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-        __Pyx_INCREF(__pyx_t_3);
-        __Pyx_INCREF(function);
-        __Pyx_DECREF_SET(__pyx_t_2, function);
-      }
-    }
-    if (!__pyx_t_3) {
-      __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_2, ((PyObject *)__pyx_v_other)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 167; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_GOTREF(__pyx_t_1);
-    } else {
-      __pyx_t_4 = PyTuple_New(1+1); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 167; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_GOTREF(__pyx_t_4);
-      PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_3); __Pyx_GIVEREF(__pyx_t_3); __pyx_t_3 = NULL;
-      __Pyx_INCREF(((PyObject *)__pyx_v_other));
-      PyTuple_SET_ITEM(__pyx_t_4, 0+1, ((PyObject *)__pyx_v_other));
-      __Pyx_GIVEREF(((PyObject *)__pyx_v_other));
-      __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_4, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 167; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_GOTREF(__pyx_t_1);
-      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    }
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_r = __pyx_t_1;
-    __pyx_t_1 = 0;
-    goto __pyx_L0;
-    break;
-
-    /* "mitty/lib/variation.pyx":168
- *     if op == 2:
- *       return self.eq(other)
- *     elif op == 3:             # <<<<<<<<<<<<<<
- *       return not self.eq(other)
- *     else:
- */
-    case 3:
-
-    /* "mitty/lib/variation.pyx":169
- *       return self.eq(other)
- *     elif op == 3:
- *       return not self.eq(other)             # <<<<<<<<<<<<<<
- *     else:
- *       return False
- */
-    __Pyx_XDECREF(__pyx_r);
-    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_self, __pyx_n_s_eq); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 169; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_4 = NULL;
-    if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_2))) {
-      __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_2);
-      if (likely(__pyx_t_4)) {
-        PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-        __Pyx_INCREF(__pyx_t_4);
-        __Pyx_INCREF(function);
-        __Pyx_DECREF_SET(__pyx_t_2, function);
-      }
-    }
-    if (!__pyx_t_4) {
-      __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_2, ((PyObject *)__pyx_v_other)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 169; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_GOTREF(__pyx_t_1);
-    } else {
-      __pyx_t_3 = PyTuple_New(1+1); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 169; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_GOTREF(__pyx_t_3);
-      PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_4); __Pyx_GIVEREF(__pyx_t_4); __pyx_t_4 = NULL;
-      __Pyx_INCREF(((PyObject *)__pyx_v_other));
-      PyTuple_SET_ITEM(__pyx_t_3, 0+1, ((PyObject *)__pyx_v_other));
-      __Pyx_GIVEREF(((PyObject *)__pyx_v_other));
-      __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_3, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 169; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_GOTREF(__pyx_t_1);
-      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    }
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_5 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely(__pyx_t_5 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 169; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_1 = __Pyx_PyBool_FromLong((!__pyx_t_5)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 169; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_1);
-    __pyx_r = __pyx_t_1;
-    __pyx_t_1 = 0;
-    goto __pyx_L0;
-    break;
-    default:
-
-    /* "mitty/lib/variation.pyx":171
- *       return not self.eq(other)
- *     else:
- *       return False             # <<<<<<<<<<<<<<
- * 
- *   def __repr__(self):
- */
-    __Pyx_XDECREF(__pyx_r);
-    __Pyx_INCREF(Py_False);
-    __pyx_r = Py_False;
-    goto __pyx_L0;
-    break;
-  }
-
-  /* "mitty/lib/variation.pyx":165
- * 
- *   # http://docs.cython.org/src/userguide/special_methods.html
- *   def __richcmp__(self, Variation other, int op):             # <<<<<<<<<<<<<<
- *     if op == 2:
- *       return self.eq(other)
- */
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_4);
-  __Pyx_AddTraceback("mitty.lib.variation.Variation.__richcmp__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
-  __pyx_L0:;
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* "mitty/lib/variation.pyx":173
- *       return False
- * 
- *   def __repr__(self):             # <<<<<<<<<<<<<<
- *     """Return a human friendly printed representation of the variant."""
- *     return '(POS={0},stop={1},REF={2},ALT={3},zygosity={4},r={5},fit={6})'.\
- */
-
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_9__repr__(PyObject *__pyx_v_self); /*proto*/
-static char __pyx_doc_5mitty_3lib_9variation_9Variation_8__repr__[] = "Return a human friendly printed representation of the variant.";
-#if CYTHON_COMPILING_IN_CPYTHON
-struct wrapperbase __pyx_wrapperbase_5mitty_3lib_9variation_9Variation_8__repr__;
-#endif
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_9__repr__(PyObject *__pyx_v_self) {
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__repr__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation_8__repr__(((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_self));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_8__repr__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self) {
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_17append(PyObject *__pyx_v_self, PyObject *__pyx_v_sv); /*proto*/
+static PyObject *__pyx_f_5mitty_3lib_9variation_10Chromosome_append(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv, int __pyx_skip_dispatch) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -4704,113 +4655,153 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_8__repr__(struct __p
   PyObject *__pyx_t_3 = NULL;
   PyObject *__pyx_t_4 = NULL;
   PyObject *__pyx_t_5 = NULL;
-  PyObject *__pyx_t_6 = NULL;
-  PyObject *__pyx_t_7 = NULL;
-  PyObject *__pyx_t_8 = NULL;
-  Py_ssize_t __pyx_t_9;
-  PyObject *__pyx_t_10 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__repr__", 0);
-
-  /* "mitty/lib/variation.pyx":175
- *   def __repr__(self):
- *     """Return a human friendly printed representation of the variant."""
- *     return '(POS={0},stop={1},REF={2},ALT={3},zygosity={4},r={5},fit={6})'.\             # <<<<<<<<<<<<<<
- *       format(self.vd.POS, self.vd.stop, self.vd.REF, self.vd.ALT, GT[self.het], self.recessive, self.fitness)
- * 
- */
-  __Pyx_XDECREF(__pyx_r);
-
-  /* "mitty/lib/variation.pyx":176
- *     """Return a human friendly printed representation of the variant."""
- *     return '(POS={0},stop={1},REF={2},ALT={3},zygosity={4},r={5},fit={6})'.\
- *       format(self.vd.POS, self.vd.stop, self.vd.REF, self.vd.ALT, GT[self.het], self.recessive, self.fitness)             # <<<<<<<<<<<<<<
- * 
- * 
- */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_kp_s_POS_0_stop_1_REF_2_ALT_3_zygosi, __pyx_n_s_format); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 175; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_From_long(__pyx_v_self->vd->POS); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 176; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_PyInt_From_long(__pyx_v_self->vd->stop); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 176; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_GetModuleGlobalName(__pyx_n_s_GT); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 176; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_5);
-  __pyx_t_6 = __Pyx_GetItemInt(__pyx_t_5, __pyx_v_self->het, unsigned char, 0, __Pyx_PyInt_From_unsigned_char, 0, 0, 1); if (unlikely(__pyx_t_6 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 176; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-  __Pyx_GOTREF(__pyx_t_6);
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_t_5 = __Pyx_PyInt_From_unsigned_char(__pyx_v_self->recessive); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 176; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_5);
-  __pyx_t_7 = __Pyx_PyInt_From_unsigned_char(__pyx_v_self->fitness); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 176; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_7);
-  __pyx_t_8 = NULL;
-  __pyx_t_9 = 0;
-  if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_2))) {
-    __pyx_t_8 = PyMethod_GET_SELF(__pyx_t_2);
-    if (likely(__pyx_t_8)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-      __Pyx_INCREF(__pyx_t_8);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_2, function);
-      __pyx_t_9 = 1;
+  __Pyx_RefNannySetupContext("append", 0);
+  /* Check if called by wrapper */
+  if (unlikely(__pyx_skip_dispatch)) ;
+  /* Check if overridden in Python */
+  else if (unlikely(Py_TYPE(((PyObject *)__pyx_v_self))->tp_dictoffset != 0)) {
+    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_append); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 183; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)__pyx_pw_5mitty_3lib_9variation_10Chromosome_17append)) {
+      __Pyx_XDECREF(__pyx_r);
+      __Pyx_INCREF(__pyx_t_1);
+      __pyx_t_3 = __pyx_t_1; __pyx_t_4 = NULL;
+      if (CYTHON_COMPILING_IN_CPYTHON && unlikely(PyMethod_Check(__pyx_t_3))) {
+        __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_3);
+        if (likely(__pyx_t_4)) {
+          PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
+          __Pyx_INCREF(__pyx_t_4);
+          __Pyx_INCREF(function);
+          __Pyx_DECREF_SET(__pyx_t_3, function);
+        }
+      }
+      if (!__pyx_t_4) {
+        __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_t_3, ((PyObject *)__pyx_v_sv)); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 183; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __Pyx_GOTREF(__pyx_t_2);
+      } else {
+        __pyx_t_5 = PyTuple_New(1+1); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 183; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __Pyx_GOTREF(__pyx_t_5);
+        PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_4); __Pyx_GIVEREF(__pyx_t_4); __pyx_t_4 = NULL;
+        __Pyx_INCREF(((PyObject *)__pyx_v_sv));
+        PyTuple_SET_ITEM(__pyx_t_5, 0+1, ((PyObject *)__pyx_v_sv));
+        __Pyx_GIVEREF(((PyObject *)__pyx_v_sv));
+        __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_5, NULL); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 183; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __Pyx_GOTREF(__pyx_t_2);
+        __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+      }
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+      __pyx_r = __pyx_t_2;
+      __pyx_t_2 = 0;
+      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+      goto __pyx_L0;
     }
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   }
-  __pyx_t_10 = PyTuple_New(7+__pyx_t_9); if (unlikely(!__pyx_t_10)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 176; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_10);
-  if (__pyx_t_8) {
-    PyTuple_SET_ITEM(__pyx_t_10, 0, __pyx_t_8); __Pyx_GIVEREF(__pyx_t_8); __pyx_t_8 = NULL;
-  }
-  PyTuple_SET_ITEM(__pyx_t_10, 0+__pyx_t_9, __pyx_t_3);
-  __Pyx_GIVEREF(__pyx_t_3);
-  PyTuple_SET_ITEM(__pyx_t_10, 1+__pyx_t_9, __pyx_t_4);
-  __Pyx_GIVEREF(__pyx_t_4);
-  __Pyx_INCREF(__pyx_v_self->vd->REF);
-  PyTuple_SET_ITEM(__pyx_t_10, 2+__pyx_t_9, __pyx_v_self->vd->REF);
-  __Pyx_GIVEREF(__pyx_v_self->vd->REF);
-  __Pyx_INCREF(__pyx_v_self->vd->ALT);
-  PyTuple_SET_ITEM(__pyx_t_10, 3+__pyx_t_9, __pyx_v_self->vd->ALT);
-  __Pyx_GIVEREF(__pyx_v_self->vd->ALT);
-  PyTuple_SET_ITEM(__pyx_t_10, 4+__pyx_t_9, __pyx_t_6);
-  __Pyx_GIVEREF(__pyx_t_6);
-  PyTuple_SET_ITEM(__pyx_t_10, 5+__pyx_t_9, __pyx_t_5);
-  __Pyx_GIVEREF(__pyx_t_5);
-  PyTuple_SET_ITEM(__pyx_t_10, 6+__pyx_t_9, __pyx_t_7);
-  __Pyx_GIVEREF(__pyx_t_7);
-  __pyx_t_3 = 0;
-  __pyx_t_4 = 0;
-  __pyx_t_6 = 0;
-  __pyx_t_5 = 0;
-  __pyx_t_7 = 0;
-  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_10, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 176; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_r = __pyx_t_1;
-  __pyx_t_1 = 0;
-  goto __pyx_L0;
 
-  /* "mitty/lib/variation.pyx":173
- *       return False
+  /* "mitty/lib/variation.pyx":185
+ *   cpdef append(self, GTVariant sv):
+ *     """This is how we grow the list."""
+ *     self.tail.next = sv             # <<<<<<<<<<<<<<
+ *     self.tail = sv
+ *     self.length += 1
+ */
+  __Pyx_INCREF(((PyObject *)__pyx_v_sv));
+  __Pyx_GIVEREF(((PyObject *)__pyx_v_sv));
+  __Pyx_GOTREF(__pyx_v_self->tail->next);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->tail->next));
+  __pyx_v_self->tail->next = __pyx_v_sv;
+
+  /* "mitty/lib/variation.pyx":186
+ *     """This is how we grow the list."""
+ *     self.tail.next = sv
+ *     self.tail = sv             # <<<<<<<<<<<<<<
+ *     self.length += 1
  * 
- *   def __repr__(self):             # <<<<<<<<<<<<<<
- *     """Return a human friendly printed representation of the variant."""
- *     return '(POS={0},stop={1},REF={2},ALT={3},zygosity={4},r={5},fit={6})'.\
+ */
+  __Pyx_INCREF(((PyObject *)__pyx_v_sv));
+  __Pyx_GIVEREF(((PyObject *)__pyx_v_sv));
+  __Pyx_GOTREF(__pyx_v_self->tail);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->tail));
+  __pyx_v_self->tail = __pyx_v_sv;
+
+  /* "mitty/lib/variation.pyx":187
+ *     self.tail.next = sv
+ *     self.tail = sv
+ *     self.length += 1             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+  __pyx_v_self->length = (__pyx_v_self->length + 1);
+
+  /* "mitty/lib/variation.pyx":183
+ *     self.length += 1
+ * 
+ *   cpdef append(self, GTVariant sv):             # <<<<<<<<<<<<<<
+ *     """This is how we grow the list."""
+ *     self.tail.next = sv
  */
 
   /* function exit code */
+  __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  goto __pyx_L0;
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
   __Pyx_XDECREF(__pyx_t_2);
   __Pyx_XDECREF(__pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4);
   __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_XDECREF(__pyx_t_6);
-  __Pyx_XDECREF(__pyx_t_7);
-  __Pyx_XDECREF(__pyx_t_8);
-  __Pyx_XDECREF(__pyx_t_10);
-  __Pyx_AddTraceback("mitty.lib.variation.Variation.__repr__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.append", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_17append(PyObject *__pyx_v_self, PyObject *__pyx_v_sv); /*proto*/
+static char __pyx_doc_5mitty_3lib_9variation_10Chromosome_16append[] = "This is how we grow the list.";
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_17append(PyObject *__pyx_v_self, PyObject *__pyx_v_sv) {
+  CYTHON_UNUSED int __pyx_lineno = 0;
+  CYTHON_UNUSED const char *__pyx_filename = NULL;
+  CYTHON_UNUSED int __pyx_clineno = 0;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("append (wrapper)", 0);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_sv), __pyx_ptype_5mitty_3lib_9variation_GTVariant, 1, "sv", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 183; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_16append(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self), ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_v_sv));
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_16append(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("append", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = __pyx_f_5mitty_3lib_9variation_10Chromosome_append(__pyx_v_self, __pyx_v_sv, 1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 183; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.append", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -4818,34 +4809,34 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_8__repr__(struct __p
   return __pyx_r;
 }
 
-/* "mitty/lib/variation.pyx":146
- *   """Carries *reference* to a VariationData instance and heterozygosity, recessiveness and fitness data."""
+/* "mitty/lib/variation.pyx":140
+ *   """
  *   cdef public:
- *     VariationData vd             # <<<<<<<<<<<<<<
- *     unsigned char het, recessive, fitness
+ *     GTVariant head, cursor, tail             # <<<<<<<<<<<<<<
+ *     unsigned long length
  * 
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_2vd_1__get__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_2vd_1__get__(PyObject *__pyx_v_self) {
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_4head_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_4head_1__get__(PyObject *__pyx_v_self) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation_2vd___get__(((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_self));
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_4head___get__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_2vd___get__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self) {
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_4head___get__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__get__", 0);
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF(((PyObject *)__pyx_v_self->vd));
-  __pyx_r = ((PyObject *)__pyx_v_self->vd);
+  __Pyx_INCREF(((PyObject *)__pyx_v_self->head));
+  __pyx_r = ((PyObject *)__pyx_v_self->head);
   goto __pyx_L0;
 
   /* function exit code */
@@ -4856,19 +4847,19 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_2vd___get__(struct _
 }
 
 /* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_9Variation_2vd_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_9Variation_2vd_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_4head_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_4head_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation_2vd_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_4head_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self), ((PyObject *)__pyx_v_value));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_5mitty_3lib_9variation_9Variation_2vd_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, PyObject *__pyx_v_value) {
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_4head_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, PyObject *__pyx_v_value) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -4876,13 +4867,13 @@ static int __pyx_pf_5mitty_3lib_9variation_9Variation_2vd_2__set__(struct __pyx_
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__set__", 0);
-  if (!(likely(((__pyx_v_value) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_value, __pyx_ptype_5mitty_3lib_9variation_VariationData))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 146; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (!(likely(((__pyx_v_value) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_value, __pyx_ptype_5mitty_3lib_9variation_GTVariant))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 140; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_t_1 = __pyx_v_value;
   __Pyx_INCREF(__pyx_t_1);
   __Pyx_GIVEREF(__pyx_t_1);
-  __Pyx_GOTREF(__pyx_v_self->vd);
-  __Pyx_DECREF(((PyObject *)__pyx_v_self->vd));
-  __pyx_v_self->vd = ((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_self->head);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->head));
+  __pyx_v_self->head = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1);
   __pyx_t_1 = 0;
 
   /* function exit code */
@@ -4890,7 +4881,7 @@ static int __pyx_pf_5mitty_3lib_9variation_9Variation_2vd_2__set__(struct __pyx_
   goto __pyx_L0;
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.Variation.vd.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.head.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
@@ -4898,27 +4889,27 @@ static int __pyx_pf_5mitty_3lib_9variation_9Variation_2vd_2__set__(struct __pyx_
 }
 
 /* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_9Variation_2vd_5__del__(PyObject *__pyx_v_self); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_9Variation_2vd_5__del__(PyObject *__pyx_v_self) {
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_4head_5__del__(PyObject *__pyx_v_self); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_4head_5__del__(PyObject *__pyx_v_self) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__del__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation_2vd_4__del__(((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_self));
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_4head_4__del__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_5mitty_3lib_9variation_9Variation_2vd_4__del__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self) {
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_4head_4__del__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__del__", 0);
   __Pyx_INCREF(Py_None);
   __Pyx_GIVEREF(Py_None);
-  __Pyx_GOTREF(__pyx_v_self->vd);
-  __Pyx_DECREF(((PyObject *)__pyx_v_self->vd));
-  __pyx_v_self->vd = ((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)Py_None);
+  __Pyx_GOTREF(__pyx_v_self->head);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->head));
+  __pyx_v_self->head = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None);
 
   /* function exit code */
   __pyx_r = 0;
@@ -4926,28 +4917,228 @@ static int __pyx_pf_5mitty_3lib_9variation_9Variation_2vd_4__del__(struct __pyx_
   return __pyx_r;
 }
 
-/* "mitty/lib/variation.pyx":147
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_6cursor_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_6cursor_1__get__(PyObject *__pyx_v_self) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_6cursor___get__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_6cursor___get__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __Pyx_INCREF(((PyObject *)__pyx_v_self->cursor));
+  __pyx_r = ((PyObject *)__pyx_v_self->cursor);
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_6cursor_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_6cursor_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_6cursor_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_6cursor_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__set__", 0);
+  if (!(likely(((__pyx_v_value) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_value, __pyx_ptype_5mitty_3lib_9variation_GTVariant))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 140; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __pyx_v_value;
+  __Pyx_INCREF(__pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_self->cursor);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->cursor));
+  __pyx_v_self->cursor = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.cursor.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_6cursor_5__del__(PyObject *__pyx_v_self); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_6cursor_5__del__(PyObject *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_6cursor_4__del__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_6cursor_4__del__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__", 0);
+  __Pyx_INCREF(Py_None);
+  __Pyx_GIVEREF(Py_None);
+  __Pyx_GOTREF(__pyx_v_self->cursor);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->cursor));
+  __pyx_v_self->cursor = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None);
+
+  /* function exit code */
+  __pyx_r = 0;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_4tail_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_4tail_1__get__(PyObject *__pyx_v_self) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_4tail___get__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_4tail___get__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__get__", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __Pyx_INCREF(((PyObject *)__pyx_v_self->tail));
+  __pyx_r = ((PyObject *)__pyx_v_self->tail);
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_4tail_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_4tail_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_4tail_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_4tail_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, PyObject *__pyx_v_value) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__set__", 0);
+  if (!(likely(((__pyx_v_value) == Py_None) || likely(__Pyx_TypeTest(__pyx_v_value, __pyx_ptype_5mitty_3lib_9variation_GTVariant))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 140; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __pyx_v_value;
+  __Pyx_INCREF(__pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_self->tail);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->tail));
+  __pyx_v_self->tail = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.tail.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_4tail_5__del__(PyObject *__pyx_v_self); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_4tail_5__del__(PyObject *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_4tail_4__del__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_4tail_4__del__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__del__", 0);
+  __Pyx_INCREF(Py_None);
+  __Pyx_GIVEREF(Py_None);
+  __Pyx_GOTREF(__pyx_v_self->tail);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->tail));
+  __pyx_v_self->tail = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None);
+
+  /* function exit code */
+  __pyx_r = 0;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":141
  *   cdef public:
- *     VariationData vd
- *     unsigned char het, recessive, fitness             # <<<<<<<<<<<<<<
+ *     GTVariant head, cursor, tail
+ *     unsigned long length             # <<<<<<<<<<<<<<
  * 
- *   # http://docs.cython.org/src/userguide/special_methods.html
+ *   def __cinit__(self):
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_3het_1__get__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_3het_1__get__(PyObject *__pyx_v_self) {
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_6length_1__get__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10Chromosome_6length_1__get__(PyObject *__pyx_v_self) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation_3het___get__(((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_self));
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_6length___get__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_3het___get__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self) {
+static PyObject *__pyx_pf_5mitty_3lib_9variation_10Chromosome_6length___get__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -4956,7 +5147,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_3het___get__(struct 
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__get__", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_unsigned_char(__pyx_v_self->het); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 147; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->length); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 141; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -4965,7 +5156,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_3het___get__(struct 
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.Variation.het.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.length.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -4974,222 +5165,287 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_3het___get__(struct 
 }
 
 /* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_9Variation_3het_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_9Variation_3het_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_6length_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_10Chromosome_6length_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation_3het_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_self), ((PyObject *)__pyx_v_value));
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_10Chromosome_6length_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_v_self), ((PyObject *)__pyx_v_value));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static int __pyx_pf_5mitty_3lib_9variation_9Variation_3het_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, PyObject *__pyx_v_value) {
+static int __pyx_pf_5mitty_3lib_9variation_10Chromosome_6length_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_self, PyObject *__pyx_v_value) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
-  unsigned char __pyx_t_1;
+  unsigned long __pyx_t_1;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__set__", 0);
-  __pyx_t_1 = __Pyx_PyInt_As_unsigned_char(__pyx_v_value); if (unlikely((__pyx_t_1 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 147; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_v_self->het = __pyx_t_1;
+  __pyx_t_1 = __Pyx_PyInt_As_unsigned_long(__pyx_v_value); if (unlikely((__pyx_t_1 == (unsigned long)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 141; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_v_self->length = __pyx_t_1;
 
   /* function exit code */
   __pyx_r = 0;
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.Variation.het.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.Chromosome.length.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = -1;
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_9recessive_1__get__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_9recessive_1__get__(PyObject *__pyx_v_self) {
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation_9recessive___get__(((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_self));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_9recessive___get__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self) {
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__get__", 0);
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_unsigned_char(__pyx_v_self->recessive); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 147; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_r = __pyx_t_1;
-  __pyx_t_1 = 0;
-  goto __pyx_L0;
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.Variation.recessive.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
-  __pyx_L0:;
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_9Variation_9recessive_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_9Variation_9recessive_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation_9recessive_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_self), ((PyObject *)__pyx_v_value));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static int __pyx_pf_5mitty_3lib_9variation_9Variation_9recessive_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, PyObject *__pyx_v_value) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  unsigned char __pyx_t_1;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__set__", 0);
-  __pyx_t_1 = __Pyx_PyInt_As_unsigned_char(__pyx_v_value); if (unlikely((__pyx_t_1 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 147; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_v_self->recessive = __pyx_t_1;
-
-  /* function exit code */
-  __pyx_r = 0;
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.Variation.recessive.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = -1;
-  __pyx_L0:;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_7fitness_1__get__(PyObject *__pyx_v_self); /*proto*/
-static PyObject *__pyx_pw_5mitty_3lib_9variation_9Variation_7fitness_1__get__(PyObject *__pyx_v_self) {
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__get__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation_7fitness___get__(((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_self));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_9Variation_7fitness___get__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self) {
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__get__", 0);
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_unsigned_char(__pyx_v_self->fitness); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 147; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_r = __pyx_t_1;
-  __pyx_t_1 = 0;
-  goto __pyx_L0;
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.Variation.fitness.__get__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
-  __pyx_L0:;
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static int __pyx_pw_5mitty_3lib_9variation_9Variation_7fitness_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value); /*proto*/
-static int __pyx_pw_5mitty_3lib_9variation_9Variation_7fitness_3__set__(PyObject *__pyx_v_self, PyObject *__pyx_v_value) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("__set__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9Variation_7fitness_2__set__(((struct __pyx_obj_5mitty_3lib_9variation_Variation *)__pyx_v_self), ((PyObject *)__pyx_v_value));
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static int __pyx_pf_5mitty_3lib_9variation_9Variation_7fitness_2__set__(struct __pyx_obj_5mitty_3lib_9variation_Variation *__pyx_v_self, PyObject *__pyx_v_value) {
-  int __pyx_r;
-  __Pyx_RefNannyDeclarations
-  unsigned char __pyx_t_1;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("__set__", 0);
-  __pyx_t_1 = __Pyx_PyInt_As_unsigned_char(__pyx_v_value); if (unlikely((__pyx_t_1 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 147; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_v_self->fitness = __pyx_t_1;
-
-  /* function exit code */
-  __pyx_r = 0;
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.Variation.fitness.__set__", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = -1;
-  __pyx_L0:;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* "mitty/lib/variation.pyx":225
+/* "mitty/lib/variation.pyx":194
+ *   cdef GTVariant this
  * 
+ *   def __cinit__(self, Chromosome s):             # <<<<<<<<<<<<<<
+ *     self.this = s.head.next  # Head is a dummy!
  * 
- * cdef inline bint overlap(VariationData v1, unsigned char het1, VariationData v2, unsigned char het2):             # <<<<<<<<<<<<<<
- *   """Returns true if the footprints of the variations overlap.
- *   :param v1: first variant
  */
 
-static CYTHON_INLINE int __pyx_f_5mitty_3lib_9variation_overlap(struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_v1, unsigned char __pyx_v_het1, struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_v2, unsigned char __pyx_v_het2) {
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_18ChromosomeIterator_1__cinit__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_18ChromosomeIterator_1__cinit__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s = 0;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__cinit__ (wrapper)", 0);
+  {
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_s,0};
+    PyObject* values[1] = {0};
+    if (unlikely(__pyx_kwds)) {
+      Py_ssize_t kw_args;
+      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
+      switch (pos_args) {
+        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+        case  0: break;
+        default: goto __pyx_L5_argtuple_error;
+      }
+      kw_args = PyDict_Size(__pyx_kwds);
+      switch (pos_args) {
+        case  0:
+        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_s)) != 0)) kw_args--;
+        else goto __pyx_L5_argtuple_error;
+      }
+      if (unlikely(kw_args > 0)) {
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 194; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+      }
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 1) {
+      goto __pyx_L5_argtuple_error;
+    } else {
+      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+    }
+    __pyx_v_s = ((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)values[0]);
+  }
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L5_argtuple_error:;
+  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 1, 1, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 194; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __pyx_L3_error:;
+  __Pyx_AddTraceback("mitty.lib.variation.ChromosomeIterator.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_RefNannyFinishContext();
+  return -1;
+  __pyx_L4_argument_unpacking_done:;
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_s), __pyx_ptype_5mitty_3lib_9variation_Chromosome, 1, "s", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 194; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_18ChromosomeIterator___cinit__(((struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *)__pyx_v_self), __pyx_v_s);
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = -1;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_18ChromosomeIterator___cinit__(struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  __Pyx_RefNannySetupContext("__cinit__", 0);
+
+  /* "mitty/lib/variation.pyx":195
+ * 
+ *   def __cinit__(self, Chromosome s):
+ *     self.this = s.head.next  # Head is a dummy!             # <<<<<<<<<<<<<<
+ * 
+ *   def __next__(self):
+ */
+  __pyx_t_1 = ((PyObject *)__pyx_v_s->head->next);
+  __Pyx_INCREF(__pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_self->this);
+  __Pyx_DECREF(((PyObject *)__pyx_v_self->this));
+  __pyx_v_self->this = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* "mitty/lib/variation.pyx":194
+ *   cdef GTVariant this
+ * 
+ *   def __cinit__(self, Chromosome s):             # <<<<<<<<<<<<<<
+ *     self.this = s.head.next  # Head is a dummy!
+ * 
+ */
+
+  /* function exit code */
+  __pyx_r = 0;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":197
+ *     self.this = s.head.next  # Head is a dummy!
+ * 
+ *   def __next__(self):             # <<<<<<<<<<<<<<
+ *     if self.this is None:
+ *       raise StopIteration()
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_18ChromosomeIterator_3__next__(PyObject *__pyx_v_self); /*proto*/
+static PyObject *__pyx_pw_5mitty_3lib_9variation_18ChromosomeIterator_3__next__(PyObject *__pyx_v_self) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("__next__ (wrapper)", 0);
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_18ChromosomeIterator_2__next__(((struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_18ChromosomeIterator_2__next__(struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *__pyx_v_self) {
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_result = NULL;
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  int __pyx_t_1;
+  int __pyx_t_2;
+  PyObject *__pyx_t_3 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__next__", 0);
+
+  /* "mitty/lib/variation.pyx":198
+ * 
+ *   def __next__(self):
+ *     if self.this is None:             # <<<<<<<<<<<<<<
+ *       raise StopIteration()
+ *     else:
+ */
+  __pyx_t_1 = (((PyObject *)__pyx_v_self->this) == Py_None);
+  __pyx_t_2 = (__pyx_t_1 != 0);
+  if (__pyx_t_2) {
+
+    /* "mitty/lib/variation.pyx":199
+ *   def __next__(self):
+ *     if self.this is None:
+ *       raise StopIteration()             # <<<<<<<<<<<<<<
+ *     else:
+ *       result = self.this
+ */
+    __pyx_t_3 = __Pyx_PyObject_CallNoArg(__pyx_builtin_StopIteration); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 199; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_3);
+    __Pyx_Raise(__pyx_t_3, 0, 0, 0);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    {__pyx_filename = __pyx_f[0]; __pyx_lineno = 199; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  }
+  /*else*/ {
+
+    /* "mitty/lib/variation.pyx":201
+ *       raise StopIteration()
+ *     else:
+ *       result = self.this             # <<<<<<<<<<<<<<
+ *       self.this = self.this.next
+ *       return result
+ */
+    __pyx_t_3 = ((PyObject *)__pyx_v_self->this);
+    __Pyx_INCREF(__pyx_t_3);
+    __pyx_v_result = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_3);
+    __pyx_t_3 = 0;
+
+    /* "mitty/lib/variation.pyx":202
+ *     else:
+ *       result = self.this
+ *       self.this = self.this.next             # <<<<<<<<<<<<<<
+ *       return result
+ * 
+ */
+    __pyx_t_3 = ((PyObject *)__pyx_v_self->this->next);
+    __Pyx_INCREF(__pyx_t_3);
+    __Pyx_GIVEREF(__pyx_t_3);
+    __Pyx_GOTREF(__pyx_v_self->this);
+    __Pyx_DECREF(((PyObject *)__pyx_v_self->this));
+    __pyx_v_self->this = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_3);
+    __pyx_t_3 = 0;
+
+    /* "mitty/lib/variation.pyx":203
+ *       result = self.this
+ *       self.this = self.this.next
+ *       return result             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+    __Pyx_XDECREF(__pyx_r);
+    __Pyx_INCREF(((PyObject *)__pyx_v_result));
+    __pyx_r = ((PyObject *)__pyx_v_result);
+    goto __pyx_L0;
+  }
+
+  /* "mitty/lib/variation.pyx":197
+ *     self.this = s.head.next  # Head is a dummy!
+ * 
+ *   def __next__(self):             # <<<<<<<<<<<<<<
+ *     if self.this is None:
+ *       raise StopIteration()
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_AddTraceback("mitty.lib.variation.ChromosomeIterator.__next__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XDECREF((PyObject *)__pyx_v_result);
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":206
+ * 
+ * 
+ * cdef inline bint overlap(GTVariant v1, GTVariant v2):             # <<<<<<<<<<<<<<
+ *   """Returns true if the footprints of the variations overlap. This is used when applying denovo mutations to a genome
+ * 
+ */
+
+static CYTHON_INLINE int __pyx_f_5mitty_3lib_9variation_overlap(struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_v1, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_v2) {
   int __pyx_r;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
   int __pyx_t_2;
   int __pyx_t_3;
-  long __pyx_t_4;
-  long __pyx_t_5;
-  PyObject *__pyx_t_6 = NULL;
-  PyObject *__pyx_t_7 = NULL;
-  PyObject *__pyx_t_8 = NULL;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
+  unsigned long __pyx_t_4;
+  unsigned long __pyx_t_5;
   __Pyx_RefNannySetupContext("overlap", 0);
 
-  /* "mitty/lib/variation.pyx":233
- *   :returns Bool
+  /* "mitty/lib/variation.pyx":213
+ *   :returns True/False: Bool
  *   """
- *   if v2.POS - 1 <= v1.POS <= v2.stop + 1 or v2.POS - 1 <= v1.stop <= v2.stop + 1 or \             # <<<<<<<<<<<<<<
- *                   v1.POS <= v2.POS - 1 <= v2.stop + 1 <= v1.stop:  # Potential overlap
- *     if het1 == het2 or het1 == HOMOZYGOUS or het2 == HOMOZYGOUS:  # Definite overlap
+ *   if v2.data.pos - 1 <= v1.data.pos <= v2.data.stop + 1 or v2.data.pos - 1 <= v1.data.stop <= v2.data.stop + 1 or \             # <<<<<<<<<<<<<<
+ *      v1.data.pos <= v2.data.pos - 1 <= v2.data.stop + 1 <= v1.data.stop:  # Potential overlap
+ *     if v1.gt == v2.gt or v1.gt == HOM or v2.gt == HOM:  # Definite overlap
  */
-  __pyx_t_2 = ((__pyx_v_v2->POS - 1) <= __pyx_v_v1->POS);
+  __pyx_t_2 = ((__pyx_v_v2->data->pos - 1) <= __pyx_v_v1->data->pos);
   if (__pyx_t_2) {
-    __pyx_t_2 = (__pyx_v_v1->POS <= (__pyx_v_v2->stop + 1));
+    __pyx_t_2 = (__pyx_v_v1->data->pos <= (__pyx_v_v2->data->stop + 1));
   }
   __pyx_t_3 = (__pyx_t_2 != 0);
   if (!__pyx_t_3) {
@@ -5197,9 +5453,9 @@ static CYTHON_INLINE int __pyx_f_5mitty_3lib_9variation_overlap(struct __pyx_obj
     __pyx_t_1 = __pyx_t_3;
     goto __pyx_L4_bool_binop_done;
   }
-  __pyx_t_3 = ((__pyx_v_v2->POS - 1) <= __pyx_v_v1->stop);
+  __pyx_t_3 = ((__pyx_v_v2->data->pos - 1) <= __pyx_v_v1->data->stop);
   if (__pyx_t_3) {
-    __pyx_t_3 = (__pyx_v_v1->stop <= (__pyx_v_v2->stop + 1));
+    __pyx_t_3 = (__pyx_v_v1->data->stop <= (__pyx_v_v2->data->stop + 1));
   }
   __pyx_t_2 = (__pyx_t_3 != 0);
   if (!__pyx_t_2) {
@@ -5208,20 +5464,20 @@ static CYTHON_INLINE int __pyx_f_5mitty_3lib_9variation_overlap(struct __pyx_obj
     goto __pyx_L4_bool_binop_done;
   }
 
-  /* "mitty/lib/variation.pyx":234
+  /* "mitty/lib/variation.pyx":214
  *   """
- *   if v2.POS - 1 <= v1.POS <= v2.stop + 1 or v2.POS - 1 <= v1.stop <= v2.stop + 1 or \
- *                   v1.POS <= v2.POS - 1 <= v2.stop + 1 <= v1.stop:  # Potential overlap             # <<<<<<<<<<<<<<
- *     if het1 == het2 or het1 == HOMOZYGOUS or het2 == HOMOZYGOUS:  # Definite overlap
+ *   if v2.data.pos - 1 <= v1.data.pos <= v2.data.stop + 1 or v2.data.pos - 1 <= v1.data.stop <= v2.data.stop + 1 or \
+ *      v1.data.pos <= v2.data.pos - 1 <= v2.data.stop + 1 <= v1.data.stop:  # Potential overlap             # <<<<<<<<<<<<<<
+ *     if v1.gt == v2.gt or v1.gt == HOM or v2.gt == HOM:  # Definite overlap
  *       return True
  */
-  __pyx_t_4 = (__pyx_v_v2->POS - 1);
-  __pyx_t_2 = (__pyx_v_v1->POS <= __pyx_t_4);
+  __pyx_t_4 = (__pyx_v_v2->data->pos - 1);
+  __pyx_t_2 = (__pyx_v_v1->data->pos <= __pyx_t_4);
   if (__pyx_t_2) {
-    __pyx_t_5 = (__pyx_v_v2->stop + 1);
+    __pyx_t_5 = (__pyx_v_v2->data->stop + 1);
     __pyx_t_2 = (__pyx_t_4 <= __pyx_t_5);
     if (__pyx_t_2) {
-      __pyx_t_2 = (__pyx_t_5 <= __pyx_v_v1->stop);
+      __pyx_t_2 = (__pyx_t_5 <= __pyx_v_v1->data->stop);
     }
   }
   __pyx_t_3 = (__pyx_t_2 != 0);
@@ -5229,49 +5485,33 @@ static CYTHON_INLINE int __pyx_f_5mitty_3lib_9variation_overlap(struct __pyx_obj
   __pyx_L4_bool_binop_done:;
   if (__pyx_t_1) {
 
-    /* "mitty/lib/variation.pyx":235
- *   if v2.POS - 1 <= v1.POS <= v2.stop + 1 or v2.POS - 1 <= v1.stop <= v2.stop + 1 or \
- *                   v1.POS <= v2.POS - 1 <= v2.stop + 1 <= v1.stop:  # Potential overlap
- *     if het1 == het2 or het1 == HOMOZYGOUS or het2 == HOMOZYGOUS:  # Definite overlap             # <<<<<<<<<<<<<<
+    /* "mitty/lib/variation.pyx":215
+ *   if v2.data.pos - 1 <= v1.data.pos <= v2.data.stop + 1 or v2.data.pos - 1 <= v1.data.stop <= v2.data.stop + 1 or \
+ *      v1.data.pos <= v2.data.pos - 1 <= v2.data.stop + 1 <= v1.data.stop:  # Potential overlap
+ *     if v1.gt == v2.gt or v1.gt == HOM or v2.gt == HOM:  # Definite overlap             # <<<<<<<<<<<<<<
  *       return True
  *   return False
  */
-    __pyx_t_3 = ((__pyx_v_het1 == __pyx_v_het2) != 0);
+    __pyx_t_3 = ((__pyx_v_v1->gt == __pyx_v_v2->gt) != 0);
     if (!__pyx_t_3) {
     } else {
       __pyx_t_1 = __pyx_t_3;
       goto __pyx_L8_bool_binop_done;
     }
-    __pyx_t_6 = __Pyx_PyInt_From_unsigned_char(__pyx_v_het1); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 235; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_6);
-    __pyx_t_7 = __Pyx_GetModuleGlobalName(__pyx_n_s_HOMOZYGOUS); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 235; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_7);
-    __pyx_t_8 = PyObject_RichCompare(__pyx_t_6, __pyx_t_7, Py_EQ); __Pyx_XGOTREF(__pyx_t_8); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 235; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-    __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_8); if (unlikely(__pyx_t_3 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 235; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+    __pyx_t_3 = ((__pyx_v_v1->gt == __pyx_e_5mitty_3lib_9variation_HOM) != 0);
     if (!__pyx_t_3) {
     } else {
       __pyx_t_1 = __pyx_t_3;
       goto __pyx_L8_bool_binop_done;
     }
-    __pyx_t_8 = __Pyx_PyInt_From_unsigned_char(__pyx_v_het2); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 235; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_8);
-    __pyx_t_7 = __Pyx_GetModuleGlobalName(__pyx_n_s_HOMOZYGOUS); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 235; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_7);
-    __pyx_t_6 = PyObject_RichCompare(__pyx_t_8, __pyx_t_7, Py_EQ); __Pyx_XGOTREF(__pyx_t_6); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 235; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
-    __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-    __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_6); if (unlikely(__pyx_t_3 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 235; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+    __pyx_t_3 = ((__pyx_v_v2->gt == __pyx_e_5mitty_3lib_9variation_HOM) != 0);
     __pyx_t_1 = __pyx_t_3;
     __pyx_L8_bool_binop_done:;
     if (__pyx_t_1) {
 
-      /* "mitty/lib/variation.pyx":236
- *                   v1.POS <= v2.POS - 1 <= v2.stop + 1 <= v1.stop:  # Potential overlap
- *     if het1 == het2 or het1 == HOMOZYGOUS or het2 == HOMOZYGOUS:  # Definite overlap
+      /* "mitty/lib/variation.pyx":216
+ *      v1.data.pos <= v2.data.pos - 1 <= v2.data.stop + 1 <= v1.data.stop:  # Potential overlap
+ *     if v1.gt == v2.gt or v1.gt == HOM or v2.gt == HOM:  # Definite overlap
  *       return True             # <<<<<<<<<<<<<<
  *   return False
  * 
@@ -5283,8 +5523,8 @@ static CYTHON_INLINE int __pyx_f_5mitty_3lib_9variation_overlap(struct __pyx_obj
   }
   __pyx_L3:;
 
-  /* "mitty/lib/variation.pyx":237
- *     if het1 == het2 or het1 == HOMOZYGOUS or het2 == HOMOZYGOUS:  # Definite overlap
+  /* "mitty/lib/variation.pyx":217
+ *     if v1.gt == v2.gt or v1.gt == HOM or v2.gt == HOM:  # Definite overlap
  *       return True
  *   return False             # <<<<<<<<<<<<<<
  * 
@@ -5293,580 +5533,313 @@ static CYTHON_INLINE int __pyx_f_5mitty_3lib_9variation_overlap(struct __pyx_obj
   __pyx_r = 0;
   goto __pyx_L0;
 
-  /* "mitty/lib/variation.pyx":225
+  /* "mitty/lib/variation.pyx":206
  * 
  * 
- * cdef inline bint overlap(VariationData v1, unsigned char het1, VariationData v2, unsigned char het2):             # <<<<<<<<<<<<<<
- *   """Returns true if the footprints of the variations overlap.
- *   :param v1: first variant
+ * cdef inline bint overlap(GTVariant v1, GTVariant v2):             # <<<<<<<<<<<<<<
+ *   """Returns true if the footprints of the variations overlap. This is used when applying denovo mutations to a genome
+ * 
  */
 
   /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_6);
-  __Pyx_XDECREF(__pyx_t_7);
-  __Pyx_XDECREF(__pyx_t_8);
-  __Pyx_WriteUnraisable("mitty.lib.variation.overlap", __pyx_clineno, __pyx_lineno, __pyx_filename, 0);
-  __pyx_r = 0;
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-/* "mitty/lib/variation.pyx":241
+/* "mitty/lib/variation.pyx":220
  * 
- * #TODO: refactor this to be faster? Not use copy_variant? Code can be made cleaner
- * cpdef merge_variants(list c1, list c2, dict ml):             # <<<<<<<<<<<<<<
- *   """merge_variants(c1, c2)
- *   Given an existing chromosome (list of variants) merge a new list of variants into it in zipper fashion. c1 has
+ * 
+ * cpdef add_denovo_variants_to_chromosome(Chromosome s, dnv, dict ml):             # <<<<<<<<<<<<<<
+ *   """add_denovo_variants_to_chromosome(s, dnv, ml)
+ *   Given an existing Chromosome, s,  merge a new list of SampleVariants (dnv) into it in zipper fashion. s has
  */
 
-static PyObject *__pyx_pw_5mitty_3lib_9variation_14merge_variants(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_5mitty_3lib_9variation_merge_variants(PyObject *__pyx_v_c1, PyObject *__pyx_v_c2, PyObject *__pyx_v_ml, CYTHON_UNUSED int __pyx_skip_dispatch) {
-  int __pyx_v_n1_max;
-  int __pyx_v_n2_max;
-  int __pyx_v_n1;
-  int __pyx_v_n2;
-  int __pyx_v_n3;
-  struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_v1 = 0;
-  struct __pyx_obj_5mitty_3lib_9variation_VariationData *__pyx_v_v2 = 0;
-  PyObject *__pyx_v_c3 = NULL;
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10add_denovo_variants_to_chromosome(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_f_5mitty_3lib_9variation_add_denovo_variants_to_chromosome(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s, PyObject *__pyx_v_dnv, PyObject *__pyx_v_ml, CYTHON_UNUSED int __pyx_skip_dispatch) {
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_s1 = 0;
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_s2 = 0;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
-  Py_ssize_t __pyx_t_1;
-  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_t_2;
   int __pyx_t_3;
   int __pyx_t_4;
   PyObject *__pyx_t_5 = NULL;
-  PyObject *__pyx_t_6 = NULL;
-  unsigned char __pyx_t_7;
-  unsigned char __pyx_t_8;
-  long __pyx_t_9;
-  PyObject *__pyx_t_10 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("merge_variants", 0);
+  __Pyx_RefNannySetupContext("add_denovo_variants_to_chromosome", 0);
 
-  /* "mitty/lib/variation.pyx":267
+  /* "mitty/lib/variation.pyx":247
+ * 
  *   """
+ *   s.rewind_cursor()  # One of the evils of mutable state. Is there a way to avoid? Perhaps by making shallow copies?             # <<<<<<<<<<<<<<
  *   cdef:
- *     int n1_max = len(c1), n2_max = len(c2)             # <<<<<<<<<<<<<<
- *     int n1 = 0, n2 = 0, n3 = 0
- *     VariationData v1, v2
+ *     GTVariant s1 = s.advance(), s2 = next(dnv, None)
  */
-  if (unlikely(__pyx_v_c1 == Py_None)) {
-    PyErr_SetString(PyExc_TypeError, "object of type 'NoneType' has no len()");
-    {__pyx_filename = __pyx_f[0]; __pyx_lineno = 267; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  }
-  __pyx_t_1 = PyList_GET_SIZE(__pyx_v_c1); if (unlikely(__pyx_t_1 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 267; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_v_n1_max = __pyx_t_1;
-  if (unlikely(__pyx_v_c2 == Py_None)) {
-    PyErr_SetString(PyExc_TypeError, "object of type 'NoneType' has no len()");
-    {__pyx_filename = __pyx_f[0]; __pyx_lineno = 267; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  }
-  __pyx_t_1 = PyList_GET_SIZE(__pyx_v_c2); if (unlikely(__pyx_t_1 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 267; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_v_n2_max = __pyx_t_1;
+  __pyx_t_1 = ((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s->__pyx_vtab)->rewind_cursor(__pyx_v_s, 0); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 247; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "mitty/lib/variation.pyx":268
+  /* "mitty/lib/variation.pyx":249
+ *   s.rewind_cursor()  # One of the evils of mutable state. Is there a way to avoid? Perhaps by making shallow copies?
  *   cdef:
- *     int n1_max = len(c1), n2_max = len(c2)
- *     int n1 = 0, n2 = 0, n3 = 0             # <<<<<<<<<<<<<<
- *     VariationData v1, v2
- *   c3 = [None] * (n1_max + n2_max)  # This is the maximum size of c3
+ *     GTVariant s1 = s.advance(), s2 = next(dnv, None)             # <<<<<<<<<<<<<<
+ *   while s1 is not None and s2 is not None:
+ *     if overlap(s1, s2): # This will collide. Advance dnv and redo. Fixes case for merge_test8
  */
-  __pyx_v_n1 = 0;
-  __pyx_v_n2 = 0;
-  __pyx_v_n3 = 0;
+  __pyx_t_1 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s->__pyx_vtab)->advance(__pyx_v_s, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 249; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_v_s1 = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1);
+  __pyx_t_1 = 0;
+  __pyx_t_1 = __Pyx_PyIter_Next2(__pyx_v_dnv, Py_None); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 249; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  if (!(likely(((__pyx_t_1) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_1, __pyx_ptype_5mitty_3lib_9variation_GTVariant))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 249; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_v_s2 = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1);
+  __pyx_t_1 = 0;
 
-  /* "mitty/lib/variation.pyx":270
- *     int n1 = 0, n2 = 0, n3 = 0
- *     VariationData v1, v2
- *   c3 = [None] * (n1_max + n2_max)  # This is the maximum size of c3             # <<<<<<<<<<<<<<
- *   while n1 < n1_max and n2 < n2_max:
- *     v1, v2 = ml[c1[n1].index], ml[c2[n2].index]
- */
-  __pyx_t_2 = PyList_New(1 * (((__pyx_v_n1_max + __pyx_v_n2_max)<0) ? 0:(__pyx_v_n1_max + __pyx_v_n2_max))); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 270; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_2);
-  { Py_ssize_t __pyx_temp;
-    for (__pyx_temp=0; __pyx_temp < (__pyx_v_n1_max + __pyx_v_n2_max); __pyx_temp++) {
-      __Pyx_INCREF(Py_None);
-      PyList_SET_ITEM(__pyx_t_2, __pyx_temp, Py_None);
-      __Pyx_GIVEREF(Py_None);
-    }
-  }
-  __pyx_v_c3 = ((PyObject*)__pyx_t_2);
-  __pyx_t_2 = 0;
-
-  /* "mitty/lib/variation.pyx":271
- *     VariationData v1, v2
- *   c3 = [None] * (n1_max + n2_max)  # This is the maximum size of c3
- *   while n1 < n1_max and n2 < n2_max:             # <<<<<<<<<<<<<<
- *     v1, v2 = ml[c1[n1].index], ml[c2[n2].index]
- *     if overlap(v1, c1[n1].het, v2, c2[n2].het): # This will collide. Advance c2 and redo. Fixes case for merge_test8
+  /* "mitty/lib/variation.pyx":250
+ *   cdef:
+ *     GTVariant s1 = s.advance(), s2 = next(dnv, None)
+ *   while s1 is not None and s2 is not None:             # <<<<<<<<<<<<<<
+ *     if overlap(s1, s2): # This will collide. Advance dnv and redo. Fixes case for merge_test8
+ *       s2 = next(dnv, None)
  */
   while (1) {
-    __pyx_t_4 = ((__pyx_v_n1 < __pyx_v_n1_max) != 0);
+    __pyx_t_3 = (((PyObject *)__pyx_v_s1) != Py_None);
+    __pyx_t_4 = (__pyx_t_3 != 0);
     if (__pyx_t_4) {
     } else {
-      __pyx_t_3 = __pyx_t_4;
+      __pyx_t_2 = __pyx_t_4;
       goto __pyx_L5_bool_binop_done;
     }
-    __pyx_t_4 = ((__pyx_v_n2 < __pyx_v_n2_max) != 0);
-    __pyx_t_3 = __pyx_t_4;
+    __pyx_t_4 = (((PyObject *)__pyx_v_s2) != Py_None);
+    __pyx_t_3 = (__pyx_t_4 != 0);
+    __pyx_t_2 = __pyx_t_3;
     __pyx_L5_bool_binop_done:;
-    if (!__pyx_t_3) break;
+    if (!__pyx_t_2) break;
 
-    /* "mitty/lib/variation.pyx":272
- *   c3 = [None] * (n1_max + n2_max)  # This is the maximum size of c3
- *   while n1 < n1_max and n2 < n2_max:
- *     v1, v2 = ml[c1[n1].index], ml[c2[n2].index]             # <<<<<<<<<<<<<<
- *     if overlap(v1, c1[n1].het, v2, c2[n2].het): # This will collide. Advance c2 and redo. Fixes case for merge_test8
- *       n2 += 1
- */
-    if (unlikely(__pyx_v_ml == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 272; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    }
-    if (unlikely(__pyx_v_c1 == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 272; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    }
-    __pyx_t_2 = __Pyx_GetItemInt_List(__pyx_v_c1, __pyx_v_n1, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_2 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 272; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_index); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 272; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_5);
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_2 = __Pyx_PyDict_GetItem(__pyx_v_ml, __pyx_t_5); if (unlikely(__pyx_t_2 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 272; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_2);
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    if (!(likely(((__pyx_t_2) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_2, __pyx_ptype_5mitty_3lib_9variation_VariationData))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 272; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    if (unlikely(__pyx_v_ml == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 272; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    }
-    if (unlikely(__pyx_v_c2 == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 272; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    }
-    __pyx_t_5 = __Pyx_GetItemInt_List(__pyx_v_c2, __pyx_v_n2, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_5 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 272; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_index); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 272; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_6);
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __pyx_t_5 = __Pyx_PyDict_GetItem(__pyx_v_ml, __pyx_t_6); if (unlikely(__pyx_t_5 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 272; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_5);
-    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5mitty_3lib_9variation_VariationData))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 272; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_XDECREF_SET(__pyx_v_v1, ((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_t_2));
-    __pyx_t_2 = 0;
-    __Pyx_XDECREF_SET(__pyx_v_v2, ((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_t_5));
-    __pyx_t_5 = 0;
-
-    /* "mitty/lib/variation.pyx":273
- *   while n1 < n1_max and n2 < n2_max:
- *     v1, v2 = ml[c1[n1].index], ml[c2[n2].index]
- *     if overlap(v1, c1[n1].het, v2, c2[n2].het): # This will collide. Advance c2 and redo. Fixes case for merge_test8             # <<<<<<<<<<<<<<
- *       n2 += 1
+    /* "mitty/lib/variation.pyx":251
+ *     GTVariant s1 = s.advance(), s2 = next(dnv, None)
+ *   while s1 is not None and s2 is not None:
+ *     if overlap(s1, s2): # This will collide. Advance dnv and redo. Fixes case for merge_test8             # <<<<<<<<<<<<<<
+ *       s2 = next(dnv, None)
  *     else:  # No collision
  */
-    if (unlikely(__pyx_v_c1 == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 273; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    }
-    __pyx_t_5 = __Pyx_GetItemInt_List(__pyx_v_c1, __pyx_v_n1, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_5 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 273; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_het); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 273; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_2);
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __pyx_t_7 = __Pyx_PyInt_As_unsigned_char(__pyx_t_2); if (unlikely((__pyx_t_7 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 273; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    if (unlikely(__pyx_v_c2 == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 273; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    }
-    __pyx_t_2 = __Pyx_GetItemInt_List(__pyx_v_c2, __pyx_v_n2, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_2 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 273; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_het); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 273; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_5);
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_8 = __Pyx_PyInt_As_unsigned_char(__pyx_t_5); if (unlikely((__pyx_t_8 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 273; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __pyx_t_3 = (__pyx_f_5mitty_3lib_9variation_overlap(__pyx_v_v1, __pyx_t_7, __pyx_v_v2, __pyx_t_8) != 0);
-    if (__pyx_t_3) {
+    __pyx_t_2 = (__pyx_f_5mitty_3lib_9variation_overlap(__pyx_v_s1, __pyx_v_s2) != 0);
+    if (__pyx_t_2) {
 
-      /* "mitty/lib/variation.pyx":274
- *     v1, v2 = ml[c1[n1].index], ml[c2[n2].index]
- *     if overlap(v1, c1[n1].het, v2, c2[n2].het): # This will collide. Advance c2 and redo. Fixes case for merge_test8
- *       n2 += 1             # <<<<<<<<<<<<<<
+      /* "mitty/lib/variation.pyx":252
+ *   while s1 is not None and s2 is not None:
+ *     if overlap(s1, s2): # This will collide. Advance dnv and redo. Fixes case for merge_test8
+ *       s2 = next(dnv, None)             # <<<<<<<<<<<<<<
  *     else:  # No collision
- *       if v1.POS <= v2.POS:  # Zip-in c1 as it comes before c2
+ *       if s1.data.pos <= s2.data.pos:  # Advance s until we come to s2
  */
-      __pyx_v_n2 = (__pyx_v_n2 + 1);
+      __pyx_t_1 = __Pyx_PyIter_Next2(__pyx_v_dnv, Py_None); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 252; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_1);
+      if (!(likely(((__pyx_t_1) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_1, __pyx_ptype_5mitty_3lib_9variation_GTVariant))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 252; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_DECREF_SET(__pyx_v_s2, ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1));
+      __pyx_t_1 = 0;
       goto __pyx_L7;
     }
     /*else*/ {
 
-      /* "mitty/lib/variation.pyx":276
- *       n2 += 1
+      /* "mitty/lib/variation.pyx":254
+ *       s2 = next(dnv, None)
  *     else:  # No collision
- *       if v1.POS <= v2.POS:  # Zip-in c1 as it comes before c2             # <<<<<<<<<<<<<<
- *         c3[n3] = c1[n1]
- *         n1 += 1
+ *       if s1.data.pos <= s2.data.pos:  # Advance s until we come to s2             # <<<<<<<<<<<<<<
+ *         s1 = s.advance()
+ *       else:  #s1 is past s2 and there is no collision, good to add
  */
-      __pyx_t_3 = ((__pyx_v_v1->POS <= __pyx_v_v2->POS) != 0);
-      if (__pyx_t_3) {
+      __pyx_t_2 = ((__pyx_v_s1->data->pos <= __pyx_v_s2->data->pos) != 0);
+      if (__pyx_t_2) {
 
-        /* "mitty/lib/variation.pyx":277
+        /* "mitty/lib/variation.pyx":255
  *     else:  # No collision
- *       if v1.POS <= v2.POS:  # Zip-in c1 as it comes before c2
- *         c3[n3] = c1[n1]             # <<<<<<<<<<<<<<
- *         n1 += 1
- *         n3 += 1
+ *       if s1.data.pos <= s2.data.pos:  # Advance s until we come to s2
+ *         s1 = s.advance()             # <<<<<<<<<<<<<<
+ *       else:  #s1 is past s2 and there is no collision, good to add
+ *         s2.data = add_novel_variant_to_master(s2.data, ml)  # If this denovo already exists in the master list, use that
  */
-        if (unlikely(__pyx_v_c1 == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          {__pyx_filename = __pyx_f[0]; __pyx_lineno = 277; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        }
-        __pyx_t_5 = __Pyx_GetItemInt_List(__pyx_v_c1, __pyx_v_n1, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_5 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 277; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-        __Pyx_GOTREF(__pyx_t_5);
-        if (unlikely(__Pyx_SetItemInt(__pyx_v_c3, __pyx_v_n3, __pyx_t_5, int, 1, __Pyx_PyInt_From_int, 1, 1, 1) < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 277; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-
-        /* "mitty/lib/variation.pyx":278
- *       if v1.POS <= v2.POS:  # Zip-in c1 as it comes before c2
- *         c3[n3] = c1[n1]
- *         n1 += 1             # <<<<<<<<<<<<<<
- *         n3 += 1
- *       else:  # Zip-in c2 as it comes before next c1
- */
-        __pyx_v_n1 = (__pyx_v_n1 + 1);
-
-        /* "mitty/lib/variation.pyx":279
- *         c3[n3] = c1[n1]
- *         n1 += 1
- *         n3 += 1             # <<<<<<<<<<<<<<
- *       else:  # Zip-in c2 as it comes before next c1
- *         if n3==0 or not overlap(ml[c3[n3 - 1].index], c3[n3 - 1].het, v2, c2[n2].het):
- */
-        __pyx_v_n3 = (__pyx_v_n3 + 1);
+        __pyx_t_1 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s->__pyx_vtab)->advance(__pyx_v_s, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 255; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __Pyx_GOTREF(__pyx_t_1);
+        __Pyx_DECREF_SET(__pyx_v_s1, ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1));
+        __pyx_t_1 = 0;
         goto __pyx_L8;
       }
       /*else*/ {
 
-        /* "mitty/lib/variation.pyx":281
- *         n3 += 1
- *       else:  # Zip-in c2 as it comes before next c1
- *         if n3==0 or not overlap(ml[c3[n3 - 1].index], c3[n3 - 1].het, v2, c2[n2].het):             # <<<<<<<<<<<<<<
- *           c3[n3] = c2[n2]
- *           n3 += 1
+        /* "mitty/lib/variation.pyx":257
+ *         s1 = s.advance()
+ *       else:  #s1 is past s2 and there is no collision, good to add
+ *         s2.data = add_novel_variant_to_master(s2.data, ml)  # If this denovo already exists in the master list, use that             # <<<<<<<<<<<<<<
+ *         s.insert(s2)
+ *         s2 = next(dnv, None)
  */
-        __pyx_t_4 = ((__pyx_v_n3 == 0) != 0);
-        if (!__pyx_t_4) {
-        } else {
-          __pyx_t_3 = __pyx_t_4;
-          goto __pyx_L10_bool_binop_done;
-        }
-        if (unlikely(__pyx_v_ml == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        }
-        __pyx_t_9 = (__pyx_v_n3 - 1);
-        __pyx_t_5 = __Pyx_GetItemInt_List(__pyx_v_c3, __pyx_t_9, long, 1, __Pyx_PyInt_From_long, 1, 1, 1); if (unlikely(__pyx_t_5 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+        __pyx_t_1 = ((PyObject *)__pyx_v_s2->data);
+        __Pyx_INCREF(__pyx_t_1);
+        __pyx_t_5 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_add_novel_variant_to_master(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_1), __pyx_v_ml, 0)); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 257; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
         __Pyx_GOTREF(__pyx_t_5);
-        __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_index); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_GOTREF(__pyx_t_2);
-        __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-        __pyx_t_5 = __Pyx_PyDict_GetItem(__pyx_v_ml, __pyx_t_2); if (unlikely(__pyx_t_5 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-        __Pyx_GOTREF(__pyx_t_5);
-        __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-        if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5mitty_3lib_9variation_VariationData))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __pyx_t_9 = (__pyx_v_n3 - 1);
-        __pyx_t_2 = __Pyx_GetItemInt_List(__pyx_v_c3, __pyx_t_9, long, 1, __Pyx_PyInt_From_long, 1, 1, 1); if (unlikely(__pyx_t_2 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-        __Pyx_GOTREF(__pyx_t_2);
-        __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_het); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_GOTREF(__pyx_t_6);
-        __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-        __pyx_t_8 = __Pyx_PyInt_As_unsigned_char(__pyx_t_6); if (unlikely((__pyx_t_8 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        if (unlikely(__pyx_v_c2 == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        }
-        __pyx_t_6 = __Pyx_GetItemInt_List(__pyx_v_c2, __pyx_v_n2, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_6 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-        __Pyx_GOTREF(__pyx_t_6);
-        __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_het); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_GOTREF(__pyx_t_2);
-        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        __pyx_t_7 = __Pyx_PyInt_As_unsigned_char(__pyx_t_2); if (unlikely((__pyx_t_7 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-        __pyx_t_4 = ((!(__pyx_f_5mitty_3lib_9variation_overlap(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_t_5), __pyx_t_8, __pyx_v_v2, __pyx_t_7) != 0)) != 0);
-        __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-        __pyx_t_3 = __pyx_t_4;
-        __pyx_L10_bool_binop_done:;
-        if (__pyx_t_3) {
+        __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+        __Pyx_GIVEREF(__pyx_t_5);
+        __Pyx_GOTREF(__pyx_v_s2->data);
+        __Pyx_DECREF(((PyObject *)__pyx_v_s2->data));
+        __pyx_v_s2->data = ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_5);
+        __pyx_t_5 = 0;
 
-          /* "mitty/lib/variation.pyx":282
- *       else:  # Zip-in c2 as it comes before next c1
- *         if n3==0 or not overlap(ml[c3[n3 - 1].index], c3[n3 - 1].het, v2, c2[n2].het):
- *           c3[n3] = c2[n2]             # <<<<<<<<<<<<<<
- *           n3 += 1
- *         n2 +=1  # Need to advance c2 anyway
- */
-          if (unlikely(__pyx_v_c2 == Py_None)) {
-            PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-            {__pyx_filename = __pyx_f[0]; __pyx_lineno = 282; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-          }
-          __pyx_t_5 = __Pyx_GetItemInt_List(__pyx_v_c2, __pyx_v_n2, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_5 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 282; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-          __Pyx_GOTREF(__pyx_t_5);
-          if (unlikely(__Pyx_SetItemInt(__pyx_v_c3, __pyx_v_n3, __pyx_t_5, int, 1, __Pyx_PyInt_From_int, 1, 1, 1) < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 282; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-          __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-
-          /* "mitty/lib/variation.pyx":283
- *         if n3==0 or not overlap(ml[c3[n3 - 1].index], c3[n3 - 1].het, v2, c2[n2].het):
- *           c3[n3] = c2[n2]
- *           n3 += 1             # <<<<<<<<<<<<<<
- *         n2 +=1  # Need to advance c2 anyway
+        /* "mitty/lib/variation.pyx":258
+ *       else:  #s1 is past s2 and there is no collision, good to add
+ *         s2.data = add_novel_variant_to_master(s2.data, ml)  # If this denovo already exists in the master list, use that
+ *         s.insert(s2)             # <<<<<<<<<<<<<<
+ *         s2 = next(dnv, None)
  * 
  */
-          __pyx_v_n3 = (__pyx_v_n3 + 1);
-          goto __pyx_L9;
-        }
-        __pyx_L9:;
+        __pyx_t_5 = ((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s->__pyx_vtab)->insert(__pyx_v_s, __pyx_v_s2, 0); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 258; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __Pyx_GOTREF(__pyx_t_5);
+        __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
-        /* "mitty/lib/variation.pyx":284
- *           c3[n3] = c2[n2]
- *           n3 += 1
- *         n2 +=1  # Need to advance c2 anyway             # <<<<<<<<<<<<<<
+        /* "mitty/lib/variation.pyx":259
+ *         s2.data = add_novel_variant_to_master(s2.data, ml)  # If this denovo already exists in the master list, use that
+ *         s.insert(s2)
+ *         s2 = next(dnv, None)             # <<<<<<<<<<<<<<
  * 
- *   # Now copy over slack
+ *   while s2 is not None:  # All the remaining denovo variants can just be appended to the sample
  */
-        __pyx_v_n2 = (__pyx_v_n2 + 1);
+        __pyx_t_5 = __Pyx_PyIter_Next2(__pyx_v_dnv, Py_None); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 259; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __Pyx_GOTREF(__pyx_t_5);
+        if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5mitty_3lib_9variation_GTVariant))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 259; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __Pyx_DECREF_SET(__pyx_v_s2, ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_5));
+        __pyx_t_5 = 0;
       }
       __pyx_L8:;
     }
     __pyx_L7:;
   }
 
-  /* "mitty/lib/variation.pyx":287
+  /* "mitty/lib/variation.pyx":261
+ *         s2 = next(dnv, None)
  * 
- *   # Now copy over slack
- *   while n1 < n1_max:  # Smooth sailing, just copy over the rest of the original (c1)             # <<<<<<<<<<<<<<
- *     c3[n3] = c1[n1]
- *     n1 += 1
+ *   while s2 is not None:  # All the remaining denovo variants can just be appended to the sample             # <<<<<<<<<<<<<<
+ *     if s.last() is None or not overlap(s.last(), s2):
+ *       s2.data = add_novel_variant_to_master(s2.data, ml)
  */
   while (1) {
-    __pyx_t_3 = ((__pyx_v_n1 < __pyx_v_n1_max) != 0);
+    __pyx_t_2 = (((PyObject *)__pyx_v_s2) != Py_None);
+    __pyx_t_3 = (__pyx_t_2 != 0);
     if (!__pyx_t_3) break;
 
-    /* "mitty/lib/variation.pyx":288
- *   # Now copy over slack
- *   while n1 < n1_max:  # Smooth sailing, just copy over the rest of the original (c1)
- *     c3[n3] = c1[n1]             # <<<<<<<<<<<<<<
- *     n1 += 1
- *     n3 += 1
+    /* "mitty/lib/variation.pyx":262
+ * 
+ *   while s2 is not None:  # All the remaining denovo variants can just be appended to the sample
+ *     if s.last() is None or not overlap(s.last(), s2):             # <<<<<<<<<<<<<<
+ *       s2.data = add_novel_variant_to_master(s2.data, ml)
+ *       s.append(s2)
  */
-    if (unlikely(__pyx_v_c1 == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 288; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    }
-    __pyx_t_5 = __Pyx_GetItemInt_List(__pyx_v_c1, __pyx_v_n1, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_5 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 288; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+    __pyx_t_5 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s->__pyx_vtab)->last(__pyx_v_s, 0)); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 262; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_5);
-    if (unlikely(__Pyx_SetItemInt(__pyx_v_c3, __pyx_v_n3, __pyx_t_5, int, 1, __Pyx_PyInt_From_int, 1, 1, 1) < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 288; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_2 = (__pyx_t_5 == Py_None);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-
-    /* "mitty/lib/variation.pyx":289
- *   while n1 < n1_max:  # Smooth sailing, just copy over the rest of the original (c1)
- *     c3[n3] = c1[n1]
- *     n1 += 1             # <<<<<<<<<<<<<<
- *     n3 += 1
- * 
- */
-    __pyx_v_n1 = (__pyx_v_n1 + 1);
-
-    /* "mitty/lib/variation.pyx":290
- *     c3[n3] = c1[n1]
- *     n1 += 1
- *     n3 += 1             # <<<<<<<<<<<<<<
- * 
- *   while n2 < n2_max:  # Need to test each new (c2) for clashes with itself
- */
-    __pyx_v_n3 = (__pyx_v_n3 + 1);
-  }
-
-  /* "mitty/lib/variation.pyx":292
- *     n3 += 1
- * 
- *   while n2 < n2_max:  # Need to test each new (c2) for clashes with itself             # <<<<<<<<<<<<<<
- *     if n3==0 or not overlap(ml[c3[n3 - 1].index], c3[n3 - 1].het, ml[c2[n2].index], c2[n2].het):
- *       c3[n3] = c2[n2]
- */
-  while (1) {
-    __pyx_t_3 = ((__pyx_v_n2 < __pyx_v_n2_max) != 0);
-    if (!__pyx_t_3) break;
-
-    /* "mitty/lib/variation.pyx":293
- * 
- *   while n2 < n2_max:  # Need to test each new (c2) for clashes with itself
- *     if n3==0 or not overlap(ml[c3[n3 - 1].index], c3[n3 - 1].het, ml[c2[n2].index], c2[n2].het):             # <<<<<<<<<<<<<<
- *       c3[n3] = c2[n2]
- *       n3 += 1
- */
-    __pyx_t_4 = ((__pyx_v_n3 == 0) != 0);
+    __pyx_t_4 = (__pyx_t_2 != 0);
     if (!__pyx_t_4) {
     } else {
       __pyx_t_3 = __pyx_t_4;
-      goto __pyx_L17_bool_binop_done;
+      goto __pyx_L12_bool_binop_done;
     }
-    if (unlikely(__pyx_v_ml == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    }
-    __pyx_t_9 = (__pyx_v_n3 - 1);
-    __pyx_t_5 = __Pyx_GetItemInt_List(__pyx_v_c3, __pyx_t_9, long, 1, __Pyx_PyInt_From_long, 1, 1, 1); if (unlikely(__pyx_t_5 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+    __pyx_t_5 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s->__pyx_vtab)->last(__pyx_v_s, 0)); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 262; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_index); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_4 = ((!(__pyx_f_5mitty_3lib_9variation_overlap(((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_5), __pyx_v_s2) != 0)) != 0);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __pyx_t_5 = __Pyx_PyDict_GetItem(__pyx_v_ml, __pyx_t_2); if (unlikely(__pyx_t_5 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_5);
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5mitty_3lib_9variation_VariationData))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __pyx_t_9 = (__pyx_v_n3 - 1);
-    __pyx_t_2 = __Pyx_GetItemInt_List(__pyx_v_c3, __pyx_t_9, long, 1, __Pyx_PyInt_From_long, 1, 1, 1); if (unlikely(__pyx_t_2 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_het); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_6);
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_7 = __Pyx_PyInt_As_unsigned_char(__pyx_t_6); if (unlikely((__pyx_t_7 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    if (unlikely(__pyx_v_ml == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    }
-    if (unlikely(__pyx_v_c2 == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    }
-    __pyx_t_6 = __Pyx_GetItemInt_List(__pyx_v_c2, __pyx_v_n2, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_6 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_6);
-    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_index); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_2);
-    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    __pyx_t_6 = __Pyx_PyDict_GetItem(__pyx_v_ml, __pyx_t_2); if (unlikely(__pyx_t_6 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_6);
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    if (!(likely(((__pyx_t_6) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_6, __pyx_ptype_5mitty_3lib_9variation_VariationData))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    if (unlikely(__pyx_v_c2 == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    }
-    __pyx_t_2 = __Pyx_GetItemInt_List(__pyx_v_c2, __pyx_v_n2, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_2 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_het); if (unlikely(!__pyx_t_10)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_10);
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_8 = __Pyx_PyInt_As_unsigned_char(__pyx_t_10); if (unlikely((__pyx_t_8 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 293; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-    __pyx_t_4 = ((!(__pyx_f_5mitty_3lib_9variation_overlap(((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_t_5), __pyx_t_7, ((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)__pyx_t_6), __pyx_t_8) != 0)) != 0);
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
     __pyx_t_3 = __pyx_t_4;
-    __pyx_L17_bool_binop_done:;
+    __pyx_L12_bool_binop_done:;
     if (__pyx_t_3) {
 
-      /* "mitty/lib/variation.pyx":294
- *   while n2 < n2_max:  # Need to test each new (c2) for clashes with itself
- *     if n3==0 or not overlap(ml[c3[n3 - 1].index], c3[n3 - 1].het, ml[c2[n2].index], c2[n2].het):
- *       c3[n3] = c2[n2]             # <<<<<<<<<<<<<<
- *       n3 += 1
- *     n2 += 1  # Need to advance c2 anyway
+      /* "mitty/lib/variation.pyx":263
+ *   while s2 is not None:  # All the remaining denovo variants can just be appended to the sample
+ *     if s.last() is None or not overlap(s.last(), s2):
+ *       s2.data = add_novel_variant_to_master(s2.data, ml)             # <<<<<<<<<<<<<<
+ *       s.append(s2)
+ *     s2 = next(dnv, None)
  */
-      if (unlikely(__pyx_v_c2 == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        {__pyx_filename = __pyx_f[0]; __pyx_lineno = 294; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      }
-      __pyx_t_6 = __Pyx_GetItemInt_List(__pyx_v_c2, __pyx_v_n2, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_6 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 294; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-      __Pyx_GOTREF(__pyx_t_6);
-      if (unlikely(__Pyx_SetItemInt(__pyx_v_c3, __pyx_v_n3, __pyx_t_6, int, 1, __Pyx_PyInt_From_int, 1, 1, 1) < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 294; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+      __pyx_t_5 = ((PyObject *)__pyx_v_s2->data);
+      __Pyx_INCREF(__pyx_t_5);
+      __pyx_t_1 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_add_novel_variant_to_master(((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_5), __pyx_v_ml, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 263; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_1);
+      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+      __Pyx_GIVEREF(__pyx_t_1);
+      __Pyx_GOTREF(__pyx_v_s2->data);
+      __Pyx_DECREF(((PyObject *)__pyx_v_s2->data));
+      __pyx_v_s2->data = ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_1);
+      __pyx_t_1 = 0;
 
-      /* "mitty/lib/variation.pyx":295
- *     if n3==0 or not overlap(ml[c3[n3 - 1].index], c3[n3 - 1].het, ml[c2[n2].index], c2[n2].het):
- *       c3[n3] = c2[n2]
- *       n3 += 1             # <<<<<<<<<<<<<<
- *     n2 += 1  # Need to advance c2 anyway
+      /* "mitty/lib/variation.pyx":264
+ *     if s.last() is None or not overlap(s.last(), s2):
+ *       s2.data = add_novel_variant_to_master(s2.data, ml)
+ *       s.append(s2)             # <<<<<<<<<<<<<<
+ *     s2 = next(dnv, None)
  * 
  */
-      __pyx_v_n3 = (__pyx_v_n3 + 1);
-      goto __pyx_L16;
+      __pyx_t_1 = ((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s->__pyx_vtab)->append(__pyx_v_s, __pyx_v_s2, 0); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 264; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_1);
+      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+      goto __pyx_L11;
     }
-    __pyx_L16:;
+    __pyx_L11:;
 
-    /* "mitty/lib/variation.pyx":296
- *       c3[n3] = c2[n2]
- *       n3 += 1
- *     n2 += 1  # Need to advance c2 anyway             # <<<<<<<<<<<<<<
+    /* "mitty/lib/variation.pyx":265
+ *       s2.data = add_novel_variant_to_master(s2.data, ml)
+ *       s.append(s2)
+ *     s2 = next(dnv, None)             # <<<<<<<<<<<<<<
  * 
- *   return c3[:n3]
+ * 
  */
-    __pyx_v_n2 = (__pyx_v_n2 + 1);
+    __pyx_t_1 = __Pyx_PyIter_Next2(__pyx_v_dnv, Py_None); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 265; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    if (!(likely(((__pyx_t_1) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_1, __pyx_ptype_5mitty_3lib_9variation_GTVariant))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 265; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF_SET(__pyx_v_s2, ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1));
+    __pyx_t_1 = 0;
   }
 
-  /* "mitty/lib/variation.pyx":298
- *     n2 += 1  # Need to advance c2 anyway
- * 
- *   return c3[:n3]             # <<<<<<<<<<<<<<
+  /* "mitty/lib/variation.pyx":220
  * 
  * 
- */
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_t_6 = __Pyx_PyList_GetSlice(__pyx_v_c3, 0, __pyx_v_n3); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 298; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_6);
-  __pyx_r = __pyx_t_6;
-  __pyx_t_6 = 0;
-  goto __pyx_L0;
-
-  /* "mitty/lib/variation.pyx":241
- * 
- * #TODO: refactor this to be faster? Not use copy_variant? Code can be made cleaner
- * cpdef merge_variants(list c1, list c2, dict ml):             # <<<<<<<<<<<<<<
- *   """merge_variants(c1, c2)
- *   Given an existing chromosome (list of variants) merge a new list of variants into it in zipper fashion. c1 has
+ * cpdef add_denovo_variants_to_chromosome(Chromosome s, dnv, dict ml):             # <<<<<<<<<<<<<<
+ *   """add_denovo_variants_to_chromosome(s, dnv, ml)
+ *   Given an existing Chromosome, s,  merge a new list of SampleVariants (dnv) into it in zipper fashion. s has
  */
 
   /* function exit code */
+  __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_1);
   __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_XDECREF(__pyx_t_6);
-  __Pyx_XDECREF(__pyx_t_10);
-  __Pyx_AddTraceback("mitty.lib.variation.merge_variants", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.add_denovo_variants_to_chromosome", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = 0;
   __pyx_L0:;
-  __Pyx_XDECREF((PyObject *)__pyx_v_v1);
-  __Pyx_XDECREF((PyObject *)__pyx_v_v2);
-  __Pyx_XDECREF(__pyx_v_c3);
+  __Pyx_XDECREF((PyObject *)__pyx_v_s1);
+  __Pyx_XDECREF((PyObject *)__pyx_v_s2);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
 /* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_14merge_variants(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_5mitty_3lib_9variation_13merge_variants[] = "merge_variants(c1, c2)\n  Given an existing chromosome (list of variants) merge a new list of variants into it in zipper fashion. c1 has\n  priority (collisions are resolved in favor of c1)\n\n  :param c1: The original variants (iterable)\n  :param c2: The proposed new variants (iterable)\n  :rtype list: The resultant variant list with collisions arbitrated\n\n  Algorithm::\n\n    o(x,y) = True if x and y overlap\n           = False otherwise\n    c1 = existing list of variants\n    c2 = denovo list of variants\n    c3 = new list of variants being built\n\n    o(c1, c2) = True: add(c1) c1++, c2++\n              = False:\n                c1 < c2 ? add(c1) c1++\n                else:\n                  o(c3, c2) = True: c2++\n                            = False: add(c2), c2++\n\n  ";
-static PyObject *__pyx_pw_5mitty_3lib_9variation_14merge_variants(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  PyObject *__pyx_v_c1 = 0;
-  PyObject *__pyx_v_c2 = 0;
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10add_denovo_variants_to_chromosome(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static char __pyx_doc_5mitty_3lib_9variation_9add_denovo_variants_to_chromosome[] = "add_denovo_variants_to_chromosome(s, dnv, ml)\n  Given an existing Chromosome, s,  merge a new list of SampleVariants (dnv) into it in zipper fashion. s has\n  priority (collisions are resolved in favor of s). As new variants are accepted, add them to the master list.\n\n  :param s: The original variant list\n  :param dnv: The proposed new variants (iterator, convenient to use create_gtv_iterable)\n  :param ml: master list of Variants\n\n  s and ml are modified in place\n\n  Algorithm::\n\n    o(x,y) = True if x and y overlap\n           = False otherwise\n    c1 = existing list of variants\n    c2 = denovo list of variants\n    c3 = new list of variants being built\n\n    o(c1, c2) = True: add(c1) c1++, c2++\n              = False:\n                c1 < c2 ? add(c1) c1++\n                else:\n                  o(c3, c2) = True: c2++\n                            = False: add(c2), c2++\n\n  ";
+static PyObject *__pyx_pw_5mitty_3lib_9variation_10add_denovo_variants_to_chromosome(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s = 0;
+  PyObject *__pyx_v_dnv = 0;
   PyObject *__pyx_v_ml = 0;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("merge_variants (wrapper)", 0);
+  __Pyx_RefNannySetupContext("add_denovo_variants_to_chromosome (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_c1,&__pyx_n_s_c2,&__pyx_n_s_ml,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_s,&__pyx_n_s_dnv,&__pyx_n_s_ml,0};
     PyObject* values[3] = {0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
@@ -5881,21 +5854,21 @@ static PyObject *__pyx_pw_5mitty_3lib_9variation_14merge_variants(PyObject *__py
       kw_args = PyDict_Size(__pyx_kwds);
       switch (pos_args) {
         case  0:
-        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_c1)) != 0)) kw_args--;
+        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_s)) != 0)) kw_args--;
         else goto __pyx_L5_argtuple_error;
         case  1:
-        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_c2)) != 0)) kw_args--;
+        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_dnv)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("merge_variants", 1, 3, 3, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 241; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+          __Pyx_RaiseArgtupleInvalid("add_denovo_variants_to_chromosome", 1, 3, 3, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 220; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
         case  2:
         if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_ml)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("merge_variants", 1, 3, 3, 2); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 241; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+          __Pyx_RaiseArgtupleInvalid("add_denovo_variants_to_chromosome", 1, 3, 3, 2); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 220; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "merge_variants") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 241; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "add_denovo_variants_to_chromosome") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 220; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 3) {
       goto __pyx_L5_argtuple_error;
@@ -5904,22 +5877,21 @@ static PyObject *__pyx_pw_5mitty_3lib_9variation_14merge_variants(PyObject *__py
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
       values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
     }
-    __pyx_v_c1 = ((PyObject*)values[0]);
-    __pyx_v_c2 = ((PyObject*)values[1]);
+    __pyx_v_s = ((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)values[0]);
+    __pyx_v_dnv = values[1];
     __pyx_v_ml = ((PyObject*)values[2]);
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("merge_variants", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 241; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __Pyx_RaiseArgtupleInvalid("add_denovo_variants_to_chromosome", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 220; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   __pyx_L3_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.merge_variants", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.add_denovo_variants_to_chromosome", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_c1), (&PyList_Type), 1, "c1", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 241; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_c2), (&PyList_Type), 1, "c2", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 241; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_ml), (&PyDict_Type), 1, "ml", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 241; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13merge_variants(__pyx_self, __pyx_v_c1, __pyx_v_c2, __pyx_v_ml);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_s), __pyx_ptype_5mitty_3lib_9variation_Chromosome, 1, "s", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 220; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_ml), (&PyDict_Type), 1, "ml", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 220; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_9add_denovo_variants_to_chromosome(__pyx_self, __pyx_v_s, __pyx_v_dnv, __pyx_v_ml);
 
   /* function exit code */
   goto __pyx_L0;
@@ -5930,16 +5902,16 @@ static PyObject *__pyx_pw_5mitty_3lib_9variation_14merge_variants(PyObject *__py
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_5mitty_3lib_9variation_13merge_variants(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_c1, PyObject *__pyx_v_c2, PyObject *__pyx_v_ml) {
+static PyObject *__pyx_pf_5mitty_3lib_9variation_9add_denovo_variants_to_chromosome(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s, PyObject *__pyx_v_dnv, PyObject *__pyx_v_ml) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("merge_variants", 0);
+  __Pyx_RefNannySetupContext("add_denovo_variants_to_chromosome", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_f_5mitty_3lib_9variation_merge_variants(__pyx_v_c1, __pyx_v_c2, __pyx_v_ml, 0); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 241; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __pyx_f_5mitty_3lib_9variation_add_denovo_variants_to_chromosome(__pyx_v_s, __pyx_v_dnv, __pyx_v_ml, 0); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 220; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -5948,7 +5920,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_13merge_variants(CYTHON_UNUSED 
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("mitty.lib.variation.merge_variants", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.add_denovo_variants_to_chromosome", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -5956,276 +5928,331 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_13merge_variants(CYTHON_UNUSED 
   return __pyx_r;
 }
 
-/* "mitty/lib/variation.pyx":301
+/* "mitty/lib/variation.pyx":268
  * 
  * 
- * def copy_missing_chromosomes(g1, g2):             # <<<<<<<<<<<<<<
- *   """Copy any chromosomes found in g2 but not in g1 onto g1. g1 is changed in place
- * 
+ * cdef append_sv_copy(Chromosome s, int child_cp, GTVariant sv, int parent_cp):             # <<<<<<<<<<<<<<
+ *   """Append correct copy of GTVariant to s."""
+ *   cdef:
  */
 
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_16copy_missing_chromosomes(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_5mitty_3lib_9variation_15copy_missing_chromosomes[] = "Copy any chromosomes found in g2 but not in g1 onto g1. g1 is changed in place\n\n  :param dict g1: genome\n  :param dict g2: genome\n  :returns: changes g1 in place";
-static PyMethodDef __pyx_mdef_5mitty_3lib_9variation_16copy_missing_chromosomes = {"copy_missing_chromosomes", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_16copy_missing_chromosomes, METH_VARARGS|METH_KEYWORDS, __pyx_doc_5mitty_3lib_9variation_15copy_missing_chromosomes};
-static PyObject *__pyx_pw_5mitty_3lib_9variation_16copy_missing_chromosomes(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  PyObject *__pyx_v_g1 = 0;
-  PyObject *__pyx_v_g2 = 0;
-  int __pyx_lineno = 0;
-  const char *__pyx_filename = NULL;
-  int __pyx_clineno = 0;
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("copy_missing_chromosomes (wrapper)", 0);
-  {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_g1,&__pyx_n_s_g2,0};
-    PyObject* values[2] = {0,0};
-    if (unlikely(__pyx_kwds)) {
-      Py_ssize_t kw_args;
-      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
-      switch (pos_args) {
-        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-        case  0: break;
-        default: goto __pyx_L5_argtuple_error;
-      }
-      kw_args = PyDict_Size(__pyx_kwds);
-      switch (pos_args) {
-        case  0:
-        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_g1)) != 0)) kw_args--;
-        else goto __pyx_L5_argtuple_error;
-        case  1:
-        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_g2)) != 0)) kw_args--;
-        else {
-          __Pyx_RaiseArgtupleInvalid("copy_missing_chromosomes", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 301; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-        }
-      }
-      if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "copy_missing_chromosomes") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 301; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-      }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
-      goto __pyx_L5_argtuple_error;
-    } else {
-      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-    }
-    __pyx_v_g1 = values[0];
-    __pyx_v_g2 = values[1];
-  }
-  goto __pyx_L4_argument_unpacking_done;
-  __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("copy_missing_chromosomes", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 301; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
-  __pyx_L3_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.copy_missing_chromosomes", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __Pyx_RefNannyFinishContext();
-  return NULL;
-  __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_15copy_missing_chromosomes(__pyx_self, __pyx_v_g1, __pyx_v_g2);
-
-  /* function exit code */
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_5mitty_3lib_9variation_15copy_missing_chromosomes(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_g1, PyObject *__pyx_v_g2) {
-  PyObject *__pyx_v_missing_chrom = NULL;
-  int __pyx_v_ch;
+static PyObject *__pyx_f_5mitty_3lib_9variation_append_sv_copy(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s, int __pyx_v_child_cp, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv, int __pyx_v_parent_cp) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
+  int __pyx_t_1;
+  int __pyx_t_2;
+  int __pyx_t_3;
   PyObject *__pyx_t_4 = NULL;
-  Py_ssize_t __pyx_t_5;
-  PyObject *(*__pyx_t_6)(PyObject *);
-  int __pyx_t_7;
+  PyObject *__pyx_t_5 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("copy_missing_chromosomes", 0);
+  __Pyx_RefNannySetupContext("append_sv_copy", 0);
 
-  /* "mitty/lib/variation.pyx":307
- *   :param dict g2: genome
- *   :returns: changes g1 in place"""
- *   missing_chrom = set(g2.keys()) - set(g1.keys())             # <<<<<<<<<<<<<<
- *   cdef int ch
- *   for ch in missing_chrom:
- */
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_g2, __pyx_n_s_keys); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 307; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = NULL;
-  if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_2))) {
-    __pyx_t_3 = PyMethod_GET_SELF(__pyx_t_2);
-    if (likely(__pyx_t_3)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
-      __Pyx_INCREF(__pyx_t_3);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_2, function);
-    }
-  }
-  if (__pyx_t_3) {
-    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 307; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  } else {
-    __pyx_t_1 = __Pyx_PyObject_CallNoArg(__pyx_t_2); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 307; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  }
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = PySet_New(__pyx_t_1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 307; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_g1, __pyx_n_s_keys); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 307; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = NULL;
-  if (CYTHON_COMPILING_IN_CPYTHON && likely(PyMethod_Check(__pyx_t_3))) {
-    __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_3);
-    if (likely(__pyx_t_4)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
-      __Pyx_INCREF(__pyx_t_4);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_3, function);
-    }
-  }
-  if (__pyx_t_4) {
-    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 307; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  } else {
-    __pyx_t_1 = __Pyx_PyObject_CallNoArg(__pyx_t_3); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 307; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  }
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_t_3 = PySet_New(__pyx_t_1); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 307; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_3);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = PyNumber_Subtract(__pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 307; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_v_missing_chrom = __pyx_t_1;
-  __pyx_t_1 = 0;
-
-  /* "mitty/lib/variation.pyx":309
- *   missing_chrom = set(g2.keys()) - set(g1.keys())
- *   cdef int ch
- *   for ch in missing_chrom:             # <<<<<<<<<<<<<<
- *     g1[ch] = list(g2[ch])
+  /* "mitty/lib/variation.pyx":273
+ *     unsigned char gt
+ *     GTVariant new_sv
+ *   if (sv.gt == HOM) or (sv.gt == HET_01 and parent_cp == 1) or (sv.gt == HET_10 and parent_cp == 0):             # <<<<<<<<<<<<<<
+ *     s.append(new_gt_variant(HET_10 if child_cp == 0 else HET_01, sv.data))
  * 
  */
-  if (likely(PyList_CheckExact(__pyx_v_missing_chrom)) || PyTuple_CheckExact(__pyx_v_missing_chrom)) {
-    __pyx_t_1 = __pyx_v_missing_chrom; __Pyx_INCREF(__pyx_t_1); __pyx_t_5 = 0;
-    __pyx_t_6 = NULL;
+  __pyx_t_2 = ((__pyx_v_sv->gt == __pyx_e_5mitty_3lib_9variation_HOM) != 0);
+  if (!__pyx_t_2) {
   } else {
-    __pyx_t_5 = -1; __pyx_t_1 = PyObject_GetIter(__pyx_v_missing_chrom); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 309; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_6 = Py_TYPE(__pyx_t_1)->tp_iternext; if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 309; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_1 = __pyx_t_2;
+    goto __pyx_L4_bool_binop_done;
   }
-  for (;;) {
-    if (likely(!__pyx_t_6)) {
-      if (likely(PyList_CheckExact(__pyx_t_1))) {
-        if (__pyx_t_5 >= PyList_GET_SIZE(__pyx_t_1)) break;
-        #if CYTHON_COMPILING_IN_CPYTHON
-        __pyx_t_3 = PyList_GET_ITEM(__pyx_t_1, __pyx_t_5); __Pyx_INCREF(__pyx_t_3); __pyx_t_5++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 309; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #else
-        __pyx_t_3 = PySequence_ITEM(__pyx_t_1, __pyx_t_5); __pyx_t_5++; if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 309; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #endif
-      } else {
-        if (__pyx_t_5 >= PyTuple_GET_SIZE(__pyx_t_1)) break;
-        #if CYTHON_COMPILING_IN_CPYTHON
-        __pyx_t_3 = PyTuple_GET_ITEM(__pyx_t_1, __pyx_t_5); __Pyx_INCREF(__pyx_t_3); __pyx_t_5++; if (unlikely(0 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 309; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #else
-        __pyx_t_3 = PySequence_ITEM(__pyx_t_1, __pyx_t_5); __pyx_t_5++; if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 309; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        #endif
-      }
+  __pyx_t_2 = ((__pyx_v_sv->gt == __pyx_e_5mitty_3lib_9variation_HET_01) != 0);
+  if (!__pyx_t_2) {
+    goto __pyx_L6_next_or;
+  } else {
+  }
+  __pyx_t_2 = ((__pyx_v_parent_cp == 1) != 0);
+  if (!__pyx_t_2) {
+  } else {
+    __pyx_t_1 = __pyx_t_2;
+    goto __pyx_L4_bool_binop_done;
+  }
+  __pyx_L6_next_or:;
+  __pyx_t_2 = ((__pyx_v_sv->gt == __pyx_e_5mitty_3lib_9variation_HET_10) != 0);
+  if (__pyx_t_2) {
+  } else {
+    __pyx_t_1 = __pyx_t_2;
+    goto __pyx_L4_bool_binop_done;
+  }
+  __pyx_t_2 = ((__pyx_v_parent_cp == 0) != 0);
+  __pyx_t_1 = __pyx_t_2;
+  __pyx_L4_bool_binop_done:;
+  if (__pyx_t_1) {
+
+    /* "mitty/lib/variation.pyx":274
+ *     GTVariant new_sv
+ *   if (sv.gt == HOM) or (sv.gt == HET_01 and parent_cp == 1) or (sv.gt == HET_10 and parent_cp == 0):
+ *     s.append(new_gt_variant(HET_10 if child_cp == 0 else HET_01, sv.data))             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+    if (((__pyx_v_child_cp == 0) != 0)) {
+      __pyx_t_3 = __pyx_e_5mitty_3lib_9variation_HET_10;
     } else {
-      __pyx_t_3 = __pyx_t_6(__pyx_t_1);
-      if (unlikely(!__pyx_t_3)) {
-        PyObject* exc_type = PyErr_Occurred();
-        if (exc_type) {
-          if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else {__pyx_filename = __pyx_f[0]; __pyx_lineno = 309; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-        }
-        break;
-      }
-      __Pyx_GOTREF(__pyx_t_3);
+      __pyx_t_3 = __pyx_e_5mitty_3lib_9variation_HET_01;
     }
-    __pyx_t_7 = __Pyx_PyInt_As_int(__pyx_t_3); if (unlikely((__pyx_t_7 == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 309; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_v_ch = __pyx_t_7;
-
-    /* "mitty/lib/variation.pyx":310
- *   cdef int ch
- *   for ch in missing_chrom:
- *     g1[ch] = list(g2[ch])             # <<<<<<<<<<<<<<
- * 
- * 
- */
-    __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_g2, __pyx_v_ch, int, 1, __Pyx_PyInt_From_int, 0, 1, 1); if (unlikely(__pyx_t_3 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 310; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_2 = PySequence_List(__pyx_t_3); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 310; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_2);
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (unlikely(__Pyx_SetItemInt(__pyx_v_g1, __pyx_v_ch, __pyx_t_2, int, 1, __Pyx_PyInt_From_int, 0, 1, 1) < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 310; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-
-    /* "mitty/lib/variation.pyx":309
- *   missing_chrom = set(g2.keys()) - set(g1.keys())
- *   cdef int ch
- *   for ch in missing_chrom:             # <<<<<<<<<<<<<<
- *     g1[ch] = list(g2[ch])
- * 
- */
+    __pyx_t_4 = ((PyObject *)__pyx_v_sv->data);
+    __Pyx_INCREF(__pyx_t_4);
+    __pyx_t_5 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_new_gt_variant(__pyx_t_3, ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_4), 0)); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 274; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_5);
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __pyx_t_4 = ((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s->__pyx_vtab)->append(__pyx_v_s, ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_5), 0); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 274; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_4);
+    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    goto __pyx_L3;
   }
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_L3:;
 
-  /* "mitty/lib/variation.pyx":301
+  /* "mitty/lib/variation.pyx":268
  * 
  * 
- * def copy_missing_chromosomes(g1, g2):             # <<<<<<<<<<<<<<
- *   """Copy any chromosomes found in g2 but not in g1 onto g1. g1 is changed in place
- * 
+ * cdef append_sv_copy(Chromosome s, int child_cp, GTVariant sv, int parent_cp):             # <<<<<<<<<<<<<<
+ *   """Append correct copy of GTVariant to s."""
+ *   cdef:
  */
 
   /* function exit code */
   __pyx_r = Py_None; __Pyx_INCREF(Py_None);
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4);
-  __Pyx_AddTraceback("mitty.lib.variation.copy_missing_chromosomes", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
+  __Pyx_XDECREF(__pyx_t_5);
+  __Pyx_AddTraceback("mitty.lib.variation.append_sv_copy", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
   __pyx_L0:;
-  __Pyx_XDECREF(__pyx_v_missing_chrom);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-/* "mitty/lib/variation.pyx":313
+/* "mitty/lib/variation.pyx":277
  * 
  * 
- * def merge_genomes(dict g1, dict g2, dict ml):             # <<<<<<<<<<<<<<
- *   """Given two genomes run merge_variants(c1, c2) on each chromosome. g1 has priority. In the end copy any chromosomes
- *   present in g2 but not in g1 into g1 (so that g1 is a superset of g2)
+ * cdef append_sv_copies(Chromosome s, GTVariant sv1, int cp1, GTVariant sv2, int cp2):             # <<<<<<<<<<<<<<
+ *   """Use this function when both variants have the same pos and we need to arbitrate genotype"""
+ *   # If the variant is absent from one of the copies, don't have to worry about this
  */
 
-/* Python wrapper */
-static PyObject *__pyx_pw_5mitty_3lib_9variation_18merge_genomes(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_5mitty_3lib_9variation_17merge_genomes[] = "Given two genomes run merge_variants(c1, c2) on each chromosome. g1 has priority. In the end copy any chromosomes\n  present in g2 but not in g1 into g1 (so that g1 is a superset of g2)\n\n  :param dict g1: genome\n  :param dict g2: genome\n  :param dict ml: master variation list\n  :returns: new genome\n  ";
-static PyMethodDef __pyx_mdef_5mitty_3lib_9variation_18merge_genomes = {"merge_genomes", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_18merge_genomes, METH_VARARGS|METH_KEYWORDS, __pyx_doc_5mitty_3lib_9variation_17merge_genomes};
-static PyObject *__pyx_pw_5mitty_3lib_9variation_18merge_genomes(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  PyObject *__pyx_v_g1 = 0;
-  PyObject *__pyx_v_g2 = 0;
-  PyObject *__pyx_v_ml = 0;
+static PyObject *__pyx_f_5mitty_3lib_9variation_append_sv_copies(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv1, int __pyx_v_cp1, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv2, int __pyx_v_cp2) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  int __pyx_t_1;
+  int __pyx_t_2;
+  PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  PyObject *__pyx_r = 0;
+  __Pyx_RefNannySetupContext("append_sv_copies", 0);
+
+  /* "mitty/lib/variation.pyx":280
+ *   """Use this function when both variants have the same pos and we need to arbitrate genotype"""
+ *   # If the variant is absent from one of the copies, don't have to worry about this
+ *   if (sv1.gt == HET_10 and cp1 == 1) or (sv1.gt == HET_01 and cp1 == 0):             # <<<<<<<<<<<<<<
+ *     append_sv_copy(s, 1, sv2, cp2)
+ *   elif (sv2.gt == HET_10 and cp2 == 1) or (sv2.gt == HET_01 and cp2 == 0):
+ */
+  __pyx_t_2 = ((__pyx_v_sv1->gt == __pyx_e_5mitty_3lib_9variation_HET_10) != 0);
+  if (!__pyx_t_2) {
+    goto __pyx_L5_next_or;
+  } else {
+  }
+  __pyx_t_2 = ((__pyx_v_cp1 == 1) != 0);
+  if (!__pyx_t_2) {
+  } else {
+    __pyx_t_1 = __pyx_t_2;
+    goto __pyx_L4_bool_binop_done;
+  }
+  __pyx_L5_next_or:;
+  __pyx_t_2 = ((__pyx_v_sv1->gt == __pyx_e_5mitty_3lib_9variation_HET_01) != 0);
+  if (__pyx_t_2) {
+  } else {
+    __pyx_t_1 = __pyx_t_2;
+    goto __pyx_L4_bool_binop_done;
+  }
+  __pyx_t_2 = ((__pyx_v_cp1 == 0) != 0);
+  __pyx_t_1 = __pyx_t_2;
+  __pyx_L4_bool_binop_done:;
+  if (__pyx_t_1) {
+
+    /* "mitty/lib/variation.pyx":281
+ *   # If the variant is absent from one of the copies, don't have to worry about this
+ *   if (sv1.gt == HET_10 and cp1 == 1) or (sv1.gt == HET_01 and cp1 == 0):
+ *     append_sv_copy(s, 1, sv2, cp2)             # <<<<<<<<<<<<<<
+ *   elif (sv2.gt == HET_10 and cp2 == 1) or (sv2.gt == HET_01 and cp2 == 0):
+ *     append_sv_copy(s, 0, sv1, cp1)
+ */
+    __pyx_t_3 = __pyx_f_5mitty_3lib_9variation_append_sv_copy(__pyx_v_s, 1, __pyx_v_sv2, __pyx_v_cp2); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 281; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_3);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    goto __pyx_L3;
+  }
+
+  /* "mitty/lib/variation.pyx":282
+ *   if (sv1.gt == HET_10 and cp1 == 1) or (sv1.gt == HET_01 and cp1 == 0):
+ *     append_sv_copy(s, 1, sv2, cp2)
+ *   elif (sv2.gt == HET_10 and cp2 == 1) or (sv2.gt == HET_01 and cp2 == 0):             # <<<<<<<<<<<<<<
+ *     append_sv_copy(s, 0, sv1, cp1)
+ *   else:  # Both copies of the child genome will have a copy of sv1 abd sv2. Now we have to check more deeply
+ */
+  __pyx_t_2 = ((__pyx_v_sv2->gt == __pyx_e_5mitty_3lib_9variation_HET_10) != 0);
+  if (!__pyx_t_2) {
+    goto __pyx_L9_next_or;
+  } else {
+  }
+  __pyx_t_2 = ((__pyx_v_cp2 == 1) != 0);
+  if (!__pyx_t_2) {
+  } else {
+    __pyx_t_1 = __pyx_t_2;
+    goto __pyx_L8_bool_binop_done;
+  }
+  __pyx_L9_next_or:;
+  __pyx_t_2 = ((__pyx_v_sv2->gt == __pyx_e_5mitty_3lib_9variation_HET_01) != 0);
+  if (__pyx_t_2) {
+  } else {
+    __pyx_t_1 = __pyx_t_2;
+    goto __pyx_L8_bool_binop_done;
+  }
+  __pyx_t_2 = ((__pyx_v_cp2 == 0) != 0);
+  __pyx_t_1 = __pyx_t_2;
+  __pyx_L8_bool_binop_done:;
+  if (__pyx_t_1) {
+
+    /* "mitty/lib/variation.pyx":283
+ *     append_sv_copy(s, 1, sv2, cp2)
+ *   elif (sv2.gt == HET_10 and cp2 == 1) or (sv2.gt == HET_01 and cp2 == 0):
+ *     append_sv_copy(s, 0, sv1, cp1)             # <<<<<<<<<<<<<<
+ *   else:  # Both copies of the child genome will have a copy of sv1 abd sv2. Now we have to check more deeply
+ *     if sv1.data == sv2.data:  # This will be HOM
+ */
+    __pyx_t_3 = __pyx_f_5mitty_3lib_9variation_append_sv_copy(__pyx_v_s, 0, __pyx_v_sv1, __pyx_v_cp1); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 283; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_3);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    goto __pyx_L3;
+  }
+  /*else*/ {
+
+    /* "mitty/lib/variation.pyx":285
+ *     append_sv_copy(s, 0, sv1, cp1)
+ *   else:  # Both copies of the child genome will have a copy of sv1 abd sv2. Now we have to check more deeply
+ *     if sv1.data == sv2.data:  # This will be HOM             # <<<<<<<<<<<<<<
+ *       s.append(new_gt_variant(HOM, sv1.data))
+ *     else:  # OK, two variants at the same spot, but they are different
+ */
+    __pyx_t_3 = PyObject_RichCompare(((PyObject *)__pyx_v_sv1->data), ((PyObject *)__pyx_v_sv2->data), Py_EQ); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 285; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __pyx_t_1 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely(__pyx_t_1 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 285; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    if (__pyx_t_1) {
+
+      /* "mitty/lib/variation.pyx":286
+ *   else:  # Both copies of the child genome will have a copy of sv1 abd sv2. Now we have to check more deeply
+ *     if sv1.data == sv2.data:  # This will be HOM
+ *       s.append(new_gt_variant(HOM, sv1.data))             # <<<<<<<<<<<<<<
+ *     else:  # OK, two variants at the same spot, but they are different
+ *       s.append(new_gt_variant(HET_10, sv1.data))  # They will appear in a certain order
+ */
+      __pyx_t_3 = ((PyObject *)__pyx_v_sv1->data);
+      __Pyx_INCREF(__pyx_t_3);
+      __pyx_t_4 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_new_gt_variant(__pyx_e_5mitty_3lib_9variation_HOM, ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_3), 0)); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 286; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_4);
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+      __pyx_t_3 = ((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s->__pyx_vtab)->append(__pyx_v_s, ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_4), 0); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 286; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_3);
+      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+      goto __pyx_L12;
+    }
+    /*else*/ {
+
+      /* "mitty/lib/variation.pyx":288
+ *       s.append(new_gt_variant(HOM, sv1.data))
+ *     else:  # OK, two variants at the same spot, but they are different
+ *       s.append(new_gt_variant(HET_10, sv1.data))  # They will appear in a certain order             # <<<<<<<<<<<<<<
+ *       s.append(new_gt_variant(HET_01, sv2.data))
+ * 
+ */
+      __pyx_t_3 = ((PyObject *)__pyx_v_sv1->data);
+      __Pyx_INCREF(__pyx_t_3);
+      __pyx_t_4 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_new_gt_variant(__pyx_e_5mitty_3lib_9variation_HET_10, ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_3), 0)); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 288; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_4);
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+      __pyx_t_3 = ((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s->__pyx_vtab)->append(__pyx_v_s, ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_4), 0); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 288; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_3);
+      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+
+      /* "mitty/lib/variation.pyx":289
+ *     else:  # OK, two variants at the same spot, but they are different
+ *       s.append(new_gt_variant(HET_10, sv1.data))  # They will appear in a certain order
+ *       s.append(new_gt_variant(HET_01, sv2.data))             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+      __pyx_t_3 = ((PyObject *)__pyx_v_sv2->data);
+      __Pyx_INCREF(__pyx_t_3);
+      __pyx_t_4 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_new_gt_variant(__pyx_e_5mitty_3lib_9variation_HET_01, ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_3), 0)); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 289; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_4);
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+      __pyx_t_3 = ((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s->__pyx_vtab)->append(__pyx_v_s, ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_4), 0); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 289; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_3);
+      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    }
+    __pyx_L12:;
+  }
+  __pyx_L3:;
+
+  /* "mitty/lib/variation.pyx":277
+ * 
+ * 
+ * cdef append_sv_copies(Chromosome s, GTVariant sv1, int cp1, GTVariant sv2, int cp2):             # <<<<<<<<<<<<<<
+ *   """Use this function when both variants have the same pos and we need to arbitrate genotype"""
+ *   # If the variant is absent from one of the copies, don't have to worry about this
+ */
+
+  /* function exit code */
+  __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_AddTraceback("mitty.lib.variation.append_sv_copies", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":299
+ *     int current_point, current_copy, current_point_idx, max_point_idx, max_pos
+ * 
+ *   def __cinit__(self, list point_list, int max_pos, int copy):             # <<<<<<<<<<<<<<
+ *     self.point_list, self.max_pos, self.current_copy, self.current_point_idx = point_list, max_pos, copy, 0
+ *     self.max_point_idx = len(self.point_list)
+ */
+
+/* Python wrapper */
+static int __pyx_pw_5mitty_3lib_9variation_15CrossOverPoints_1__cinit__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static int __pyx_pw_5mitty_3lib_9variation_15CrossOverPoints_1__cinit__(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  PyObject *__pyx_v_point_list = 0;
+  int __pyx_v_max_pos;
+  int __pyx_v_copy;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  int __pyx_r;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("merge_genomes (wrapper)", 0);
+  __Pyx_RefNannySetupContext("__cinit__ (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_g1,&__pyx_n_s_g2,&__pyx_n_s_ml,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_point_list,&__pyx_n_s_max_pos,&__pyx_n_s_copy,0};
     PyObject* values[3] = {0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
@@ -6240,21 +6267,21 @@ static PyObject *__pyx_pw_5mitty_3lib_9variation_18merge_genomes(PyObject *__pyx
       kw_args = PyDict_Size(__pyx_kwds);
       switch (pos_args) {
         case  0:
-        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_g1)) != 0)) kw_args--;
+        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_point_list)) != 0)) kw_args--;
         else goto __pyx_L5_argtuple_error;
         case  1:
-        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_g2)) != 0)) kw_args--;
+        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_max_pos)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("merge_genomes", 1, 3, 3, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 313; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 3, 3, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 299; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
         case  2:
-        if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_ml)) != 0)) kw_args--;
+        if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_copy)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("merge_genomes", 1, 3, 3, 2); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 313; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+          __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 3, 3, 2); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 299; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "merge_genomes") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 313; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "__cinit__") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 299; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 3) {
       goto __pyx_L5_argtuple_error;
@@ -6263,22 +6290,928 @@ static PyObject *__pyx_pw_5mitty_3lib_9variation_18merge_genomes(PyObject *__pyx
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
       values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
     }
-    __pyx_v_g1 = ((PyObject*)values[0]);
-    __pyx_v_g2 = ((PyObject*)values[1]);
-    __pyx_v_ml = ((PyObject*)values[2]);
+    __pyx_v_point_list = ((PyObject*)values[0]);
+    __pyx_v_max_pos = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_max_pos == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 299; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+    __pyx_v_copy = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_copy == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 299; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("merge_genomes", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 313; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __Pyx_RaiseArgtupleInvalid("__cinit__", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 299; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   __pyx_L3_error:;
-  __Pyx_AddTraceback("mitty.lib.variation.merge_genomes", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.CrossOverPoints.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_RefNannyFinishContext();
+  return -1;
+  __pyx_L4_argument_unpacking_done:;
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_point_list), (&PyList_Type), 1, "point_list", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 299; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_15CrossOverPoints___cinit__(((struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *)__pyx_v_self), __pyx_v_point_list, __pyx_v_max_pos, __pyx_v_copy);
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = -1;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static int __pyx_pf_5mitty_3lib_9variation_15CrossOverPoints___cinit__(struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *__pyx_v_self, PyObject *__pyx_v_point_list, int __pyx_v_max_pos, int __pyx_v_copy) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_t_2;
+  int __pyx_t_3;
+  int __pyx_t_4;
+  Py_ssize_t __pyx_t_5;
+  int __pyx_t_6;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("__cinit__", 0);
+
+  /* "mitty/lib/variation.pyx":300
+ * 
+ *   def __cinit__(self, list point_list, int max_pos, int copy):
+ *     self.point_list, self.max_pos, self.current_copy, self.current_point_idx = point_list, max_pos, copy, 0             # <<<<<<<<<<<<<<
+ *     self.max_point_idx = len(self.point_list)
+ *     if self.current_point_idx < self.max_point_idx:
+ */
+  __pyx_t_1 = __pyx_v_point_list;
+  __Pyx_INCREF(__pyx_t_1);
+  __pyx_t_2 = __pyx_v_max_pos;
+  __pyx_t_3 = __pyx_v_copy;
+  __pyx_t_4 = 0;
+  __Pyx_GIVEREF(__pyx_t_1);
+  __Pyx_GOTREF(__pyx_v_self->point_list);
+  __Pyx_DECREF(__pyx_v_self->point_list);
+  __pyx_v_self->point_list = ((PyObject*)__pyx_t_1);
+  __pyx_t_1 = 0;
+  __pyx_v_self->max_pos = __pyx_t_2;
+  __pyx_v_self->current_copy = __pyx_t_3;
+  __pyx_v_self->current_point_idx = __pyx_t_4;
+
+  /* "mitty/lib/variation.pyx":301
+ *   def __cinit__(self, list point_list, int max_pos, int copy):
+ *     self.point_list, self.max_pos, self.current_copy, self.current_point_idx = point_list, max_pos, copy, 0
+ *     self.max_point_idx = len(self.point_list)             # <<<<<<<<<<<<<<
+ *     if self.current_point_idx < self.max_point_idx:
+ *       self.current_point = self.point_list[self.current_point_idx]
+ */
+  __pyx_t_1 = __pyx_v_self->point_list;
+  __Pyx_INCREF(__pyx_t_1);
+  if (unlikely(__pyx_t_1 == Py_None)) {
+    PyErr_SetString(PyExc_TypeError, "object of type 'NoneType' has no len()");
+    {__pyx_filename = __pyx_f[0]; __pyx_lineno = 301; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  }
+  __pyx_t_5 = PyList_GET_SIZE(__pyx_t_1); if (unlikely(__pyx_t_5 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 301; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_v_self->max_point_idx = __pyx_t_5;
+
+  /* "mitty/lib/variation.pyx":302
+ *     self.point_list, self.max_pos, self.current_copy, self.current_point_idx = point_list, max_pos, copy, 0
+ *     self.max_point_idx = len(self.point_list)
+ *     if self.current_point_idx < self.max_point_idx:             # <<<<<<<<<<<<<<
+ *       self.current_point = self.point_list[self.current_point_idx]
+ *     else:
+ */
+  __pyx_t_6 = ((__pyx_v_self->current_point_idx < __pyx_v_self->max_point_idx) != 0);
+  if (__pyx_t_6) {
+
+    /* "mitty/lib/variation.pyx":303
+ *     self.max_point_idx = len(self.point_list)
+ *     if self.current_point_idx < self.max_point_idx:
+ *       self.current_point = self.point_list[self.current_point_idx]             # <<<<<<<<<<<<<<
+ *     else:
+ *       self.current_point = max_pos
+ */
+    if (unlikely(__pyx_v_self->point_list == Py_None)) {
+      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
+      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 303; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    }
+    __pyx_t_1 = __Pyx_GetItemInt_List(__pyx_v_self->point_list, __pyx_v_self->current_point_idx, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_1 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 303; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+    __Pyx_GOTREF(__pyx_t_1);
+    __pyx_t_4 = __Pyx_PyInt_As_int(__pyx_t_1); if (unlikely((__pyx_t_4 == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 303; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __pyx_v_self->current_point = __pyx_t_4;
+    goto __pyx_L3;
+  }
+  /*else*/ {
+
+    /* "mitty/lib/variation.pyx":305
+ *       self.current_point = self.point_list[self.current_point_idx]
+ *     else:
+ *       self.current_point = max_pos             # <<<<<<<<<<<<<<
+ * 
+ *   cdef int update_crossover(self, Variant v):
+ */
+    __pyx_v_self->current_point = __pyx_v_max_pos;
+  }
+  __pyx_L3:;
+
+  /* "mitty/lib/variation.pyx":299
+ *     int current_point, current_copy, current_point_idx, max_point_idx, max_pos
+ * 
+ *   def __cinit__(self, list point_list, int max_pos, int copy):             # <<<<<<<<<<<<<<
+ *     self.point_list, self.max_pos, self.current_copy, self.current_point_idx = point_list, max_pos, copy, 0
+ *     self.max_point_idx = len(self.point_list)
+ */
+
+  /* function exit code */
+  __pyx_r = 0;
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.CrossOverPoints.__cinit__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = -1;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":307
+ *       self.current_point = max_pos
+ * 
+ *   cdef int update_crossover(self, Variant v):             # <<<<<<<<<<<<<<
+ *     """Given the current variant, update the current_copy variable as needed and return that"""
+ *     if v.pos < self.current_point < v.stop:
+ */
+
+static int __pyx_f_5mitty_3lib_9variation_15CrossOverPoints_update_crossover(struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *__pyx_v_self, struct __pyx_obj_5mitty_3lib_9variation_Variant *__pyx_v_v) {
+  int __pyx_r;
+  __Pyx_RefNannyDeclarations
+  int __pyx_t_1;
+  int __pyx_t_2;
+  unsigned long __pyx_t_3;
+  PyObject *__pyx_t_4 = NULL;
+  PyObject *__pyx_t_5 = NULL;
+  PyObject *__pyx_t_6 = NULL;
+  int __pyx_t_7;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("update_crossover", 0);
+
+  /* "mitty/lib/variation.pyx":309
+ *   cdef int update_crossover(self, Variant v):
+ *     """Given the current variant, update the current_copy variable as needed and return that"""
+ *     if v.pos < self.current_point < v.stop:             # <<<<<<<<<<<<<<
+ *       # If the cross-over point falls in the middle of a deletion it will lead to a paradox, so we:
+ *       # a) move the cross over point virtually
+ */
+  __pyx_t_1 = (__pyx_v_v->pos < __pyx_v_self->current_point);
+  if (__pyx_t_1) {
+    __pyx_t_1 = (__pyx_v_self->current_point < __pyx_v_v->stop);
+  }
+  __pyx_t_2 = (__pyx_t_1 != 0);
+  if (__pyx_t_2) {
+
+    /* "mitty/lib/variation.pyx":312
+ *       # If the cross-over point falls in the middle of a deletion it will lead to a paradox, so we:
+ *       # a) move the cross over point virtually
+ *       self.current_point = v.stop             # <<<<<<<<<<<<<<
+ *       # b) Advance the index so that the next advance will point it to beyond this cross over
+ *       while self.current_point_idx < self.max_point_idx:
+ */
+    __pyx_t_3 = __pyx_v_v->stop;
+    __pyx_v_self->current_point = __pyx_t_3;
+
+    /* "mitty/lib/variation.pyx":314
+ *       self.current_point = v.stop
+ *       # b) Advance the index so that the next advance will point it to beyond this cross over
+ *       while self.current_point_idx < self.max_point_idx:             # <<<<<<<<<<<<<<
+ *         if self.point_list[self.current_point_idx] <= self.current_point:
+ *           self.current_point_idx += 1
+ */
+    while (1) {
+      __pyx_t_2 = ((__pyx_v_self->current_point_idx < __pyx_v_self->max_point_idx) != 0);
+      if (!__pyx_t_2) break;
+
+      /* "mitty/lib/variation.pyx":315
+ *       # b) Advance the index so that the next advance will point it to beyond this cross over
+ *       while self.current_point_idx < self.max_point_idx:
+ *         if self.point_list[self.current_point_idx] <= self.current_point:             # <<<<<<<<<<<<<<
+ *           self.current_point_idx += 1
+ *         else:
+ */
+      if (unlikely(__pyx_v_self->point_list == Py_None)) {
+        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
+        {__pyx_filename = __pyx_f[0]; __pyx_lineno = 315; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      }
+      __pyx_t_4 = __Pyx_GetItemInt_List(__pyx_v_self->point_list, __pyx_v_self->current_point_idx, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_4 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 315; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+      __Pyx_GOTREF(__pyx_t_4);
+      __pyx_t_5 = __Pyx_PyInt_From_int(__pyx_v_self->current_point); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 315; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_5);
+      __pyx_t_6 = PyObject_RichCompare(__pyx_t_4, __pyx_t_5, Py_LE); __Pyx_XGOTREF(__pyx_t_6); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 315; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+      __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_t_6); if (unlikely(__pyx_t_2 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 315; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+      if (__pyx_t_2) {
+
+        /* "mitty/lib/variation.pyx":316
+ *       while self.current_point_idx < self.max_point_idx:
+ *         if self.point_list[self.current_point_idx] <= self.current_point:
+ *           self.current_point_idx += 1             # <<<<<<<<<<<<<<
+ *         else:
+ *           self.current_point_idx -= 1  # We will advance this, so we need to rewind it a bit
+ */
+        __pyx_v_self->current_point_idx = (__pyx_v_self->current_point_idx + 1);
+        goto __pyx_L6;
+      }
+      /*else*/ {
+
+        /* "mitty/lib/variation.pyx":318
+ *           self.current_point_idx += 1
+ *         else:
+ *           self.current_point_idx -= 1  # We will advance this, so we need to rewind it a bit             # <<<<<<<<<<<<<<
+ *           break
+ *       # At the end of this loop, either our next point is past the moved point or we have run out of points
+ */
+        __pyx_v_self->current_point_idx = (__pyx_v_self->current_point_idx - 1);
+
+        /* "mitty/lib/variation.pyx":319
+ *         else:
+ *           self.current_point_idx -= 1  # We will advance this, so we need to rewind it a bit
+ *           break             # <<<<<<<<<<<<<<
+ *       # At the end of this loop, either our next point is past the moved point or we have run out of points
+ *       # No need to flip copies in this case
+ */
+        goto __pyx_L5_break;
+      }
+      __pyx_L6:;
+    }
+    __pyx_L5_break:;
+    goto __pyx_L3;
+  }
+  /*else*/ {
+
+    /* "mitty/lib/variation.pyx":323
+ *       # No need to flip copies in this case
+ *     else:  # We need to figure out if we have gone past the last cross over and need to advance
+ *       while v.pos > self.current_point:             # <<<<<<<<<<<<<<
+ *         self.current_copy = 1 - self.current_copy
+ *         self.current_point_idx += 1
+ */
+    while (1) {
+      __pyx_t_2 = ((__pyx_v_v->pos > __pyx_v_self->current_point) != 0);
+      if (!__pyx_t_2) break;
+
+      /* "mitty/lib/variation.pyx":324
+ *     else:  # We need to figure out if we have gone past the last cross over and need to advance
+ *       while v.pos > self.current_point:
+ *         self.current_copy = 1 - self.current_copy             # <<<<<<<<<<<<<<
+ *         self.current_point_idx += 1
+ *         if self.current_point_idx >= self.max_point_idx:
+ */
+      __pyx_v_self->current_copy = (1 - __pyx_v_self->current_copy);
+
+      /* "mitty/lib/variation.pyx":325
+ *       while v.pos > self.current_point:
+ *         self.current_copy = 1 - self.current_copy
+ *         self.current_point_idx += 1             # <<<<<<<<<<<<<<
+ *         if self.current_point_idx >= self.max_point_idx:
+ *           self.current_point_idx = self.max_point_idx
+ */
+      __pyx_v_self->current_point_idx = (__pyx_v_self->current_point_idx + 1);
+
+      /* "mitty/lib/variation.pyx":326
+ *         self.current_copy = 1 - self.current_copy
+ *         self.current_point_idx += 1
+ *         if self.current_point_idx >= self.max_point_idx:             # <<<<<<<<<<<<<<
+ *           self.current_point_idx = self.max_point_idx
+ *           self.current_point = self.max_pos
+ */
+      __pyx_t_2 = ((__pyx_v_self->current_point_idx >= __pyx_v_self->max_point_idx) != 0);
+      if (__pyx_t_2) {
+
+        /* "mitty/lib/variation.pyx":327
+ *         self.current_point_idx += 1
+ *         if self.current_point_idx >= self.max_point_idx:
+ *           self.current_point_idx = self.max_point_idx             # <<<<<<<<<<<<<<
+ *           self.current_point = self.max_pos
+ *           break
+ */
+        __pyx_t_7 = __pyx_v_self->max_point_idx;
+        __pyx_v_self->current_point_idx = __pyx_t_7;
+
+        /* "mitty/lib/variation.pyx":328
+ *         if self.current_point_idx >= self.max_point_idx:
+ *           self.current_point_idx = self.max_point_idx
+ *           self.current_point = self.max_pos             # <<<<<<<<<<<<<<
+ *           break
+ *         else:
+ */
+        __pyx_t_7 = __pyx_v_self->max_pos;
+        __pyx_v_self->current_point = __pyx_t_7;
+
+        /* "mitty/lib/variation.pyx":329
+ *           self.current_point_idx = self.max_point_idx
+ *           self.current_point = self.max_pos
+ *           break             # <<<<<<<<<<<<<<
+ *         else:
+ *           self.current_point = self.point_list[self.current_point_idx]
+ */
+        goto __pyx_L8_break;
+      }
+      /*else*/ {
+
+        /* "mitty/lib/variation.pyx":331
+ *           break
+ *         else:
+ *           self.current_point = self.point_list[self.current_point_idx]             # <<<<<<<<<<<<<<
+ *     return self.current_copy
+ * 
+ */
+        if (unlikely(__pyx_v_self->point_list == Py_None)) {
+          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
+          {__pyx_filename = __pyx_f[0]; __pyx_lineno = 331; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        }
+        __pyx_t_6 = __Pyx_GetItemInt_List(__pyx_v_self->point_list, __pyx_v_self->current_point_idx, int, 1, __Pyx_PyInt_From_int, 1, 1, 1); if (unlikely(__pyx_t_6 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 331; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+        __Pyx_GOTREF(__pyx_t_6);
+        __pyx_t_7 = __Pyx_PyInt_As_int(__pyx_t_6); if (unlikely((__pyx_t_7 == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 331; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+        __pyx_v_self->current_point = __pyx_t_7;
+      }
+    }
+    __pyx_L8_break:;
+  }
+  __pyx_L3:;
+
+  /* "mitty/lib/variation.pyx":332
+ *         else:
+ *           self.current_point = self.point_list[self.current_point_idx]
+ *     return self.current_copy             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+  __pyx_r = __pyx_v_self->current_copy;
+  goto __pyx_L0;
+
+  /* "mitty/lib/variation.pyx":307
+ *       self.current_point = max_pos
+ * 
+ *   cdef int update_crossover(self, Variant v):             # <<<<<<<<<<<<<<
+ *     """Given the current variant, update the current_copy variable as needed and return that"""
+ *     if v.pos < self.current_point < v.stop:
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_XDECREF(__pyx_t_5);
+  __Pyx_XDECREF(__pyx_t_6);
+  __Pyx_WriteUnraisable("mitty.lib.variation.CrossOverPoints.update_crossover", __pyx_clineno, __pyx_lineno, __pyx_filename, 0);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "mitty/lib/variation.pyx":335
+ * 
+ * 
+ * cpdef Chromosome pair_chromosomes(Chromosome s1, list cross_over1, int chrom_copy1, Chromosome s2, list cross_over2, int chrom_copy2):             # <<<<<<<<<<<<<<
+ *   """pair_chromosomes(s1, cross_over_points1, int cp1, s2, cross_over_points2, int cp2)
+ *   Starting with a pair of parent samples, apply crossover points and pair the resulting gametes to make a child genome
+ */
+
+static PyObject *__pyx_pw_5mitty_3lib_9variation_12pair_chromosomes(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_f_5mitty_3lib_9variation_pair_chromosomes(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s1, PyObject *__pyx_v_cross_over1, int __pyx_v_chrom_copy1, struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s2, PyObject *__pyx_v_cross_over2, int __pyx_v_chrom_copy2, CYTHON_UNUSED int __pyx_skip_dispatch) {
+  int __pyx_v_cp1;
+  int __pyx_v_cp2;
+  unsigned long __pyx_v_p1;
+  unsigned long __pyx_v_p2;
+  unsigned long __pyx_v_max_pos;
+  struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s3 = 0;
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv1 = 0;
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *__pyx_v_sv2 = 0;
+  struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *__pyx_v_cop1 = 0;
+  struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *__pyx_v_cop2 = 0;
+  struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_t_2;
+  int __pyx_t_3;
+  unsigned long __pyx_t_4;
+  unsigned long __pyx_t_5;
+  unsigned long __pyx_t_6;
+  PyObject *__pyx_t_7 = NULL;
+  PyObject *__pyx_t_8 = NULL;
+  int __pyx_t_9;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("pair_chromosomes", 0);
+
+  /* "mitty/lib/variation.pyx":352
+ *     * By convention, parent0 supplies chrom copy 0 and parent1 supplies chrom copy 1 of the child
+ *   """
+ *   s1.rewind_cursor()  # One of the evils of mutable state. Is there a way to avoid? Perhaps by making shallow copies?             # <<<<<<<<<<<<<<
+ *   s2.rewind_cursor()
+ * 
+ */
+  __pyx_t_1 = ((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s1->__pyx_vtab)->rewind_cursor(__pyx_v_s1, 0); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 352; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+
+  /* "mitty/lib/variation.pyx":353
+ *   """
+ *   s1.rewind_cursor()  # One of the evils of mutable state. Is there a way to avoid? Perhaps by making shallow copies?
+ *   s2.rewind_cursor()             # <<<<<<<<<<<<<<
+ * 
+ *   cdef:
+ */
+  __pyx_t_1 = ((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s2->__pyx_vtab)->rewind_cursor(__pyx_v_s2, 0); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 353; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+
+  /* "mitty/lib/variation.pyx":356
+ * 
+ *   cdef:
+ *     int cp1 = chrom_copy1, cp2 = chrom_copy2             # <<<<<<<<<<<<<<
+ *     unsigned long co_pt1, co_pt2, p1, p2, st1, st2, max_pos
+ *     Chromosome s3 = Chromosome()
+ */
+  __pyx_v_cp1 = __pyx_v_chrom_copy1;
+  __pyx_v_cp2 = __pyx_v_chrom_copy2;
+
+  /* "mitty/lib/variation.pyx":358
+ *     int cp1 = chrom_copy1, cp2 = chrom_copy2
+ *     unsigned long co_pt1, co_pt2, p1, p2, st1, st2, max_pos
+ *     Chromosome s3 = Chromosome()             # <<<<<<<<<<<<<<
+ *     GTVariant sv1 = s1.advance(), sv2 = s2.advance()
+ * 
+ */
+  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_5mitty_3lib_9variation_Chromosome)), __pyx_empty_tuple, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 358; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_v_s3 = ((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* "mitty/lib/variation.pyx":359
+ *     unsigned long co_pt1, co_pt2, p1, p2, st1, st2, max_pos
+ *     Chromosome s3 = Chromosome()
+ *     GTVariant sv1 = s1.advance(), sv2 = s2.advance()             # <<<<<<<<<<<<<<
+ * 
+ *   if s1.last() is not None:
+ */
+  __pyx_t_1 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s1->__pyx_vtab)->advance(__pyx_v_s1, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 359; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_v_sv1 = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1);
+  __pyx_t_1 = 0;
+  __pyx_t_1 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s2->__pyx_vtab)->advance(__pyx_v_s2, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 359; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_v_sv2 = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1);
+  __pyx_t_1 = 0;
+
+  /* "mitty/lib/variation.pyx":361
+ *     GTVariant sv1 = s1.advance(), sv2 = s2.advance()
+ * 
+ *   if s1.last() is not None:             # <<<<<<<<<<<<<<
+ *     max_pos = s1.last().data.pos + 1
+ *   else:
+ */
+  __pyx_t_1 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s1->__pyx_vtab)->last(__pyx_v_s1, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 361; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_2 = (__pyx_t_1 != Py_None);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_3 = (__pyx_t_2 != 0);
+  if (__pyx_t_3) {
+
+    /* "mitty/lib/variation.pyx":362
+ * 
+ *   if s1.last() is not None:
+ *     max_pos = s1.last().data.pos + 1             # <<<<<<<<<<<<<<
+ *   else:
+ *     max_pos = 1
+ */
+    __pyx_t_1 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s1->__pyx_vtab)->last(__pyx_v_s1, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 362; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    __pyx_v_max_pos = (((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1)->data->pos + 1);
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    goto __pyx_L3;
+  }
+  /*else*/ {
+
+    /* "mitty/lib/variation.pyx":364
+ *     max_pos = s1.last().data.pos + 1
+ *   else:
+ *     max_pos = 1             # <<<<<<<<<<<<<<
+ *   if s2.last() is not None:
+ *     max_pos = max(s2.last().data.pos + 1, max_pos)
+ */
+    __pyx_v_max_pos = 1;
+  }
+  __pyx_L3:;
+
+  /* "mitty/lib/variation.pyx":365
+ *   else:
+ *     max_pos = 1
+ *   if s2.last() is not None:             # <<<<<<<<<<<<<<
+ *     max_pos = max(s2.last().data.pos + 1, max_pos)
+ * 
+ */
+  __pyx_t_1 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s2->__pyx_vtab)->last(__pyx_v_s2, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 365; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_3 = (__pyx_t_1 != Py_None);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_2 = (__pyx_t_3 != 0);
+  if (__pyx_t_2) {
+
+    /* "mitty/lib/variation.pyx":366
+ *     max_pos = 1
+ *   if s2.last() is not None:
+ *     max_pos = max(s2.last().data.pos + 1, max_pos)             # <<<<<<<<<<<<<<
+ * 
+ *   cdef CrossOverPoints cop1 = CrossOverPoints(cross_over1, max_pos, chrom_copy1)
+ */
+    __pyx_t_4 = __pyx_v_max_pos;
+    __pyx_t_1 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s2->__pyx_vtab)->last(__pyx_v_s2, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 366; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+    __pyx_t_5 = (((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_1)->data->pos + 1);
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    if (((__pyx_t_4 > __pyx_t_5) != 0)) {
+      __pyx_t_6 = __pyx_t_4;
+    } else {
+      __pyx_t_6 = __pyx_t_5;
+    }
+    __pyx_v_max_pos = __pyx_t_6;
+    goto __pyx_L4;
+  }
+  __pyx_L4:;
+
+  /* "mitty/lib/variation.pyx":368
+ *     max_pos = max(s2.last().data.pos + 1, max_pos)
+ * 
+ *   cdef CrossOverPoints cop1 = CrossOverPoints(cross_over1, max_pos, chrom_copy1)             # <<<<<<<<<<<<<<
+ *   cdef CrossOverPoints cop2 = CrossOverPoints(cross_over2, max_pos, chrom_copy2)
+ * 
+ */
+  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_max_pos); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 368; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_t_7 = __Pyx_PyInt_From_int(__pyx_v_chrom_copy1); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 368; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_7);
+  __pyx_t_8 = PyTuple_New(3); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 368; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_8);
+  __Pyx_INCREF(__pyx_v_cross_over1);
+  PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_v_cross_over1);
+  __Pyx_GIVEREF(__pyx_v_cross_over1);
+  PyTuple_SET_ITEM(__pyx_t_8, 1, __pyx_t_1);
+  __Pyx_GIVEREF(__pyx_t_1);
+  PyTuple_SET_ITEM(__pyx_t_8, 2, __pyx_t_7);
+  __Pyx_GIVEREF(__pyx_t_7);
+  __pyx_t_1 = 0;
+  __pyx_t_7 = 0;
+  __pyx_t_7 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_5mitty_3lib_9variation_CrossOverPoints)), __pyx_t_8, NULL); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 368; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_7);
+  __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+  __pyx_v_cop1 = ((struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *)__pyx_t_7);
+  __pyx_t_7 = 0;
+
+  /* "mitty/lib/variation.pyx":369
+ * 
+ *   cdef CrossOverPoints cop1 = CrossOverPoints(cross_over1, max_pos, chrom_copy1)
+ *   cdef CrossOverPoints cop2 = CrossOverPoints(cross_over2, max_pos, chrom_copy2)             # <<<<<<<<<<<<<<
+ * 
+ *   while sv1 is not None or sv2 is not None:
+ */
+  __pyx_t_7 = __Pyx_PyInt_From_unsigned_long(__pyx_v_max_pos); if (unlikely(!__pyx_t_7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 369; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_7);
+  __pyx_t_8 = __Pyx_PyInt_From_int(__pyx_v_chrom_copy2); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 369; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_8);
+  __pyx_t_1 = PyTuple_New(3); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 369; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_INCREF(__pyx_v_cross_over2);
+  PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_v_cross_over2);
+  __Pyx_GIVEREF(__pyx_v_cross_over2);
+  PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_t_7);
+  __Pyx_GIVEREF(__pyx_t_7);
+  PyTuple_SET_ITEM(__pyx_t_1, 2, __pyx_t_8);
+  __Pyx_GIVEREF(__pyx_t_8);
+  __pyx_t_7 = 0;
+  __pyx_t_8 = 0;
+  __pyx_t_8 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_5mitty_3lib_9variation_CrossOverPoints)), __pyx_t_1, NULL); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 369; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_8);
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_v_cop2 = ((struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *)__pyx_t_8);
+  __pyx_t_8 = 0;
+
+  /* "mitty/lib/variation.pyx":371
+ *   cdef CrossOverPoints cop2 = CrossOverPoints(cross_over2, max_pos, chrom_copy2)
+ * 
+ *   while sv1 is not None or sv2 is not None:             # <<<<<<<<<<<<<<
+ *     p1 = sv1.data.pos if sv1 else max_pos
+ *     p2 = sv2.data.pos if sv2 else max_pos
+ */
+  while (1) {
+    __pyx_t_3 = (((PyObject *)__pyx_v_sv1) != Py_None);
+    __pyx_t_9 = (__pyx_t_3 != 0);
+    if (!__pyx_t_9) {
+    } else {
+      __pyx_t_2 = __pyx_t_9;
+      goto __pyx_L7_bool_binop_done;
+    }
+    __pyx_t_9 = (((PyObject *)__pyx_v_sv2) != Py_None);
+    __pyx_t_3 = (__pyx_t_9 != 0);
+    __pyx_t_2 = __pyx_t_3;
+    __pyx_L7_bool_binop_done:;
+    if (!__pyx_t_2) break;
+
+    /* "mitty/lib/variation.pyx":372
+ * 
+ *   while sv1 is not None or sv2 is not None:
+ *     p1 = sv1.data.pos if sv1 else max_pos             # <<<<<<<<<<<<<<
+ *     p2 = sv2.data.pos if sv2 else max_pos
+ *     cp1 = cop1.update_crossover(sv1.data)
+ */
+    __pyx_t_2 = __Pyx_PyObject_IsTrue(((PyObject *)__pyx_v_sv1)); if (unlikely(__pyx_t_2 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 372; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    if (__pyx_t_2) {
+      __pyx_t_6 = __pyx_v_sv1->data->pos;
+    } else {
+      __pyx_t_6 = __pyx_v_max_pos;
+    }
+    __pyx_v_p1 = __pyx_t_6;
+
+    /* "mitty/lib/variation.pyx":373
+ *   while sv1 is not None or sv2 is not None:
+ *     p1 = sv1.data.pos if sv1 else max_pos
+ *     p2 = sv2.data.pos if sv2 else max_pos             # <<<<<<<<<<<<<<
+ *     cp1 = cop1.update_crossover(sv1.data)
+ *     cp2 = cop2.update_crossover(sv2.data)
+ */
+    __pyx_t_2 = __Pyx_PyObject_IsTrue(((PyObject *)__pyx_v_sv2)); if (unlikely(__pyx_t_2 < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 373; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    if (__pyx_t_2) {
+      __pyx_t_6 = __pyx_v_sv2->data->pos;
+    } else {
+      __pyx_t_6 = __pyx_v_max_pos;
+    }
+    __pyx_v_p2 = __pyx_t_6;
+
+    /* "mitty/lib/variation.pyx":374
+ *     p1 = sv1.data.pos if sv1 else max_pos
+ *     p2 = sv2.data.pos if sv2 else max_pos
+ *     cp1 = cop1.update_crossover(sv1.data)             # <<<<<<<<<<<<<<
+ *     cp2 = cop2.update_crossover(sv2.data)
+ * 
+ */
+    __pyx_t_8 = ((PyObject *)__pyx_v_sv1->data);
+    __Pyx_INCREF(__pyx_t_8);
+    __pyx_v_cp1 = ((struct __pyx_vtabstruct_5mitty_3lib_9variation_CrossOverPoints *)__pyx_v_cop1->__pyx_vtab)->update_crossover(__pyx_v_cop1, ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_8));
+    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+
+    /* "mitty/lib/variation.pyx":375
+ *     p2 = sv2.data.pos if sv2 else max_pos
+ *     cp1 = cop1.update_crossover(sv1.data)
+ *     cp2 = cop2.update_crossover(sv2.data)             # <<<<<<<<<<<<<<
+ * 
+ *     if p1 < p2:    # Nothing tricky, just add sv1 to the sample
+ */
+    __pyx_t_8 = ((PyObject *)__pyx_v_sv2->data);
+    __Pyx_INCREF(__pyx_t_8);
+    __pyx_v_cp2 = ((struct __pyx_vtabstruct_5mitty_3lib_9variation_CrossOverPoints *)__pyx_v_cop2->__pyx_vtab)->update_crossover(__pyx_v_cop2, ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)__pyx_t_8));
+    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+
+    /* "mitty/lib/variation.pyx":377
+ *     cp2 = cop2.update_crossover(sv2.data)
+ * 
+ *     if p1 < p2:    # Nothing tricky, just add sv1 to the sample             # <<<<<<<<<<<<<<
+ *       append_sv_copy(s3, 0, sv1, cp1)  # By convention, parent1 contributes to copy0 of child chromosome
+ *       sv1 = s1.advance()
+ */
+    __pyx_t_2 = ((__pyx_v_p1 < __pyx_v_p2) != 0);
+    if (__pyx_t_2) {
+
+      /* "mitty/lib/variation.pyx":378
+ * 
+ *     if p1 < p2:    # Nothing tricky, just add sv1 to the sample
+ *       append_sv_copy(s3, 0, sv1, cp1)  # By convention, parent1 contributes to copy0 of child chromosome             # <<<<<<<<<<<<<<
+ *       sv1 = s1.advance()
+ *     elif p2 < p1:  # Nothing tricky, just add sv2 to the sample
+ */
+      __pyx_t_8 = __pyx_f_5mitty_3lib_9variation_append_sv_copy(__pyx_v_s3, 0, __pyx_v_sv1, __pyx_v_cp1); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 378; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_8);
+      __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+
+      /* "mitty/lib/variation.pyx":379
+ *     if p1 < p2:    # Nothing tricky, just add sv1 to the sample
+ *       append_sv_copy(s3, 0, sv1, cp1)  # By convention, parent1 contributes to copy0 of child chromosome
+ *       sv1 = s1.advance()             # <<<<<<<<<<<<<<
+ *     elif p2 < p1:  # Nothing tricky, just add sv2 to the sample
+ *       append_sv_copy(s3, 1, sv2, cp2)  # By convention, parent2 contributes to copy1 of child chromosome
+ */
+      __pyx_t_8 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s1->__pyx_vtab)->advance(__pyx_v_s1, 0)); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 379; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_8);
+      __Pyx_DECREF_SET(__pyx_v_sv1, ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_8));
+      __pyx_t_8 = 0;
+      goto __pyx_L9;
+    }
+
+    /* "mitty/lib/variation.pyx":380
+ *       append_sv_copy(s3, 0, sv1, cp1)  # By convention, parent1 contributes to copy0 of child chromosome
+ *       sv1 = s1.advance()
+ *     elif p2 < p1:  # Nothing tricky, just add sv2 to the sample             # <<<<<<<<<<<<<<
+ *       append_sv_copy(s3, 1, sv2, cp2)  # By convention, parent2 contributes to copy1 of child chromosome
+ *       sv2 = s2.advance()
+ */
+    __pyx_t_2 = ((__pyx_v_p2 < __pyx_v_p1) != 0);
+    if (__pyx_t_2) {
+
+      /* "mitty/lib/variation.pyx":381
+ *       sv1 = s1.advance()
+ *     elif p2 < p1:  # Nothing tricky, just add sv2 to the sample
+ *       append_sv_copy(s3, 1, sv2, cp2)  # By convention, parent2 contributes to copy1 of child chromosome             # <<<<<<<<<<<<<<
+ *       sv2 = s2.advance()
+ *     else:  # A little bit tricky - need to check to see if we end up with a HOM variant, or two HETs
+ */
+      __pyx_t_8 = __pyx_f_5mitty_3lib_9variation_append_sv_copy(__pyx_v_s3, 1, __pyx_v_sv2, __pyx_v_cp2); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 381; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_8);
+      __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+
+      /* "mitty/lib/variation.pyx":382
+ *     elif p2 < p1:  # Nothing tricky, just add sv2 to the sample
+ *       append_sv_copy(s3, 1, sv2, cp2)  # By convention, parent2 contributes to copy1 of child chromosome
+ *       sv2 = s2.advance()             # <<<<<<<<<<<<<<
+ *     else:  # A little bit tricky - need to check to see if we end up with a HOM variant, or two HETs
+ *       append_sv_copies(s3, sv1, cp1, sv2, cp2)
+ */
+      __pyx_t_8 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s2->__pyx_vtab)->advance(__pyx_v_s2, 0)); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 382; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_8);
+      __Pyx_DECREF_SET(__pyx_v_sv2, ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_8));
+      __pyx_t_8 = 0;
+      goto __pyx_L9;
+    }
+    /*else*/ {
+
+      /* "mitty/lib/variation.pyx":384
+ *       sv2 = s2.advance()
+ *     else:  # A little bit tricky - need to check to see if we end up with a HOM variant, or two HETs
+ *       append_sv_copies(s3, sv1, cp1, sv2, cp2)             # <<<<<<<<<<<<<<
+ *       sv1 = s1.advance()
+ *       sv2 = s2.advance()
+ */
+      __pyx_t_8 = __pyx_f_5mitty_3lib_9variation_append_sv_copies(__pyx_v_s3, __pyx_v_sv1, __pyx_v_cp1, __pyx_v_sv2, __pyx_v_cp2); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 384; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_8);
+      __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+
+      /* "mitty/lib/variation.pyx":385
+ *     else:  # A little bit tricky - need to check to see if we end up with a HOM variant, or two HETs
+ *       append_sv_copies(s3, sv1, cp1, sv2, cp2)
+ *       sv1 = s1.advance()             # <<<<<<<<<<<<<<
+ *       sv2 = s2.advance()
+ * 
+ */
+      __pyx_t_8 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s1->__pyx_vtab)->advance(__pyx_v_s1, 0)); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 385; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_8);
+      __Pyx_DECREF_SET(__pyx_v_sv1, ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_8));
+      __pyx_t_8 = 0;
+
+      /* "mitty/lib/variation.pyx":386
+ *       append_sv_copies(s3, sv1, cp1, sv2, cp2)
+ *       sv1 = s1.advance()
+ *       sv2 = s2.advance()             # <<<<<<<<<<<<<<
+ * 
+ *   return s3
+ */
+      __pyx_t_8 = ((PyObject *)((struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome *)__pyx_v_s2->__pyx_vtab)->advance(__pyx_v_s2, 0)); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 386; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      __Pyx_GOTREF(__pyx_t_8);
+      __Pyx_DECREF_SET(__pyx_v_sv2, ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)__pyx_t_8));
+      __pyx_t_8 = 0;
+    }
+    __pyx_L9:;
+  }
+
+  /* "mitty/lib/variation.pyx":388
+ *       sv2 = s2.advance()
+ * 
+ *   return s3             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+  __Pyx_XDECREF(((PyObject *)__pyx_r));
+  __Pyx_INCREF(((PyObject *)__pyx_v_s3));
+  __pyx_r = __pyx_v_s3;
+  goto __pyx_L0;
+
+  /* "mitty/lib/variation.pyx":335
+ * 
+ * 
+ * cpdef Chromosome pair_chromosomes(Chromosome s1, list cross_over1, int chrom_copy1, Chromosome s2, list cross_over2, int chrom_copy2):             # <<<<<<<<<<<<<<
+ *   """pair_chromosomes(s1, cross_over_points1, int cp1, s2, cross_over_points2, int cp2)
+ *   Starting with a pair of parent samples, apply crossover points and pair the resulting gametes to make a child genome
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_7);
+  __Pyx_XDECREF(__pyx_t_8);
+  __Pyx_AddTraceback("mitty.lib.variation.pair_chromosomes", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_XDECREF((PyObject *)__pyx_v_s3);
+  __Pyx_XDECREF((PyObject *)__pyx_v_sv1);
+  __Pyx_XDECREF((PyObject *)__pyx_v_sv2);
+  __Pyx_XDECREF((PyObject *)__pyx_v_cop1);
+  __Pyx_XDECREF((PyObject *)__pyx_v_cop2);
+  __Pyx_XGIVEREF((PyObject *)__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_12pair_chromosomes(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static char __pyx_doc_5mitty_3lib_9variation_11pair_chromosomes[] = "pair_chromosomes(s1, cross_over_points1, int cp1, s2, cross_over_points2, int cp2)\n  Starting with a pair of parent samples, apply crossover points and pair the resulting gametes to make a child genome\n\n  :param s1: first sample genome\n  :param cross_over1: list of cross over points\n  :param chrom_copy1: which copy of chrom to use for gamete [0, 1]\n  :param s2: second sample genome\n  :param cross_over2: list of cross over points\n  :param chrom_copy2: which copy of chrom to use for gamete [0, 1]\n  :returns s3: child genome\n\n  Algorithm:\n    * Zip in sample variants from both parents in merge sort fashion until done.\n    * For each parent, pick variants from one copy, until we reach a cross over point, then flip the copy\n    * By convention, parent0 supplies chrom copy 0 and parent1 supplies chrom copy 1 of the child\n  ";
+static PyObject *__pyx_pw_5mitty_3lib_9variation_12pair_chromosomes(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s1 = 0;
+  PyObject *__pyx_v_cross_over1 = 0;
+  int __pyx_v_chrom_copy1;
+  struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s2 = 0;
+  PyObject *__pyx_v_cross_over2 = 0;
+  int __pyx_v_chrom_copy2;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("pair_chromosomes (wrapper)", 0);
+  {
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_s1,&__pyx_n_s_cross_over1,&__pyx_n_s_chrom_copy1,&__pyx_n_s_s2,&__pyx_n_s_cross_over2,&__pyx_n_s_chrom_copy2,0};
+    PyObject* values[6] = {0,0,0,0,0,0};
+    if (unlikely(__pyx_kwds)) {
+      Py_ssize_t kw_args;
+      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
+      switch (pos_args) {
+        case  6: values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
+        case  5: values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
+        case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
+        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+        case  0: break;
+        default: goto __pyx_L5_argtuple_error;
+      }
+      kw_args = PyDict_Size(__pyx_kwds);
+      switch (pos_args) {
+        case  0:
+        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_s1)) != 0)) kw_args--;
+        else goto __pyx_L5_argtuple_error;
+        case  1:
+        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_cross_over1)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("pair_chromosomes", 1, 6, 6, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        }
+        case  2:
+        if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_chrom_copy1)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("pair_chromosomes", 1, 6, 6, 2); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        }
+        case  3:
+        if (likely((values[3] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_s2)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("pair_chromosomes", 1, 6, 6, 3); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        }
+        case  4:
+        if (likely((values[4] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_cross_over2)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("pair_chromosomes", 1, 6, 6, 4); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        }
+        case  5:
+        if (likely((values[5] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_chrom_copy2)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("pair_chromosomes", 1, 6, 6, 5); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        }
+      }
+      if (unlikely(kw_args > 0)) {
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "pair_chromosomes") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+      }
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 6) {
+      goto __pyx_L5_argtuple_error;
+    } else {
+      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+      values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+      values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
+      values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
+      values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
+    }
+    __pyx_v_s1 = ((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)values[0]);
+    __pyx_v_cross_over1 = ((PyObject*)values[1]);
+    __pyx_v_chrom_copy1 = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_chrom_copy1 == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+    __pyx_v_s2 = ((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)values[3]);
+    __pyx_v_cross_over2 = ((PyObject*)values[4]);
+    __pyx_v_chrom_copy2 = __Pyx_PyInt_As_int(values[5]); if (unlikely((__pyx_v_chrom_copy2 == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  }
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L5_argtuple_error:;
+  __Pyx_RaiseArgtupleInvalid("pair_chromosomes", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __pyx_L3_error:;
+  __Pyx_AddTraceback("mitty.lib.variation.pair_chromosomes", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_g1), (&PyDict_Type), 1, "g1", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 313; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_g2), (&PyDict_Type), 1, "g2", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 313; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_ml), (&PyDict_Type), 1, "ml", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 313; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_r = __pyx_pf_5mitty_3lib_9variation_17merge_genomes(__pyx_self, __pyx_v_g1, __pyx_v_g2, __pyx_v_ml);
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_s1), __pyx_ptype_5mitty_3lib_9variation_Chromosome, 1, "s1", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_cross_over1), (&PyList_Type), 1, "cross_over1", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_s2), __pyx_ptype_5mitty_3lib_9variation_Chromosome, 1, "s2", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_cross_over2), (&PyList_Type), 1, "cross_over2", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_11pair_chromosomes(__pyx_self, __pyx_v_s1, __pyx_v_cross_over1, __pyx_v_chrom_copy1, __pyx_v_s2, __pyx_v_cross_over2, __pyx_v_chrom_copy2);
 
   /* function exit code */
   goto __pyx_L0;
@@ -6289,168 +7222,385 @@ static PyObject *__pyx_pw_5mitty_3lib_9variation_18merge_genomes(PyObject *__pyx
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_5mitty_3lib_9variation_17merge_genomes(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_g1, PyObject *__pyx_v_g2, PyObject *__pyx_v_ml) {
-  PyObject *__pyx_v_g3 = NULL;
-  PyObject *__pyx_v_chrom = NULL;
-  PyObject *__pyx_v_c2 = NULL;
+static PyObject *__pyx_pf_5mitty_3lib_9variation_11pair_chromosomes(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s1, PyObject *__pyx_v_cross_over1, int __pyx_v_chrom_copy1, struct __pyx_obj_5mitty_3lib_9variation_Chromosome *__pyx_v_s2, PyObject *__pyx_v_cross_over2, int __pyx_v_chrom_copy2) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
-  Py_ssize_t __pyx_t_2;
-  Py_ssize_t __pyx_t_3;
-  int __pyx_t_4;
-  PyObject *__pyx_t_5 = NULL;
-  PyObject *__pyx_t_6 = NULL;
-  int __pyx_t_7;
-  PyObject *__pyx_t_8 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("merge_genomes", 0);
-
-  /* "mitty/lib/variation.pyx":322
- *   :returns: new genome
- *   """
- *   g3 = {}             # <<<<<<<<<<<<<<
- *   for chrom, c2 in g2.iteritems():
- *     g3[chrom] = merge_variants(g1.get(chrom, []), c2, ml)
- */
-  __pyx_t_1 = PyDict_New(); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 322; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_v_g3 = ((PyObject*)__pyx_t_1);
-  __pyx_t_1 = 0;
-
-  /* "mitty/lib/variation.pyx":323
- *   """
- *   g3 = {}
- *   for chrom, c2 in g2.iteritems():             # <<<<<<<<<<<<<<
- *     g3[chrom] = merge_variants(g1.get(chrom, []), c2, ml)
- *   copy_missing_chromosomes(g3, g1)  # The previous loop merges all chr in c2.
- */
-  __pyx_t_2 = 0;
-  if (unlikely(__pyx_v_g2 == Py_None)) {
-    PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "iteritems");
-    {__pyx_filename = __pyx_f[0]; __pyx_lineno = 323; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  }
-  __pyx_t_5 = __Pyx_dict_iterator(__pyx_v_g2, 1, __pyx_n_s_iteritems, (&__pyx_t_3), (&__pyx_t_4)); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 323; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_5);
-  __Pyx_XDECREF(__pyx_t_1);
-  __pyx_t_1 = __pyx_t_5;
-  __pyx_t_5 = 0;
-  while (1) {
-    __pyx_t_7 = __Pyx_dict_iter_next(__pyx_t_1, __pyx_t_3, &__pyx_t_2, &__pyx_t_5, &__pyx_t_6, NULL, __pyx_t_4);
-    if (unlikely(__pyx_t_7 == 0)) break;
-    if (unlikely(__pyx_t_7 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 323; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_5);
-    __Pyx_GOTREF(__pyx_t_6);
-    __Pyx_XDECREF_SET(__pyx_v_chrom, __pyx_t_5);
-    __pyx_t_5 = 0;
-    __Pyx_XDECREF_SET(__pyx_v_c2, __pyx_t_6);
-    __pyx_t_6 = 0;
-
-    /* "mitty/lib/variation.pyx":324
- *   g3 = {}
- *   for chrom, c2 in g2.iteritems():
- *     g3[chrom] = merge_variants(g1.get(chrom, []), c2, ml)             # <<<<<<<<<<<<<<
- *   copy_missing_chromosomes(g3, g1)  # The previous loop merges all chr in c2.
- *                                     # Now, we need to consider all chr in c1 but not in c2
- */
-    if (unlikely(__pyx_v_g1 == Py_None)) {
-      PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "get");
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 324; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    }
-    __pyx_t_6 = PyList_New(0); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 324; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_6);
-    __pyx_t_5 = __Pyx_PyDict_GetItemDefault(__pyx_v_g1, __pyx_v_chrom, __pyx_t_6); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 324; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_5);
-    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    if (!(likely(PyList_CheckExact(__pyx_t_5))||((__pyx_t_5) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "list", Py_TYPE(__pyx_t_5)->tp_name), 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 324; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    if (!(likely(PyList_CheckExact(__pyx_v_c2))||((__pyx_v_c2) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "list", Py_TYPE(__pyx_v_c2)->tp_name), 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 324; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __pyx_t_6 = __pyx_f_5mitty_3lib_9variation_merge_variants(((PyObject*)__pyx_t_5), ((PyObject*)__pyx_v_c2), __pyx_v_ml, 0); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 324; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_GOTREF(__pyx_t_6);
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    if (unlikely(PyDict_SetItem(__pyx_v_g3, __pyx_v_chrom, __pyx_t_6) < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 324; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  }
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
-  /* "mitty/lib/variation.pyx":325
- *   for chrom, c2 in g2.iteritems():
- *     g3[chrom] = merge_variants(g1.get(chrom, []), c2, ml)
- *   copy_missing_chromosomes(g3, g1)  # The previous loop merges all chr in c2.             # <<<<<<<<<<<<<<
- *                                     # Now, we need to consider all chr in c1 but not in c2
- *   return g3
- */
-  __pyx_t_6 = __Pyx_GetModuleGlobalName(__pyx_n_s_copy_missing_chromosomes); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 325; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_6);
-  __pyx_t_5 = NULL;
-  __pyx_t_3 = 0;
-  if (CYTHON_COMPILING_IN_CPYTHON && unlikely(PyMethod_Check(__pyx_t_6))) {
-    __pyx_t_5 = PyMethod_GET_SELF(__pyx_t_6);
-    if (likely(__pyx_t_5)) {
-      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_6);
-      __Pyx_INCREF(__pyx_t_5);
-      __Pyx_INCREF(function);
-      __Pyx_DECREF_SET(__pyx_t_6, function);
-      __pyx_t_3 = 1;
-    }
-  }
-  __pyx_t_8 = PyTuple_New(2+__pyx_t_3); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 325; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_8);
-  if (__pyx_t_5) {
-    PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_t_5); __Pyx_GIVEREF(__pyx_t_5); __pyx_t_5 = NULL;
-  }
-  __Pyx_INCREF(__pyx_v_g3);
-  PyTuple_SET_ITEM(__pyx_t_8, 0+__pyx_t_3, __pyx_v_g3);
-  __Pyx_GIVEREF(__pyx_v_g3);
-  __Pyx_INCREF(__pyx_v_g1);
-  PyTuple_SET_ITEM(__pyx_t_8, 1+__pyx_t_3, __pyx_v_g1);
-  __Pyx_GIVEREF(__pyx_v_g1);
-  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_6, __pyx_t_8, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 325; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
-  __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
-  /* "mitty/lib/variation.pyx":327
- *   copy_missing_chromosomes(g3, g1)  # The previous loop merges all chr in c2.
- *                                     # Now, we need to consider all chr in c1 but not in c2
- *   return g3             # <<<<<<<<<<<<<<
- * 
- * 
- */
+  __Pyx_RefNannySetupContext("pair_chromosomes", 0);
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF(__pyx_v_g3);
-  __pyx_r = __pyx_v_g3;
+  __pyx_t_1 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_pair_chromosomes(__pyx_v_s1, __pyx_v_cross_over1, __pyx_v_chrom_copy1, __pyx_v_s2, __pyx_v_cross_over2, __pyx_v_chrom_copy2, 0)); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 335; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
   goto __pyx_L0;
-
-  /* "mitty/lib/variation.pyx":313
- * 
- * 
- * def merge_genomes(dict g1, dict g2, dict ml):             # <<<<<<<<<<<<<<
- *   """Given two genomes run merge_variants(c1, c2) on each chromosome. g1 has priority. In the end copy any chromosomes
- *   present in g2 but not in g1 into g1 (so that g1 is a superset of g2)
- */
 
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_XDECREF(__pyx_t_6);
-  __Pyx_XDECREF(__pyx_t_8);
-  __Pyx_AddTraceback("mitty.lib.variation.merge_genomes", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("mitty.lib.variation.pair_chromosomes", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
-  __Pyx_XDECREF(__pyx_v_g3);
-  __Pyx_XDECREF(__pyx_v_chrom);
-  __Pyx_XDECREF(__pyx_v_c2);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_tp_new_5mitty_3lib_9variation_VariationData(PyTypeObject *t, PyObject *a, PyObject *k) {
-  struct __pyx_obj_5mitty_3lib_9variation_VariationData *p;
+/* "mitty/lib/variation.pyx":391
+ * 
+ * 
+ * cpdef dict pair_samples(dict s1, dict cross1, dict copy1, dict s2, dict cross2, dict copy2):             # <<<<<<<<<<<<<<
+ *   """pair_samples(dict s1, dict cross1, dict copy1, dict s2, dict cross2, dict copy2)
+ * 
+ */
+
+static PyObject *__pyx_pw_5mitty_3lib_9variation_14pair_samples(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_f_5mitty_3lib_9variation_pair_samples(PyObject *__pyx_v_s1, PyObject *__pyx_v_cross1, PyObject *__pyx_v_copy1, PyObject *__pyx_v_s2, PyObject *__pyx_v_cross2, PyObject *__pyx_v_copy2, CYTHON_UNUSED int __pyx_skip_dispatch) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
+  PyObject *(*__pyx_t_5)(PyObject *);
+  PyObject *__pyx_t_6 = NULL;
+  int __pyx_t_7;
+  PyObject *__pyx_t_8 = NULL;
+  PyObject *__pyx_t_9 = NULL;
+  int __pyx_t_10;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("pair_samples", 0);
+
+  /* "mitty/lib/variation.pyx":406
+ *   Note: If no cross over points or copy numbers are supplied for a chromosome they default to no crossovers and copy 0
+ *   """
+ *   return {chrom: pair_chromosomes(s1.get(chrom, Chromosome()), cross1.get(chrom, []), copy1.get(chrom, 0),             # <<<<<<<<<<<<<<
+ *                                   s2.get(chrom, Chromosome()), cross2.get(chrom, []), copy2.get(chrom, 0))
+ *           for chrom in set(s1.keys()) | set(s2.keys())}
+ */
+  __Pyx_XDECREF(__pyx_r);
+  { /* enter inner scope */
+    PyObject *__pyx_7genexpr__pyx_v_chrom = NULL;
+    __pyx_t_1 = PyDict_New(); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+    __Pyx_GOTREF(__pyx_t_1);
+
+    /* "mitty/lib/variation.pyx":408
+ *   return {chrom: pair_chromosomes(s1.get(chrom, Chromosome()), cross1.get(chrom, []), copy1.get(chrom, 0),
+ *                                   s2.get(chrom, Chromosome()), cross2.get(chrom, []), copy2.get(chrom, 0))
+ *           for chrom in set(s1.keys()) | set(s2.keys())}             # <<<<<<<<<<<<<<
+ */
+    if (unlikely(__pyx_v_s1 == Py_None)) {
+      PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "keys");
+      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 408; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+    }
+    __pyx_t_2 = __Pyx_PyDict_Keys(__pyx_v_s1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 408; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_3 = PySet_New(__pyx_t_2); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 408; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+    __Pyx_GOTREF(__pyx_t_3);
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    if (unlikely(__pyx_v_s2 == Py_None)) {
+      PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "keys");
+      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 408; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+    }
+    __pyx_t_2 = __Pyx_PyDict_Keys(__pyx_v_s2); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 408; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_4 = PySet_New(__pyx_t_2); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 408; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+    __Pyx_GOTREF(__pyx_t_4);
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_t_2 = PyNumber_Or(__pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 408; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+    __Pyx_GOTREF(__pyx_t_2);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __pyx_t_4 = PyObject_GetIter(__pyx_t_2); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 408; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+    __Pyx_GOTREF(__pyx_t_4);
+    __pyx_t_5 = Py_TYPE(__pyx_t_4)->tp_iternext; if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 408; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    for (;;) {
+      {
+        __pyx_t_2 = __pyx_t_5(__pyx_t_4);
+        if (unlikely(!__pyx_t_2)) {
+          PyObject* exc_type = PyErr_Occurred();
+          if (exc_type) {
+            if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
+            else {__pyx_filename = __pyx_f[0]; __pyx_lineno = 408; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+          }
+          break;
+        }
+        __Pyx_GOTREF(__pyx_t_2);
+      }
+      __Pyx_XDECREF_SET(__pyx_7genexpr__pyx_v_chrom, __pyx_t_2);
+      __pyx_t_2 = 0;
+
+      /* "mitty/lib/variation.pyx":406
+ *   Note: If no cross over points or copy numbers are supplied for a chromosome they default to no crossovers and copy 0
+ *   """
+ *   return {chrom: pair_chromosomes(s1.get(chrom, Chromosome()), cross1.get(chrom, []), copy1.get(chrom, 0),             # <<<<<<<<<<<<<<
+ *                                   s2.get(chrom, Chromosome()), cross2.get(chrom, []), copy2.get(chrom, 0))
+ *           for chrom in set(s1.keys()) | set(s2.keys())}
+ */
+      if (unlikely(__pyx_v_s1 == Py_None)) {
+        PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "get");
+        {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      }
+      __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_5mitty_3lib_9variation_Chromosome)), __pyx_empty_tuple, NULL); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_GOTREF(__pyx_t_2);
+      __pyx_t_3 = __Pyx_PyDict_GetItemDefault(__pyx_v_s1, __pyx_7genexpr__pyx_v_chrom, __pyx_t_2); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_GOTREF(__pyx_t_3);
+      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+      if (!(likely(((__pyx_t_3) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_3, __pyx_ptype_5mitty_3lib_9variation_Chromosome))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      if (unlikely(__pyx_v_cross1 == Py_None)) {
+        PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "get");
+        {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      }
+      __pyx_t_2 = PyList_New(0); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_GOTREF(__pyx_t_2);
+      __pyx_t_6 = __Pyx_PyDict_GetItemDefault(__pyx_v_cross1, __pyx_7genexpr__pyx_v_chrom, __pyx_t_2); if (unlikely(!__pyx_t_6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_GOTREF(__pyx_t_6);
+      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+      if (!(likely(PyList_CheckExact(__pyx_t_6))||((__pyx_t_6) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "list", Py_TYPE(__pyx_t_6)->tp_name), 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      if (unlikely(__pyx_v_copy1 == Py_None)) {
+        PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "get");
+        {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      }
+      __pyx_t_2 = __Pyx_PyDict_GetItemDefault(__pyx_v_copy1, __pyx_7genexpr__pyx_v_chrom, __pyx_int_0); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_GOTREF(__pyx_t_2);
+      __pyx_t_7 = __Pyx_PyInt_As_int(__pyx_t_2); if (unlikely((__pyx_t_7 == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+
+      /* "mitty/lib/variation.pyx":407
+ *   """
+ *   return {chrom: pair_chromosomes(s1.get(chrom, Chromosome()), cross1.get(chrom, []), copy1.get(chrom, 0),
+ *                                   s2.get(chrom, Chromosome()), cross2.get(chrom, []), copy2.get(chrom, 0))             # <<<<<<<<<<<<<<
+ *           for chrom in set(s1.keys()) | set(s2.keys())}
+ */
+      if (unlikely(__pyx_v_s2 == Py_None)) {
+        PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "get");
+        {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      }
+      __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)((PyObject*)__pyx_ptype_5mitty_3lib_9variation_Chromosome)), __pyx_empty_tuple, NULL); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_GOTREF(__pyx_t_2);
+      __pyx_t_8 = __Pyx_PyDict_GetItemDefault(__pyx_v_s2, __pyx_7genexpr__pyx_v_chrom, __pyx_t_2); if (unlikely(!__pyx_t_8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_GOTREF(__pyx_t_8);
+      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+      if (!(likely(((__pyx_t_8) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_8, __pyx_ptype_5mitty_3lib_9variation_Chromosome))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      if (unlikely(__pyx_v_cross2 == Py_None)) {
+        PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "get");
+        {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      }
+      __pyx_t_2 = PyList_New(0); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_GOTREF(__pyx_t_2);
+      __pyx_t_9 = __Pyx_PyDict_GetItemDefault(__pyx_v_cross2, __pyx_7genexpr__pyx_v_chrom, __pyx_t_2); if (unlikely(!__pyx_t_9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_GOTREF(__pyx_t_9);
+      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+      if (!(likely(PyList_CheckExact(__pyx_t_9))||((__pyx_t_9) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "list", Py_TYPE(__pyx_t_9)->tp_name), 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      if (unlikely(__pyx_v_copy2 == Py_None)) {
+        PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "get");
+        {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      }
+      __pyx_t_2 = __Pyx_PyDict_GetItemDefault(__pyx_v_copy2, __pyx_7genexpr__pyx_v_chrom, __pyx_int_0); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_GOTREF(__pyx_t_2);
+      __pyx_t_10 = __Pyx_PyInt_As_int(__pyx_t_2); if (unlikely((__pyx_t_10 == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 407; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+
+      /* "mitty/lib/variation.pyx":406
+ *   Note: If no cross over points or copy numbers are supplied for a chromosome they default to no crossovers and copy 0
+ *   """
+ *   return {chrom: pair_chromosomes(s1.get(chrom, Chromosome()), cross1.get(chrom, []), copy1.get(chrom, 0),             # <<<<<<<<<<<<<<
+ *                                   s2.get(chrom, Chromosome()), cross2.get(chrom, []), copy2.get(chrom, 0))
+ *           for chrom in set(s1.keys()) | set(s2.keys())}
+ */
+      __pyx_t_2 = ((PyObject *)__pyx_f_5mitty_3lib_9variation_pair_chromosomes(((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_t_3), ((PyObject*)__pyx_t_6), __pyx_t_7, ((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)__pyx_t_8), ((PyObject*)__pyx_t_9), __pyx_t_10, 0)); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_GOTREF(__pyx_t_2);
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+      __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+      __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
+      if (unlikely(PyDict_SetItem(__pyx_t_1, (PyObject*)__pyx_7genexpr__pyx_v_chrom, (PyObject*)__pyx_t_2))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 406; __pyx_clineno = __LINE__; goto __pyx_L5_error;}
+      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+
+      /* "mitty/lib/variation.pyx":408
+ *   return {chrom: pair_chromosomes(s1.get(chrom, Chromosome()), cross1.get(chrom, []), copy1.get(chrom, 0),
+ *                                   s2.get(chrom, Chromosome()), cross2.get(chrom, []), copy2.get(chrom, 0))
+ *           for chrom in set(s1.keys()) | set(s2.keys())}             # <<<<<<<<<<<<<<
+ */
+    }
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __Pyx_XDECREF(__pyx_7genexpr__pyx_v_chrom);
+    goto __pyx_L8_exit_scope;
+    __pyx_L5_error:;
+    __Pyx_XDECREF(__pyx_7genexpr__pyx_v_chrom);
+    goto __pyx_L1_error;
+    __pyx_L8_exit_scope:;
+  } /* exit inner scope */
+  __pyx_r = ((PyObject*)__pyx_t_1);
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* "mitty/lib/variation.pyx":391
+ * 
+ * 
+ * cpdef dict pair_samples(dict s1, dict cross1, dict copy1, dict s2, dict cross2, dict copy2):             # <<<<<<<<<<<<<<
+ *   """pair_samples(dict s1, dict cross1, dict copy1, dict s2, dict cross2, dict copy2)
+ * 
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_XDECREF(__pyx_t_6);
+  __Pyx_XDECREF(__pyx_t_8);
+  __Pyx_XDECREF(__pyx_t_9);
+  __Pyx_AddTraceback("mitty.lib.variation.pair_samples", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_5mitty_3lib_9variation_14pair_samples(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static char __pyx_doc_5mitty_3lib_9variation_13pair_samples[] = "pair_samples(dict s1, dict cross1, dict copy1, dict s2, dict cross2, dict copy2)\n\n  Convenience wrapper round pair_chromosomes to operate on all the chromosomes in the two samples\n\n  :param s1: dict with keys as chrom numbers and values as Chromosome objects\n  :param cross1: dict with keys as chrom numbers and values as list of crossover points\n  :param copy1: dict with keys as chrom numbers and values as [0, 1] indicating which chromosome copy to use\n  :param s2: dict with keys as chrom numbers and values as Chromosome objects\n  :param cross2: dict with keys as chrom numbers and values as list of crossover points\n  :param copy2: dict with keys as chrom numbers and values as [0, 1] indicating which chromosome copy to use\n  :returns s3: a dict with keys as chrom numbers and values as Chromosome objects representing the demon spawn of the mating\n\n  Note: If no cross over points or copy numbers are supplied for a chromosome they default to no crossovers and copy 0\n  ";
+static PyObject *__pyx_pw_5mitty_3lib_9variation_14pair_samples(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  PyObject *__pyx_v_s1 = 0;
+  PyObject *__pyx_v_cross1 = 0;
+  PyObject *__pyx_v_copy1 = 0;
+  PyObject *__pyx_v_s2 = 0;
+  PyObject *__pyx_v_cross2 = 0;
+  PyObject *__pyx_v_copy2 = 0;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("pair_samples (wrapper)", 0);
+  {
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_s1,&__pyx_n_s_cross1,&__pyx_n_s_copy1,&__pyx_n_s_s2,&__pyx_n_s_cross2,&__pyx_n_s_copy2,0};
+    PyObject* values[6] = {0,0,0,0,0,0};
+    if (unlikely(__pyx_kwds)) {
+      Py_ssize_t kw_args;
+      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
+      switch (pos_args) {
+        case  6: values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
+        case  5: values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
+        case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
+        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+        case  0: break;
+        default: goto __pyx_L5_argtuple_error;
+      }
+      kw_args = PyDict_Size(__pyx_kwds);
+      switch (pos_args) {
+        case  0:
+        if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_s1)) != 0)) kw_args--;
+        else goto __pyx_L5_argtuple_error;
+        case  1:
+        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_cross1)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("pair_samples", 1, 6, 6, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        }
+        case  2:
+        if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_copy1)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("pair_samples", 1, 6, 6, 2); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        }
+        case  3:
+        if (likely((values[3] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_s2)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("pair_samples", 1, 6, 6, 3); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        }
+        case  4:
+        if (likely((values[4] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_cross2)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("pair_samples", 1, 6, 6, 4); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        }
+        case  5:
+        if (likely((values[5] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_copy2)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("pair_samples", 1, 6, 6, 5); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        }
+      }
+      if (unlikely(kw_args > 0)) {
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "pair_samples") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+      }
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 6) {
+      goto __pyx_L5_argtuple_error;
+    } else {
+      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+      values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+      values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
+      values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
+      values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
+    }
+    __pyx_v_s1 = ((PyObject*)values[0]);
+    __pyx_v_cross1 = ((PyObject*)values[1]);
+    __pyx_v_copy1 = ((PyObject*)values[2]);
+    __pyx_v_s2 = ((PyObject*)values[3]);
+    __pyx_v_cross2 = ((PyObject*)values[4]);
+    __pyx_v_copy2 = ((PyObject*)values[5]);
+  }
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L5_argtuple_error:;
+  __Pyx_RaiseArgtupleInvalid("pair_samples", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __pyx_L3_error:;
+  __Pyx_AddTraceback("mitty.lib.variation.pair_samples", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_RefNannyFinishContext();
+  return NULL;
+  __pyx_L4_argument_unpacking_done:;
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_s1), (&PyDict_Type), 1, "s1", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_cross1), (&PyDict_Type), 1, "cross1", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_copy1), (&PyDict_Type), 1, "copy1", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_s2), (&PyDict_Type), 1, "s2", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_cross2), (&PyDict_Type), 1, "cross2", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_copy2), (&PyDict_Type), 1, "copy2", 1))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_r = __pyx_pf_5mitty_3lib_9variation_13pair_samples(__pyx_self, __pyx_v_s1, __pyx_v_cross1, __pyx_v_copy1, __pyx_v_s2, __pyx_v_cross2, __pyx_v_copy2);
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_5mitty_3lib_9variation_13pair_samples(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_s1, PyObject *__pyx_v_cross1, PyObject *__pyx_v_copy1, PyObject *__pyx_v_s2, PyObject *__pyx_v_cross2, PyObject *__pyx_v_copy2) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("pair_samples", 0);
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = __pyx_f_5mitty_3lib_9variation_pair_samples(__pyx_v_s1, __pyx_v_cross1, __pyx_v_copy1, __pyx_v_s2, __pyx_v_cross2, __pyx_v_copy2, 0); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 391; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("mitty.lib.variation.pair_samples", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_tp_new_5mitty_3lib_9variation_Variant(PyTypeObject *t, CYTHON_UNUSED PyObject *a, CYTHON_UNUSED PyObject *k) {
+  struct __pyx_obj_5mitty_3lib_9variation_Variant *p;
   PyObject *o;
   if (likely((t->tp_flags & Py_TPFLAGS_IS_ABSTRACT) == 0)) {
     o = (*t->tp_alloc)(t, 0);
@@ -6458,34 +7608,31 @@ static PyObject *__pyx_tp_new_5mitty_3lib_9variation_VariationData(PyTypeObject 
     o = (PyObject *) PyBaseObject_Type.tp_new(t, __pyx_empty_tuple, 0);
   }
   if (unlikely(!o)) return 0;
-  p = ((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)o);
-  p->REF = ((PyObject*)Py_None); Py_INCREF(Py_None);
-  p->ALT = ((PyObject*)Py_None); Py_INCREF(Py_None);
-  if (unlikely(__pyx_pw_5mitty_3lib_9variation_13VariationData_1__cinit__(o, a, k) < 0)) {
-    Py_DECREF(o); o = 0;
-  }
+  p = ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)o);
+  p->ref = ((PyObject*)Py_None); Py_INCREF(Py_None);
+  p->alt = ((PyObject*)Py_None); Py_INCREF(Py_None);
   return o;
 }
 
-static void __pyx_tp_dealloc_5mitty_3lib_9variation_VariationData(PyObject *o) {
-  struct __pyx_obj_5mitty_3lib_9variation_VariationData *p = (struct __pyx_obj_5mitty_3lib_9variation_VariationData *)o;
+static void __pyx_tp_dealloc_5mitty_3lib_9variation_Variant(PyObject *o) {
+  struct __pyx_obj_5mitty_3lib_9variation_Variant *p = (struct __pyx_obj_5mitty_3lib_9variation_Variant *)o;
   #if PY_VERSION_HEX >= 0x030400a1
   if (unlikely(Py_TYPE(o)->tp_finalize) && (!PyType_IS_GC(Py_TYPE(o)) || !_PyGC_FINALIZED(o))) {
     if (PyObject_CallFinalizerFromDealloc(o)) return;
   }
   #endif
-  Py_CLEAR(p->REF);
-  Py_CLEAR(p->ALT);
+  Py_CLEAR(p->ref);
+  Py_CLEAR(p->alt);
   (*Py_TYPE(o)->tp_free)(o);
 }
 
-static PyObject *__pyx_getprop_5mitty_3lib_9variation_13VariationData_POS(PyObject *o, CYTHON_UNUSED void *x) {
-  return __pyx_pw_5mitty_3lib_9variation_13VariationData_3POS_1__get__(o);
+static PyObject *__pyx_getprop_5mitty_3lib_9variation_7Variant_pos(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_5mitty_3lib_9variation_7Variant_3pos_1__get__(o);
 }
 
-static int __pyx_setprop_5mitty_3lib_9variation_13VariationData_POS(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+static int __pyx_setprop_5mitty_3lib_9variation_7Variant_pos(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
   if (v) {
-    return __pyx_pw_5mitty_3lib_9variation_13VariationData_3POS_3__set__(o, v);
+    return __pyx_pw_5mitty_3lib_9variation_7Variant_3pos_3__set__(o, v);
   }
   else {
     PyErr_SetString(PyExc_NotImplementedError, "__del__");
@@ -6493,13 +7640,13 @@ static int __pyx_setprop_5mitty_3lib_9variation_13VariationData_POS(PyObject *o,
   }
 }
 
-static PyObject *__pyx_getprop_5mitty_3lib_9variation_13VariationData_stop(PyObject *o, CYTHON_UNUSED void *x) {
-  return __pyx_pw_5mitty_3lib_9variation_13VariationData_4stop_1__get__(o);
+static PyObject *__pyx_getprop_5mitty_3lib_9variation_7Variant_stop(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_5mitty_3lib_9variation_7Variant_4stop_1__get__(o);
 }
 
-static int __pyx_setprop_5mitty_3lib_9variation_13VariationData_stop(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+static int __pyx_setprop_5mitty_3lib_9variation_7Variant_stop(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
   if (v) {
-    return __pyx_pw_5mitty_3lib_9variation_13VariationData_4stop_3__set__(o, v);
+    return __pyx_pw_5mitty_3lib_9variation_7Variant_4stop_3__set__(o, v);
   }
   else {
     PyErr_SetString(PyExc_NotImplementedError, "__del__");
@@ -6507,13 +7654,13 @@ static int __pyx_setprop_5mitty_3lib_9variation_13VariationData_stop(PyObject *o
   }
 }
 
-static PyObject *__pyx_getprop_5mitty_3lib_9variation_13VariationData_hash(PyObject *o, CYTHON_UNUSED void *x) {
-  return __pyx_pw_5mitty_3lib_9variation_13VariationData_4hash_1__get__(o);
+static PyObject *__pyx_getprop_5mitty_3lib_9variation_7Variant_hash(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_5mitty_3lib_9variation_7Variant_4hash_1__get__(o);
 }
 
-static int __pyx_setprop_5mitty_3lib_9variation_13VariationData_hash(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+static int __pyx_setprop_5mitty_3lib_9variation_7Variant_hash(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
   if (v) {
-    return __pyx_pw_5mitty_3lib_9variation_13VariationData_4hash_3__set__(o, v);
+    return __pyx_pw_5mitty_3lib_9variation_7Variant_4hash_3__set__(o, v);
   }
   else {
     PyErr_SetString(PyExc_NotImplementedError, "__del__");
@@ -6521,51 +7668,548 @@ static int __pyx_setprop_5mitty_3lib_9variation_13VariationData_hash(PyObject *o
   }
 }
 
-static PyObject *__pyx_getprop_5mitty_3lib_9variation_13VariationData_REF(PyObject *o, CYTHON_UNUSED void *x) {
-  return __pyx_pw_5mitty_3lib_9variation_13VariationData_3REF_1__get__(o);
+static PyObject *__pyx_getprop_5mitty_3lib_9variation_7Variant_index(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_5mitty_3lib_9variation_7Variant_5index_1__get__(o);
 }
 
-static int __pyx_setprop_5mitty_3lib_9variation_13VariationData_REF(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+static int __pyx_setprop_5mitty_3lib_9variation_7Variant_index(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
   if (v) {
-    return __pyx_pw_5mitty_3lib_9variation_13VariationData_3REF_3__set__(o, v);
+    return __pyx_pw_5mitty_3lib_9variation_7Variant_5index_3__set__(o, v);
   }
   else {
-    return __pyx_pw_5mitty_3lib_9variation_13VariationData_3REF_5__del__(o);
+    PyErr_SetString(PyExc_NotImplementedError, "__del__");
+    return -1;
   }
 }
 
-static PyObject *__pyx_getprop_5mitty_3lib_9variation_13VariationData_ALT(PyObject *o, CYTHON_UNUSED void *x) {
-  return __pyx_pw_5mitty_3lib_9variation_13VariationData_3ALT_1__get__(o);
+static PyObject *__pyx_getprop_5mitty_3lib_9variation_7Variant_ref(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_5mitty_3lib_9variation_7Variant_3ref_1__get__(o);
 }
 
-static int __pyx_setprop_5mitty_3lib_9variation_13VariationData_ALT(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+static int __pyx_setprop_5mitty_3lib_9variation_7Variant_ref(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
   if (v) {
-    return __pyx_pw_5mitty_3lib_9variation_13VariationData_3ALT_3__set__(o, v);
+    return __pyx_pw_5mitty_3lib_9variation_7Variant_3ref_3__set__(o, v);
   }
   else {
-    return __pyx_pw_5mitty_3lib_9variation_13VariationData_3ALT_5__del__(o);
+    return __pyx_pw_5mitty_3lib_9variation_7Variant_3ref_5__del__(o);
   }
 }
 
-static PyMethodDef __pyx_methods_5mitty_3lib_9variation_VariationData[] = {
+static PyObject *__pyx_getprop_5mitty_3lib_9variation_7Variant_alt(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_5mitty_3lib_9variation_7Variant_3alt_1__get__(o);
+}
+
+static int __pyx_setprop_5mitty_3lib_9variation_7Variant_alt(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_5mitty_3lib_9variation_7Variant_3alt_3__set__(o, v);
+  }
+  else {
+    return __pyx_pw_5mitty_3lib_9variation_7Variant_3alt_5__del__(o);
+  }
+}
+
+static PyMethodDef __pyx_methods_5mitty_3lib_9variation_Variant[] = {
+  {"as_tuple", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_7Variant_5as_tuple, METH_NOARGS, 0},
   {0, 0, 0, 0}
 };
 
-static struct PyGetSetDef __pyx_getsets_5mitty_3lib_9variation_VariationData[] = {
-  {(char *)"POS", __pyx_getprop_5mitty_3lib_9variation_13VariationData_POS, __pyx_setprop_5mitty_3lib_9variation_13VariationData_POS, 0, 0},
-  {(char *)"stop", __pyx_getprop_5mitty_3lib_9variation_13VariationData_stop, __pyx_setprop_5mitty_3lib_9variation_13VariationData_stop, 0, 0},
-  {(char *)"hash", __pyx_getprop_5mitty_3lib_9variation_13VariationData_hash, __pyx_setprop_5mitty_3lib_9variation_13VariationData_hash, 0, 0},
-  {(char *)"REF", __pyx_getprop_5mitty_3lib_9variation_13VariationData_REF, __pyx_setprop_5mitty_3lib_9variation_13VariationData_REF, 0, 0},
-  {(char *)"ALT", __pyx_getprop_5mitty_3lib_9variation_13VariationData_ALT, __pyx_setprop_5mitty_3lib_9variation_13VariationData_ALT, 0, 0},
+static struct PyGetSetDef __pyx_getsets_5mitty_3lib_9variation_Variant[] = {
+  {(char *)"pos", __pyx_getprop_5mitty_3lib_9variation_7Variant_pos, __pyx_setprop_5mitty_3lib_9variation_7Variant_pos, 0, 0},
+  {(char *)"stop", __pyx_getprop_5mitty_3lib_9variation_7Variant_stop, __pyx_setprop_5mitty_3lib_9variation_7Variant_stop, 0, 0},
+  {(char *)"hash", __pyx_getprop_5mitty_3lib_9variation_7Variant_hash, __pyx_setprop_5mitty_3lib_9variation_7Variant_hash, 0, 0},
+  {(char *)"index", __pyx_getprop_5mitty_3lib_9variation_7Variant_index, __pyx_setprop_5mitty_3lib_9variation_7Variant_index, 0, 0},
+  {(char *)"ref", __pyx_getprop_5mitty_3lib_9variation_7Variant_ref, __pyx_setprop_5mitty_3lib_9variation_7Variant_ref, 0, 0},
+  {(char *)"alt", __pyx_getprop_5mitty_3lib_9variation_7Variant_alt, __pyx_setprop_5mitty_3lib_9variation_7Variant_alt, 0, 0},
   {0, 0, 0, 0, 0}
 };
 
-static PyTypeObject __pyx_type_5mitty_3lib_9variation_VariationData = {
+static PyTypeObject __pyx_type_5mitty_3lib_9variation_Variant = {
   PyVarObject_HEAD_INIT(0, 0)
-  "mitty.lib.variation.VariationData", /*tp_name*/
-  sizeof(struct __pyx_obj_5mitty_3lib_9variation_VariationData), /*tp_basicsize*/
+  "mitty.lib.variation.Variant", /*tp_name*/
+  sizeof(struct __pyx_obj_5mitty_3lib_9variation_Variant), /*tp_basicsize*/
   0, /*tp_itemsize*/
-  __pyx_tp_dealloc_5mitty_3lib_9variation_VariationData, /*tp_dealloc*/
+  __pyx_tp_dealloc_5mitty_3lib_9variation_Variant, /*tp_dealloc*/
+  0, /*tp_print*/
+  0, /*tp_getattr*/
+  0, /*tp_setattr*/
+  #if PY_MAJOR_VERSION < 3
+  0, /*tp_compare*/
+  #else
+  0, /*reserved*/
+  #endif
+  __pyx_pw_5mitty_3lib_9variation_7Variant_1__repr__, /*tp_repr*/
+  0, /*tp_as_number*/
+  0, /*tp_as_sequence*/
+  0, /*tp_as_mapping*/
+  0, /*tp_hash*/
+  0, /*tp_call*/
+  0, /*tp_str*/
+  0, /*tp_getattro*/
+  0, /*tp_setattro*/
+  0, /*tp_as_buffer*/
+  Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_VERSION_TAG|Py_TPFLAGS_CHECKTYPES|Py_TPFLAGS_HAVE_NEWBUFFER|Py_TPFLAGS_BASETYPE, /*tp_flags*/
+  "Variant(pos, stop, REF, ALT)\n  A lightweight class to carry a single data\n\n  Attributes:\n    pos    - position of data\n    stop   - where does footprint of data on reference (position of last base + 1 in the REF entry)\n    hash   - used to check equality between variants\n    ref    - reference sequence\n    alt    - alternate sequence\n\n  Each Variant is placed in a master list dictionary. The index in the dictionary is computed from the pos and the\n  number allele this is at that position. This index is then used as the rowid when we save the data to the database.\n  ", /*tp_doc*/
+  0, /*tp_traverse*/
+  0, /*tp_clear*/
+  __pyx_pw_5mitty_3lib_9variation_7Variant_3__richcmp__, /*tp_richcompare*/
+  0, /*tp_weaklistoffset*/
+  0, /*tp_iter*/
+  0, /*tp_iternext*/
+  __pyx_methods_5mitty_3lib_9variation_Variant, /*tp_methods*/
+  0, /*tp_members*/
+  __pyx_getsets_5mitty_3lib_9variation_Variant, /*tp_getset*/
+  0, /*tp_base*/
+  0, /*tp_dict*/
+  0, /*tp_descr_get*/
+  0, /*tp_descr_set*/
+  0, /*tp_dictoffset*/
+  0, /*tp_init*/
+  0, /*tp_alloc*/
+  __pyx_tp_new_5mitty_3lib_9variation_Variant, /*tp_new*/
+  0, /*tp_free*/
+  0, /*tp_is_gc*/
+  0, /*tp_bases*/
+  0, /*tp_mro*/
+  0, /*tp_cache*/
+  0, /*tp_subclasses*/
+  0, /*tp_weaklist*/
+  0, /*tp_del*/
+  0, /*tp_version_tag*/
+  #if PY_VERSION_HEX >= 0x030400a1
+  0, /*tp_finalize*/
+  #endif
+};
+
+static PyObject *__pyx_tp_new_5mitty_3lib_9variation_GTVariant(PyTypeObject *t, CYTHON_UNUSED PyObject *a, CYTHON_UNUSED PyObject *k) {
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *p;
+  PyObject *o;
+  if (likely((t->tp_flags & Py_TPFLAGS_IS_ABSTRACT) == 0)) {
+    o = (*t->tp_alloc)(t, 0);
+  } else {
+    o = (PyObject *) PyBaseObject_Type.tp_new(t, __pyx_empty_tuple, 0);
+  }
+  if (unlikely(!o)) return 0;
+  p = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)o);
+  p->data = ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)Py_None); Py_INCREF(Py_None);
+  p->next = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None); Py_INCREF(Py_None);
+  return o;
+}
+
+static void __pyx_tp_dealloc_5mitty_3lib_9variation_GTVariant(PyObject *o) {
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *p = (struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)o;
+  #if PY_VERSION_HEX >= 0x030400a1
+  if (unlikely(Py_TYPE(o)->tp_finalize) && !_PyGC_FINALIZED(o)) {
+    if (PyObject_CallFinalizerFromDealloc(o)) return;
+  }
+  #endif
+  PyObject_GC_UnTrack(o);
+  Py_CLEAR(p->data);
+  Py_CLEAR(p->next);
+  (*Py_TYPE(o)->tp_free)(o);
+}
+
+static int __pyx_tp_traverse_5mitty_3lib_9variation_GTVariant(PyObject *o, visitproc v, void *a) {
+  int e;
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *p = (struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)o;
+  if (p->data) {
+    e = (*v)(((PyObject*)p->data), a); if (e) return e;
+  }
+  if (p->next) {
+    e = (*v)(((PyObject*)p->next), a); if (e) return e;
+  }
+  return 0;
+}
+
+static int __pyx_tp_clear_5mitty_3lib_9variation_GTVariant(PyObject *o) {
+  PyObject* tmp;
+  struct __pyx_obj_5mitty_3lib_9variation_GTVariant *p = (struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)o;
+  tmp = ((PyObject*)p->data);
+  p->data = ((struct __pyx_obj_5mitty_3lib_9variation_Variant *)Py_None); Py_INCREF(Py_None);
+  Py_XDECREF(tmp);
+  tmp = ((PyObject*)p->next);
+  p->next = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None); Py_INCREF(Py_None);
+  Py_XDECREF(tmp);
+  return 0;
+}
+
+static PyObject *__pyx_getprop_5mitty_3lib_9variation_9GTVariant_gt(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_5mitty_3lib_9variation_9GTVariant_2gt_1__get__(o);
+}
+
+static int __pyx_setprop_5mitty_3lib_9variation_9GTVariant_gt(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_5mitty_3lib_9variation_9GTVariant_2gt_3__set__(o, v);
+  }
+  else {
+    PyErr_SetString(PyExc_NotImplementedError, "__del__");
+    return -1;
+  }
+}
+
+static PyObject *__pyx_getprop_5mitty_3lib_9variation_9GTVariant_data(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_5mitty_3lib_9variation_9GTVariant_4data_1__get__(o);
+}
+
+static int __pyx_setprop_5mitty_3lib_9variation_9GTVariant_data(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_5mitty_3lib_9variation_9GTVariant_4data_3__set__(o, v);
+  }
+  else {
+    return __pyx_pw_5mitty_3lib_9variation_9GTVariant_4data_5__del__(o);
+  }
+}
+
+static PyObject *__pyx_getprop_5mitty_3lib_9variation_9GTVariant_next(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_5mitty_3lib_9variation_9GTVariant_4next_1__get__(o);
+}
+
+static int __pyx_setprop_5mitty_3lib_9variation_9GTVariant_next(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_5mitty_3lib_9variation_9GTVariant_4next_3__set__(o, v);
+  }
+  else {
+    return __pyx_pw_5mitty_3lib_9variation_9GTVariant_4next_5__del__(o);
+  }
+}
+
+static PyMethodDef __pyx_methods_5mitty_3lib_9variation_GTVariant[] = {
+  {0, 0, 0, 0}
+};
+
+static struct PyGetSetDef __pyx_getsets_5mitty_3lib_9variation_GTVariant[] = {
+  {(char *)"gt", __pyx_getprop_5mitty_3lib_9variation_9GTVariant_gt, __pyx_setprop_5mitty_3lib_9variation_9GTVariant_gt, 0, 0},
+  {(char *)"data", __pyx_getprop_5mitty_3lib_9variation_9GTVariant_data, __pyx_setprop_5mitty_3lib_9variation_9GTVariant_data, 0, 0},
+  {(char *)"next", __pyx_getprop_5mitty_3lib_9variation_9GTVariant_next, __pyx_setprop_5mitty_3lib_9variation_9GTVariant_next, 0, 0},
+  {0, 0, 0, 0, 0}
+};
+
+static PyTypeObject __pyx_type_5mitty_3lib_9variation_GTVariant = {
+  PyVarObject_HEAD_INIT(0, 0)
+  "mitty.lib.variation.GTVariant", /*tp_name*/
+  sizeof(struct __pyx_obj_5mitty_3lib_9variation_GTVariant), /*tp_basicsize*/
+  0, /*tp_itemsize*/
+  __pyx_tp_dealloc_5mitty_3lib_9variation_GTVariant, /*tp_dealloc*/
+  0, /*tp_print*/
+  0, /*tp_getattr*/
+  0, /*tp_setattr*/
+  #if PY_MAJOR_VERSION < 3
+  0, /*tp_compare*/
+  #else
+  0, /*reserved*/
+  #endif
+  __pyx_pw_5mitty_3lib_9variation_9GTVariant_1__repr__, /*tp_repr*/
+  0, /*tp_as_number*/
+  0, /*tp_as_sequence*/
+  0, /*tp_as_mapping*/
+  0, /*tp_hash*/
+  0, /*tp_call*/
+  0, /*tp_str*/
+  0, /*tp_getattro*/
+  0, /*tp_setattro*/
+  0, /*tp_as_buffer*/
+  Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_VERSION_TAG|Py_TPFLAGS_CHECKTYPES|Py_TPFLAGS_HAVE_NEWBUFFER|Py_TPFLAGS_BASETYPE|Py_TPFLAGS_HAVE_GC, /*tp_flags*/
+  "GTVariant(gt, Variant)\n\n  Represents a data in a sample. It points to the Variant information and carries genotype info. It also has a\n  pointer to the next GTVariant so we can chain it together into a Chromosome\n\n  Attributes:\n    gt      - zygosity (genotype) information\n    data    - (pointer to) the Variant in the master list\n  ", /*tp_doc*/
+  __pyx_tp_traverse_5mitty_3lib_9variation_GTVariant, /*tp_traverse*/
+  __pyx_tp_clear_5mitty_3lib_9variation_GTVariant, /*tp_clear*/
+  __pyx_pw_5mitty_3lib_9variation_9GTVariant_3__richcmp__, /*tp_richcompare*/
+  0, /*tp_weaklistoffset*/
+  0, /*tp_iter*/
+  0, /*tp_iternext*/
+  __pyx_methods_5mitty_3lib_9variation_GTVariant, /*tp_methods*/
+  0, /*tp_members*/
+  __pyx_getsets_5mitty_3lib_9variation_GTVariant, /*tp_getset*/
+  0, /*tp_base*/
+  0, /*tp_dict*/
+  0, /*tp_descr_get*/
+  0, /*tp_descr_set*/
+  0, /*tp_dictoffset*/
+  0, /*tp_init*/
+  0, /*tp_alloc*/
+  __pyx_tp_new_5mitty_3lib_9variation_GTVariant, /*tp_new*/
+  0, /*tp_free*/
+  0, /*tp_is_gc*/
+  0, /*tp_bases*/
+  0, /*tp_mro*/
+  0, /*tp_cache*/
+  0, /*tp_subclasses*/
+  0, /*tp_weaklist*/
+  0, /*tp_del*/
+  0, /*tp_version_tag*/
+  #if PY_VERSION_HEX >= 0x030400a1
+  0, /*tp_finalize*/
+  #endif
+};
+static struct __pyx_vtabstruct_5mitty_3lib_9variation_Chromosome __pyx_vtable_5mitty_3lib_9variation_Chromosome;
+
+static PyObject *__pyx_tp_new_5mitty_3lib_9variation_Chromosome(PyTypeObject *t, CYTHON_UNUSED PyObject *a, CYTHON_UNUSED PyObject *k) {
+  struct __pyx_obj_5mitty_3lib_9variation_Chromosome *p;
+  PyObject *o;
+  if (likely((t->tp_flags & Py_TPFLAGS_IS_ABSTRACT) == 0)) {
+    o = (*t->tp_alloc)(t, 0);
+  } else {
+    o = (PyObject *) PyBaseObject_Type.tp_new(t, __pyx_empty_tuple, 0);
+  }
+  if (unlikely(!o)) return 0;
+  p = ((struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)o);
+  p->__pyx_vtab = __pyx_vtabptr_5mitty_3lib_9variation_Chromosome;
+  p->head = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None); Py_INCREF(Py_None);
+  p->cursor = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None); Py_INCREF(Py_None);
+  p->tail = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None); Py_INCREF(Py_None);
+  if (unlikely(__pyx_pw_5mitty_3lib_9variation_10Chromosome_1__cinit__(o, __pyx_empty_tuple, NULL) < 0)) {
+    Py_DECREF(o); o = 0;
+  }
+  return o;
+}
+
+static void __pyx_tp_dealloc_5mitty_3lib_9variation_Chromosome(PyObject *o) {
+  struct __pyx_obj_5mitty_3lib_9variation_Chromosome *p = (struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)o;
+  #if PY_VERSION_HEX >= 0x030400a1
+  if (unlikely(Py_TYPE(o)->tp_finalize) && !_PyGC_FINALIZED(o)) {
+    if (PyObject_CallFinalizerFromDealloc(o)) return;
+  }
+  #endif
+  PyObject_GC_UnTrack(o);
+  Py_CLEAR(p->head);
+  Py_CLEAR(p->cursor);
+  Py_CLEAR(p->tail);
+  (*Py_TYPE(o)->tp_free)(o);
+}
+
+static int __pyx_tp_traverse_5mitty_3lib_9variation_Chromosome(PyObject *o, visitproc v, void *a) {
+  int e;
+  struct __pyx_obj_5mitty_3lib_9variation_Chromosome *p = (struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)o;
+  if (p->head) {
+    e = (*v)(((PyObject*)p->head), a); if (e) return e;
+  }
+  if (p->cursor) {
+    e = (*v)(((PyObject*)p->cursor), a); if (e) return e;
+  }
+  if (p->tail) {
+    e = (*v)(((PyObject*)p->tail), a); if (e) return e;
+  }
+  return 0;
+}
+
+static int __pyx_tp_clear_5mitty_3lib_9variation_Chromosome(PyObject *o) {
+  PyObject* tmp;
+  struct __pyx_obj_5mitty_3lib_9variation_Chromosome *p = (struct __pyx_obj_5mitty_3lib_9variation_Chromosome *)o;
+  tmp = ((PyObject*)p->head);
+  p->head = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None); Py_INCREF(Py_None);
+  Py_XDECREF(tmp);
+  tmp = ((PyObject*)p->cursor);
+  p->cursor = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None); Py_INCREF(Py_None);
+  Py_XDECREF(tmp);
+  tmp = ((PyObject*)p->tail);
+  p->tail = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None); Py_INCREF(Py_None);
+  Py_XDECREF(tmp);
+  return 0;
+}
+
+static PyObject *__pyx_getprop_5mitty_3lib_9variation_10Chromosome_head(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_5mitty_3lib_9variation_10Chromosome_4head_1__get__(o);
+}
+
+static int __pyx_setprop_5mitty_3lib_9variation_10Chromosome_head(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_5mitty_3lib_9variation_10Chromosome_4head_3__set__(o, v);
+  }
+  else {
+    return __pyx_pw_5mitty_3lib_9variation_10Chromosome_4head_5__del__(o);
+  }
+}
+
+static PyObject *__pyx_getprop_5mitty_3lib_9variation_10Chromosome_cursor(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_5mitty_3lib_9variation_10Chromosome_6cursor_1__get__(o);
+}
+
+static int __pyx_setprop_5mitty_3lib_9variation_10Chromosome_cursor(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_5mitty_3lib_9variation_10Chromosome_6cursor_3__set__(o, v);
+  }
+  else {
+    return __pyx_pw_5mitty_3lib_9variation_10Chromosome_6cursor_5__del__(o);
+  }
+}
+
+static PyObject *__pyx_getprop_5mitty_3lib_9variation_10Chromosome_tail(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_5mitty_3lib_9variation_10Chromosome_4tail_1__get__(o);
+}
+
+static int __pyx_setprop_5mitty_3lib_9variation_10Chromosome_tail(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_5mitty_3lib_9variation_10Chromosome_4tail_3__set__(o, v);
+  }
+  else {
+    return __pyx_pw_5mitty_3lib_9variation_10Chromosome_4tail_5__del__(o);
+  }
+}
+
+static PyObject *__pyx_getprop_5mitty_3lib_9variation_10Chromosome_length(PyObject *o, CYTHON_UNUSED void *x) {
+  return __pyx_pw_5mitty_3lib_9variation_10Chromosome_6length_1__get__(o);
+}
+
+static int __pyx_setprop_5mitty_3lib_9variation_10Chromosome_length(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
+  if (v) {
+    return __pyx_pw_5mitty_3lib_9variation_10Chromosome_6length_3__set__(o, v);
+  }
+  else {
+    PyErr_SetString(PyExc_NotImplementedError, "__del__");
+    return -1;
+  }
+}
+
+static PyMethodDef __pyx_methods_5mitty_3lib_9variation_Chromosome[] = {
+  {"to_list", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_10Chromosome_7to_list, METH_NOARGS, 0},
+  {"rewind_cursor", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_10Chromosome_9rewind_cursor, METH_NOARGS, 0},
+  {"advance", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_10Chromosome_11advance, METH_NOARGS, 0},
+  {"last", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_10Chromosome_13last, METH_NOARGS, 0},
+  {"insert", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_10Chromosome_15insert, METH_O, __pyx_doc_5mitty_3lib_9variation_10Chromosome_14insert},
+  {"append", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_10Chromosome_17append, METH_O, __pyx_doc_5mitty_3lib_9variation_10Chromosome_16append},
+  {0, 0, 0, 0}
+};
+
+static struct PyGetSetDef __pyx_getsets_5mitty_3lib_9variation_Chromosome[] = {
+  {(char *)"head", __pyx_getprop_5mitty_3lib_9variation_10Chromosome_head, __pyx_setprop_5mitty_3lib_9variation_10Chromosome_head, 0, 0},
+  {(char *)"cursor", __pyx_getprop_5mitty_3lib_9variation_10Chromosome_cursor, __pyx_setprop_5mitty_3lib_9variation_10Chromosome_cursor, 0, 0},
+  {(char *)"tail", __pyx_getprop_5mitty_3lib_9variation_10Chromosome_tail, __pyx_setprop_5mitty_3lib_9variation_10Chromosome_tail, 0, 0},
+  {(char *)"length", __pyx_getprop_5mitty_3lib_9variation_10Chromosome_length, __pyx_setprop_5mitty_3lib_9variation_10Chromosome_length, 0, 0},
+  {0, 0, 0, 0, 0}
+};
+
+static PySequenceMethods __pyx_tp_as_sequence_Chromosome = {
+  __pyx_pw_5mitty_3lib_9variation_10Chromosome_3__len__, /*sq_length*/
+  0, /*sq_concat*/
+  0, /*sq_repeat*/
+  0, /*sq_item*/
+  0, /*sq_slice*/
+  0, /*sq_ass_item*/
+  0, /*sq_ass_slice*/
+  0, /*sq_contains*/
+  0, /*sq_inplace_concat*/
+  0, /*sq_inplace_repeat*/
+};
+
+static PyMappingMethods __pyx_tp_as_mapping_Chromosome = {
+  __pyx_pw_5mitty_3lib_9variation_10Chromosome_3__len__, /*mp_length*/
+  0, /*mp_subscript*/
+  0, /*mp_ass_subscript*/
+};
+
+static PyTypeObject __pyx_type_5mitty_3lib_9variation_Chromosome = {
+  PyVarObject_HEAD_INIT(0, 0)
+  "mitty.lib.variation.Chromosome", /*tp_name*/
+  sizeof(struct __pyx_obj_5mitty_3lib_9variation_Chromosome), /*tp_basicsize*/
+  0, /*tp_itemsize*/
+  __pyx_tp_dealloc_5mitty_3lib_9variation_Chromosome, /*tp_dealloc*/
+  0, /*tp_print*/
+  0, /*tp_getattr*/
+  0, /*tp_setattr*/
+  #if PY_MAJOR_VERSION < 3
+  0, /*tp_compare*/
+  #else
+  0, /*reserved*/
+  #endif
+  0, /*tp_repr*/
+  0, /*tp_as_number*/
+  &__pyx_tp_as_sequence_Chromosome, /*tp_as_sequence*/
+  &__pyx_tp_as_mapping_Chromosome, /*tp_as_mapping*/
+  0, /*tp_hash*/
+  0, /*tp_call*/
+  0, /*tp_str*/
+  0, /*tp_getattro*/
+  0, /*tp_setattro*/
+  0, /*tp_as_buffer*/
+  Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_VERSION_TAG|Py_TPFLAGS_CHECKTYPES|Py_TPFLAGS_HAVE_NEWBUFFER|Py_TPFLAGS_BASETYPE|Py_TPFLAGS_HAVE_GC, /*tp_flags*/
+  "Represents a chromosome as a linked list of GTVariants. We always go sequentially through a chromosome, and for\n  denovo variants we may add GTVariants into the middle of the chromosome which is a good fit for a ll\n\n  Rules:\n    There is a dummy node, which head (and, initially, tail) point to.\n    append: attaches to tail.next and repositions tail. This is how we create the list\n    insert: attaches in between cursor and cursor.next\n    advance: advances cursor and returns cursor.next\n\n  Note:\n    The implementation is specific to our use case, most notably in the use of the 'cursor' pointer and the 'advance'\n    method - which returns cursor.next, rather than cursor. Mutable state (in the form of the 'cursor' pointer)\n    requires us to remember to rewind when needed. Since this is not a general implementation of a data structure,\n    these are acceptable choices.\n  ", /*tp_doc*/
+  __pyx_tp_traverse_5mitty_3lib_9variation_Chromosome, /*tp_traverse*/
+  __pyx_tp_clear_5mitty_3lib_9variation_Chromosome, /*tp_clear*/
+  0, /*tp_richcompare*/
+  0, /*tp_weaklistoffset*/
+  __pyx_pw_5mitty_3lib_9variation_10Chromosome_5__iter__, /*tp_iter*/
+  0, /*tp_iternext*/
+  __pyx_methods_5mitty_3lib_9variation_Chromosome, /*tp_methods*/
+  0, /*tp_members*/
+  __pyx_getsets_5mitty_3lib_9variation_Chromosome, /*tp_getset*/
+  0, /*tp_base*/
+  0, /*tp_dict*/
+  0, /*tp_descr_get*/
+  0, /*tp_descr_set*/
+  0, /*tp_dictoffset*/
+  0, /*tp_init*/
+  0, /*tp_alloc*/
+  __pyx_tp_new_5mitty_3lib_9variation_Chromosome, /*tp_new*/
+  0, /*tp_free*/
+  0, /*tp_is_gc*/
+  0, /*tp_bases*/
+  0, /*tp_mro*/
+  0, /*tp_cache*/
+  0, /*tp_subclasses*/
+  0, /*tp_weaklist*/
+  0, /*tp_del*/
+  0, /*tp_version_tag*/
+  #if PY_VERSION_HEX >= 0x030400a1
+  0, /*tp_finalize*/
+  #endif
+};
+
+static PyObject *__pyx_tp_new_5mitty_3lib_9variation_ChromosomeIterator(PyTypeObject *t, PyObject *a, PyObject *k) {
+  struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *p;
+  PyObject *o;
+  if (likely((t->tp_flags & Py_TPFLAGS_IS_ABSTRACT) == 0)) {
+    o = (*t->tp_alloc)(t, 0);
+  } else {
+    o = (PyObject *) PyBaseObject_Type.tp_new(t, __pyx_empty_tuple, 0);
+  }
+  if (unlikely(!o)) return 0;
+  p = ((struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *)o);
+  p->this = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None); Py_INCREF(Py_None);
+  if (unlikely(__pyx_pw_5mitty_3lib_9variation_18ChromosomeIterator_1__cinit__(o, a, k) < 0)) {
+    Py_DECREF(o); o = 0;
+  }
+  return o;
+}
+
+static void __pyx_tp_dealloc_5mitty_3lib_9variation_ChromosomeIterator(PyObject *o) {
+  struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *p = (struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *)o;
+  #if PY_VERSION_HEX >= 0x030400a1
+  if (unlikely(Py_TYPE(o)->tp_finalize) && !_PyGC_FINALIZED(o)) {
+    if (PyObject_CallFinalizerFromDealloc(o)) return;
+  }
+  #endif
+  PyObject_GC_UnTrack(o);
+  Py_CLEAR(p->this);
+  (*Py_TYPE(o)->tp_free)(o);
+}
+
+static int __pyx_tp_traverse_5mitty_3lib_9variation_ChromosomeIterator(PyObject *o, visitproc v, void *a) {
+  int e;
+  struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *p = (struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *)o;
+  if (p->this) {
+    e = (*v)(((PyObject*)p->this), a); if (e) return e;
+  }
+  return 0;
+}
+
+static int __pyx_tp_clear_5mitty_3lib_9variation_ChromosomeIterator(PyObject *o) {
+  PyObject* tmp;
+  struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *p = (struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator *)o;
+  tmp = ((PyObject*)p->this);
+  p->this = ((struct __pyx_obj_5mitty_3lib_9variation_GTVariant *)Py_None); Py_INCREF(Py_None);
+  Py_XDECREF(tmp);
+  return 0;
+}
+
+static PyMethodDef __pyx_methods_5mitty_3lib_9variation_ChromosomeIterator[] = {
+  {"__next__", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_18ChromosomeIterator_3__next__, METH_NOARGS|METH_COEXIST, 0},
+  {0, 0, 0, 0}
+};
+
+static PyTypeObject __pyx_type_5mitty_3lib_9variation_ChromosomeIterator = {
+  PyVarObject_HEAD_INIT(0, 0)
+  "mitty.lib.variation.ChromosomeIterator", /*tp_name*/
+  sizeof(struct __pyx_obj_5mitty_3lib_9variation_ChromosomeIterator), /*tp_basicsize*/
+  0, /*tp_itemsize*/
+  __pyx_tp_dealloc_5mitty_3lib_9variation_ChromosomeIterator, /*tp_dealloc*/
   0, /*tp_print*/
   0, /*tp_getattr*/
   0, /*tp_setattr*/
@@ -6578,23 +8222,23 @@ static PyTypeObject __pyx_type_5mitty_3lib_9variation_VariationData = {
   0, /*tp_as_number*/
   0, /*tp_as_sequence*/
   0, /*tp_as_mapping*/
-  __pyx_pw_5mitty_3lib_9variation_13VariationData_3__hash__, /*tp_hash*/
+  0, /*tp_hash*/
   0, /*tp_call*/
   0, /*tp_str*/
   0, /*tp_getattro*/
   0, /*tp_setattro*/
   0, /*tp_as_buffer*/
-  Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_VERSION_TAG|Py_TPFLAGS_CHECKTYPES|Py_TPFLAGS_HAVE_NEWBUFFER|Py_TPFLAGS_BASETYPE, /*tp_flags*/
-  "VD(pos, stop, REF, ALT)\n  A lightweight class to carry a single variant\n\n  Attributes:\n    POS  - position of variant\n    stop - where does footprint of variant on reference (position of last base + 1 in the REF entry)\n    REF  - reference sequence\n    ALT  - alternate sequence", /*tp_doc*/
-  0, /*tp_traverse*/
-  0, /*tp_clear*/
+  Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_VERSION_TAG|Py_TPFLAGS_CHECKTYPES|Py_TPFLAGS_HAVE_NEWBUFFER|Py_TPFLAGS_BASETYPE|Py_TPFLAGS_HAVE_GC, /*tp_flags*/
+  "A class that lets us iterate over the sample.", /*tp_doc*/
+  __pyx_tp_traverse_5mitty_3lib_9variation_ChromosomeIterator, /*tp_traverse*/
+  __pyx_tp_clear_5mitty_3lib_9variation_ChromosomeIterator, /*tp_clear*/
   0, /*tp_richcompare*/
   0, /*tp_weaklistoffset*/
   0, /*tp_iter*/
-  0, /*tp_iternext*/
-  __pyx_methods_5mitty_3lib_9variation_VariationData, /*tp_methods*/
+  __pyx_pw_5mitty_3lib_9variation_18ChromosomeIterator_3__next__, /*tp_iternext*/
+  __pyx_methods_5mitty_3lib_9variation_ChromosomeIterator, /*tp_methods*/
   0, /*tp_members*/
-  __pyx_getsets_5mitty_3lib_9variation_VariationData, /*tp_getset*/
+  0, /*tp_getset*/
   0, /*tp_base*/
   0, /*tp_dict*/
   0, /*tp_descr_get*/
@@ -6602,7 +8246,7 @@ static PyTypeObject __pyx_type_5mitty_3lib_9variation_VariationData = {
   0, /*tp_dictoffset*/
   0, /*tp_init*/
   0, /*tp_alloc*/
-  __pyx_tp_new_5mitty_3lib_9variation_VariationData, /*tp_new*/
+  __pyx_tp_new_5mitty_3lib_9variation_ChromosomeIterator, /*tp_new*/
   0, /*tp_free*/
   0, /*tp_is_gc*/
   0, /*tp_bases*/
@@ -6616,10 +8260,10 @@ static PyTypeObject __pyx_type_5mitty_3lib_9variation_VariationData = {
   0, /*tp_finalize*/
   #endif
 };
-static struct __pyx_vtabstruct_5mitty_3lib_9variation_Genotype __pyx_vtable_5mitty_3lib_9variation_Genotype;
+static struct __pyx_vtabstruct_5mitty_3lib_9variation_CrossOverPoints __pyx_vtable_5mitty_3lib_9variation_CrossOverPoints;
 
-static PyObject *__pyx_tp_new_5mitty_3lib_9variation_Genotype(PyTypeObject *t, PyObject *a, PyObject *k) {
-  struct __pyx_obj_5mitty_3lib_9variation_Genotype *p;
+static PyObject *__pyx_tp_new_5mitty_3lib_9variation_CrossOverPoints(PyTypeObject *t, PyObject *a, PyObject *k) {
+  struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *p;
   PyObject *o;
   if (likely((t->tp_flags & Py_TPFLAGS_IS_ABSTRACT) == 0)) {
     o = (*t->tp_alloc)(t, 0);
@@ -6627,69 +8271,55 @@ static PyObject *__pyx_tp_new_5mitty_3lib_9variation_Genotype(PyTypeObject *t, P
     o = (PyObject *) PyBaseObject_Type.tp_new(t, __pyx_empty_tuple, 0);
   }
   if (unlikely(!o)) return 0;
-  p = ((struct __pyx_obj_5mitty_3lib_9variation_Genotype *)o);
-  p->__pyx_vtab = __pyx_vtabptr_5mitty_3lib_9variation_Genotype;
-  if (unlikely(__pyx_pw_5mitty_3lib_9variation_8Genotype_1__cinit__(o, a, k) < 0)) {
+  p = ((struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *)o);
+  p->__pyx_vtab = __pyx_vtabptr_5mitty_3lib_9variation_CrossOverPoints;
+  p->point_list = ((PyObject*)Py_None); Py_INCREF(Py_None);
+  if (unlikely(__pyx_pw_5mitty_3lib_9variation_15CrossOverPoints_1__cinit__(o, a, k) < 0)) {
     Py_DECREF(o); o = 0;
   }
   return o;
 }
 
-static void __pyx_tp_dealloc_5mitty_3lib_9variation_Genotype(PyObject *o) {
+static void __pyx_tp_dealloc_5mitty_3lib_9variation_CrossOverPoints(PyObject *o) {
+  struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *p = (struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *)o;
   #if PY_VERSION_HEX >= 0x030400a1
-  if (unlikely(Py_TYPE(o)->tp_finalize) && (!PyType_IS_GC(Py_TYPE(o)) || !_PyGC_FINALIZED(o))) {
+  if (unlikely(Py_TYPE(o)->tp_finalize) && !_PyGC_FINALIZED(o)) {
     if (PyObject_CallFinalizerFromDealloc(o)) return;
   }
   #endif
+  PyObject_GC_UnTrack(o);
+  Py_CLEAR(p->point_list);
   (*Py_TYPE(o)->tp_free)(o);
 }
 
-static PyObject *__pyx_getprop_5mitty_3lib_9variation_8Genotype_index(PyObject *o, CYTHON_UNUSED void *x) {
-  return __pyx_pw_5mitty_3lib_9variation_8Genotype_5index_1__get__(o);
+static int __pyx_tp_traverse_5mitty_3lib_9variation_CrossOverPoints(PyObject *o, visitproc v, void *a) {
+  int e;
+  struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *p = (struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *)o;
+  if (p->point_list) {
+    e = (*v)(p->point_list, a); if (e) return e;
+  }
+  return 0;
 }
 
-static int __pyx_setprop_5mitty_3lib_9variation_8Genotype_index(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
-  if (v) {
-    return __pyx_pw_5mitty_3lib_9variation_8Genotype_5index_3__set__(o, v);
-  }
-  else {
-    PyErr_SetString(PyExc_NotImplementedError, "__del__");
-    return -1;
-  }
+static int __pyx_tp_clear_5mitty_3lib_9variation_CrossOverPoints(PyObject *o) {
+  PyObject* tmp;
+  struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *p = (struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *)o;
+  tmp = ((PyObject*)p->point_list);
+  p->point_list = ((PyObject*)Py_None); Py_INCREF(Py_None);
+  Py_XDECREF(tmp);
+  return 0;
 }
 
-static PyObject *__pyx_getprop_5mitty_3lib_9variation_8Genotype_het(PyObject *o, CYTHON_UNUSED void *x) {
-  return __pyx_pw_5mitty_3lib_9variation_8Genotype_3het_1__get__(o);
-}
-
-static int __pyx_setprop_5mitty_3lib_9variation_8Genotype_het(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
-  if (v) {
-    return __pyx_pw_5mitty_3lib_9variation_8Genotype_3het_3__set__(o, v);
-  }
-  else {
-    PyErr_SetString(PyExc_NotImplementedError, "__del__");
-    return -1;
-  }
-}
-
-static PyMethodDef __pyx_methods_5mitty_3lib_9variation_Genotype[] = {
-  {"pos", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_8Genotype_5pos, METH_NOARGS, 0},
-  {"alts", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_8Genotype_7alts, METH_NOARGS, 0},
+static PyMethodDef __pyx_methods_5mitty_3lib_9variation_CrossOverPoints[] = {
   {0, 0, 0, 0}
 };
 
-static struct PyGetSetDef __pyx_getsets_5mitty_3lib_9variation_Genotype[] = {
-  {(char *)"index", __pyx_getprop_5mitty_3lib_9variation_8Genotype_index, __pyx_setprop_5mitty_3lib_9variation_8Genotype_index, 0, 0},
-  {(char *)"het", __pyx_getprop_5mitty_3lib_9variation_8Genotype_het, __pyx_setprop_5mitty_3lib_9variation_8Genotype_het, 0, 0},
-  {0, 0, 0, 0, 0}
-};
-
-static PyTypeObject __pyx_type_5mitty_3lib_9variation_Genotype = {
+static PyTypeObject __pyx_type_5mitty_3lib_9variation_CrossOverPoints = {
   PyVarObject_HEAD_INIT(0, 0)
-  "mitty.lib.variation.Genotype", /*tp_name*/
-  sizeof(struct __pyx_obj_5mitty_3lib_9variation_Genotype), /*tp_basicsize*/
+  "mitty.lib.variation.CrossOverPoints", /*tp_name*/
+  sizeof(struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints), /*tp_basicsize*/
   0, /*tp_itemsize*/
-  __pyx_tp_dealloc_5mitty_3lib_9variation_Genotype, /*tp_dealloc*/
+  __pyx_tp_dealloc_5mitty_3lib_9variation_CrossOverPoints, /*tp_dealloc*/
   0, /*tp_print*/
   0, /*tp_getattr*/
   0, /*tp_setattr*/
@@ -6698,7 +8328,7 @@ static PyTypeObject __pyx_type_5mitty_3lib_9variation_Genotype = {
   #else
   0, /*reserved*/
   #endif
-  __pyx_pw_5mitty_3lib_9variation_8Genotype_3__repr__, /*tp_repr*/
+  0, /*tp_repr*/
   0, /*tp_as_number*/
   0, /*tp_as_sequence*/
   0, /*tp_as_mapping*/
@@ -6708,17 +8338,17 @@ static PyTypeObject __pyx_type_5mitty_3lib_9variation_Genotype = {
   0, /*tp_getattro*/
   0, /*tp_setattro*/
   0, /*tp_as_buffer*/
-  Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_VERSION_TAG|Py_TPFLAGS_CHECKTYPES|Py_TPFLAGS_HAVE_NEWBUFFER|Py_TPFLAGS_BASETYPE, /*tp_flags*/
-  "Represents a variant genotype in a sample\n  Genotype(index, het)\n  Attributes:\n    index  - position of variant (indexes into master list)\n    het    - zygosity (genotype) information", /*tp_doc*/
-  0, /*tp_traverse*/
-  0, /*tp_clear*/
+  Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_VERSION_TAG|Py_TPFLAGS_CHECKTYPES|Py_TPFLAGS_HAVE_NEWBUFFER|Py_TPFLAGS_BASETYPE|Py_TPFLAGS_HAVE_GC, /*tp_flags*/
+  "We needed this rather than a simple iterator because we have to handle the paradoxes that arise when the cross over\n  point is in the middle of a footprint and adjust the cross over accordingly", /*tp_doc*/
+  __pyx_tp_traverse_5mitty_3lib_9variation_CrossOverPoints, /*tp_traverse*/
+  __pyx_tp_clear_5mitty_3lib_9variation_CrossOverPoints, /*tp_clear*/
   0, /*tp_richcompare*/
   0, /*tp_weaklistoffset*/
   0, /*tp_iter*/
   0, /*tp_iternext*/
-  __pyx_methods_5mitty_3lib_9variation_Genotype, /*tp_methods*/
+  __pyx_methods_5mitty_3lib_9variation_CrossOverPoints, /*tp_methods*/
   0, /*tp_members*/
-  __pyx_getsets_5mitty_3lib_9variation_Genotype, /*tp_getset*/
+  0, /*tp_getset*/
   0, /*tp_base*/
   0, /*tp_dict*/
   0, /*tp_descr_get*/
@@ -6726,181 +8356,7 @@ static PyTypeObject __pyx_type_5mitty_3lib_9variation_Genotype = {
   0, /*tp_dictoffset*/
   0, /*tp_init*/
   0, /*tp_alloc*/
-  __pyx_tp_new_5mitty_3lib_9variation_Genotype, /*tp_new*/
-  0, /*tp_free*/
-  0, /*tp_is_gc*/
-  0, /*tp_bases*/
-  0, /*tp_mro*/
-  0, /*tp_cache*/
-  0, /*tp_subclasses*/
-  0, /*tp_weaklist*/
-  0, /*tp_del*/
-  0, /*tp_version_tag*/
-  #if PY_VERSION_HEX >= 0x030400a1
-  0, /*tp_finalize*/
-  #endif
-};
-static struct __pyx_vtabstruct_5mitty_3lib_9variation_Variation __pyx_vtable_5mitty_3lib_9variation_Variation;
-
-static PyObject *__pyx_tp_new_5mitty_3lib_9variation_Variation(PyTypeObject *t, PyObject *a, PyObject *k) {
-  struct __pyx_obj_5mitty_3lib_9variation_Variation *p;
-  PyObject *o;
-  if (likely((t->tp_flags & Py_TPFLAGS_IS_ABSTRACT) == 0)) {
-    o = (*t->tp_alloc)(t, 0);
-  } else {
-    o = (PyObject *) PyBaseObject_Type.tp_new(t, __pyx_empty_tuple, 0);
-  }
-  if (unlikely(!o)) return 0;
-  p = ((struct __pyx_obj_5mitty_3lib_9variation_Variation *)o);
-  p->__pyx_vtab = __pyx_vtabptr_5mitty_3lib_9variation_Variation;
-  p->vd = ((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)Py_None); Py_INCREF(Py_None);
-  if (unlikely(__pyx_pw_5mitty_3lib_9variation_9Variation_1__cinit__(o, a, k) < 0)) {
-    Py_DECREF(o); o = 0;
-  }
-  return o;
-}
-
-static void __pyx_tp_dealloc_5mitty_3lib_9variation_Variation(PyObject *o) {
-  struct __pyx_obj_5mitty_3lib_9variation_Variation *p = (struct __pyx_obj_5mitty_3lib_9variation_Variation *)o;
-  #if PY_VERSION_HEX >= 0x030400a1
-  if (unlikely(Py_TYPE(o)->tp_finalize) && !_PyGC_FINALIZED(o)) {
-    if (PyObject_CallFinalizerFromDealloc(o)) return;
-  }
-  #endif
-  PyObject_GC_UnTrack(o);
-  Py_CLEAR(p->vd);
-  (*Py_TYPE(o)->tp_free)(o);
-}
-
-static int __pyx_tp_traverse_5mitty_3lib_9variation_Variation(PyObject *o, visitproc v, void *a) {
-  int e;
-  struct __pyx_obj_5mitty_3lib_9variation_Variation *p = (struct __pyx_obj_5mitty_3lib_9variation_Variation *)o;
-  if (p->vd) {
-    e = (*v)(((PyObject*)p->vd), a); if (e) return e;
-  }
-  return 0;
-}
-
-static int __pyx_tp_clear_5mitty_3lib_9variation_Variation(PyObject *o) {
-  PyObject* tmp;
-  struct __pyx_obj_5mitty_3lib_9variation_Variation *p = (struct __pyx_obj_5mitty_3lib_9variation_Variation *)o;
-  tmp = ((PyObject*)p->vd);
-  p->vd = ((struct __pyx_obj_5mitty_3lib_9variation_VariationData *)Py_None); Py_INCREF(Py_None);
-  Py_XDECREF(tmp);
-  return 0;
-}
-
-static PyObject *__pyx_getprop_5mitty_3lib_9variation_9Variation_vd(PyObject *o, CYTHON_UNUSED void *x) {
-  return __pyx_pw_5mitty_3lib_9variation_9Variation_2vd_1__get__(o);
-}
-
-static int __pyx_setprop_5mitty_3lib_9variation_9Variation_vd(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
-  if (v) {
-    return __pyx_pw_5mitty_3lib_9variation_9Variation_2vd_3__set__(o, v);
-  }
-  else {
-    return __pyx_pw_5mitty_3lib_9variation_9Variation_2vd_5__del__(o);
-  }
-}
-
-static PyObject *__pyx_getprop_5mitty_3lib_9variation_9Variation_het(PyObject *o, CYTHON_UNUSED void *x) {
-  return __pyx_pw_5mitty_3lib_9variation_9Variation_3het_1__get__(o);
-}
-
-static int __pyx_setprop_5mitty_3lib_9variation_9Variation_het(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
-  if (v) {
-    return __pyx_pw_5mitty_3lib_9variation_9Variation_3het_3__set__(o, v);
-  }
-  else {
-    PyErr_SetString(PyExc_NotImplementedError, "__del__");
-    return -1;
-  }
-}
-
-static PyObject *__pyx_getprop_5mitty_3lib_9variation_9Variation_recessive(PyObject *o, CYTHON_UNUSED void *x) {
-  return __pyx_pw_5mitty_3lib_9variation_9Variation_9recessive_1__get__(o);
-}
-
-static int __pyx_setprop_5mitty_3lib_9variation_9Variation_recessive(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
-  if (v) {
-    return __pyx_pw_5mitty_3lib_9variation_9Variation_9recessive_3__set__(o, v);
-  }
-  else {
-    PyErr_SetString(PyExc_NotImplementedError, "__del__");
-    return -1;
-  }
-}
-
-static PyObject *__pyx_getprop_5mitty_3lib_9variation_9Variation_fitness(PyObject *o, CYTHON_UNUSED void *x) {
-  return __pyx_pw_5mitty_3lib_9variation_9Variation_7fitness_1__get__(o);
-}
-
-static int __pyx_setprop_5mitty_3lib_9variation_9Variation_fitness(PyObject *o, PyObject *v, CYTHON_UNUSED void *x) {
-  if (v) {
-    return __pyx_pw_5mitty_3lib_9variation_9Variation_7fitness_3__set__(o, v);
-  }
-  else {
-    PyErr_SetString(PyExc_NotImplementedError, "__del__");
-    return -1;
-  }
-}
-
-static PyMethodDef __pyx_methods_5mitty_3lib_9variation_Variation[] = {
-  {"eq", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_9Variation_5eq, METH_O, 0},
-  {0, 0, 0, 0}
-};
-
-static struct PyGetSetDef __pyx_getsets_5mitty_3lib_9variation_Variation[] = {
-  {(char *)"vd", __pyx_getprop_5mitty_3lib_9variation_9Variation_vd, __pyx_setprop_5mitty_3lib_9variation_9Variation_vd, 0, 0},
-  {(char *)"het", __pyx_getprop_5mitty_3lib_9variation_9Variation_het, __pyx_setprop_5mitty_3lib_9variation_9Variation_het, 0, 0},
-  {(char *)"recessive", __pyx_getprop_5mitty_3lib_9variation_9Variation_recessive, __pyx_setprop_5mitty_3lib_9variation_9Variation_recessive, 0, 0},
-  {(char *)"fitness", __pyx_getprop_5mitty_3lib_9variation_9Variation_fitness, __pyx_setprop_5mitty_3lib_9variation_9Variation_fitness, 0, 0},
-  {0, 0, 0, 0, 0}
-};
-
-static PyTypeObject __pyx_type_5mitty_3lib_9variation_Variation = {
-  PyVarObject_HEAD_INIT(0, 0)
-  "mitty.lib.variation.Variation", /*tp_name*/
-  sizeof(struct __pyx_obj_5mitty_3lib_9variation_Variation), /*tp_basicsize*/
-  0, /*tp_itemsize*/
-  __pyx_tp_dealloc_5mitty_3lib_9variation_Variation, /*tp_dealloc*/
-  0, /*tp_print*/
-  0, /*tp_getattr*/
-  0, /*tp_setattr*/
-  #if PY_MAJOR_VERSION < 3
-  0, /*tp_compare*/
-  #else
-  0, /*reserved*/
-  #endif
-  __pyx_pw_5mitty_3lib_9variation_9Variation_9__repr__, /*tp_repr*/
-  0, /*tp_as_number*/
-  0, /*tp_as_sequence*/
-  0, /*tp_as_mapping*/
-  __pyx_pw_5mitty_3lib_9variation_9Variation_3__hash__, /*tp_hash*/
-  0, /*tp_call*/
-  0, /*tp_str*/
-  0, /*tp_getattro*/
-  0, /*tp_setattro*/
-  0, /*tp_as_buffer*/
-  Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_VERSION_TAG|Py_TPFLAGS_CHECKTYPES|Py_TPFLAGS_HAVE_NEWBUFFER|Py_TPFLAGS_BASETYPE|Py_TPFLAGS_HAVE_GC, /*tp_flags*/
-  "Carries *reference* to a VariationData instance and heterozygosity, recessiveness and fitness data.", /*tp_doc*/
-  __pyx_tp_traverse_5mitty_3lib_9variation_Variation, /*tp_traverse*/
-  __pyx_tp_clear_5mitty_3lib_9variation_Variation, /*tp_clear*/
-  __pyx_pw_5mitty_3lib_9variation_9Variation_7__richcmp__, /*tp_richcompare*/
-  0, /*tp_weaklistoffset*/
-  0, /*tp_iter*/
-  0, /*tp_iternext*/
-  __pyx_methods_5mitty_3lib_9variation_Variation, /*tp_methods*/
-  0, /*tp_members*/
-  __pyx_getsets_5mitty_3lib_9variation_Variation, /*tp_getset*/
-  0, /*tp_base*/
-  0, /*tp_dict*/
-  0, /*tp_descr_get*/
-  0, /*tp_descr_set*/
-  0, /*tp_dictoffset*/
-  0, /*tp_init*/
-  0, /*tp_alloc*/
-  __pyx_tp_new_5mitty_3lib_9variation_Variation, /*tp_new*/
+  __pyx_tp_new_5mitty_3lib_9variation_CrossOverPoints, /*tp_new*/
   0, /*tp_free*/
   0, /*tp_is_gc*/
   0, /*tp_bases*/
@@ -6915,14 +8371,14 @@ static PyTypeObject __pyx_type_5mitty_3lib_9variation_Variation = {
   #endif
 };
 
-static struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows *__pyx_freelist_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows[8];
-static int __pyx_freecount_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows = 0;
+static struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable *__pyx_freelist_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable[8];
+static int __pyx_freecount_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable = 0;
 
-static PyObject *__pyx_tp_new_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows(PyTypeObject *t, CYTHON_UNUSED PyObject *a, CYTHON_UNUSED PyObject *k) {
+static PyObject *__pyx_tp_new_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable(PyTypeObject *t, CYTHON_UNUSED PyObject *a, CYTHON_UNUSED PyObject *k) {
   PyObject *o;
-  if (CYTHON_COMPILING_IN_CPYTHON && likely((__pyx_freecount_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows > 0) & (t->tp_basicsize == sizeof(struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows)))) {
-    o = (PyObject*)__pyx_freelist_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows[--__pyx_freecount_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows];
-    memset(o, 0, sizeof(struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows));
+  if (CYTHON_COMPILING_IN_CPYTHON && likely((__pyx_freecount_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable > 0) & (t->tp_basicsize == sizeof(struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable)))) {
+    o = (PyObject*)__pyx_freelist_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable[--__pyx_freecount_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable];
+    memset(o, 0, sizeof(struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable));
     (void) PyObject_INIT(o, t);
     PyObject_GC_Track(o);
   } else {
@@ -6932,90 +8388,97 @@ static PyObject *__pyx_tp_new_5mitty_3lib_9variation___pyx_scope_struct__get_var
   return o;
 }
 
-static void __pyx_tp_dealloc_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows(PyObject *o) {
-  struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows *p = (struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows *)o;
+static void __pyx_tp_dealloc_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable(PyObject *o) {
+  struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable *p = (struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable *)o;
   PyObject_GC_UnTrack(o);
-  Py_CLEAR(p->__pyx_v_csc);
-  Py_CLEAR(p->__pyx_v_i);
-  Py_CLEAR(p->__pyx_v_l);
-  Py_CLEAR(p->__pyx_v_msi);
-  Py_CLEAR(p->__pyx_v_n);
-  Py_CLEAR(p->__pyx_v_s);
-  Py_CLEAR(p->__pyx_v_samples);
-  Py_CLEAR(p->__pyx_v_this_line);
-  if (CYTHON_COMPILING_IN_CPYTHON && ((__pyx_freecount_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows < 8) & (Py_TYPE(o)->tp_basicsize == sizeof(struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows)))) {
-    __pyx_freelist_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows[__pyx_freecount_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows++] = ((struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows *)o);
+  Py_CLEAR(p->__pyx_v_a);
+  Py_CLEAR(p->__pyx_v_alt);
+  Py_CLEAR(p->__pyx_v_g);
+  Py_CLEAR(p->__pyx_v_gt);
+  Py_CLEAR(p->__pyx_v_p);
+  Py_CLEAR(p->__pyx_v_pos);
+  Py_CLEAR(p->__pyx_v_r);
+  Py_CLEAR(p->__pyx_v_ref);
+  Py_CLEAR(p->__pyx_t_0);
+  if (CYTHON_COMPILING_IN_CPYTHON && ((__pyx_freecount_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable < 8) & (Py_TYPE(o)->tp_basicsize == sizeof(struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable)))) {
+    __pyx_freelist_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable[__pyx_freecount_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable++] = ((struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable *)o);
   } else {
     (*Py_TYPE(o)->tp_free)(o);
   }
 }
 
-static int __pyx_tp_traverse_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows(PyObject *o, visitproc v, void *a) {
+static int __pyx_tp_traverse_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable(PyObject *o, visitproc v, void *a) {
   int e;
-  struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows *p = (struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows *)o;
-  if (p->__pyx_v_csc) {
-    e = (*v)(p->__pyx_v_csc, a); if (e) return e;
+  struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable *p = (struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable *)o;
+  if (p->__pyx_v_a) {
+    e = (*v)(p->__pyx_v_a, a); if (e) return e;
   }
-  if (p->__pyx_v_i) {
-    e = (*v)(p->__pyx_v_i, a); if (e) return e;
+  if (p->__pyx_v_alt) {
+    e = (*v)(p->__pyx_v_alt, a); if (e) return e;
   }
-  if (p->__pyx_v_l) {
-    e = (*v)(p->__pyx_v_l, a); if (e) return e;
+  if (p->__pyx_v_g) {
+    e = (*v)(p->__pyx_v_g, a); if (e) return e;
   }
-  if (p->__pyx_v_msi) {
-    e = (*v)(p->__pyx_v_msi, a); if (e) return e;
+  if (p->__pyx_v_gt) {
+    e = (*v)(p->__pyx_v_gt, a); if (e) return e;
   }
-  if (p->__pyx_v_n) {
-    e = (*v)(p->__pyx_v_n, a); if (e) return e;
+  if (p->__pyx_v_p) {
+    e = (*v)(p->__pyx_v_p, a); if (e) return e;
   }
-  if (p->__pyx_v_s) {
-    e = (*v)(p->__pyx_v_s, a); if (e) return e;
+  if (p->__pyx_v_pos) {
+    e = (*v)(p->__pyx_v_pos, a); if (e) return e;
   }
-  if (p->__pyx_v_samples) {
-    e = (*v)(p->__pyx_v_samples, a); if (e) return e;
+  if (p->__pyx_v_r) {
+    e = (*v)(p->__pyx_v_r, a); if (e) return e;
   }
-  if (p->__pyx_v_this_line) {
-    e = (*v)(p->__pyx_v_this_line, a); if (e) return e;
+  if (p->__pyx_v_ref) {
+    e = (*v)(p->__pyx_v_ref, a); if (e) return e;
+  }
+  if (p->__pyx_t_0) {
+    e = (*v)(p->__pyx_t_0, a); if (e) return e;
   }
   return 0;
 }
 
-static int __pyx_tp_clear_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows(PyObject *o) {
+static int __pyx_tp_clear_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable(PyObject *o) {
   PyObject* tmp;
-  struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows *p = (struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows *)o;
-  tmp = ((PyObject*)p->__pyx_v_csc);
-  p->__pyx_v_csc = ((PyObject*)Py_None); Py_INCREF(Py_None);
+  struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable *p = (struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable *)o;
+  tmp = ((PyObject*)p->__pyx_v_a);
+  p->__pyx_v_a = Py_None; Py_INCREF(Py_None);
   Py_XDECREF(tmp);
-  tmp = ((PyObject*)p->__pyx_v_i);
-  p->__pyx_v_i = Py_None; Py_INCREF(Py_None);
+  tmp = ((PyObject*)p->__pyx_v_alt);
+  p->__pyx_v_alt = Py_None; Py_INCREF(Py_None);
   Py_XDECREF(tmp);
-  tmp = ((PyObject*)p->__pyx_v_l);
-  p->__pyx_v_l = Py_None; Py_INCREF(Py_None);
+  tmp = ((PyObject*)p->__pyx_v_g);
+  p->__pyx_v_g = Py_None; Py_INCREF(Py_None);
   Py_XDECREF(tmp);
-  tmp = ((PyObject*)p->__pyx_v_msi);
-  p->__pyx_v_msi = ((PyObject*)Py_None); Py_INCREF(Py_None);
+  tmp = ((PyObject*)p->__pyx_v_gt);
+  p->__pyx_v_gt = Py_None; Py_INCREF(Py_None);
   Py_XDECREF(tmp);
-  tmp = ((PyObject*)p->__pyx_v_n);
-  p->__pyx_v_n = Py_None; Py_INCREF(Py_None);
+  tmp = ((PyObject*)p->__pyx_v_p);
+  p->__pyx_v_p = Py_None; Py_INCREF(Py_None);
   Py_XDECREF(tmp);
-  tmp = ((PyObject*)p->__pyx_v_s);
-  p->__pyx_v_s = Py_None; Py_INCREF(Py_None);
+  tmp = ((PyObject*)p->__pyx_v_pos);
+  p->__pyx_v_pos = Py_None; Py_INCREF(Py_None);
   Py_XDECREF(tmp);
-  tmp = ((PyObject*)p->__pyx_v_samples);
-  p->__pyx_v_samples = Py_None; Py_INCREF(Py_None);
+  tmp = ((PyObject*)p->__pyx_v_r);
+  p->__pyx_v_r = Py_None; Py_INCREF(Py_None);
   Py_XDECREF(tmp);
-  tmp = ((PyObject*)p->__pyx_v_this_line);
-  p->__pyx_v_this_line = ((PyObject*)Py_None); Py_INCREF(Py_None);
+  tmp = ((PyObject*)p->__pyx_v_ref);
+  p->__pyx_v_ref = Py_None; Py_INCREF(Py_None);
+  Py_XDECREF(tmp);
+  tmp = ((PyObject*)p->__pyx_t_0);
+  p->__pyx_t_0 = Py_None; Py_INCREF(Py_None);
   Py_XDECREF(tmp);
   return 0;
 }
 
-static PyTypeObject __pyx_type_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows = {
+static PyTypeObject __pyx_type_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable = {
   PyVarObject_HEAD_INIT(0, 0)
-  "mitty.lib.variation.__pyx_scope_struct__get_variant_rows", /*tp_name*/
-  sizeof(struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows), /*tp_basicsize*/
+  "mitty.lib.variation.__pyx_scope_struct__create_gtv_iterable", /*tp_name*/
+  sizeof(struct __pyx_obj_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable), /*tp_basicsize*/
   0, /*tp_itemsize*/
-  __pyx_tp_dealloc_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows, /*tp_dealloc*/
+  __pyx_tp_dealloc_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable, /*tp_dealloc*/
   0, /*tp_print*/
   0, /*tp_getattr*/
   0, /*tp_setattr*/
@@ -7036,8 +8499,8 @@ static PyTypeObject __pyx_type_5mitty_3lib_9variation___pyx_scope_struct__get_va
   0, /*tp_as_buffer*/
   Py_TPFLAGS_DEFAULT|Py_TPFLAGS_HAVE_VERSION_TAG|Py_TPFLAGS_CHECKTYPES|Py_TPFLAGS_HAVE_NEWBUFFER|Py_TPFLAGS_HAVE_GC, /*tp_flags*/
   0, /*tp_doc*/
-  __pyx_tp_traverse_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows, /*tp_traverse*/
-  __pyx_tp_clear_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows, /*tp_clear*/
+  __pyx_tp_traverse_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable, /*tp_traverse*/
+  __pyx_tp_clear_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable, /*tp_clear*/
   0, /*tp_richcompare*/
   0, /*tp_weaklistoffset*/
   0, /*tp_iter*/
@@ -7052,7 +8515,7 @@ static PyTypeObject __pyx_type_5mitty_3lib_9variation___pyx_scope_struct__get_va
   0, /*tp_dictoffset*/
   0, /*tp_init*/
   0, /*tp_alloc*/
-  __pyx_tp_new_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows, /*tp_new*/
+  __pyx_tp_new_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable, /*tp_new*/
   0, /*tp_free*/
   0, /*tp_is_gc*/
   0, /*tp_bases*/
@@ -7068,10 +8531,12 @@ static PyTypeObject __pyx_type_5mitty_3lib_9variation___pyx_scope_struct__get_va
 };
 
 static PyMethodDef __pyx_methods[] = {
-  {"add_novel_variant_to_master", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_1add_novel_variant_to_master, METH_VARARGS|METH_KEYWORDS, __pyx_doc_5mitty_3lib_9variation_add_novel_variant_to_master},
-  {"add_as_genotype", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_3add_as_genotype, METH_VARARGS|METH_KEYWORDS, __pyx_doc_5mitty_3lib_9variation_2add_as_genotype},
-  {"find_next_line", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_5find_next_line, METH_VARARGS|METH_KEYWORDS, __pyx_doc_5mitty_3lib_9variation_4find_next_line},
-  {"merge_variants", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_14merge_variants, METH_VARARGS|METH_KEYWORDS, __pyx_doc_5mitty_3lib_9variation_13merge_variants},
+  {"new_variant", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_1new_variant, METH_VARARGS|METH_KEYWORDS, 0},
+  {"add_novel_variant_to_master", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_3add_novel_variant_to_master, METH_VARARGS|METH_KEYWORDS, __pyx_doc_5mitty_3lib_9variation_2add_novel_variant_to_master},
+  {"new_gt_variant", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_5new_gt_variant, METH_VARARGS|METH_KEYWORDS, 0},
+  {"add_denovo_variants_to_chromosome", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_10add_denovo_variants_to_chromosome, METH_VARARGS|METH_KEYWORDS, __pyx_doc_5mitty_3lib_9variation_9add_denovo_variants_to_chromosome},
+  {"pair_chromosomes", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_12pair_chromosomes, METH_VARARGS|METH_KEYWORDS, __pyx_doc_5mitty_3lib_9variation_11pair_chromosomes},
+  {"pair_samples", (PyCFunction)__pyx_pw_5mitty_3lib_9variation_14pair_samples, METH_VARARGS|METH_KEYWORDS, __pyx_doc_5mitty_3lib_9variation_13pair_samples},
   {0, 0, 0, 0}
 };
 
@@ -7094,78 +8559,69 @@ static struct PyModuleDef __pyx_moduledef = {
 #endif
 
 static __Pyx_StringTabEntry __pyx_string_tab[] = {
-  {&__pyx_kp_s_, __pyx_k_, sizeof(__pyx_k_), 0, 0, 1, 0},
+  {&__pyx_kp_b_, __pyx_k_, sizeof(__pyx_k_), 0, 0, 0, 0},
   {&__pyx_kp_s_0_0, __pyx_k_0_0, sizeof(__pyx_k_0_0), 0, 0, 1, 0},
   {&__pyx_kp_s_0_1, __pyx_k_0_1, sizeof(__pyx_k_0_1), 0, 0, 1, 0},
   {&__pyx_kp_s_1_0, __pyx_k_1_0, sizeof(__pyx_k_1_0), 0, 0, 1, 0},
   {&__pyx_kp_s_1_1, __pyx_k_1_1, sizeof(__pyx_k_1_1), 0, 0, 1, 0},
-  {&__pyx_n_s_ABSENT, __pyx_k_ABSENT, sizeof(__pyx_k_ABSENT), 0, 0, 1, 1},
   {&__pyx_n_s_GT, __pyx_k_GT, sizeof(__pyx_k_GT), 0, 0, 1, 1},
-  {&__pyx_n_s_HET_01, __pyx_k_HET_01, sizeof(__pyx_k_HET_01), 0, 0, 1, 1},
-  {&__pyx_n_s_HET_10, __pyx_k_HET_10, sizeof(__pyx_k_HET_10), 0, 0, 1, 1},
-  {&__pyx_n_s_HOMOZYGOUS, __pyx_k_HOMOZYGOUS, sizeof(__pyx_k_HOMOZYGOUS), 0, 0, 1, 1},
-  {&__pyx_n_s_POS, __pyx_k_POS, sizeof(__pyx_k_POS), 0, 0, 1, 1},
-  {&__pyx_kp_s_POS_0_stop_1_REF_2_ALT_3_zygosi, __pyx_k_POS_0_stop_1_REF_2_ALT_3_zygosi, sizeof(__pyx_k_POS_0_stop_1_REF_2_ALT_3_zygosi), 0, 0, 1, 0},
+  {&__pyx_n_s_StopIteration, __pyx_k_StopIteration, sizeof(__pyx_k_StopIteration), 0, 0, 1, 1},
   {&__pyx_kp_s_Users_kghose_Code_Mitty_mitty_l, __pyx_k_Users_kghose_Code_Mitty_mitty_l, sizeof(__pyx_k_Users_kghose_Code_Mitty_mitty_l), 0, 0, 1, 0},
-  {&__pyx_n_s_add_sample_variant, __pyx_k_add_sample_variant, sizeof(__pyx_k_add_sample_variant), 0, 0, 1, 1},
+  {&__pyx_n_s_a, __pyx_k_a, sizeof(__pyx_k_a), 0, 0, 1, 1},
+  {&__pyx_n_s_advance, __pyx_k_advance, sizeof(__pyx_k_advance), 0, 0, 1, 1},
   {&__pyx_n_s_alt, __pyx_k_alt, sizeof(__pyx_k_alt), 0, 0, 1, 1},
-  {&__pyx_n_s_alts, __pyx_k_alts, sizeof(__pyx_k_alts), 0, 0, 1, 1},
+  {&__pyx_n_s_append, __pyx_k_append, sizeof(__pyx_k_append), 0, 0, 1, 1},
   {&__pyx_n_s_args, __pyx_k_args, sizeof(__pyx_k_args), 0, 0, 1, 1},
-  {&__pyx_n_s_c1, __pyx_k_c1, sizeof(__pyx_k_c1), 0, 0, 1, 1},
-  {&__pyx_n_s_c2, __pyx_k_c2, sizeof(__pyx_k_c2), 0, 0, 1, 1},
-  {&__pyx_n_s_ch, __pyx_k_ch, sizeof(__pyx_k_ch), 0, 0, 1, 1},
-  {&__pyx_n_s_chrom, __pyx_k_chrom, sizeof(__pyx_k_chrom), 0, 0, 1, 1},
+  {&__pyx_n_s_chrom_copy1, __pyx_k_chrom_copy1, sizeof(__pyx_k_chrom_copy1), 0, 0, 1, 1},
+  {&__pyx_n_s_chrom_copy2, __pyx_k_chrom_copy2, sizeof(__pyx_k_chrom_copy2), 0, 0, 1, 1},
   {&__pyx_n_s_close, __pyx_k_close, sizeof(__pyx_k_close), 0, 0, 1, 1},
-  {&__pyx_n_s_copy_missing_chromosomes, __pyx_k_copy_missing_chromosomes, sizeof(__pyx_k_copy_missing_chromosomes), 0, 0, 1, 1},
-  {&__pyx_n_s_csc, __pyx_k_csc, sizeof(__pyx_k_csc), 0, 0, 1, 1},
-  {&__pyx_kp_s_d, __pyx_k_d, sizeof(__pyx_k_d), 0, 0, 1, 0},
-  {&__pyx_n_s_eq, __pyx_k_eq, sizeof(__pyx_k_eq), 0, 0, 1, 1},
-  {&__pyx_n_s_fit, __pyx_k_fit, sizeof(__pyx_k_fit), 0, 0, 1, 1},
-  {&__pyx_n_s_fitness, __pyx_k_fitness, sizeof(__pyx_k_fitness), 0, 0, 1, 1},
+  {&__pyx_n_s_copy, __pyx_k_copy, sizeof(__pyx_k_copy), 0, 0, 1, 1},
+  {&__pyx_n_s_copy1, __pyx_k_copy1, sizeof(__pyx_k_copy1), 0, 0, 1, 1},
+  {&__pyx_n_s_copy2, __pyx_k_copy2, sizeof(__pyx_k_copy2), 0, 0, 1, 1},
+  {&__pyx_n_s_create_gtv_iterable, __pyx_k_create_gtv_iterable, sizeof(__pyx_k_create_gtv_iterable), 0, 0, 1, 1},
+  {&__pyx_n_s_cross1, __pyx_k_cross1, sizeof(__pyx_k_cross1), 0, 0, 1, 1},
+  {&__pyx_n_s_cross2, __pyx_k_cross2, sizeof(__pyx_k_cross2), 0, 0, 1, 1},
+  {&__pyx_n_s_cross_over1, __pyx_k_cross_over1, sizeof(__pyx_k_cross_over1), 0, 0, 1, 1},
+  {&__pyx_n_s_cross_over2, __pyx_k_cross_over2, sizeof(__pyx_k_cross_over2), 0, 0, 1, 1},
+  {&__pyx_kp_s_d_d_s_s, __pyx_k_d_d_s_s, sizeof(__pyx_k_d_d_s_s), 0, 0, 1, 0},
+  {&__pyx_n_s_data, __pyx_k_data, sizeof(__pyx_k_data), 0, 0, 1, 1},
+  {&__pyx_n_s_dnv, __pyx_k_dnv, sizeof(__pyx_k_dnv), 0, 0, 1, 1},
   {&__pyx_n_s_format, __pyx_k_format, sizeof(__pyx_k_format), 0, 0, 1, 1},
-  {&__pyx_n_s_g1, __pyx_k_g1, sizeof(__pyx_k_g1), 0, 0, 1, 1},
-  {&__pyx_n_s_g2, __pyx_k_g2, sizeof(__pyx_k_g2), 0, 0, 1, 1},
-  {&__pyx_n_s_g3, __pyx_k_g3, sizeof(__pyx_k_g3), 0, 0, 1, 1},
+  {&__pyx_n_s_g, __pyx_k_g, sizeof(__pyx_k_g), 0, 0, 1, 1},
   {&__pyx_n_s_get, __pyx_k_get, sizeof(__pyx_k_get), 0, 0, 1, 1},
-  {&__pyx_n_s_get_variant_rows, __pyx_k_get_variant_rows, sizeof(__pyx_k_get_variant_rows), 0, 0, 1, 1},
   {&__pyx_n_s_gt, __pyx_k_gt, sizeof(__pyx_k_gt), 0, 0, 1, 1},
   {&__pyx_n_s_hash, __pyx_k_hash, sizeof(__pyx_k_hash), 0, 0, 1, 1},
-  {&__pyx_n_s_hash_2, __pyx_k_hash_2, sizeof(__pyx_k_hash_2), 0, 0, 1, 1},
-  {&__pyx_n_s_het, __pyx_k_het, sizeof(__pyx_k_het), 0, 0, 1, 1},
-  {&__pyx_n_s_i, __pyx_k_i, sizeof(__pyx_k_i), 0, 0, 1, 1},
-  {&__pyx_n_s_index, __pyx_k_index, sizeof(__pyx_k_index), 0, 0, 1, 1},
-  {&__pyx_n_s_iteritems, __pyx_k_iteritems, sizeof(__pyx_k_iteritems), 0, 0, 1, 1},
+  {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
+  {&__pyx_n_s_insert, __pyx_k_insert, sizeof(__pyx_k_insert), 0, 0, 1, 1},
+  {&__pyx_n_s_itertools, __pyx_k_itertools, sizeof(__pyx_k_itertools), 0, 0, 1, 1},
+  {&__pyx_n_s_izip, __pyx_k_izip, sizeof(__pyx_k_izip), 0, 0, 1, 1},
   {&__pyx_n_s_keys, __pyx_k_keys, sizeof(__pyx_k_keys), 0, 0, 1, 1},
-  {&__pyx_n_s_l, __pyx_k_l, sizeof(__pyx_k_l), 0, 0, 1, 1},
+  {&__pyx_n_s_last, __pyx_k_last, sizeof(__pyx_k_last), 0, 0, 1, 1},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
-  {&__pyx_n_s_merge_genomes, __pyx_k_merge_genomes, sizeof(__pyx_k_merge_genomes), 0, 0, 1, 1},
-  {&__pyx_n_s_missing_chrom, __pyx_k_missing_chrom, sizeof(__pyx_k_missing_chrom), 0, 0, 1, 1},
+  {&__pyx_n_s_max_pos, __pyx_k_max_pos, sizeof(__pyx_k_max_pos), 0, 0, 1, 1},
   {&__pyx_n_s_mitty_lib_variation, __pyx_k_mitty_lib_variation, sizeof(__pyx_k_mitty_lib_variation), 0, 0, 1, 1},
   {&__pyx_n_s_ml, __pyx_k_ml, sizeof(__pyx_k_ml), 0, 0, 1, 1},
-  {&__pyx_n_s_msi, __pyx_k_msi, sizeof(__pyx_k_msi), 0, 0, 1, 1},
-  {&__pyx_n_s_n, __pyx_k_n, sizeof(__pyx_k_n), 0, 0, 1, 1},
-  {&__pyx_n_s_n_samples, __pyx_k_n_samples, sizeof(__pyx_k_n_samples), 0, 0, 1, 1},
-  {&__pyx_n_s_new_variation, __pyx_k_new_variation, sizeof(__pyx_k_new_variation), 0, 0, 1, 1},
+  {&__pyx_n_s_p, __pyx_k_p, sizeof(__pyx_k_p), 0, 0, 1, 1},
+  {&__pyx_n_s_point_list, __pyx_k_point_list, sizeof(__pyx_k_point_list), 0, 0, 1, 1},
   {&__pyx_n_s_pos, __pyx_k_pos, sizeof(__pyx_k_pos), 0, 0, 1, 1},
-  {&__pyx_n_s_pos_2, __pyx_k_pos_2, sizeof(__pyx_k_pos_2), 0, 0, 1, 1},
   {&__pyx_n_s_pyx_vtable, __pyx_k_pyx_vtable, sizeof(__pyx_k_pyx_vtable), 0, 0, 1, 1},
-  {&__pyx_n_s_range, __pyx_k_range, sizeof(__pyx_k_range), 0, 0, 1, 1},
-  {&__pyx_n_s_rec, __pyx_k_rec, sizeof(__pyx_k_rec), 0, 0, 1, 1},
-  {&__pyx_n_s_recessive, __pyx_k_recessive, sizeof(__pyx_k_recessive), 0, 0, 1, 1},
+  {&__pyx_n_s_r, __pyx_k_r, sizeof(__pyx_k_r), 0, 0, 1, 1},
   {&__pyx_n_s_ref, __pyx_k_ref, sizeof(__pyx_k_ref), 0, 0, 1, 1},
+  {&__pyx_n_s_rewind_cursor, __pyx_k_rewind_cursor, sizeof(__pyx_k_rewind_cursor), 0, 0, 1, 1},
   {&__pyx_n_s_s, __pyx_k_s, sizeof(__pyx_k_s), 0, 0, 1, 1},
-  {&__pyx_n_s_samples, __pyx_k_samples, sizeof(__pyx_k_samples), 0, 0, 1, 1},
+  {&__pyx_n_s_s1, __pyx_k_s1, sizeof(__pyx_k_s1), 0, 0, 1, 1},
+  {&__pyx_n_s_s2, __pyx_k_s2, sizeof(__pyx_k_s2), 0, 0, 1, 1},
+  {&__pyx_kp_s_s_s, __pyx_k_s_s, sizeof(__pyx_k_s_s), 0, 0, 1, 0},
   {&__pyx_n_s_send, __pyx_k_send, sizeof(__pyx_k_send), 0, 0, 1, 1},
   {&__pyx_n_s_stop, __pyx_k_stop, sizeof(__pyx_k_stop), 0, 0, 1, 1},
   {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
-  {&__pyx_n_s_this_line, __pyx_k_this_line, sizeof(__pyx_k_this_line), 0, 0, 1, 1},
   {&__pyx_n_s_throw, __pyx_k_throw, sizeof(__pyx_k_throw), 0, 0, 1, 1},
-  {&__pyx_n_s_vd, __pyx_k_vd, sizeof(__pyx_k_vd), 0, 0, 1, 1},
-  {&__pyx_n_s_vd_2, __pyx_k_vd_2, sizeof(__pyx_k_vd_2), 0, 0, 1, 1},
+  {&__pyx_n_s_v, __pyx_k_v, sizeof(__pyx_k_v), 0, 0, 1, 1},
+  {&__pyx_n_s_variant, __pyx_k_variant, sizeof(__pyx_k_variant), 0, 0, 1, 1},
   {0, 0, 0, 0, 0, 0, 0}
 };
 static int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 97; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_builtin_StopIteration = __Pyx_GetBuiltinName(__pyx_n_s_StopIteration); if (!__pyx_builtin_StopIteration) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 199; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   return 0;
   __pyx_L1_error:;
   return -1;
@@ -7178,62 +8634,14 @@ static int __Pyx_InitCachedConstants(void) {
   /* "mitty/lib/variation.pyx":116
  * 
  * 
- * def get_variant_rows(l, samples):             # <<<<<<<<<<<<<<
- *   """Iterator to write out the collection of samples in multi-sample format
- *   :param l: the master variant dictionary
+ * def create_gtv_iterable(pos, ref, alt, gt):             # <<<<<<<<<<<<<<
+ *   """Given lists/generators of the bare variant data (e.g. from a plugin) return us an iterator that will produce a
+ *   stream of individual SampleVariants."""
  */
-  __pyx_tuple__3 = PyTuple_Pack(9, __pyx_n_s_l, __pyx_n_s_samples, __pyx_n_s_n_samples, __pyx_n_s_msi, __pyx_n_s_csc, __pyx_n_s_this_line, __pyx_n_s_n, __pyx_n_s_s, __pyx_n_s_i); if (unlikely(!__pyx_tuple__3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_tuple__3);
-  __Pyx_GIVEREF(__pyx_tuple__3);
-  __pyx_codeobj__4 = (PyObject*)__Pyx_PyCode_New(2, 0, 9, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__3, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_Users_kghose_Code_Mitty_mitty_l, __pyx_n_s_get_variant_rows, 116, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-
-  /* "mitty/lib/variation.pyx":134
- * 
- * 
- * def add_sample_variant(gt, l):             # <<<<<<<<<<<<<<
- *   pass
- * 
- */
-  __pyx_tuple__5 = PyTuple_Pack(2, __pyx_n_s_gt, __pyx_n_s_l); if (unlikely(!__pyx_tuple__5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 134; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_tuple__5);
-  __Pyx_GIVEREF(__pyx_tuple__5);
-  __pyx_codeobj__6 = (PyObject*)__Pyx_PyCode_New(2, 0, 2, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__5, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_Users_kghose_Code_Mitty_mitty_l, __pyx_n_s_add_sample_variant, 134, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__6)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 134; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-
-  /* "mitty/lib/variation.pyx":138
- * 
- * 
- * def new_variation(int _pos=0, int _stop=0, str _ref='', str _alt='', char het=0, char recessive=0, float fitness=0):             # <<<<<<<<<<<<<<
- *   return Variation(VariationData(_pos, _stop, _ref, _alt), het, recessive, fitness)
- * 
- */
-  __pyx_tuple__7 = PyTuple_Pack(7, __pyx_n_s_pos, __pyx_n_s_stop, __pyx_n_s_ref, __pyx_n_s_alt, __pyx_n_s_het, __pyx_n_s_recessive, __pyx_n_s_fitness); if (unlikely(!__pyx_tuple__7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_tuple__7);
-  __Pyx_GIVEREF(__pyx_tuple__7);
-  __pyx_codeobj__8 = (PyObject*)__Pyx_PyCode_New(7, 0, 7, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__7, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_Users_kghose_Code_Mitty_mitty_l, __pyx_n_s_new_variation, 138, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-
-  /* "mitty/lib/variation.pyx":301
- * 
- * 
- * def copy_missing_chromosomes(g1, g2):             # <<<<<<<<<<<<<<
- *   """Copy any chromosomes found in g2 but not in g1 onto g1. g1 is changed in place
- * 
- */
-  __pyx_tuple__9 = PyTuple_Pack(4, __pyx_n_s_g1, __pyx_n_s_g2, __pyx_n_s_missing_chrom, __pyx_n_s_ch); if (unlikely(!__pyx_tuple__9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 301; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_tuple__9);
-  __Pyx_GIVEREF(__pyx_tuple__9);
-  __pyx_codeobj__10 = (PyObject*)__Pyx_PyCode_New(2, 0, 4, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__9, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_Users_kghose_Code_Mitty_mitty_l, __pyx_n_s_copy_missing_chromosomes, 301, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__10)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 301; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-
-  /* "mitty/lib/variation.pyx":313
- * 
- * 
- * def merge_genomes(dict g1, dict g2, dict ml):             # <<<<<<<<<<<<<<
- *   """Given two genomes run merge_variants(c1, c2) on each chromosome. g1 has priority. In the end copy any chromosomes
- *   present in g2 but not in g1 into g1 (so that g1 is a superset of g2)
- */
-  __pyx_tuple__11 = PyTuple_Pack(6, __pyx_n_s_g1, __pyx_n_s_g2, __pyx_n_s_ml, __pyx_n_s_g3, __pyx_n_s_chrom, __pyx_n_s_c2); if (unlikely(!__pyx_tuple__11)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 313; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_tuple__11);
-  __Pyx_GIVEREF(__pyx_tuple__11);
-  __pyx_codeobj__12 = (PyObject*)__Pyx_PyCode_New(3, 0, 6, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__11, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_Users_kghose_Code_Mitty_mitty_l, __pyx_n_s_merge_genomes, 313, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__12)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 313; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_tuple__2 = PyTuple_Pack(8, __pyx_n_s_pos, __pyx_n_s_ref, __pyx_n_s_alt, __pyx_n_s_gt, __pyx_n_s_p, __pyx_n_s_r, __pyx_n_s_a, __pyx_n_s_g); if (unlikely(!__pyx_tuple__2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_tuple__2);
+  __Pyx_GIVEREF(__pyx_tuple__2);
+  __pyx_codeobj__3 = (PyObject*)__Pyx_PyCode_New(4, 0, 8, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__2, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_Users_kghose_Code_Mitty_mitty_l, __pyx_n_s_create_gtv_iterable, 116, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -7244,10 +8652,6 @@ static int __Pyx_InitCachedConstants(void) {
 static int __Pyx_InitGlobals(void) {
   if (__Pyx_InitStrings(__pyx_string_tab) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
   __pyx_int_0 = PyInt_FromLong(0); if (unlikely(!__pyx_int_0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_int_1 = PyInt_FromLong(1); if (unlikely(!__pyx_int_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_int_2 = PyInt_FromLong(2); if (unlikely(!__pyx_int_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_int_3 = PyInt_FromLong(3); if (unlikely(!__pyx_int_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_int_16 = PyInt_FromLong(16); if (unlikely(!__pyx_int_16)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   return 0;
   __pyx_L1_error:;
   return -1;
@@ -7262,7 +8666,6 @@ PyMODINIT_FUNC PyInit_variation(void)
 #endif
 {
   PyObject *__pyx_t_1 = NULL;
-  unsigned char __pyx_t_2;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -7334,87 +8737,64 @@ PyMODINIT_FUNC PyInit_variation(void)
   /*--- Variable export code ---*/
   /*--- Function export code ---*/
   /*--- Type init code ---*/
-  if (PyType_Ready(&__pyx_type_5mitty_3lib_9variation_VariationData) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 14; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_type_5mitty_3lib_9variation_VariationData.tp_print = 0;
-  if (PyObject_SetAttrString(__pyx_m, "VariationData", (PyObject *)&__pyx_type_5mitty_3lib_9variation_VariationData) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 14; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_ptype_5mitty_3lib_9variation_VariationData = &__pyx_type_5mitty_3lib_9variation_VariationData;
-  __pyx_vtabptr_5mitty_3lib_9variation_Genotype = &__pyx_vtable_5mitty_3lib_9variation_Genotype;
-  __pyx_vtable_5mitty_3lib_9variation_Genotype.pos = (unsigned long (*)(struct __pyx_obj_5mitty_3lib_9variation_Genotype *, int __pyx_skip_dispatch))__pyx_f_5mitty_3lib_9variation_8Genotype_pos;
-  __pyx_vtable_5mitty_3lib_9variation_Genotype.alts = (unsigned int (*)(struct __pyx_obj_5mitty_3lib_9variation_Genotype *, int __pyx_skip_dispatch))__pyx_f_5mitty_3lib_9variation_8Genotype_alts;
-  if (PyType_Ready(&__pyx_type_5mitty_3lib_9variation_Genotype) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 35; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_type_5mitty_3lib_9variation_Genotype.tp_print = 0;
-  if (__Pyx_SetVtable(__pyx_type_5mitty_3lib_9variation_Genotype.tp_dict, __pyx_vtabptr_5mitty_3lib_9variation_Genotype) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 35; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (PyObject_SetAttrString(__pyx_m, "Genotype", (PyObject *)&__pyx_type_5mitty_3lib_9variation_Genotype) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 35; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_ptype_5mitty_3lib_9variation_Genotype = &__pyx_type_5mitty_3lib_9variation_Genotype;
-  __pyx_vtabptr_5mitty_3lib_9variation_Variation = &__pyx_vtable_5mitty_3lib_9variation_Variation;
-  __pyx_vtable_5mitty_3lib_9variation_Variation.eq = (int (*)(struct __pyx_obj_5mitty_3lib_9variation_Variation *, struct __pyx_obj_5mitty_3lib_9variation_Variation *, int __pyx_skip_dispatch))__pyx_f_5mitty_3lib_9variation_9Variation_eq;
-  if (PyType_Ready(&__pyx_type_5mitty_3lib_9variation_Variation) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_type_5mitty_3lib_9variation_Variation.tp_print = 0;
-  #if CYTHON_COMPILING_IN_CPYTHON
-  {
-    PyObject *wrapper = PyObject_GetAttrString((PyObject *)&__pyx_type_5mitty_3lib_9variation_Variation, "__repr__"); if (unlikely(!wrapper)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    if (Py_TYPE(wrapper) == &PyWrapperDescr_Type) {
-      __pyx_wrapperbase_5mitty_3lib_9variation_9Variation_8__repr__ = *((PyWrapperDescrObject *)wrapper)->d_base;
-      __pyx_wrapperbase_5mitty_3lib_9variation_9Variation_8__repr__.doc = __pyx_doc_5mitty_3lib_9variation_9Variation_8__repr__;
-      ((PyWrapperDescrObject *)wrapper)->d_base = &__pyx_wrapperbase_5mitty_3lib_9variation_9Variation_8__repr__;
-    }
-  }
-  #endif
-  if (__Pyx_SetVtable(__pyx_type_5mitty_3lib_9variation_Variation.tp_dict, __pyx_vtabptr_5mitty_3lib_9variation_Variation) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (PyObject_SetAttrString(__pyx_m, "Variation", (PyObject *)&__pyx_type_5mitty_3lib_9variation_Variation) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_ptype_5mitty_3lib_9variation_Variation = &__pyx_type_5mitty_3lib_9variation_Variation;
-  if (PyType_Ready(&__pyx_type_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_type_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows.tp_print = 0;
-  __pyx_ptype_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows = &__pyx_type_5mitty_3lib_9variation___pyx_scope_struct__get_variant_rows;
+  if (PyType_Ready(&__pyx_type_5mitty_3lib_9variation_Variant) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 19; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_type_5mitty_3lib_9variation_Variant.tp_print = 0;
+  if (PyObject_SetAttrString(__pyx_m, "Variant", (PyObject *)&__pyx_type_5mitty_3lib_9variation_Variant) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 19; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_ptype_5mitty_3lib_9variation_Variant = &__pyx_type_5mitty_3lib_9variation_Variant;
+  if (PyType_Ready(&__pyx_type_5mitty_3lib_9variation_GTVariant) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 82; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_type_5mitty_3lib_9variation_GTVariant.tp_print = 0;
+  if (PyObject_SetAttrString(__pyx_m, "GTVariant", (PyObject *)&__pyx_type_5mitty_3lib_9variation_GTVariant) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 82; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_ptype_5mitty_3lib_9variation_GTVariant = &__pyx_type_5mitty_3lib_9variation_GTVariant;
+  __pyx_vtabptr_5mitty_3lib_9variation_Chromosome = &__pyx_vtable_5mitty_3lib_9variation_Chromosome;
+  __pyx_vtable_5mitty_3lib_9variation_Chromosome.rewind_cursor = (PyObject *(*)(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, int __pyx_skip_dispatch))__pyx_f_5mitty_3lib_9variation_10Chromosome_rewind_cursor;
+  __pyx_vtable_5mitty_3lib_9variation_Chromosome.advance = (struct __pyx_obj_5mitty_3lib_9variation_GTVariant *(*)(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, int __pyx_skip_dispatch))__pyx_f_5mitty_3lib_9variation_10Chromosome_advance;
+  __pyx_vtable_5mitty_3lib_9variation_Chromosome.last = (struct __pyx_obj_5mitty_3lib_9variation_GTVariant *(*)(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, int __pyx_skip_dispatch))__pyx_f_5mitty_3lib_9variation_10Chromosome_last;
+  __pyx_vtable_5mitty_3lib_9variation_Chromosome.insert = (PyObject *(*)(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *, int __pyx_skip_dispatch))__pyx_f_5mitty_3lib_9variation_10Chromosome_insert;
+  __pyx_vtable_5mitty_3lib_9variation_Chromosome.append = (PyObject *(*)(struct __pyx_obj_5mitty_3lib_9variation_Chromosome *, struct __pyx_obj_5mitty_3lib_9variation_GTVariant *, int __pyx_skip_dispatch))__pyx_f_5mitty_3lib_9variation_10Chromosome_append;
+  if (PyType_Ready(&__pyx_type_5mitty_3lib_9variation_Chromosome) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_type_5mitty_3lib_9variation_Chromosome.tp_print = 0;
+  if (__Pyx_SetVtable(__pyx_type_5mitty_3lib_9variation_Chromosome.tp_dict, __pyx_vtabptr_5mitty_3lib_9variation_Chromosome) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyObject_SetAttrString(__pyx_m, "Chromosome", (PyObject *)&__pyx_type_5mitty_3lib_9variation_Chromosome) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 123; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_ptype_5mitty_3lib_9variation_Chromosome = &__pyx_type_5mitty_3lib_9variation_Chromosome;
+  if (PyType_Ready(&__pyx_type_5mitty_3lib_9variation_ChromosomeIterator) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 190; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_type_5mitty_3lib_9variation_ChromosomeIterator.tp_print = 0;
+  if (PyObject_SetAttrString(__pyx_m, "ChromosomeIterator", (PyObject *)&__pyx_type_5mitty_3lib_9variation_ChromosomeIterator) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 190; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_ptype_5mitty_3lib_9variation_ChromosomeIterator = &__pyx_type_5mitty_3lib_9variation_ChromosomeIterator;
+  __pyx_vtabptr_5mitty_3lib_9variation_CrossOverPoints = &__pyx_vtable_5mitty_3lib_9variation_CrossOverPoints;
+  __pyx_vtable_5mitty_3lib_9variation_CrossOverPoints.update_crossover = (int (*)(struct __pyx_obj_5mitty_3lib_9variation_CrossOverPoints *, struct __pyx_obj_5mitty_3lib_9variation_Variant *))__pyx_f_5mitty_3lib_9variation_15CrossOverPoints_update_crossover;
+  if (PyType_Ready(&__pyx_type_5mitty_3lib_9variation_CrossOverPoints) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 292; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_type_5mitty_3lib_9variation_CrossOverPoints.tp_print = 0;
+  if (__Pyx_SetVtable(__pyx_type_5mitty_3lib_9variation_CrossOverPoints.tp_dict, __pyx_vtabptr_5mitty_3lib_9variation_CrossOverPoints) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 292; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyObject_SetAttrString(__pyx_m, "CrossOverPoints", (PyObject *)&__pyx_type_5mitty_3lib_9variation_CrossOverPoints) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 292; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_ptype_5mitty_3lib_9variation_CrossOverPoints = &__pyx_type_5mitty_3lib_9variation_CrossOverPoints;
+  if (PyType_Ready(&__pyx_type_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_type_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable.tp_print = 0;
+  __pyx_ptype_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable = &__pyx_type_5mitty_3lib_9variation___pyx_scope_struct__create_gtv_iterable;
   /*--- Type import code ---*/
   /*--- Variable import code ---*/
   /*--- Function import code ---*/
   /*--- Execution code ---*/
 
-  /* "mitty/lib/variation.pyx":6
+  /* "mitty/lib/variation.pyx":5
+ * documentation
  * """
+ * import itertools  # Because zip does not play well with iterators             # <<<<<<<<<<<<<<
+ * 
  * # Types of zygosity
- * ABSENT = 0             # <<<<<<<<<<<<<<
- * HOMOZYGOUS = 3
- * HET_01 = 1
  */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_ABSENT, __pyx_int_0) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 6; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_Import(__pyx_n_s_itertools, 0, -1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 5; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_itertools, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 5; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "mitty/lib/variation.pyx":7
- * # Types of zygosity
- * ABSENT = 0
- * HOMOZYGOUS = 3             # <<<<<<<<<<<<<<
- * HET_01 = 1
- * HET_10 = 2
- */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_HOMOZYGOUS, __pyx_int_3) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 7; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-
-  /* "mitty/lib/variation.pyx":8
- * ABSENT = 0
- * HOMOZYGOUS = 3
- * HET_01 = 1             # <<<<<<<<<<<<<<
- * HET_10 = 2
- * #       00     01     10     11
- */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_HET_01, __pyx_int_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 8; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-
-  /* "mitty/lib/variation.pyx":9
- * HOMOZYGOUS = 3
- * HET_01 = 1
- * HET_10 = 2             # <<<<<<<<<<<<<<
- * #       00     01     10     11
- * GT = ['0|0', '0|1', '1|0', '1|1']  # This needs to match rev 3 definitions
- */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_HET_10, __pyx_int_2) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 9; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-
-  /* "mitty/lib/variation.pyx":11
- * HET_10 = 2
+  /* "mitty/lib/variation.pyx":14
+ *   HOM = 3
  * #       00     01     10     11
  * GT = ['0|0', '0|1', '1|0', '1|1']  # This needs to match rev 3 definitions             # <<<<<<<<<<<<<<
  * 
- * 
+ * # Copy 0 -> 1|0
  */
-  __pyx_t_1 = PyList_New(4); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 11; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = PyList_New(4); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 14; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_INCREF(__pyx_kp_s_0_0);
   PyList_SET_ITEM(__pyx_t_1, 0, __pyx_kp_s_0_0);
@@ -7428,80 +8808,19 @@ PyMODINIT_FUNC PyInit_variation(void)
   __Pyx_INCREF(__pyx_kp_s_1_1);
   PyList_SET_ITEM(__pyx_t_1, 3, __pyx_kp_s_1_1);
   __Pyx_GIVEREF(__pyx_kp_s_1_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_GT, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 11; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_GT, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 14; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "mitty/lib/variation.pyx":116
  * 
  * 
- * def get_variant_rows(l, samples):             # <<<<<<<<<<<<<<
- *   """Iterator to write out the collection of samples in multi-sample format
- *   :param l: the master variant dictionary
+ * def create_gtv_iterable(pos, ref, alt, gt):             # <<<<<<<<<<<<<<
+ *   """Given lists/generators of the bare variant data (e.g. from a plugin) return us an iterator that will produce a
+ *   stream of individual SampleVariants."""
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_5mitty_3lib_9variation_7get_variant_rows, NULL, __pyx_n_s_mitty_lib_variation); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_5mitty_3lib_9variation_7create_gtv_iterable, NULL, __pyx_n_s_mitty_lib_variation); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_variant_rows, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
-  /* "mitty/lib/variation.pyx":134
- * 
- * 
- * def add_sample_variant(gt, l):             # <<<<<<<<<<<<<<
- *   pass
- * 
- */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_5mitty_3lib_9variation_10add_sample_variant, NULL, __pyx_n_s_mitty_lib_variation); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 134; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_add_sample_variant, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 134; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
-  /* "mitty/lib/variation.pyx":138
- * 
- * 
- * def new_variation(int _pos=0, int _stop=0, str _ref='', str _alt='', char het=0, char recessive=0, float fitness=0):             # <<<<<<<<<<<<<<
- *   return Variation(VariationData(_pos, _stop, _ref, _alt), het, recessive, fitness)
- * 
- */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_5mitty_3lib_9variation_12new_variation, NULL, __pyx_n_s_mitty_lib_variation); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_new_variation, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
-  /* "mitty/lib/variation.pyx":150
- * 
- *   # http://docs.cython.org/src/userguide/special_methods.html
- *   def __cinit__(self, VariationData _vd, unsigned char het=HOMOZYGOUS, unsigned char rec=1, unsigned char fit=128):             # <<<<<<<<<<<<<<
- *     self.vd, self.het, self.recessive, self.fitness = _vd, het, rec, fit
- * 
- */
-  __pyx_t_1 = __Pyx_GetModuleGlobalName(__pyx_n_s_HOMOZYGOUS); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 150; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyInt_As_unsigned_char(__pyx_t_1); if (unlikely((__pyx_t_2 == (unsigned char)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 150; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_k__2 = __pyx_t_2;
-
-  /* "mitty/lib/variation.pyx":301
- * 
- * 
- * def copy_missing_chromosomes(g1, g2):             # <<<<<<<<<<<<<<
- *   """Copy any chromosomes found in g2 but not in g1 onto g1. g1 is changed in place
- * 
- */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_5mitty_3lib_9variation_16copy_missing_chromosomes, NULL, __pyx_n_s_mitty_lib_variation); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 301; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_copy_missing_chromosomes, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 301; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
-  /* "mitty/lib/variation.pyx":313
- * 
- * 
- * def merge_genomes(dict g1, dict g2, dict ml):             # <<<<<<<<<<<<<<
- *   """Given two genomes run merge_variants(c1, c2) on each chromosome. g1 has priority. In the end copy any chromosomes
- *   present in g2 but not in g1 into g1 (so that g1 is a superset of g2)
- */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_5mitty_3lib_9variation_18merge_genomes, NULL, __pyx_n_s_mitty_lib_variation); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 313; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_merge_genomes, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 313; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_create_gtv_iterable, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 116; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "mitty/lib/variation.pyx":1
@@ -7515,6 +8834,26 @@ PyMODINIT_FUNC PyInit_variation(void)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /*--- Wrapped vars code ---*/
+  {
+    PyObject* wrapped = __Pyx_PyInt_From_int(__pyx_e_5mitty_3lib_9variation_ABSENT);
+    if (unlikely(!wrapped)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 9; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    if (PyObject_SetAttrString(__pyx_m, "ABSENT", wrapped) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 9; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+  }
+  {
+    PyObject* wrapped = __Pyx_PyInt_From_int(__pyx_e_5mitty_3lib_9variation_HET_01);
+    if (unlikely(!wrapped)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 10; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    if (PyObject_SetAttrString(__pyx_m, "HET_01", wrapped) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 10; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+  }
+  {
+    PyObject* wrapped = __Pyx_PyInt_From_int(__pyx_e_5mitty_3lib_9variation_HOM);
+    if (unlikely(!wrapped)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 12; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    if (PyObject_SetAttrString(__pyx_m, "HOM", wrapped) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 12; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+  }
+  {
+    PyObject* wrapped = __Pyx_PyInt_From_int(__pyx_e_5mitty_3lib_9variation_HET_10);
+    if (unlikely(!wrapped)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 11; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    if (PyObject_SetAttrString(__pyx_m, "HET_10", wrapped) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 11; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+  }
 
   goto __pyx_L0;
   __pyx_L1_error:;
@@ -7564,6 +8903,76 @@ static PyObject *__Pyx_GetBuiltinName(PyObject *name) {
 #endif
     }
     return result;
+}
+
+#if CYTHON_COMPILING_IN_CPYTHON
+static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg, PyObject *kw) {
+    PyObject *result;
+    ternaryfunc call = func->ob_type->tp_call;
+    if (unlikely(!call))
+        return PyObject_Call(func, arg, kw);
+    if (unlikely(Py_EnterRecursiveCall((char*)" while calling a Python object")))
+        return NULL;
+    result = (*call)(func, arg, kw);
+    Py_LeaveRecursiveCall();
+    if (unlikely(!result) && unlikely(!PyErr_Occurred())) {
+        PyErr_SetString(
+            PyExc_SystemError,
+            "NULL result without error in PyObject_Call");
+    }
+    return result;
+}
+#endif
+
+static void __Pyx_RaiseArgumentTypeInvalid(const char* name, PyObject *obj, PyTypeObject *type) {
+    PyErr_Format(PyExc_TypeError,
+        "Argument '%.200s' has incorrect type (expected %.200s, got %.200s)",
+        name, type->tp_name, Py_TYPE(obj)->tp_name);
+}
+static CYTHON_INLINE int __Pyx_ArgTypeTest(PyObject *obj, PyTypeObject *type, int none_allowed,
+    const char *name, int exact)
+{
+    if (unlikely(!type)) {
+        PyErr_SetString(PyExc_SystemError, "Missing type object");
+        return 0;
+    }
+    if (none_allowed && obj == Py_None) return 1;
+    else if (exact) {
+        if (likely(Py_TYPE(obj) == type)) return 1;
+        #if PY_MAJOR_VERSION == 2
+        else if ((type == &PyBaseString_Type) && likely(__Pyx_PyBaseString_CheckExact(obj))) return 1;
+        #endif
+    }
+    else {
+        if (likely(PyObject_TypeCheck(obj, type))) return 1;
+    }
+    __Pyx_RaiseArgumentTypeInvalid(name, obj, type);
+    return 0;
+}
+
+static void __Pyx_RaiseArgtupleInvalid(
+    const char* func_name,
+    int exact,
+    Py_ssize_t num_min,
+    Py_ssize_t num_max,
+    Py_ssize_t num_found)
+{
+    Py_ssize_t num_expected;
+    const char *more_or_less;
+    if (num_found < num_min) {
+        num_expected = num_min;
+        more_or_less = "at least";
+    } else {
+        num_expected = num_max;
+        more_or_less = "at most";
+    }
+    if (exact) {
+        more_or_less = "exactly";
+    }
+    PyErr_Format(PyExc_TypeError,
+                 "%.200s() takes %.8s %" CYTHON_FORMAT_SSIZE_T "d positional argument%.1s (%" CYTHON_FORMAT_SSIZE_T "d given)",
+                 func_name, more_or_less, num_expected,
+                 (num_expected == 1) ? "" : "s", num_found);
 }
 
 static void __Pyx_RaiseDoubleKeywordsError(
@@ -7680,75 +9089,207 @@ bad:
     return -1;
 }
 
-static void __Pyx_RaiseArgtupleInvalid(
-    const char* func_name,
-    int exact,
-    Py_ssize_t num_min,
-    Py_ssize_t num_max,
-    Py_ssize_t num_found)
-{
-    Py_ssize_t num_expected;
-    const char *more_or_less;
-    if (num_found < num_min) {
-        num_expected = num_min;
-        more_or_less = "at least";
-    } else {
-        num_expected = num_max;
-        more_or_less = "at most";
-    }
-    if (exact) {
-        more_or_less = "exactly";
-    }
-    PyErr_Format(PyExc_TypeError,
-                 "%.200s() takes %.8s %" CYTHON_FORMAT_SSIZE_T "d positional argument%.1s (%" CYTHON_FORMAT_SSIZE_T "d given)",
-                 func_name, more_or_less, num_expected,
-                 (num_expected == 1) ? "" : "s", num_found);
-}
-
-static void __Pyx_RaiseArgumentTypeInvalid(const char* name, PyObject *obj, PyTypeObject *type) {
-    PyErr_Format(PyExc_TypeError,
-        "Argument '%.200s' has incorrect type (expected %.200s, got %.200s)",
-        name, type->tp_name, Py_TYPE(obj)->tp_name);
-}
-static CYTHON_INLINE int __Pyx_ArgTypeTest(PyObject *obj, PyTypeObject *type, int none_allowed,
-    const char *name, int exact)
-{
+static CYTHON_INLINE int __Pyx_TypeTest(PyObject *obj, PyTypeObject *type) {
     if (unlikely(!type)) {
         PyErr_SetString(PyExc_SystemError, "Missing type object");
         return 0;
     }
-    if (none_allowed && obj == Py_None) return 1;
-    else if (exact) {
-        if (likely(Py_TYPE(obj) == type)) return 1;
-        #if PY_MAJOR_VERSION == 2
-        else if ((type == &PyBaseString_Type) && likely(__Pyx_PyBaseString_CheckExact(obj))) return 1;
-        #endif
-    }
-    else {
-        if (likely(PyObject_TypeCheck(obj, type))) return 1;
-    }
-    __Pyx_RaiseArgumentTypeInvalid(name, obj, type);
+    if (likely(PyObject_TypeCheck(obj, type)))
+        return 1;
+    PyErr_Format(PyExc_TypeError, "Cannot convert %.200s to %.200s",
+                 Py_TYPE(obj)->tp_name, type->tp_name);
     return 0;
 }
 
-#if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg, PyObject *kw) {
+static CYTHON_INLINE PyObject *__Pyx_GetModuleGlobalName(PyObject *name) {
     PyObject *result;
-    ternaryfunc call = func->ob_type->tp_call;
-    if (unlikely(!call))
-        return PyObject_Call(func, arg, kw);
-    if (unlikely(Py_EnterRecursiveCall((char*)" while calling a Python object")))
-        return NULL;
-    result = (*call)(func, arg, kw);
-    Py_LeaveRecursiveCall();
-    if (unlikely(!result) && unlikely(!PyErr_Occurred())) {
-        PyErr_SetString(
-            PyExc_SystemError,
-            "NULL result without error in PyObject_Call");
+#if CYTHON_COMPILING_IN_CPYTHON
+    result = PyDict_GetItem(__pyx_d, name);
+    if (likely(result)) {
+        Py_INCREF(result);
+    } else {
+#else
+    result = PyObject_GetItem(__pyx_d, name);
+    if (!result) {
+        PyErr_Clear();
+#endif
+        result = __Pyx_GetBuiltinName(name);
     }
     return result;
 }
+
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j) {
+    PyObject *r;
+    if (!j) return NULL;
+    r = PyObject_GetItem(o, j);
+    Py_DECREF(j);
+    return r;
+}
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_List_Fast(PyObject *o, Py_ssize_t i,
+                                                              int wraparound, int boundscheck) {
+#if CYTHON_COMPILING_IN_CPYTHON
+    if (wraparound & unlikely(i < 0)) i += PyList_GET_SIZE(o);
+    if ((!boundscheck) || likely((0 <= i) & (i < PyList_GET_SIZE(o)))) {
+        PyObject *r = PyList_GET_ITEM(o, i);
+        Py_INCREF(r);
+        return r;
+    }
+    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
+#else
+    return PySequence_GetItem(o, i);
 #endif
+}
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Tuple_Fast(PyObject *o, Py_ssize_t i,
+                                                              int wraparound, int boundscheck) {
+#if CYTHON_COMPILING_IN_CPYTHON
+    if (wraparound & unlikely(i < 0)) i += PyTuple_GET_SIZE(o);
+    if ((!boundscheck) || likely((0 <= i) & (i < PyTuple_GET_SIZE(o)))) {
+        PyObject *r = PyTuple_GET_ITEM(o, i);
+        Py_INCREF(r);
+        return r;
+    }
+    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
+#else
+    return PySequence_GetItem(o, i);
+#endif
+}
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i,
+                                                     int is_list, int wraparound, int boundscheck) {
+#if CYTHON_COMPILING_IN_CPYTHON
+    if (is_list || PyList_CheckExact(o)) {
+        Py_ssize_t n = ((!wraparound) | likely(i >= 0)) ? i : i + PyList_GET_SIZE(o);
+        if ((!boundscheck) || (likely((n >= 0) & (n < PyList_GET_SIZE(o))))) {
+            PyObject *r = PyList_GET_ITEM(o, n);
+            Py_INCREF(r);
+            return r;
+        }
+    }
+    else if (PyTuple_CheckExact(o)) {
+        Py_ssize_t n = ((!wraparound) | likely(i >= 0)) ? i : i + PyTuple_GET_SIZE(o);
+        if ((!boundscheck) || likely((n >= 0) & (n < PyTuple_GET_SIZE(o)))) {
+            PyObject *r = PyTuple_GET_ITEM(o, n);
+            Py_INCREF(r);
+            return r;
+        }
+    } else {
+        PySequenceMethods *m = Py_TYPE(o)->tp_as_sequence;
+        if (likely(m && m->sq_item)) {
+            if (wraparound && unlikely(i < 0) && likely(m->sq_length)) {
+                Py_ssize_t l = m->sq_length(o);
+                if (likely(l >= 0)) {
+                    i += l;
+                } else {
+                    if (PyErr_ExceptionMatches(PyExc_OverflowError))
+                        PyErr_Clear();
+                    else
+                        return NULL;
+                }
+            }
+            return m->sq_item(o, i);
+        }
+    }
+#else
+    if (is_list || PySequence_Check(o)) {
+        return PySequence_GetItem(o, i);
+    }
+#endif
+    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
+}
+
+static CYTHON_INLINE void __Pyx_RaiseTooManyValuesError(Py_ssize_t expected) {
+    PyErr_Format(PyExc_ValueError,
+                 "too many values to unpack (expected %" CYTHON_FORMAT_SSIZE_T "d)", expected);
+}
+
+static CYTHON_INLINE void __Pyx_RaiseNeedMoreValuesError(Py_ssize_t index) {
+    PyErr_Format(PyExc_ValueError,
+                 "need more than %" CYTHON_FORMAT_SSIZE_T "d value%.1s to unpack",
+                 index, (index == 1) ? "" : "s");
+}
+
+static CYTHON_INLINE int __Pyx_IterFinish(void) {
+#if CYTHON_COMPILING_IN_CPYTHON
+    PyThreadState *tstate = PyThreadState_GET();
+    PyObject* exc_type = tstate->curexc_type;
+    if (unlikely(exc_type)) {
+        if (likely(exc_type == PyExc_StopIteration) || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration)) {
+            PyObject *exc_value, *exc_tb;
+            exc_value = tstate->curexc_value;
+            exc_tb = tstate->curexc_traceback;
+            tstate->curexc_type = 0;
+            tstate->curexc_value = 0;
+            tstate->curexc_traceback = 0;
+            Py_DECREF(exc_type);
+            Py_XDECREF(exc_value);
+            Py_XDECREF(exc_tb);
+            return 0;
+        } else {
+            return -1;
+        }
+    }
+    return 0;
+#else
+    if (unlikely(PyErr_Occurred())) {
+        if (likely(PyErr_ExceptionMatches(PyExc_StopIteration))) {
+            PyErr_Clear();
+            return 0;
+        } else {
+            return -1;
+        }
+    }
+    return 0;
+#endif
+}
+
+static int __Pyx_IternextUnpackEndCheck(PyObject *retval, Py_ssize_t expected) {
+    if (unlikely(retval)) {
+        Py_DECREF(retval);
+        __Pyx_RaiseTooManyValuesError(expected);
+        return -1;
+    } else {
+        return __Pyx_IterFinish();
+    }
+    return 0;
+}
+
+static CYTHON_INLINE int __Pyx_CheckKeywordStrings(
+    PyObject *kwdict,
+    const char* function_name,
+    int kw_allowed)
+{
+    PyObject* key = 0;
+    Py_ssize_t pos = 0;
+#if CYTHON_COMPILING_IN_PYPY
+    if (!kw_allowed && PyDict_Next(kwdict, &pos, &key, 0))
+        goto invalid_keyword;
+    return 1;
+#else
+    while (PyDict_Next(kwdict, &pos, &key, 0)) {
+        #if PY_MAJOR_VERSION < 3
+        if (unlikely(!PyString_CheckExact(key)) && unlikely(!PyString_Check(key)))
+        #endif
+            if (unlikely(!PyUnicode_Check(key)))
+                goto invalid_keyword_type;
+    }
+    if ((!kw_allowed) && unlikely(key))
+        goto invalid_keyword;
+    return 1;
+invalid_keyword_type:
+    PyErr_Format(PyExc_TypeError,
+        "%.200s() keywords must be strings", function_name);
+    return 0;
+#endif
+invalid_keyword:
+    PyErr_Format(PyExc_TypeError,
+    #if PY_MAJOR_VERSION < 3
+        "%.200s() got an unexpected keyword argument '%.200s'",
+        function_name, PyString_AsString(key));
+    #else
+        "%s() got an unexpected keyword argument '%U'",
+        function_name, key);
+    #endif
+    return 0;
+}
 
 #if CYTHON_COMPILING_IN_CPYTHON
 static CYTHON_INLINE PyObject* __Pyx_PyObject_CallMethO(PyObject *func, PyObject *arg) {
@@ -7845,6 +9386,200 @@ static CYTHON_INLINE void __Pyx_ErrFetch(PyObject **type, PyObject **value, PyOb
 #endif
 }
 
+#if PY_MAJOR_VERSION < 3
+static void __Pyx_Raise(PyObject *type, PyObject *value, PyObject *tb,
+                        CYTHON_UNUSED PyObject *cause) {
+    Py_XINCREF(type);
+    if (!value || value == Py_None)
+        value = NULL;
+    else
+        Py_INCREF(value);
+    if (!tb || tb == Py_None)
+        tb = NULL;
+    else {
+        Py_INCREF(tb);
+        if (!PyTraceBack_Check(tb)) {
+            PyErr_SetString(PyExc_TypeError,
+                "raise: arg 3 must be a traceback or None");
+            goto raise_error;
+        }
+    }
+    if (PyType_Check(type)) {
+#if CYTHON_COMPILING_IN_PYPY
+        if (!value) {
+            Py_INCREF(Py_None);
+            value = Py_None;
+        }
+#endif
+        PyErr_NormalizeException(&type, &value, &tb);
+    } else {
+        if (value) {
+            PyErr_SetString(PyExc_TypeError,
+                "instance exception may not have a separate value");
+            goto raise_error;
+        }
+        value = type;
+        type = (PyObject*) Py_TYPE(type);
+        Py_INCREF(type);
+        if (!PyType_IsSubtype((PyTypeObject *)type, (PyTypeObject *)PyExc_BaseException)) {
+            PyErr_SetString(PyExc_TypeError,
+                "raise: exception class must be a subclass of BaseException");
+            goto raise_error;
+        }
+    }
+    __Pyx_ErrRestore(type, value, tb);
+    return;
+raise_error:
+    Py_XDECREF(value);
+    Py_XDECREF(type);
+    Py_XDECREF(tb);
+    return;
+}
+#else
+static void __Pyx_Raise(PyObject *type, PyObject *value, PyObject *tb, PyObject *cause) {
+    PyObject* owned_instance = NULL;
+    if (tb == Py_None) {
+        tb = 0;
+    } else if (tb && !PyTraceBack_Check(tb)) {
+        PyErr_SetString(PyExc_TypeError,
+            "raise: arg 3 must be a traceback or None");
+        goto bad;
+    }
+    if (value == Py_None)
+        value = 0;
+    if (PyExceptionInstance_Check(type)) {
+        if (value) {
+            PyErr_SetString(PyExc_TypeError,
+                "instance exception may not have a separate value");
+            goto bad;
+        }
+        value = type;
+        type = (PyObject*) Py_TYPE(value);
+    } else if (PyExceptionClass_Check(type)) {
+        PyObject *instance_class = NULL;
+        if (value && PyExceptionInstance_Check(value)) {
+            instance_class = (PyObject*) Py_TYPE(value);
+            if (instance_class != type) {
+                if (PyObject_IsSubclass(instance_class, type)) {
+                    type = instance_class;
+                } else {
+                    instance_class = NULL;
+                }
+            }
+        }
+        if (!instance_class) {
+            PyObject *args;
+            if (!value)
+                args = PyTuple_New(0);
+            else if (PyTuple_Check(value)) {
+                Py_INCREF(value);
+                args = value;
+            } else
+                args = PyTuple_Pack(1, value);
+            if (!args)
+                goto bad;
+            owned_instance = PyObject_Call(type, args, NULL);
+            Py_DECREF(args);
+            if (!owned_instance)
+                goto bad;
+            value = owned_instance;
+            if (!PyExceptionInstance_Check(value)) {
+                PyErr_Format(PyExc_TypeError,
+                             "calling %R should have returned an instance of "
+                             "BaseException, not %R",
+                             type, Py_TYPE(value));
+                goto bad;
+            }
+        }
+    } else {
+        PyErr_SetString(PyExc_TypeError,
+            "raise: exception class must be a subclass of BaseException");
+        goto bad;
+    }
+#if PY_VERSION_HEX >= 0x03030000
+    if (cause) {
+#else
+    if (cause && cause != Py_None) {
+#endif
+        PyObject *fixed_cause;
+        if (cause == Py_None) {
+            fixed_cause = NULL;
+        } else if (PyExceptionClass_Check(cause)) {
+            fixed_cause = PyObject_CallObject(cause, NULL);
+            if (fixed_cause == NULL)
+                goto bad;
+        } else if (PyExceptionInstance_Check(cause)) {
+            fixed_cause = cause;
+            Py_INCREF(fixed_cause);
+        } else {
+            PyErr_SetString(PyExc_TypeError,
+                            "exception causes must derive from "
+                            "BaseException");
+            goto bad;
+        }
+        PyException_SetCause(value, fixed_cause);
+    }
+    PyErr_SetObject(type, value);
+    if (tb) {
+#if CYTHON_COMPILING_IN_PYPY
+        PyObject *tmp_type, *tmp_value, *tmp_tb;
+        PyErr_Fetch(tmp_type, tmp_value, tmp_tb);
+        Py_INCREF(tb);
+        PyErr_Restore(tmp_type, tmp_value, tb);
+        Py_XDECREF(tmp_tb);
+#else
+        PyThreadState *tstate = PyThreadState_GET();
+        PyObject* tmp_tb = tstate->curexc_traceback;
+        if (tb != tmp_tb) {
+            Py_INCREF(tb);
+            tstate->curexc_traceback = tb;
+            Py_XDECREF(tmp_tb);
+        }
+#endif
+    }
+bad:
+    Py_XDECREF(owned_instance);
+    return;
+}
+#endif
+
+static CYTHON_INLINE PyObject *__Pyx_PyIter_Next2(PyObject* iterator, PyObject* defval) {
+    PyObject* next;
+    iternextfunc iternext = Py_TYPE(iterator)->tp_iternext;
+#if CYTHON_COMPILING_IN_CPYTHON
+    if (unlikely(!iternext)) {
+#else
+    if (unlikely(!iternext) || unlikely(!PyIter_Check(iterator))) {
+#endif
+        PyErr_Format(PyExc_TypeError,
+            "%.200s object is not an iterator", Py_TYPE(iterator)->tp_name);
+        return NULL;
+    }
+    next = iternext(iterator);
+    if (likely(next))
+        return next;
+#if CYTHON_COMPILING_IN_CPYTHON
+#if PY_VERSION_HEX >= 0x02070000
+    if (unlikely(iternext == &_PyObject_NextNotImplemented))
+        return NULL;
+#endif
+#endif
+    if (defval) {
+        PyObject* exc_type = PyErr_Occurred();
+        if (exc_type) {
+            if (unlikely(exc_type != PyExc_StopIteration) &&
+                    !PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))
+                return NULL;
+            PyErr_Clear();
+        }
+        Py_INCREF(defval);
+        return defval;
+    }
+    if (!PyErr_Occurred())
+        PyErr_SetNone(PyExc_StopIteration);
+    return NULL;
+}
+
 static void __Pyx_WriteUnraisable(const char *name, CYTHON_UNUSED int clineno,
                                   CYTHON_UNUSED int lineno, CYTHON_UNUSED const char *filename,
                                   int full_traceback) {
@@ -7872,374 +9607,7 @@ static void __Pyx_WriteUnraisable(const char *name, CYTHON_UNUSED int clineno,
     }
 }
 
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j) {
-    PyObject *r;
-    if (!j) return NULL;
-    r = PyObject_GetItem(o, j);
-    Py_DECREF(j);
-    return r;
-}
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_List_Fast(PyObject *o, Py_ssize_t i,
-                                                              int wraparound, int boundscheck) {
-#if CYTHON_COMPILING_IN_CPYTHON
-    if (wraparound & unlikely(i < 0)) i += PyList_GET_SIZE(o);
-    if ((!boundscheck) || likely((0 <= i) & (i < PyList_GET_SIZE(o)))) {
-        PyObject *r = PyList_GET_ITEM(o, i);
-        Py_INCREF(r);
-        return r;
-    }
-    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
-#else
-    return PySequence_GetItem(o, i);
-#endif
-}
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Tuple_Fast(PyObject *o, Py_ssize_t i,
-                                                              int wraparound, int boundscheck) {
-#if CYTHON_COMPILING_IN_CPYTHON
-    if (wraparound & unlikely(i < 0)) i += PyTuple_GET_SIZE(o);
-    if ((!boundscheck) || likely((0 <= i) & (i < PyTuple_GET_SIZE(o)))) {
-        PyObject *r = PyTuple_GET_ITEM(o, i);
-        Py_INCREF(r);
-        return r;
-    }
-    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
-#else
-    return PySequence_GetItem(o, i);
-#endif
-}
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i,
-                                                     int is_list, int wraparound, int boundscheck) {
-#if CYTHON_COMPILING_IN_CPYTHON
-    if (is_list || PyList_CheckExact(o)) {
-        Py_ssize_t n = ((!wraparound) | likely(i >= 0)) ? i : i + PyList_GET_SIZE(o);
-        if ((!boundscheck) || (likely((n >= 0) & (n < PyList_GET_SIZE(o))))) {
-            PyObject *r = PyList_GET_ITEM(o, n);
-            Py_INCREF(r);
-            return r;
-        }
-    }
-    else if (PyTuple_CheckExact(o)) {
-        Py_ssize_t n = ((!wraparound) | likely(i >= 0)) ? i : i + PyTuple_GET_SIZE(o);
-        if ((!boundscheck) || likely((n >= 0) & (n < PyTuple_GET_SIZE(o)))) {
-            PyObject *r = PyTuple_GET_ITEM(o, n);
-            Py_INCREF(r);
-            return r;
-        }
-    } else {
-        PySequenceMethods *m = Py_TYPE(o)->tp_as_sequence;
-        if (likely(m && m->sq_item)) {
-            if (wraparound && unlikely(i < 0) && likely(m->sq_length)) {
-                Py_ssize_t l = m->sq_length(o);
-                if (likely(l >= 0)) {
-                    i += l;
-                } else {
-                    if (PyErr_ExceptionMatches(PyExc_OverflowError))
-                        PyErr_Clear();
-                    else
-                        return NULL;
-                }
-            }
-            return m->sq_item(o, i);
-        }
-    }
-#else
-    if (is_list || PySequence_Check(o)) {
-        return PySequence_GetItem(o, i);
-    }
-#endif
-    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
-}
-
-static CYTHON_INLINE int __Pyx_PyBytes_Equals(PyObject* s1, PyObject* s2, int equals) {
-#if CYTHON_COMPILING_IN_PYPY
-    return PyObject_RichCompareBool(s1, s2, equals);
-#else
-    if (s1 == s2) {
-        return (equals == Py_EQ);
-    } else if (PyBytes_CheckExact(s1) & PyBytes_CheckExact(s2)) {
-        const char *ps1, *ps2;
-        Py_ssize_t length = PyBytes_GET_SIZE(s1);
-        if (length != PyBytes_GET_SIZE(s2))
-            return (equals == Py_NE);
-        ps1 = PyBytes_AS_STRING(s1);
-        ps2 = PyBytes_AS_STRING(s2);
-        if (ps1[0] != ps2[0]) {
-            return (equals == Py_NE);
-        } else if (length == 1) {
-            return (equals == Py_EQ);
-        } else {
-            int result = memcmp(ps1, ps2, (size_t)length);
-            return (equals == Py_EQ) ? (result == 0) : (result != 0);
-        }
-    } else if ((s1 == Py_None) & PyBytes_CheckExact(s2)) {
-        return (equals == Py_NE);
-    } else if ((s2 == Py_None) & PyBytes_CheckExact(s1)) {
-        return (equals == Py_NE);
-    } else {
-        int result;
-        PyObject* py_result = PyObject_RichCompare(s1, s2, equals);
-        if (!py_result)
-            return -1;
-        result = __Pyx_PyObject_IsTrue(py_result);
-        Py_DECREF(py_result);
-        return result;
-    }
-#endif
-}
-
-static CYTHON_INLINE int __Pyx_PyUnicode_Equals(PyObject* s1, PyObject* s2, int equals) {
-#if CYTHON_COMPILING_IN_PYPY
-    return PyObject_RichCompareBool(s1, s2, equals);
-#else
-#if PY_MAJOR_VERSION < 3
-    PyObject* owned_ref = NULL;
-#endif
-    int s1_is_unicode, s2_is_unicode;
-    if (s1 == s2) {
-        goto return_eq;
-    }
-    s1_is_unicode = PyUnicode_CheckExact(s1);
-    s2_is_unicode = PyUnicode_CheckExact(s2);
-#if PY_MAJOR_VERSION < 3
-    if ((s1_is_unicode & (!s2_is_unicode)) && PyString_CheckExact(s2)) {
-        owned_ref = PyUnicode_FromObject(s2);
-        if (unlikely(!owned_ref))
-            return -1;
-        s2 = owned_ref;
-        s2_is_unicode = 1;
-    } else if ((s2_is_unicode & (!s1_is_unicode)) && PyString_CheckExact(s1)) {
-        owned_ref = PyUnicode_FromObject(s1);
-        if (unlikely(!owned_ref))
-            return -1;
-        s1 = owned_ref;
-        s1_is_unicode = 1;
-    } else if (((!s2_is_unicode) & (!s1_is_unicode))) {
-        return __Pyx_PyBytes_Equals(s1, s2, equals);
-    }
-#endif
-    if (s1_is_unicode & s2_is_unicode) {
-        Py_ssize_t length;
-        int kind;
-        void *data1, *data2;
-        if (unlikely(__Pyx_PyUnicode_READY(s1) < 0) || unlikely(__Pyx_PyUnicode_READY(s2) < 0))
-            return -1;
-        length = __Pyx_PyUnicode_GET_LENGTH(s1);
-        if (length != __Pyx_PyUnicode_GET_LENGTH(s2)) {
-            goto return_ne;
-        }
-        kind = __Pyx_PyUnicode_KIND(s1);
-        if (kind != __Pyx_PyUnicode_KIND(s2)) {
-            goto return_ne;
-        }
-        data1 = __Pyx_PyUnicode_DATA(s1);
-        data2 = __Pyx_PyUnicode_DATA(s2);
-        if (__Pyx_PyUnicode_READ(kind, data1, 0) != __Pyx_PyUnicode_READ(kind, data2, 0)) {
-            goto return_ne;
-        } else if (length == 1) {
-            goto return_eq;
-        } else {
-            int result = memcmp(data1, data2, (size_t)(length * kind));
-            #if PY_MAJOR_VERSION < 3
-            Py_XDECREF(owned_ref);
-            #endif
-            return (equals == Py_EQ) ? (result == 0) : (result != 0);
-        }
-    } else if ((s1 == Py_None) & s2_is_unicode) {
-        goto return_ne;
-    } else if ((s2 == Py_None) & s1_is_unicode) {
-        goto return_ne;
-    } else {
-        int result;
-        PyObject* py_result = PyObject_RichCompare(s1, s2, equals);
-        if (!py_result)
-            return -1;
-        result = __Pyx_PyObject_IsTrue(py_result);
-        Py_DECREF(py_result);
-        return result;
-    }
-return_eq:
-    #if PY_MAJOR_VERSION < 3
-    Py_XDECREF(owned_ref);
-    #endif
-    return (equals == Py_EQ);
-return_ne:
-    #if PY_MAJOR_VERSION < 3
-    Py_XDECREF(owned_ref);
-    #endif
-    return (equals == Py_NE);
-#endif
-}
-
-static CYTHON_INLINE PyObject *__Pyx_GetModuleGlobalName(PyObject *name) {
-    PyObject *result;
-#if CYTHON_COMPILING_IN_CPYTHON
-    result = PyDict_GetItem(__pyx_d, name);
-    if (likely(result)) {
-        Py_INCREF(result);
-    } else {
-#else
-    result = PyObject_GetItem(__pyx_d, name);
-    if (!result) {
-        PyErr_Clear();
-#endif
-        result = __Pyx_GetBuiltinName(name);
-    }
-    return result;
-}
-
-static CYTHON_INLINE int __Pyx_TypeTest(PyObject *obj, PyTypeObject *type) {
-    if (unlikely(!type)) {
-        PyErr_SetString(PyExc_SystemError, "Missing type object");
-        return 0;
-    }
-    if (likely(PyObject_TypeCheck(obj, type)))
-        return 1;
-    PyErr_Format(PyExc_TypeError, "Cannot convert %.200s to %.200s",
-                 Py_TYPE(obj)->tp_name, type->tp_name);
-    return 0;
-}
-
-static CYTHON_INLINE int __Pyx_SetItemInt_Generic(PyObject *o, PyObject *j, PyObject *v) {
-    int r;
-    if (!j) return -1;
-    r = PyObject_SetItem(o, j, v);
-    Py_DECREF(j);
-    return r;
-}
-static CYTHON_INLINE int __Pyx_SetItemInt_Fast(PyObject *o, Py_ssize_t i, PyObject *v,
-                                               int is_list, int wraparound, int boundscheck) {
-#if CYTHON_COMPILING_IN_CPYTHON
-    if (is_list || PyList_CheckExact(o)) {
-        Py_ssize_t n = (!wraparound) ? i : ((likely(i >= 0)) ? i : i + PyList_GET_SIZE(o));
-        if ((!boundscheck) || likely((n >= 0) & (n < PyList_GET_SIZE(o)))) {
-            PyObject* old = PyList_GET_ITEM(o, n);
-            Py_INCREF(v);
-            PyList_SET_ITEM(o, n, v);
-            Py_DECREF(old);
-            return 1;
-        }
-    } else {
-        PySequenceMethods *m = Py_TYPE(o)->tp_as_sequence;
-        if (likely(m && m->sq_ass_item)) {
-            if (wraparound && unlikely(i < 0) && likely(m->sq_length)) {
-                Py_ssize_t l = m->sq_length(o);
-                if (likely(l >= 0)) {
-                    i += l;
-                } else {
-                    if (PyErr_ExceptionMatches(PyExc_OverflowError))
-                        PyErr_Clear();
-                    else
-                        return -1;
-                }
-            }
-            return m->sq_ass_item(o, i, v);
-        }
-    }
-#else
-#if CYTHON_COMPILING_IN_PYPY
-    if (is_list || (PySequence_Check(o) && !PyDict_Check(o))) {
-#else
-    if (is_list || PySequence_Check(o)) {
-#endif
-        return PySequence_SetItem(o, i, v);
-    }
-#endif
-    return __Pyx_SetItemInt_Generic(o, PyInt_FromSsize_t(i), v);
-}
-
-#if CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE void __Pyx_crop_slice(Py_ssize_t* _start, Py_ssize_t* _stop, Py_ssize_t* _length) {
-    Py_ssize_t start = *_start, stop = *_stop, length = *_length;
-    if (start < 0) {
-        start += length;
-        if (start < 0)
-            start = 0;
-    }
-    if (stop < 0)
-        stop += length;
-    else if (stop > length)
-        stop = length;
-    *_length = stop - start;
-    *_start = start;
-    *_stop = stop;
-}
-static CYTHON_INLINE void __Pyx_copy_object_array(PyObject** CYTHON_RESTRICT src, PyObject** CYTHON_RESTRICT dest, Py_ssize_t length) {
-    PyObject *v;
-    Py_ssize_t i;
-    for (i = 0; i < length; i++) {
-        v = dest[i] = src[i];
-        Py_INCREF(v);
-    }
-}
-static CYTHON_INLINE PyObject* __Pyx_PyList_GetSlice(
-            PyObject* src, Py_ssize_t start, Py_ssize_t stop) {
-    PyObject* dest;
-    Py_ssize_t length = PyList_GET_SIZE(src);
-    __Pyx_crop_slice(&start, &stop, &length);
-    if (unlikely(length <= 0))
-        return PyList_New(0);
-    dest = PyList_New(length);
-    if (unlikely(!dest))
-        return NULL;
-    __Pyx_copy_object_array(
-        ((PyListObject*)src)->ob_item + start,
-        ((PyListObject*)dest)->ob_item,
-        length);
-    return dest;
-}
-static CYTHON_INLINE PyObject* __Pyx_PyTuple_GetSlice(
-            PyObject* src, Py_ssize_t start, Py_ssize_t stop) {
-    PyObject* dest;
-    Py_ssize_t length = PyTuple_GET_SIZE(src);
-    __Pyx_crop_slice(&start, &stop, &length);
-    if (unlikely(length <= 0))
-        return PyTuple_New(0);
-    dest = PyTuple_New(length);
-    if (unlikely(!dest))
-        return NULL;
-    __Pyx_copy_object_array(
-        ((PyTupleObject*)src)->ob_item + start,
-        ((PyTupleObject*)dest)->ob_item,
-        length);
-    return dest;
-}
-#endif
-
-static CYTHON_INLINE int __Pyx_IterFinish(void) {
-#if CYTHON_COMPILING_IN_CPYTHON
-    PyThreadState *tstate = PyThreadState_GET();
-    PyObject* exc_type = tstate->curexc_type;
-    if (unlikely(exc_type)) {
-        if (likely(exc_type == PyExc_StopIteration) || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration)) {
-            PyObject *exc_value, *exc_tb;
-            exc_value = tstate->curexc_value;
-            exc_tb = tstate->curexc_traceback;
-            tstate->curexc_type = 0;
-            tstate->curexc_value = 0;
-            tstate->curexc_traceback = 0;
-            Py_DECREF(exc_type);
-            Py_XDECREF(exc_value);
-            Py_XDECREF(exc_tb);
-            return 0;
-        } else {
-            return -1;
-        }
-    }
-    return 0;
-#else
-    if (unlikely(PyErr_Occurred())) {
-        if (likely(PyErr_ExceptionMatches(PyExc_StopIteration))) {
-            PyErr_Clear();
-            return 0;
-        } else {
-            return -1;
-        }
-    }
-    return 0;
-#endif
-}
-
-static PyObject* __Pyx_PyObject_CallMethod0(PyObject* obj, PyObject* method_name) {
+static PyObject* __Pyx_PyObject_CallMethod1(PyObject* obj, PyObject* method_name, PyObject* arg) {
     PyObject *method, *result = NULL;
     method = __Pyx_PyObject_GetAttrStr(obj, method_name);
     if (unlikely(!method)) goto bad;
@@ -8247,193 +9615,34 @@ static PyObject* __Pyx_PyObject_CallMethod0(PyObject* obj, PyObject* method_name
     if (likely(PyMethod_Check(method))) {
         PyObject *self = PyMethod_GET_SELF(method);
         if (likely(self)) {
+            PyObject *args;
             PyObject *function = PyMethod_GET_FUNCTION(method);
-            result = __Pyx_PyObject_CallOneArg(function, self);
-            Py_DECREF(method);
+            args = PyTuple_New(2);
+            if (unlikely(!args)) goto bad;
+            Py_INCREF(self);
+            PyTuple_SET_ITEM(args, 0, self);
+            Py_INCREF(arg);
+            PyTuple_SET_ITEM(args, 1, arg);
+            Py_INCREF(function);
+            Py_DECREF(method); method = NULL;
+            result = __Pyx_PyObject_Call(function, args, NULL);
+            Py_DECREF(args);
+            Py_DECREF(function);
             return result;
         }
     }
 #endif
-    result = __Pyx_PyObject_CallNoArg(method);
-    Py_DECREF(method);
+    result = __Pyx_PyObject_CallOneArg(method, arg);
 bad:
+    Py_XDECREF(method);
     return result;
 }
 
-static CYTHON_INLINE void __Pyx_RaiseNeedMoreValuesError(Py_ssize_t index) {
-    PyErr_Format(PyExc_ValueError,
-                 "need more than %" CYTHON_FORMAT_SSIZE_T "d value%.1s to unpack",
-                 index, (index == 1) ? "" : "s");
-}
-
-static CYTHON_INLINE void __Pyx_RaiseTooManyValuesError(Py_ssize_t expected) {
-    PyErr_Format(PyExc_ValueError,
-                 "too many values to unpack (expected %" CYTHON_FORMAT_SSIZE_T "d)", expected);
-}
-
-static int __Pyx_IternextUnpackEndCheck(PyObject *retval, Py_ssize_t expected) {
-    if (unlikely(retval)) {
-        Py_DECREF(retval);
-        __Pyx_RaiseTooManyValuesError(expected);
-        return -1;
-    } else {
-        return __Pyx_IterFinish();
-    }
-    return 0;
-}
-
-static CYTHON_INLINE void __Pyx_RaiseNoneNotIterableError(void) {
-    PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
-}
-
-static void __Pyx_UnpackTupleError(PyObject *t, Py_ssize_t index) {
-    if (t == Py_None) {
-      __Pyx_RaiseNoneNotIterableError();
-    } else if (PyTuple_GET_SIZE(t) < index) {
-      __Pyx_RaiseNeedMoreValuesError(PyTuple_GET_SIZE(t));
-    } else {
-      __Pyx_RaiseTooManyValuesError(index);
-    }
-}
-
-static CYTHON_INLINE int __Pyx_unpack_tuple2(PyObject* tuple, PyObject** pvalue1, PyObject** pvalue2,
-                                             int is_tuple, int has_known_size, int decref_tuple) {
-    Py_ssize_t index;
-    PyObject *value1 = NULL, *value2 = NULL, *iter = NULL;
-    if (!is_tuple && unlikely(!PyTuple_Check(tuple))) {
-        iternextfunc iternext;
-        iter = PyObject_GetIter(tuple);
-        if (unlikely(!iter)) goto bad;
-        if (decref_tuple) { Py_DECREF(tuple); tuple = NULL; }
-        iternext = Py_TYPE(iter)->tp_iternext;
-        value1 = iternext(iter); if (unlikely(!value1)) { index = 0; goto unpacking_failed; }
-        value2 = iternext(iter); if (unlikely(!value2)) { index = 1; goto unpacking_failed; }
-        if (!has_known_size && unlikely(__Pyx_IternextUnpackEndCheck(iternext(iter), 2))) goto bad;
-        Py_DECREF(iter);
-    } else {
-        if (!has_known_size && unlikely(PyTuple_GET_SIZE(tuple) != 2)) {
-            __Pyx_UnpackTupleError(tuple, 2);
-            goto bad;
-        }
-#if CYTHON_COMPILING_IN_PYPY
-        value1 = PySequence_ITEM(tuple, 0);
-        if (unlikely(!value1)) goto bad;
-        value2 = PySequence_ITEM(tuple, 1);
-        if (unlikely(!value2)) goto bad;
-#else
-        value1 = PyTuple_GET_ITEM(tuple, 0);
-        value2 = PyTuple_GET_ITEM(tuple, 1);
-        Py_INCREF(value1);
-        Py_INCREF(value2);
-#endif
-        if (decref_tuple) { Py_DECREF(tuple); }
-    }
-    *pvalue1 = value1;
-    *pvalue2 = value2;
-    return 0;
-unpacking_failed:
-    if (!has_known_size && __Pyx_IterFinish() == 0)
-        __Pyx_RaiseNeedMoreValuesError(index);
-bad:
-    Py_XDECREF(iter);
-    Py_XDECREF(value1);
-    Py_XDECREF(value2);
-    if (decref_tuple) { Py_XDECREF(tuple); }
-    return -1;
-}
-
-static CYTHON_INLINE PyObject* __Pyx_dict_iterator(PyObject* iterable, int is_dict, PyObject* method_name,
-                                                   Py_ssize_t* p_orig_length, int* p_source_is_dict) {
-    is_dict = is_dict || likely(PyDict_CheckExact(iterable));
-    *p_source_is_dict = is_dict;
-#if !CYTHON_COMPILING_IN_PYPY
-    if (is_dict) {
-        *p_orig_length = PyDict_Size(iterable);
-        Py_INCREF(iterable);
-        return iterable;
-    }
-#endif
-    *p_orig_length = 0;
-    if (method_name) {
-        PyObject* iter;
-        iterable = __Pyx_PyObject_CallMethod0(iterable, method_name);
-        if (!iterable)
-            return NULL;
-#if !CYTHON_COMPILING_IN_PYPY
-        if (PyTuple_CheckExact(iterable) || PyList_CheckExact(iterable))
-            return iterable;
-#endif
-        iter = PyObject_GetIter(iterable);
-        Py_DECREF(iterable);
-        return iter;
-    }
-    return PyObject_GetIter(iterable);
-}
-static CYTHON_INLINE int __Pyx_dict_iter_next(PyObject* iter_obj, Py_ssize_t orig_length, Py_ssize_t* ppos,
-                                              PyObject** pkey, PyObject** pvalue, PyObject** pitem, int source_is_dict) {
-    PyObject* next_item;
-#if !CYTHON_COMPILING_IN_PYPY
-    if (source_is_dict) {
-        PyObject *key, *value;
-        if (unlikely(orig_length != PyDict_Size(iter_obj))) {
-            PyErr_SetString(PyExc_RuntimeError, "dictionary changed size during iteration");
-            return -1;
-        }
-        if (unlikely(!PyDict_Next(iter_obj, ppos, &key, &value))) {
-            return 0;
-        }
-        if (pitem) {
-            PyObject* tuple = PyTuple_New(2);
-            if (unlikely(!tuple)) {
-                return -1;
-            }
-            Py_INCREF(key);
-            Py_INCREF(value);
-            PyTuple_SET_ITEM(tuple, 0, key);
-            PyTuple_SET_ITEM(tuple, 1, value);
-            *pitem = tuple;
-        } else {
-            if (pkey) {
-                Py_INCREF(key);
-                *pkey = key;
-            }
-            if (pvalue) {
-                Py_INCREF(value);
-                *pvalue = value;
-            }
-        }
-        return 1;
-    } else if (PyTuple_CheckExact(iter_obj)) {
-        Py_ssize_t pos = *ppos;
-        if (unlikely(pos >= PyTuple_GET_SIZE(iter_obj))) return 0;
-        *ppos = pos + 1;
-        next_item = PyTuple_GET_ITEM(iter_obj, pos);
-        Py_INCREF(next_item);
-    } else if (PyList_CheckExact(iter_obj)) {
-        Py_ssize_t pos = *ppos;
-        if (unlikely(pos >= PyList_GET_SIZE(iter_obj))) return 0;
-        *ppos = pos + 1;
-        next_item = PyList_GET_ITEM(iter_obj, pos);
-        Py_INCREF(next_item);
-    } else
-#endif
-    {
-        next_item = PyIter_Next(iter_obj);
-        if (unlikely(!next_item)) {
-            return __Pyx_IterFinish();
-        }
-    }
-    if (pitem) {
-        *pitem = next_item;
-    } else if (pkey && pvalue) {
-        if (__Pyx_unpack_tuple2(next_item, pkey, pvalue, source_is_dict, source_is_dict, 1))
-            return -1;
-    } else if (pkey) {
-        *pkey = next_item;
-    } else {
-        *pvalue = next_item;
-    }
-    return 1;
+static CYTHON_INLINE PyObject* __Pyx_PyDict_Keys(PyObject* d) {
+    if (PY_MAJOR_VERSION >= 3)
+        return __Pyx_PyObject_CallMethod1((PyObject*)&PyDict_Type, __pyx_n_s_keys, d);
+    else
+        return PyDict_Keys(d);
 }
 
 static PyObject* __Pyx_PyDict_GetItemDefault(PyObject* d, PyObject* key, PyObject* default_value) {
@@ -8639,6 +9848,79 @@ bad:
     Py_XDECREF(py_frame);
 }
 
+static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level) {
+    PyObject *empty_list = 0;
+    PyObject *module = 0;
+    PyObject *global_dict = 0;
+    PyObject *empty_dict = 0;
+    PyObject *list;
+    #if PY_VERSION_HEX < 0x03030000
+    PyObject *py_import;
+    py_import = __Pyx_PyObject_GetAttrStr(__pyx_b, __pyx_n_s_import);
+    if (!py_import)
+        goto bad;
+    #endif
+    if (from_list)
+        list = from_list;
+    else {
+        empty_list = PyList_New(0);
+        if (!empty_list)
+            goto bad;
+        list = empty_list;
+    }
+    global_dict = PyModule_GetDict(__pyx_m);
+    if (!global_dict)
+        goto bad;
+    empty_dict = PyDict_New();
+    if (!empty_dict)
+        goto bad;
+    {
+        #if PY_MAJOR_VERSION >= 3
+        if (level == -1) {
+            if (strchr(__Pyx_MODULE_NAME, '.')) {
+                #if PY_VERSION_HEX < 0x03030000
+                PyObject *py_level = PyInt_FromLong(1);
+                if (!py_level)
+                    goto bad;
+                module = PyObject_CallFunctionObjArgs(py_import,
+                    name, global_dict, empty_dict, list, py_level, NULL);
+                Py_DECREF(py_level);
+                #else
+                module = PyImport_ImportModuleLevelObject(
+                    name, global_dict, empty_dict, list, 1);
+                #endif
+                if (!module) {
+                    if (!PyErr_ExceptionMatches(PyExc_ImportError))
+                        goto bad;
+                    PyErr_Clear();
+                }
+            }
+            level = 0;
+        }
+        #endif
+        if (!module) {
+            #if PY_VERSION_HEX < 0x03030000
+            PyObject *py_level = PyInt_FromLong(level);
+            if (!py_level)
+                goto bad;
+            module = PyObject_CallFunctionObjArgs(py_import,
+                name, global_dict, empty_dict, list, py_level, NULL);
+            Py_DECREF(py_level);
+            #else
+            module = PyImport_ImportModuleLevelObject(
+                name, global_dict, empty_dict, list, level);
+            #endif
+        }
+    }
+bad:
+    #if PY_VERSION_HEX < 0x03030000
+    Py_XDECREF(py_import);
+    #endif
+    Py_XDECREF(empty_list);
+    Py_XDECREF(empty_dict);
+    return module;
+}
+
 #define __PYX_VERIFY_RETURN_INT(target_type, func_type, func_value)       \
     {                                                                     \
         func_type value = func_value;                                     \
@@ -8755,19 +10037,19 @@ raise_neg_overflow:
     return (int) -1;
 }
 
-static CYTHON_INLINE char __Pyx_PyInt_As_char(PyObject *x) {
-    const char neg_one = (char) -1, const_zero = 0;
+static CYTHON_INLINE unsigned long __Pyx_PyInt_As_unsigned_long(PyObject *x) {
+    const unsigned long neg_one = (unsigned long) -1, const_zero = 0;
     const int is_unsigned = neg_one > const_zero;
 #if PY_MAJOR_VERSION < 3
     if (likely(PyInt_Check(x))) {
-        if (sizeof(char) < sizeof(long)) {
-            __PYX_VERIFY_RETURN_INT(char, long, PyInt_AS_LONG(x))
+        if (sizeof(unsigned long) < sizeof(long)) {
+            __PYX_VERIFY_RETURN_INT(unsigned long, long, PyInt_AS_LONG(x))
         } else {
             long val = PyInt_AS_LONG(x);
             if (is_unsigned && unlikely(val < 0)) {
                 goto raise_neg_overflow;
             }
-            return (char) val;
+            return (unsigned long) val;
         }
     } else
 #endif
@@ -8777,32 +10059,32 @@ static CYTHON_INLINE char __Pyx_PyInt_As_char(PyObject *x) {
  #if CYTHON_USE_PYLONG_INTERNALS
             switch (Py_SIZE(x)) {
                 case  0: return 0;
-                case  1: __PYX_VERIFY_RETURN_INT(char, digit, ((PyLongObject*)x)->ob_digit[0]);
+                case  1: __PYX_VERIFY_RETURN_INT(unsigned long, digit, ((PyLongObject*)x)->ob_digit[0]);
             }
  #endif
 #endif
             if (unlikely(Py_SIZE(x) < 0)) {
                 goto raise_neg_overflow;
             }
-            if (sizeof(char) <= sizeof(unsigned long)) {
-                __PYX_VERIFY_RETURN_INT(char, unsigned long, PyLong_AsUnsignedLong(x))
-            } else if (sizeof(char) <= sizeof(unsigned long long)) {
-                __PYX_VERIFY_RETURN_INT(char, unsigned long long, PyLong_AsUnsignedLongLong(x))
+            if (sizeof(unsigned long) <= sizeof(unsigned long)) {
+                __PYX_VERIFY_RETURN_INT(unsigned long, unsigned long, PyLong_AsUnsignedLong(x))
+            } else if (sizeof(unsigned long) <= sizeof(unsigned long long)) {
+                __PYX_VERIFY_RETURN_INT(unsigned long, unsigned long long, PyLong_AsUnsignedLongLong(x))
             }
         } else {
 #if CYTHON_COMPILING_IN_CPYTHON && PY_MAJOR_VERSION >= 3
  #if CYTHON_USE_PYLONG_INTERNALS
             switch (Py_SIZE(x)) {
                 case  0: return 0;
-                case  1: __PYX_VERIFY_RETURN_INT(char,  digit, +(((PyLongObject*)x)->ob_digit[0]));
-                case -1: __PYX_VERIFY_RETURN_INT(char, sdigit, -(sdigit) ((PyLongObject*)x)->ob_digit[0]);
+                case  1: __PYX_VERIFY_RETURN_INT(unsigned long,  digit, +(((PyLongObject*)x)->ob_digit[0]));
+                case -1: __PYX_VERIFY_RETURN_INT(unsigned long, sdigit, -(sdigit) ((PyLongObject*)x)->ob_digit[0]);
             }
  #endif
 #endif
-            if (sizeof(char) <= sizeof(long)) {
-                __PYX_VERIFY_RETURN_INT(char, long, PyLong_AsLong(x))
-            } else if (sizeof(char) <= sizeof(long long)) {
-                __PYX_VERIFY_RETURN_INT(char, long long, PyLong_AsLongLong(x))
+            if (sizeof(unsigned long) <= sizeof(long)) {
+                __PYX_VERIFY_RETURN_INT(unsigned long, long, PyLong_AsLong(x))
+            } else if (sizeof(unsigned long) <= sizeof(long long)) {
+                __PYX_VERIFY_RETURN_INT(unsigned long, long long, PyLong_AsLongLong(x))
             }
         }
         {
@@ -8810,7 +10092,7 @@ static CYTHON_INLINE char __Pyx_PyInt_As_char(PyObject *x) {
             PyErr_SetString(PyExc_RuntimeError,
                             "_PyLong_AsByteArray() not available in PyPy, cannot convert large numbers");
 #else
-            char val;
+            unsigned long val;
             PyObject *v = __Pyx_PyNumber_Int(x);
  #if PY_MAJOR_VERSION < 3
             if (likely(v) && !PyLong_Check(v)) {
@@ -8830,24 +10112,24 @@ static CYTHON_INLINE char __Pyx_PyInt_As_char(PyObject *x) {
                     return val;
             }
 #endif
-            return (char) -1;
+            return (unsigned long) -1;
         }
     } else {
-        char val;
+        unsigned long val;
         PyObject *tmp = __Pyx_PyNumber_Int(x);
-        if (!tmp) return (char) -1;
-        val = __Pyx_PyInt_As_char(tmp);
+        if (!tmp) return (unsigned long) -1;
+        val = __Pyx_PyInt_As_unsigned_long(tmp);
         Py_DECREF(tmp);
         return val;
     }
 raise_overflow:
     PyErr_SetString(PyExc_OverflowError,
-        "value too large to convert to char");
-    return (char) -1;
+        "value too large to convert to unsigned long");
+    return (unsigned long) -1;
 raise_neg_overflow:
     PyErr_SetString(PyExc_OverflowError,
-        "can't convert negative value to char");
-    return (char) -1;
+        "can't convert negative value to unsigned long");
+    return (unsigned long) -1;
 }
 
 static CYTHON_INLINE unsigned char __Pyx_PyInt_As_unsigned_char(PyObject *x) {
@@ -8943,6 +10225,84 @@ raise_neg_overflow:
     PyErr_SetString(PyExc_OverflowError,
         "can't convert negative value to unsigned char");
     return (unsigned char) -1;
+}
+
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_unsigned_long(unsigned long value) {
+    const unsigned long neg_one = (unsigned long) -1, const_zero = 0;
+    const int is_unsigned = neg_one > const_zero;
+    if (is_unsigned) {
+        if (sizeof(unsigned long) < sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(unsigned long) <= sizeof(unsigned long)) {
+            return PyLong_FromUnsignedLong((unsigned long) value);
+        } else if (sizeof(unsigned long) <= sizeof(unsigned long long)) {
+            return PyLong_FromUnsignedLongLong((unsigned long long) value);
+        }
+    } else {
+        if (sizeof(unsigned long) <= sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(unsigned long) <= sizeof(long long)) {
+            return PyLong_FromLongLong((long long) value);
+        }
+    }
+    {
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        unsigned char *bytes = (unsigned char *)&value;
+        return _PyLong_FromByteArray(bytes, sizeof(unsigned long),
+                                     little, !is_unsigned);
+    }
+}
+
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_unsigned_char(unsigned char value) {
+    const unsigned char neg_one = (unsigned char) -1, const_zero = 0;
+    const int is_unsigned = neg_one > const_zero;
+    if (is_unsigned) {
+        if (sizeof(unsigned char) < sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(unsigned char) <= sizeof(unsigned long)) {
+            return PyLong_FromUnsignedLong((unsigned long) value);
+        } else if (sizeof(unsigned char) <= sizeof(unsigned long long)) {
+            return PyLong_FromUnsignedLongLong((unsigned long long) value);
+        }
+    } else {
+        if (sizeof(unsigned char) <= sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(unsigned char) <= sizeof(long long)) {
+            return PyLong_FromLongLong((long long) value);
+        }
+    }
+    {
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        unsigned char *bytes = (unsigned char *)&value;
+        return _PyLong_FromByteArray(bytes, sizeof(unsigned char),
+                                     little, !is_unsigned);
+    }
+}
+
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value) {
+    const int neg_one = (int) -1, const_zero = 0;
+    const int is_unsigned = neg_one > const_zero;
+    if (is_unsigned) {
+        if (sizeof(int) < sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(int) <= sizeof(unsigned long)) {
+            return PyLong_FromUnsignedLong((unsigned long) value);
+        } else if (sizeof(int) <= sizeof(unsigned long long)) {
+            return PyLong_FromUnsignedLongLong((unsigned long long) value);
+        }
+    } else {
+        if (sizeof(int) <= sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(int) <= sizeof(long long)) {
+            return PyLong_FromLongLong((long long) value);
+        }
+    }
+    {
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        unsigned char *bytes = (unsigned char *)&value;
+        return _PyLong_FromByteArray(bytes, sizeof(int),
+                                     little, !is_unsigned);
+    }
 }
 
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
@@ -9066,326 +10426,6 @@ raise_neg_overflow:
     return (long) -1;
 }
 
-static CYTHON_INLINE unsigned long __Pyx_PyInt_As_unsigned_long(PyObject *x) {
-    const unsigned long neg_one = (unsigned long) -1, const_zero = 0;
-    const int is_unsigned = neg_one > const_zero;
-#if PY_MAJOR_VERSION < 3
-    if (likely(PyInt_Check(x))) {
-        if (sizeof(unsigned long) < sizeof(long)) {
-            __PYX_VERIFY_RETURN_INT(unsigned long, long, PyInt_AS_LONG(x))
-        } else {
-            long val = PyInt_AS_LONG(x);
-            if (is_unsigned && unlikely(val < 0)) {
-                goto raise_neg_overflow;
-            }
-            return (unsigned long) val;
-        }
-    } else
-#endif
-    if (likely(PyLong_Check(x))) {
-        if (is_unsigned) {
-#if CYTHON_COMPILING_IN_CPYTHON && PY_MAJOR_VERSION >= 3
- #if CYTHON_USE_PYLONG_INTERNALS
-            switch (Py_SIZE(x)) {
-                case  0: return 0;
-                case  1: __PYX_VERIFY_RETURN_INT(unsigned long, digit, ((PyLongObject*)x)->ob_digit[0]);
-            }
- #endif
-#endif
-            if (unlikely(Py_SIZE(x) < 0)) {
-                goto raise_neg_overflow;
-            }
-            if (sizeof(unsigned long) <= sizeof(unsigned long)) {
-                __PYX_VERIFY_RETURN_INT(unsigned long, unsigned long, PyLong_AsUnsignedLong(x))
-            } else if (sizeof(unsigned long) <= sizeof(unsigned long long)) {
-                __PYX_VERIFY_RETURN_INT(unsigned long, unsigned long long, PyLong_AsUnsignedLongLong(x))
-            }
-        } else {
-#if CYTHON_COMPILING_IN_CPYTHON && PY_MAJOR_VERSION >= 3
- #if CYTHON_USE_PYLONG_INTERNALS
-            switch (Py_SIZE(x)) {
-                case  0: return 0;
-                case  1: __PYX_VERIFY_RETURN_INT(unsigned long,  digit, +(((PyLongObject*)x)->ob_digit[0]));
-                case -1: __PYX_VERIFY_RETURN_INT(unsigned long, sdigit, -(sdigit) ((PyLongObject*)x)->ob_digit[0]);
-            }
- #endif
-#endif
-            if (sizeof(unsigned long) <= sizeof(long)) {
-                __PYX_VERIFY_RETURN_INT(unsigned long, long, PyLong_AsLong(x))
-            } else if (sizeof(unsigned long) <= sizeof(long long)) {
-                __PYX_VERIFY_RETURN_INT(unsigned long, long long, PyLong_AsLongLong(x))
-            }
-        }
-        {
-#if CYTHON_COMPILING_IN_PYPY && !defined(_PyLong_AsByteArray)
-            PyErr_SetString(PyExc_RuntimeError,
-                            "_PyLong_AsByteArray() not available in PyPy, cannot convert large numbers");
-#else
-            unsigned long val;
-            PyObject *v = __Pyx_PyNumber_Int(x);
- #if PY_MAJOR_VERSION < 3
-            if (likely(v) && !PyLong_Check(v)) {
-                PyObject *tmp = v;
-                v = PyNumber_Long(tmp);
-                Py_DECREF(tmp);
-            }
- #endif
-            if (likely(v)) {
-                int one = 1; int is_little = (int)*(unsigned char *)&one;
-                unsigned char *bytes = (unsigned char *)&val;
-                int ret = _PyLong_AsByteArray((PyLongObject *)v,
-                                              bytes, sizeof(val),
-                                              is_little, !is_unsigned);
-                Py_DECREF(v);
-                if (likely(!ret))
-                    return val;
-            }
-#endif
-            return (unsigned long) -1;
-        }
-    } else {
-        unsigned long val;
-        PyObject *tmp = __Pyx_PyNumber_Int(x);
-        if (!tmp) return (unsigned long) -1;
-        val = __Pyx_PyInt_As_unsigned_long(tmp);
-        Py_DECREF(tmp);
-        return val;
-    }
-raise_overflow:
-    PyErr_SetString(PyExc_OverflowError,
-        "value too large to convert to unsigned long");
-    return (unsigned long) -1;
-raise_neg_overflow:
-    PyErr_SetString(PyExc_OverflowError,
-        "can't convert negative value to unsigned long");
-    return (unsigned long) -1;
-}
-
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_unsigned_long(unsigned long value) {
-    const unsigned long neg_one = (unsigned long) -1, const_zero = 0;
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(unsigned long) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(unsigned long) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-        } else if (sizeof(unsigned long) <= sizeof(unsigned long long)) {
-            return PyLong_FromUnsignedLongLong((unsigned long long) value);
-        }
-    } else {
-        if (sizeof(unsigned long) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(unsigned long) <= sizeof(long long)) {
-            return PyLong_FromLongLong((long long) value);
-        }
-    }
-    {
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        unsigned char *bytes = (unsigned char *)&value;
-        return _PyLong_FromByteArray(bytes, sizeof(unsigned long),
-                                     little, !is_unsigned);
-    }
-}
-
-static CYTHON_INLINE unsigned int __Pyx_PyInt_As_unsigned_int(PyObject *x) {
-    const unsigned int neg_one = (unsigned int) -1, const_zero = 0;
-    const int is_unsigned = neg_one > const_zero;
-#if PY_MAJOR_VERSION < 3
-    if (likely(PyInt_Check(x))) {
-        if (sizeof(unsigned int) < sizeof(long)) {
-            __PYX_VERIFY_RETURN_INT(unsigned int, long, PyInt_AS_LONG(x))
-        } else {
-            long val = PyInt_AS_LONG(x);
-            if (is_unsigned && unlikely(val < 0)) {
-                goto raise_neg_overflow;
-            }
-            return (unsigned int) val;
-        }
-    } else
-#endif
-    if (likely(PyLong_Check(x))) {
-        if (is_unsigned) {
-#if CYTHON_COMPILING_IN_CPYTHON && PY_MAJOR_VERSION >= 3
- #if CYTHON_USE_PYLONG_INTERNALS
-            switch (Py_SIZE(x)) {
-                case  0: return 0;
-                case  1: __PYX_VERIFY_RETURN_INT(unsigned int, digit, ((PyLongObject*)x)->ob_digit[0]);
-            }
- #endif
-#endif
-            if (unlikely(Py_SIZE(x) < 0)) {
-                goto raise_neg_overflow;
-            }
-            if (sizeof(unsigned int) <= sizeof(unsigned long)) {
-                __PYX_VERIFY_RETURN_INT(unsigned int, unsigned long, PyLong_AsUnsignedLong(x))
-            } else if (sizeof(unsigned int) <= sizeof(unsigned long long)) {
-                __PYX_VERIFY_RETURN_INT(unsigned int, unsigned long long, PyLong_AsUnsignedLongLong(x))
-            }
-        } else {
-#if CYTHON_COMPILING_IN_CPYTHON && PY_MAJOR_VERSION >= 3
- #if CYTHON_USE_PYLONG_INTERNALS
-            switch (Py_SIZE(x)) {
-                case  0: return 0;
-                case  1: __PYX_VERIFY_RETURN_INT(unsigned int,  digit, +(((PyLongObject*)x)->ob_digit[0]));
-                case -1: __PYX_VERIFY_RETURN_INT(unsigned int, sdigit, -(sdigit) ((PyLongObject*)x)->ob_digit[0]);
-            }
- #endif
-#endif
-            if (sizeof(unsigned int) <= sizeof(long)) {
-                __PYX_VERIFY_RETURN_INT(unsigned int, long, PyLong_AsLong(x))
-            } else if (sizeof(unsigned int) <= sizeof(long long)) {
-                __PYX_VERIFY_RETURN_INT(unsigned int, long long, PyLong_AsLongLong(x))
-            }
-        }
-        {
-#if CYTHON_COMPILING_IN_PYPY && !defined(_PyLong_AsByteArray)
-            PyErr_SetString(PyExc_RuntimeError,
-                            "_PyLong_AsByteArray() not available in PyPy, cannot convert large numbers");
-#else
-            unsigned int val;
-            PyObject *v = __Pyx_PyNumber_Int(x);
- #if PY_MAJOR_VERSION < 3
-            if (likely(v) && !PyLong_Check(v)) {
-                PyObject *tmp = v;
-                v = PyNumber_Long(tmp);
-                Py_DECREF(tmp);
-            }
- #endif
-            if (likely(v)) {
-                int one = 1; int is_little = (int)*(unsigned char *)&one;
-                unsigned char *bytes = (unsigned char *)&val;
-                int ret = _PyLong_AsByteArray((PyLongObject *)v,
-                                              bytes, sizeof(val),
-                                              is_little, !is_unsigned);
-                Py_DECREF(v);
-                if (likely(!ret))
-                    return val;
-            }
-#endif
-            return (unsigned int) -1;
-        }
-    } else {
-        unsigned int val;
-        PyObject *tmp = __Pyx_PyNumber_Int(x);
-        if (!tmp) return (unsigned int) -1;
-        val = __Pyx_PyInt_As_unsigned_int(tmp);
-        Py_DECREF(tmp);
-        return val;
-    }
-raise_overflow:
-    PyErr_SetString(PyExc_OverflowError,
-        "value too large to convert to unsigned int");
-    return (unsigned int) -1;
-raise_neg_overflow:
-    PyErr_SetString(PyExc_OverflowError,
-        "can't convert negative value to unsigned int");
-    return (unsigned int) -1;
-}
-
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_unsigned_int(unsigned int value) {
-    const unsigned int neg_one = (unsigned int) -1, const_zero = 0;
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(unsigned int) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(unsigned int) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-        } else if (sizeof(unsigned int) <= sizeof(unsigned long long)) {
-            return PyLong_FromUnsignedLongLong((unsigned long long) value);
-        }
-    } else {
-        if (sizeof(unsigned int) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(unsigned int) <= sizeof(long long)) {
-            return PyLong_FromLongLong((long long) value);
-        }
-    }
-    {
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        unsigned char *bytes = (unsigned char *)&value;
-        return _PyLong_FromByteArray(bytes, sizeof(unsigned int),
-                                     little, !is_unsigned);
-    }
-}
-
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_unsigned_char(unsigned char value) {
-    const unsigned char neg_one = (unsigned char) -1, const_zero = 0;
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(unsigned char) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(unsigned char) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-        } else if (sizeof(unsigned char) <= sizeof(unsigned long long)) {
-            return PyLong_FromUnsignedLongLong((unsigned long long) value);
-        }
-    } else {
-        if (sizeof(unsigned char) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(unsigned char) <= sizeof(long long)) {
-            return PyLong_FromLongLong((long long) value);
-        }
-    }
-    {
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        unsigned char *bytes = (unsigned char *)&value;
-        return _PyLong_FromByteArray(bytes, sizeof(unsigned char),
-                                     little, !is_unsigned);
-    }
-}
-
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value) {
-    const int neg_one = (int) -1, const_zero = 0;
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(int) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(int) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-        } else if (sizeof(int) <= sizeof(unsigned long long)) {
-            return PyLong_FromUnsignedLongLong((unsigned long long) value);
-        }
-    } else {
-        if (sizeof(int) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(int) <= sizeof(long long)) {
-            return PyLong_FromLongLong((long long) value);
-        }
-    }
-    {
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        unsigned char *bytes = (unsigned char *)&value;
-        return _PyLong_FromByteArray(bytes, sizeof(int),
-                                     little, !is_unsigned);
-    }
-}
-
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_char(char value) {
-    const char neg_one = (char) -1, const_zero = 0;
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(char) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(char) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-        } else if (sizeof(char) <= sizeof(unsigned long long)) {
-            return PyLong_FromUnsignedLongLong((unsigned long long) value);
-        }
-    } else {
-        if (sizeof(char) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(char) <= sizeof(long long)) {
-            return PyLong_FromLongLong((long long) value);
-        }
-    }
-    {
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        unsigned char *bytes = (unsigned char *)&value;
-        return _PyLong_FromByteArray(bytes, sizeof(char),
-                                     little, !is_unsigned);
-    }
-}
-
 static PyTypeObject* __Pyx_FetchCommonType(PyTypeObject* type) {
     PyObject* fake_module;
     PyTypeObject* cached_type = NULL;
@@ -9424,163 +10464,6 @@ bad:
     goto done;
 }
 
-#if PY_MAJOR_VERSION < 3
-static void __Pyx_Raise(PyObject *type, PyObject *value, PyObject *tb,
-                        CYTHON_UNUSED PyObject *cause) {
-    Py_XINCREF(type);
-    if (!value || value == Py_None)
-        value = NULL;
-    else
-        Py_INCREF(value);
-    if (!tb || tb == Py_None)
-        tb = NULL;
-    else {
-        Py_INCREF(tb);
-        if (!PyTraceBack_Check(tb)) {
-            PyErr_SetString(PyExc_TypeError,
-                "raise: arg 3 must be a traceback or None");
-            goto raise_error;
-        }
-    }
-    if (PyType_Check(type)) {
-#if CYTHON_COMPILING_IN_PYPY
-        if (!value) {
-            Py_INCREF(Py_None);
-            value = Py_None;
-        }
-#endif
-        PyErr_NormalizeException(&type, &value, &tb);
-    } else {
-        if (value) {
-            PyErr_SetString(PyExc_TypeError,
-                "instance exception may not have a separate value");
-            goto raise_error;
-        }
-        value = type;
-        type = (PyObject*) Py_TYPE(type);
-        Py_INCREF(type);
-        if (!PyType_IsSubtype((PyTypeObject *)type, (PyTypeObject *)PyExc_BaseException)) {
-            PyErr_SetString(PyExc_TypeError,
-                "raise: exception class must be a subclass of BaseException");
-            goto raise_error;
-        }
-    }
-    __Pyx_ErrRestore(type, value, tb);
-    return;
-raise_error:
-    Py_XDECREF(value);
-    Py_XDECREF(type);
-    Py_XDECREF(tb);
-    return;
-}
-#else
-static void __Pyx_Raise(PyObject *type, PyObject *value, PyObject *tb, PyObject *cause) {
-    PyObject* owned_instance = NULL;
-    if (tb == Py_None) {
-        tb = 0;
-    } else if (tb && !PyTraceBack_Check(tb)) {
-        PyErr_SetString(PyExc_TypeError,
-            "raise: arg 3 must be a traceback or None");
-        goto bad;
-    }
-    if (value == Py_None)
-        value = 0;
-    if (PyExceptionInstance_Check(type)) {
-        if (value) {
-            PyErr_SetString(PyExc_TypeError,
-                "instance exception may not have a separate value");
-            goto bad;
-        }
-        value = type;
-        type = (PyObject*) Py_TYPE(value);
-    } else if (PyExceptionClass_Check(type)) {
-        PyObject *instance_class = NULL;
-        if (value && PyExceptionInstance_Check(value)) {
-            instance_class = (PyObject*) Py_TYPE(value);
-            if (instance_class != type) {
-                if (PyObject_IsSubclass(instance_class, type)) {
-                    type = instance_class;
-                } else {
-                    instance_class = NULL;
-                }
-            }
-        }
-        if (!instance_class) {
-            PyObject *args;
-            if (!value)
-                args = PyTuple_New(0);
-            else if (PyTuple_Check(value)) {
-                Py_INCREF(value);
-                args = value;
-            } else
-                args = PyTuple_Pack(1, value);
-            if (!args)
-                goto bad;
-            owned_instance = PyObject_Call(type, args, NULL);
-            Py_DECREF(args);
-            if (!owned_instance)
-                goto bad;
-            value = owned_instance;
-            if (!PyExceptionInstance_Check(value)) {
-                PyErr_Format(PyExc_TypeError,
-                             "calling %R should have returned an instance of "
-                             "BaseException, not %R",
-                             type, Py_TYPE(value));
-                goto bad;
-            }
-        }
-    } else {
-        PyErr_SetString(PyExc_TypeError,
-            "raise: exception class must be a subclass of BaseException");
-        goto bad;
-    }
-#if PY_VERSION_HEX >= 0x03030000
-    if (cause) {
-#else
-    if (cause && cause != Py_None) {
-#endif
-        PyObject *fixed_cause;
-        if (cause == Py_None) {
-            fixed_cause = NULL;
-        } else if (PyExceptionClass_Check(cause)) {
-            fixed_cause = PyObject_CallObject(cause, NULL);
-            if (fixed_cause == NULL)
-                goto bad;
-        } else if (PyExceptionInstance_Check(cause)) {
-            fixed_cause = cause;
-            Py_INCREF(fixed_cause);
-        } else {
-            PyErr_SetString(PyExc_TypeError,
-                            "exception causes must derive from "
-                            "BaseException");
-            goto bad;
-        }
-        PyException_SetCause(value, fixed_cause);
-    }
-    PyErr_SetObject(type, value);
-    if (tb) {
-#if CYTHON_COMPILING_IN_PYPY
-        PyObject *tmp_type, *tmp_value, *tmp_tb;
-        PyErr_Fetch(tmp_type, tmp_value, tmp_tb);
-        Py_INCREF(tb);
-        PyErr_Restore(tmp_type, tmp_value, tb);
-        Py_XDECREF(tmp_tb);
-#else
-        PyThreadState *tstate = PyThreadState_GET();
-        PyObject* tmp_tb = tstate->curexc_traceback;
-        if (tb != tmp_tb) {
-            Py_INCREF(tb);
-            tstate->curexc_traceback = tb;
-            Py_XDECREF(tmp_tb);
-        }
-#endif
-    }
-bad:
-    Py_XDECREF(owned_instance);
-    return;
-}
-#endif
-
 static CYTHON_INLINE void __Pyx_ExceptionSwap(PyObject **type, PyObject **value, PyObject **tb) {
     PyObject *tmp_type, *tmp_value, *tmp_tb;
 #if CYTHON_COMPILING_IN_CPYTHON
@@ -9598,37 +10481,6 @@ static CYTHON_INLINE void __Pyx_ExceptionSwap(PyObject **type, PyObject **value,
     *type = tmp_type;
     *value = tmp_value;
     *tb = tmp_tb;
-}
-
-static PyObject* __Pyx_PyObject_CallMethod1(PyObject* obj, PyObject* method_name, PyObject* arg) {
-    PyObject *method, *result = NULL;
-    method = __Pyx_PyObject_GetAttrStr(obj, method_name);
-    if (unlikely(!method)) goto bad;
-#if CYTHON_COMPILING_IN_CPYTHON
-    if (likely(PyMethod_Check(method))) {
-        PyObject *self = PyMethod_GET_SELF(method);
-        if (likely(self)) {
-            PyObject *args;
-            PyObject *function = PyMethod_GET_FUNCTION(method);
-            args = PyTuple_New(2);
-            if (unlikely(!args)) goto bad;
-            Py_INCREF(self);
-            PyTuple_SET_ITEM(args, 0, self);
-            Py_INCREF(arg);
-            PyTuple_SET_ITEM(args, 1, arg);
-            Py_INCREF(function);
-            Py_DECREF(method); method = NULL;
-            result = __Pyx_PyObject_Call(function, args, NULL);
-            Py_DECREF(args);
-            Py_DECREF(function);
-            return result;
-        }
-    }
-#endif
-    result = __Pyx_PyObject_CallOneArg(method, arg);
-bad:
-    Py_XDECREF(method);
-    return result;
 }
 
 static PyObject *__Pyx_Generator_Next(PyObject *self);

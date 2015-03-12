@@ -5,7 +5,7 @@ Note: This never generates a deletion at the first base of a sequence.
 """
 __example_param_text = """
 {
-  "chromosome": [1],  # Which chromosomes to run the variant generator on
+  "chromosome": [1],  # Which chromosomes to run the data generator on
   "phet": 0.8,        # Probability of heterozygous variation
   "p": 0.0001,        # Per-base probability of having an insertion
   "t_mat": [[ 0.32654629,  0.17292732,  0.24524503,  0.25528135],  # Base transition matrix

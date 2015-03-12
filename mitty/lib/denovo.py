@@ -51,35 +51,20 @@ Notes:
 
 1. denovo sorts, compresses and indexes the output vcf, which should be given as a vcf.gz file
 """
-__version__ = '1.0.0'
-
-import json
-import docopt
-import time
-
 import mitty.lib
-import mitty.lib.io
-from mitty.lib.genome import FastaGenome
-from mitty.lib.variation import copy_missing_chromosomes, merge_variants
+import mitty.lib.variation as vr
+#import json
+#import docopt
+#import time
+
+#import mitty.lib.io
+#from mitty.lib.genome import FastaGenome
+#from mitty.lib.variation import copy_missing_chromosomes, merge_variants
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-def merge_variants_from_models(g1={}, variant_generators=[]):
-  """Given an original genome add any variants that come off the variant_generator
-
-  :param dict g1: genome
-  :param list variant_generators: list of variant generators
-  :returns: list of Variants
-  """
-  g2 = {}
-  for vg in variant_generators:
-    for delta_g in vg:
-      for chrom, dnv in delta_g.iteritems():
-        g2[chrom] = merge_variants(g2.get(chrom) or g1.get(chrom, []), dnv)
-  copy_missing_chromosomes(g2, g1)
-  return g2
 
 
 def load_variant_model_list(model_param_json):
@@ -90,11 +75,15 @@ def load_variant_model_list(model_param_json):
                                                # parameter list
 
 
-def get_variant_generator_list_from_model_list(mdl_list, ref, master_seed=1):
+def get_variant_generator_iterator_list_from_model_list(mdl_list, ref, master_seed=1):
   """Initialize the variant generators from the list of models (and parameters) while passing a master seed."""
   assert 0 < master_seed < mitty.lib.SEED_MAX
   return [mdl['model'].variant_generator(ref=ref, master_seed=seed, **mdl['params'])
           for mdl, seed in zip(mdl_list, mitty.lib.get_seeds(master_seed, len(mdl_list)))]
+
+
+
+
 
 
 def create_variant_list_from_models(mdl_list, ref, master_seed=1):

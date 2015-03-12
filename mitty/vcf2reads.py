@@ -85,19 +85,19 @@ logger = logging.getLogger(__name__)
 
 #TODO: make this more elegant + move it to Cython?
 def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_len=10e6, over_lap_len=200):
-  """Return the computed variant sequence in blocks
+  """Return the computed data sequence in blocks
   Args:
     ref_chrom_seq   : (string) the reference sequence
     c1              : (list of Variant) standard chromosome format
     chrom_copy      : Which copy of the chromosome (0 or 1)
-    block_len       : how many bases of the variant sequence to return per iteration
+    block_len       : how many bases of the data sequence to return per iteration
     overlap_len     : how many bases of the old sequence to include in the new block
                       This should be hinted by the expected template length of the read model
   Returns:
     iter            : an iterator that yields tuples
 
-     start_idx      : (u4) in variant sequence coordinates - where does this block start
-     seq, c_seq,    : (strings) variant sequence and complement
+     start_idx      : (u4) in data sequence coordinates - where does this block start
+     seq, c_seq,    : (strings) data sequence and complement
      arr            : (list of numpy.array u4) [a1, a2, a3  ]
                       a1 -  position array used for POS
                       a2 -  diff(p_arr) used for CIGARs
@@ -138,11 +138,11 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
         numpy.empty(ptr - ref_ptr_start, dtype='u4'),
         numpy.zeros(ptr - ref_ptr_start, dtype='u4')
       ]]
-    else:  # variant entry exists and we are on it, expand it
+    else:  # data entry exists and we are on it, expand it
       alt, ref, het = variant.vd.ALT, variant.vd.REF, variant.het
       if (het == HET_10 and cc == 1) or (het == HET_01 and cc == 0):
         # This variation is on the other copy
-        variant = next(c1_iter, None)  # Load the next variant and move on as if nothing happened
+        variant = next(c1_iter, None)  # Load the next data and move on as if nothing happened
         continue
 
       l_alt, l_ref = len(alt), len(ref)
@@ -156,7 +156,7 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
 
       ptr += ptr_adv
       var_ptr += l_alt
-      variant = next(c1_iter, None)  # Load the next variant in preparation
+      variant = next(c1_iter, None)  # Load the next data in preparation
 
     if var_ptr >= var_ptr_finish or ptr >= l_ref_seq:  # Ok, we've got enough for this block
       # Data to return

@@ -38,9 +38,9 @@ __param__ = """Parameter file example::
     "rng": {
       "master_seed": 1
     },
-    "generations": 10            # Number of generations to run the model
-    "initial_pop_size": 10       # Number of genomes to start with, created denovo
-    "generations_to_keep": 1     # How many generations (in addition to the current one) should we store in the database
+    "generations": 10,            # Number of generations to run the model
+    "initial_pop_size": 10,       # Number of genomes to start with, created denovo
+    "generations_to_keep": 1,     # How many generations (in addition to the current one) should we store in the database
     "initial_pop_variant_models": [   # The list of variant models should come under this key
       {
         "snp": {                 # name of the model. To get a list of plugin names type "denovo models"
@@ -73,8 +73,11 @@ import docopt
 
 import mitty.lib
 import mitty.lib.io as mio
+#import mitty.lib.db as db
+
 #from mitty.lib.genome import FastaGenome
 import mitty.lib.variation as vr
+import mitty.lib.generations as gen
 
 import logging
 logger = logging.getLogger(__name__)
@@ -110,44 +113,47 @@ def generate(cmd_args):
   master_seed = int(params['rng']['master_seed'])
   assert 0 < master_seed < mitty.lib.SEED_MAX
 
+  init_pop_size = int(params['initial_pop_size'])
   n_generations = int(params['generations'])
   n_ancestors = int(params['generations_to_keep'])
+
+  fitness = gen.StockFitness(ref_genome)
+  mater = gen.StockMater(incest_generations=1, master_seed=master_seed)
+  breeder = gen.StockBreeder(child_factor=2.5)
+  culler = gen.StockCuller(100)
+  crosser = gen.StockCrossOver(ref_genome)
 
   generations = deque()
   ml = {}
 
   seeds = mitty.lib.get_seeds(master_seed, n_generations)
 
-  g1 = [{} for _ in range(int(params['initial_pop_size']))]
-  mdl_list = load_variant_model_list(params.get('initial_pop_variant_models', []))
-  add_denovo_variants_from_models_to_population(g1, mdl_list, ref_genome, ml, seeds[0])
+  g1 = gen.create_initial_generation(init_pop_size)
+  models = load_variant_models(ref_genome, params.get('initial_pop_variant_models', []))
+  add_denovo_variants_from_models_to_population(g1, models, ml, seeds[0])
   generations.append(g1)
 
-  mdl_list = load_variant_model_list(params.get('steady_state_variant_models', []))
+  models = load_variant_models(ref_genome, params.get('steady_state_variant_models', []))
   for n, seed in enumerate(seeds[1:]):
-    g1 = create_next_generation(g1)
-    add_denovo_variants_from_models_to_population(g1, mdl_list, ref_genome, ml, seed)
+    logger.debug('Running generation {:d} ({:d})'.format(n, len(g1)))
+    logger.debug(g1)
+    g1 = gen.create_next_generation(g1, fitness, mater, breeder, culler)
+    gen.genomify(g1, crosser)
+    add_denovo_variants_from_models_to_population(g1, models, ml, seed)
     generations.append(g1)
     if n > n_ancestors:
       _ = generations.popleft()  # Get rid of earliest ancestors to save space
 
 
-def load_variant_model_list(model_param_json):
+def load_variant_models(ref, model_param_json):
   """Given a list of models and parameters load the relevant modules and store the parameters as tuples"""
-  return [{"model": mitty.lib.load_variant_plugin(k), "params": v}
+  return [mitty.lib.load_variant_plugin(k).Model(ref=ref, **v)
           for model_json in model_param_json
           for k, v in model_json.iteritems()]  # There really is only one key (the model name) and the value is the
                                                # parameter list
 
 
-def get_variant_generator_list_from_model_list(mdl_list, ref, master_seed=1):
-  """Initialize the variant generators from the list of models (and parameters) while passing a master seed."""
-  assert 0 < master_seed < mitty.lib.SEED_MAX
-  return [mdl['model'].variant_generator(ref=ref, master_seed=seed, **mdl['params'])
-          for mdl, seed in zip(mdl_list, mitty.lib.get_seeds(master_seed, len(mdl_list)))]
-
-
-def add_denovo_variants_from_models_to_genome(g1, variant_generators, ml):
+def add_denovo_variants_from_models_to_genome(g1, models, ml, master_seed=1):
   """Given an original genome add any variants that come off the variant_generator. g1 is modified in place
 
   :param dict g1: genome
@@ -155,20 +161,21 @@ def add_denovo_variants_from_models_to_genome(g1, variant_generators, ml):
   :param ml: master list of variants
   :returns: g1 is modified in place
   """
-  for vg in variant_generators:
-    for delta_g in vg:  # delta_g is a dictionary of proposed variants, indexed by chromosome number (1,2....)
-      for chrom, pvd in delta_g.iteritems():  # pvd is a list of lists (pos, ref, alt, gt) from the variant plugin
-        dnv = vr.create_sample_iterable(pvd[0], pvd[1], pvd[2], pvd[3])
-        if chrom not in g1:  # Need to make a new chromosome for this.
-          g1[chrom] = vr.Sample()
-        s = g1.get(chrom)
-        vr.add_denovo_variants_to_sample(s, dnv, ml)
+  for model, seed in zip(models, mitty.lib.get_seeds(master_seed, len(models))):
+    dnv = model.variants(seed=seed)
+    # dnv is a dict with keys as chrom numbers and items as list of lists (pos, ref, alt, gt) from the variant plugin
+    for chrom, pvd in dnv.iteritems():  # pvd is a list of lists (pos, ref, alt, gt) from the variant plugin
+      dnv = vr.create_gtv_iterable(pvd[0], pvd[1], pvd[2], pvd[3])
+      if chrom not in g1:  # Need to make a new chromosome for this.
+        g1[chrom] = vr.Chromosome()
+      s = g1.get(chrom)
+      vr.add_denovo_variants_to_chromosome(s, dnv, ml)
 
 
-def add_denovo_variants_from_models_to_population(p, mdl_list, ref, ml, master_seed=1):
+def add_denovo_variants_from_models_to_population(p, models, ml, master_seed=1):
   """Given a population (list of genomes) and a model list, repeatedly apply the models to each genome
 
-  :param p: list of genomes from the same generation
+  :param p: list of gen.Sample from the same generation
   :param mdl_list: list of models
   :param ref: reference genome
   :param ml: master list of variants
@@ -176,12 +183,7 @@ def add_denovo_variants_from_models_to_population(p, mdl_list, ref, ml, master_s
   :returns: modifies all genomes in p, in place
   """
   for g, seed in zip(p, mitty.lib.get_seeds(master_seed, len(p))):
-    v_gen = get_variant_generator_list_from_model_list(mdl_list, ref, seed)
-    add_denovo_variants_from_models_to_genome(g, v_gen, ml)
-
-
-def create_next_generation(g0):
-  pass
+    add_denovo_variants_from_models_to_genome(g.genome, models, ml, seed)
 
 
 def write(cmd_args):
@@ -259,23 +261,6 @@ def print_population_model_list():
   # logger.debug('Saved VCF file in {:f} s'.format(t1 - t0))
   #
   #
-
-
-
-
-
-
-
-
-def main(ref, models=[], master_seed=1):
-  """This does what the old mutate.py script used to do."""
-  assert 0 < master_seed < mitty.lib.SEED_MAX
-  logger.debug('Reference file {:s}'.format(ref.dir))
-  vgl = get_variant_generator_list_from_model_list(models, ref, master_seed=master_seed)
-  return merge_variants_from_models(g1={}, variant_generators=vgl)
-
-
-
 
 if __name__ == "__main__":
   cli()

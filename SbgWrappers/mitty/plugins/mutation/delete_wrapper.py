@@ -50,9 +50,9 @@ class Deletion(define.Wrapper):
     het_rng_seed = define.integer(default=1, min=0, max=2**32 - 1, category='Model params: RNG',
           description='Seed for random number generator used to decide if genotype is heterozygous or not')
     strand_rng_seed = define.integer(default=2, min=0, max=2**32 - 1, category='Model params: RNG',
-          description='Seed for random number generator used to decide which strand the variant will be on')
+          description='Seed for random number generator used to decide which strand the data will be on')
     del_loc_rng_seed = define.integer(default=3, min=0, max=2**32 - 1, category='Model params: RNG',
-          description='Seed for variant location random number generator')
+          description='Seed for data location random number generator')
     del_len_rng_seed = define.integer(default=4, min=0, max=2**32 - 1, category='Model params: RNG',
           description='Seed for deletion length random number generator')
 

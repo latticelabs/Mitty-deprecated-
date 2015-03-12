@@ -25,8 +25,11 @@ mutations are recessive and dominant
 """
 import random
 
+import mitty.lib.variation as vr  # Only needed for the genomify function. Everything else is independent
+import mitty.lib.util as mutil
 
-class Sample:
+
+cdef class Sample:
   """This represents one genome sample.
 
   Attributes:
@@ -37,19 +40,31 @@ class Sample:
     genome     - the genome dictionary of this sample
     fitness    - computed fitness value of the genome. [-1.0,1.0]
   """
-  def __init__(self, generation, serial):
+  cdef public:
+    str name
+    int generation, serial, hash
+    float fitness
+    Sample p1, p2
+    dict genome
+
+
+  def __cinit__(self, generation, serial):
     self.name = '{:d}:{:d}'.format(generation, serial)  # Our unique sample name
-    self.generation, self.serial, self.parents = generation, serial, []
-    self.genome, self.fitness = {}, 0  # Fitness is filled by an external function.
+    self.generation, self.serial, self.p1, self.p2 = generation, serial, None, None
+    self.genome, self.fitness = {}, 0.0  # Fitness is filled by an external function.
+    self.hash = self.generation ^ self.serial
 
   def __hash__(self):
-    return self.name.__hash__()
+    return self.hash
 
-  def __eq__(self, other):
-    return self.__hash__() == other.__hash__()
+  def __richcmp__(self, Sample other, int op):
+    if op == 2:
+      return (self.serial == other.serial) and (self.generation == other.generation)
+    elif op == 3:
+      return not ((self.serial == other.serial) and (self.generation == other.generation))
 
   def __repr__(self):
-    return '{:s} ({:d})'.format(self.name, self.fitness)
+    return '{:s} ({:1.3f}) [{:s}, {:s}]'.format(self.name, self.fitness, self.p1.name, self.p2.name)
 
 
 def create_initial_generation(generation_size):
@@ -68,10 +83,19 @@ def create_next_generation(parent_generation, fitness, mater, breeder, culler):
   """
   gen = parent_generation[0].generation if len(parent_generation) else 0
   mate_list = mater.pick_mates(parent_generation)
-  children = breeder.breed(mate_list, gen)
+  children = breeder.breed(mate_list, gen + 1)
   fitness.fitness(children)
   culler.cull(children)
   return children
+
+
+cpdef genomify(list children, cross_model):
+  """For each child, find the parents and pair their genomes"""
+  cdef Sample ch
+  for ch in children:
+    ch.genome = vr.pair_samples(ch.p1.genome, cross_model.cross_overs(ch.p1.genome), cross_model.copies(ch.p1.genome),
+                                ch.p2.genome, cross_model.cross_overs(ch.p2.genome), cross_model.copies(ch.p2.genome))
+
 
 
 # ------------------ STOCK POPULATION SIM PLUGINS ----------------------------- #
@@ -81,7 +105,7 @@ class StockFitness:
   """Simple fitness computation. Rewards variations in second quarter of genome and penalized variations in third q"""
   def __init__(self, ref):
     """:param ref: list of tuples as returned by io.load_multi_fasta_gz"""
-    l = self.chromosome_lengths = [len(seq[1]) for seq in ref]
+    l = self.chromosome_lengths = [seq[1] for seq in ref]
     self.l0 = [0.25 * ll for ll in l]
     self.l1 = [0.5 * ll for ll in l]
     self.l2 = [0.75 * ll for ll in l]
@@ -121,11 +145,11 @@ class StockMater:
     :param s1, s2: samples to test
     :returns boolean
     """
-    parent_list = [p for s in [s1, s2] for p in s.parents]
+    parent_list = [p for s in [s1, s2] for p in [s.p1, s.p2] if p is not None]
     for n in range(self.incest_generations):
       if len(set(parent_list)) < len(parent_list):
         return True
-      parent_list = [p for s in parent_list for p in s.parents]
+      parent_list = [p for s in parent_list for p in [s.p1, s.p2]]
     return False
 
   def mate_in_sequence(self, parent_list):
@@ -164,23 +188,24 @@ class StockMater:
 
 class StockBreeder:
   """Stock breeding algorithm, creates children based on average fitness of parents."""
-  def __init__(self, child_factor=2.0):
+  def __init__(self, child_factor=2.0, master_seed=3):
     """:param child_factor: Average number of children for average fitness parents"""
-    self.child_factor = child_factor
+    self.child_factor, self.rng = child_factor, random.Random(master_seed)
 
   def breed(self, mate_list, generation):
     """
     :param mate_list: list of pairs of parents from which we generate children
+    :param generation: int indicating which generation the children will be
     :returns: list of Samples"""
     children = []
     cnt = 0
     for p1, p2 in mate_list:
       avg_fit = (p1.fitness + p2.fitness) / 2.0
-      n_children = int(self.child_factor * (avg_fit + 1.0))
+      n_children = int(max(0, self.rng.gauss(self.child_factor * (avg_fit + 1.0), 1)) + .5)
       these_children = []
       for n in range(n_children):
         this_child = Sample(generation, cnt)
-        this_child.parents = [p1, p2]
+        this_child.p1, this_child.p2 = p1, p2
         these_children += [this_child]
         cnt += 1
       children += these_children
@@ -195,3 +220,34 @@ class StockCuller:
   def cull(self, population):
     while len(population) > self.max_pop_size:
       population.remove(min(population, key=lambda x: x.fitness))
+
+
+# ------------------ STOCK POPULATION SIM PLUGIN ----------------------------- #
+
+
+class StockCrossOver:  # This is more closely affiliated with variations than generations
+  """Places crossover points at any point with equal probability."""
+  def __init__(self, ref, p=1e-8, master_seed=3):
+    """
+    :param ref: list of tuples as returned by fasta loader
+    :param p: probability of crossover occuring at any base
+    :param master_seed: seed for rngs
+    """
+    self.l = self.chromosome_lengths = [seq[1] for seq in ref]
+    self.pos_rng, self.copy_rng = mutil.initialize_rngs(master_seed, 2)
+    self.p = p
+
+  def cross_overs(self, g):
+    """
+    :param g: dict of Chromosome objects in case we want to use the actual sequence data to place cross overs
+    :returns: dict of crossover positions as needed by pair_chromosomes
+    """
+    return {n+1: mutil.place_poisson(self.pos_rng, self.p, self.l[n]).tolist() for n in range(len(self.l))}
+
+  def copies(self, g):
+    """
+    :param g: dict of Chromosome objects in case we want to use the actual sequence data to place cross overs
+    :returns: dict of crossover positions as needed by pair_chromosomes
+    """
+    cpy = self.copy_rng.randint(2, size=len(self.l))
+    return {n+1: cpy[n] for n in range(len(self.l))}

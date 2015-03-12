@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 __example_param_text__ = """
 {
-  "chromosome": [1],    # List of chromosomes to apply the variant to
+  "chromosome": [1],    # List of chromosomes to apply the data to
   "p": 0.01,            # probability that the deletion will happen at any given base
-  "phet": 0.5,          # probability that the variant will be heterozygous
+  "phet": 0.5,          # probability that the data will be heterozygous
   "del_len_lo": 10,      # lower bound on deletion lengths
   "del_len_hi": 20,     # upper bound on deletion lengths
 }

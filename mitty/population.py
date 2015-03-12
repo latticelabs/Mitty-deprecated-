@@ -33,10 +33,10 @@ Parameter file example::
     },
     "founder_population": {
       "size": 20,              # Size of population we want
-      "p_ancestral": 0.001,    # Probability that a variant in the ancestral pool ends up in a sample
+      "p_ancestral": 0.001,    # Probability that a data in the ancestral pool ends up in a sample
                                # in general p_ancestral * p_model = p_sample
-      "p_ancestral_het": 0.9,   # Probability that ancestral variant is het
-      "ancestral_models": [        # The list of ancestral variant models should come under this key
+      "p_ancestral_het": 0.9,   # Probability that ancestral data is het
+      "ancestral_models": [        # The list of ancestral data models should come under this key
         {
           "snp": {                 # name of the model.
             "chromosome": [1, 2],  # Chromosomes to apply this model to
@@ -73,16 +73,18 @@ Parameter file example::
 """
 __version__ = '1.0.0'
 
+import time
+import logging
+
 import docopt
+import mitty.lib.util
+from mitty.lib.variation import copy_variant_sequence
 
 import mitty.lib
 import mitty.lib.io
-import mitty.lib.util
 import mitty.lib.genome
-from mitty.lib.variation import copy_variant_sequence
-import mitty.denovo
+import mitty.lib.denovo
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -91,7 +93,7 @@ def founder_population(ancestral_models=[], denovo_models=[], p_a=.95, p_het=0.5
 
   :param list ancestral_models: List of ancestral models. This will only be run once, so make sure the pool of variants is dense enough for your population size.
   :param list denovo_models: List of denovo models. Will be called for each sample in the population
-  :param float p_a: the probability that any given variant from the ancestral pool will end up in a sample
+  :param float p_a: the probability that any given data from the ancestral pool will end up in a sample
   :param float p_het: the probability that ancestral variants are heterozygous
   :param genome ref: reference genome
   :param int pop_size: size of the founder population
@@ -99,7 +101,7 @@ def founder_population(ancestral_models=[], denovo_models=[], p_a=.95, p_het=0.5
   :returns list, genome: list of genomes, ancestral genome (dense list of variants)
   """
   ancestral_model_seed, denovo_model_seed_of_seeds, other_seed = mitty.lib.get_seeds(master_seed=master_seed, size=3)
-  ancestral_pool = mitty.denovo.create_variant_list_from_models(ancestral_models, ref, ancestral_model_seed)
+  ancestral_pool = mitty.lib.denovo.create_variant_list_from_models(ancestral_models, ref, ancestral_model_seed)
   size_of_ancestral_pool = {k: len(g) for k,g in ancestral_pool.iteritems()}
 
   ancestral_comb_rng, ancestral_het_rng, ancestral_copy_rng = mitty.lib.util.initialize_rngs(master_seed=other_seed, n_rngs=3)
@@ -112,7 +114,7 @@ def founder_population(ancestral_models=[], denovo_models=[], p_a=.95, p_het=0.5
       ancestral_comb = mitty.lib.util.place_poisson(ancestral_comb_rng, p_a, size_of_ancestral_pool[k])
       ancestral_het = mitty.lib.util.zygosity(num_vars=ancestral_comb.size, phet=p_het, het_rng=ancestral_het_rng, copy_rng=ancestral_copy_rng)
       ancestor[k] = list(copy_variant_sequence(ancestral_pool[k], ancestral_comb, ancestral_het))
-    denovo = mitty.denovo.create_variant_list_from_models(denovo_models, ref, denovo_model_seeds[sn])
+    denovo = mitty.lib.denovo.create_variant_list_from_models(denovo_models, ref, denovo_model_seeds[sn])
     founder_pool += [mitty.lib.variation.merge_genomes(ancestor, denovo)]
 
   return founder_pool, ancestral_pool
@@ -131,10 +133,10 @@ def cli():
   else:
     cmd_args = docopt.docopt(__doc__, version=__version__)
   if cmd_args['models']:
-    mitty.denovo.print_model_list()
+    mitty.lib.denovo.print_model_list()
     exit(0)
   if cmd_args['explain']:
-    mitty.denovo.explain_model(cmd_args['<model_name>'])
+    mitty.lib.denovo.explain_model(cmd_args['<model_name>'])
     exit(0)
 
   level = logging.DEBUG if cmd_args['-v'] else logging.WARNING
@@ -148,19 +150,30 @@ def cli():
   master_seed = params['rng']['master_seed']
 
   ref_genome = mitty.lib.genome.FastaGenome(seq_dir=mitty.lib.rpath(base_dir, params['files']['genome']), persist=True)
-  ancestral_models = mitty.denovo.load_variant_model_list(params['founder_population']['ancestral_models'])
-  denovo_models = mitty.denovo.load_variant_model_list(params['founder_population']['denovo_models'])
+  ancestral_models = mitty.lib.denovo.load_variant_model_list(params['founder_population']['ancestral_models'])
+  denovo_models = mitty.lib.denovo.load_variant_model_list(params['founder_population']['denovo_models'])
 
   p_a = params['founder_population']['p_ancestral']
   p_het = params['founder_population']['p_ancestral_het']
   pop_size = params['founder_population']['size']
+  t0 = time.time()
   pop, pool = founder_population(ancestral_models=ancestral_models, denovo_models=denovo_models,
                                  p_a=p_a, p_het=p_het, ref=ref_genome, pop_size=pop_size, master_seed=master_seed)
+  t1 = time.time()
+  logger.debug('Computed founder population in {:f} s'.format(t1 - t0))
 
   output_dir = mitty.lib.rpath(base_dir, params['files']['output_dir'])
   vcf_prefix = params['files']['output_vcf_prefix']
+
+  t0 = time.time()
   mitty.lib.io.vcf_save_gz(pool, os.path.join(output_dir, vcf_prefix + '_ancestral_pool.vcf.gz'))
+  t1 = time.time()
+  logger.debug('Saved ancestral VCF in {:f} s'.format(t1 - t0))
+
+  t0 = time.time()
   save_population(pop, vcf_prefix=os.path.join(output_dir, vcf_prefix))
+  t1 = time.time()
+  logger.debug('Saved population VCFs in {:f} s'.format(t1 - t0))
 
 
 if __name__ == "__main__":
@@ -173,8 +186,8 @@ if __name__ == "__main__":
 #   """
 #   c2 = []
 #   for c, idx in zip(c1, crossover_idx):
-#     new_c = vcopy(c)  # Valid for no crossover or HOMOZYGOUS
-#     if idx == 1 and c.zygosity != HOMOZYGOUS:
+#     new_c = vcopy(c)  # Valid for no crossover or HOM
+#     if idx == 1 and c.zygosity != HOM:
 #       if c.zygosity == HET_10:
 #         new_c.zygosity = HET_01
 #       else:
@@ -215,8 +228,8 @@ if __name__ == "__main__":
 #       l2 = next(c2_iter, None)
 #       continue
 #
-#     if vcopy(l1, zygosity=HOMOZYGOUS) == vcopy(l2, zygosity=HOMOZYGOUS):  # Homozygous
-#       c3 += [vcopy(l1, zygosity=HOMOZYGOUS)]
+#     if vcopy(l1, zygosity=HOM) == vcopy(l2, zygosity=HOM):  # Homozygous
+#       c3 += [vcopy(l1, zygosity=HOM)]
 #       l1, l2 = next(c1_iter, None), next(c2_iter, None)
 #       continue
 #
@@ -229,12 +242,12 @@ if __name__ == "__main__":
 #
 #   # Now pick up any slack
 #   while l1 is not None:
-#     if (l1.zygosity == HOMOZYGOUS) or (l1.zygosity == HET_10 and which_copy[0] == 0) or (l1.zygosity == HET_01 and which_copy[0] == 1):
+#     if (l1.zygosity == HOM) or (l1.zygosity == HET_10 and which_copy[0] == 0) or (l1.zygosity == HET_01 and which_copy[0] == 1):
 #       c3 += [vcopy(l1, zygosity=HET_10)]
 #     l1 = next(c1_iter, None)
 #
 #   while l2 is not None:
-#     if (l2.zygosity == HOMOZYGOUS) or (l2.zygosity == HET_10 and which_copy[1] == 0) or (l2.zygosity == HET_01 and which_copy[1] == 1):
+#     if (l2.zygosity == HOM) or (l2.zygosity == HET_10 and which_copy[1] == 0) or (l2.zygosity == HET_01 and which_copy[1] == 1):
 #       c3 += [vcopy(l2, zygosity=HET_01)]
 #     l2 = next(c2_iter, None)
 #

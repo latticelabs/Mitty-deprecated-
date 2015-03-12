@@ -1,13 +1,13 @@
 from nose.tools import assert_sequence_equal
+from mitty.lib.variation import Variation, new_variation, HOMOZYGOUS, HET_10, HET_01
 
 from mitty.lib.genome import FastaGenome
-from mitty.lib.variation import Variation, new_variation, HOMOZYGOUS, HET_10, HET_01
-from mitty.denovo import merge_variants_from_models, load_variant_model_list, main
+from mitty.lib.denovo import merge_variants_from_models, load_variant_model_list, main
 from mitty.tests import example_fasta_genome
 
 
 def add_variant_model_to_genome_test1():
-  """Proposed variant should collide and be ignored."""
+  """Proposed data should collide and be ignored."""
   c1 = [v10, v11, v12] = [new_variation(12, 13, 'G', 'C', HET_01),
                           new_variation(13, 14, 'A', 'C', HET_10),
                           new_variation(19, 20, 'G', 'A', HET_10)]  # This should be placed with no problems
@@ -35,7 +35,7 @@ def add_variant_model_to_genome_test3():
                           new_variation(19, 20, 'G', 'A', HOMOZYGOUS)]  # This should be placed with no problems
   g1 = {1: c1}
   v16 = new_variation(16, 17, 'T', 'C', HOMOZYGOUS)
-  vg1 = ({1: [v12, v16]} for _ in [1])  # First variant will collide
+  vg1 = ({1: [v12, v16]} for _ in [1])  # First data will collide
   v22 = new_variation(22, 23, 'T', 'C', HOMOZYGOUS)
   vg2 = ({1: [v22], 2: [v13, v19]} for _ in [1])  # This will all pass
   g2_correct = {
@@ -50,7 +50,7 @@ def add_variant_model_to_genome_test3():
 
 # This test uses the stock SNP which must exist for this test to pass
 def load_variant_models_test():
-  """Loading SNP variant as a test."""
+  """Loading SNP data as a test."""
   param_json = [
         {
           "snp": {
@@ -76,7 +76,7 @@ def load_variant_models_test():
 # test setup
 def main_test():
   """Integrating denovo and stock SNP"""
-  import json, vcf, tempfile
+  import tempfile
   param_json = {
     "denovo_variant_models": [
       {

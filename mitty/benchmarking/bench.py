@@ -24,7 +24,7 @@ def get_tool(name):
 
 
 class Tool(object):
-  """A wrapper round an aligner or variant caller."""
+  """A wrapper round an aligner or data caller."""
   def __init__(self, name='No name', description='No description'):
     self.name = name
     self.description = description

@@ -1,11 +1,27 @@
-"""Library to handle database interactions"""
-import sqlite3 as sq
+"""Library to handle database interactions.
 
-# Types of zygosity
-ABSENT = 0
-HOMOZYGOUS = 3
-HET_01 = 1
-HET_10 = 2
+tables in database (X is the chromosome number):
+
+mitty.lib.variation.Variant -> var_X
+mitty.lib.variation.Chromosome -> samp_I_chrom_X
+mitty.lib.variation.Sample -> samples
+
+var_X
+rowid, pos, ref, alt  rowid corresponds to index
+
+samp_I_chrom_X
+rowid, index, gt  rowid is in order of variant. index corresponds to var_X
+
+samples
+rowid, generation, serial, fitness, p1, p2    p1, p2 are the serials of the parents. We now the generation is one less
+"""
+import sqlite3 as sq
+#import mitty.lib.variation as vr
+
+
+def var_factory(cursor, row):
+  """For speed, assumes we load the columns in the order they are in the db."""
+  return vr.new_(row[0], row[1], row[2])
 
 
 def sample_table_name(sample_name, chrom_name):
@@ -17,7 +33,8 @@ def connect(db_name='population.sqlite3'):
   :param db_name: The database name
   :returns conn: connection object"""
   conn = sq.connect(db_name)
-  conn.text_factory = str
+  #conn.text_factory = str
+  conn.row_factory = var_factory
   return conn
 
 
@@ -44,7 +61,7 @@ def save_sample(sample_name, g, conn):
     table_name = sample_table_name(sample_name, k)
     conn.execute("CREATE TABLE {:s} (pos INTEGER PRIMARY KEY, stop INTEGER, gt INTEGER, ref TEXT, alt TEXT)".format(table_name))
     insert_clause = "INSERT INTO {:s}(pos, stop, gt, ref, alt) VALUES (?, ?, ?, ?, ?)".format(table_name)
-    conn.executemany(insert_clause, chrom)
+    conn.executemany(insert_clause, (c.as_tuple() for c in chrom))
   conn.commit()
 
 

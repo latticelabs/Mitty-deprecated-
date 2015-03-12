@@ -1,6 +1,6 @@
 from mitty.lib.genome import FastaGenome
 from mitty.population import founder_population
-import mitty.denovo
+import mitty.lib.denovo
 
 from mitty.tests import example_fasta_genome
 
@@ -41,8 +41,8 @@ def founder_population_test():
     }
   ]
 
-  ancestral_models = mitty.denovo.load_variant_model_list(ancestor_models_json)
-  denovo_models = mitty.denovo.load_variant_model_list(denovo_models_json)
+  ancestral_models = mitty.lib.denovo.load_variant_model_list(ancestor_models_json)
+  denovo_models = mitty.lib.denovo.load_variant_model_list(denovo_models_json)
   ref = FastaGenome(seq_dir=example_fasta_genome, persist=True)
 
   pop, pool = founder_population(ancestral_models=ancestral_models,
@@ -61,8 +61,8 @@ def founder_population_test():
 #       Variation(3, 6, 'CAG', 'C', HET_10),
 #       Variation(7, 8, 'G', 'T', HET_01),
 #       Variation(9, 12, 'GTT', '', HET_10),
-#       Variation(13, 16, 'GTT', 'TTG', HOMOZYGOUS),
-#       Variation(23, 26, 'GTT', 'TTG', HOMOZYGOUS)
+#       Variation(13, 16, 'GTT', 'TTG', HOM),
+#       Variation(23, 26, 'GTT', 'TTG', HOM)
 #   ]
 #   crossover_idx = [1, 1, 1, 0, 1, 0]
 #   correct_chrom = [
@@ -70,8 +70,8 @@ def founder_population_test():
 #       Variation(3, 6, 'CAG', 'C', HET_01),
 #       Variation(7, 8, 'G', 'T', HET_10),
 #       Variation(9, 12, 'GTT', '', HET_10),
-#       Variation(13, 16, 'GTT', 'TTG', HOMOZYGOUS),
-#       Variation(23, 26, 'GTT', 'TTG', HOMOZYGOUS)
+#       Variation(13, 16, 'GTT', 'TTG', HOM),
+#       Variation(23, 26, 'GTT', 'TTG', HOM)
 #   ]
 #   c1_c = chrom_crossover(c1, crossover_idx)
 #   assert correct_chrom == c1_c, c1_c
@@ -113,7 +113,7 @@ def founder_population_test():
 #     Variation(1, 2, 'C', 'CAA', HET_01),
 #     Variation(3, 6, 'CAG', 'C', HET_10),
 #     Variation(17, 18, 'G', 'T', HET_01),
-#     Variation(23, 26, 'GTT', 'TTG', HOMOZYGOUS),
+#     Variation(23, 26, 'GTT', 'TTG', HOM),
 #   ]
 #   c2 = [
 #     Variation(7, 8, 'G', 'T', HET_01),
@@ -153,8 +153,8 @@ def founder_population_test():
 #     Variation(1, 2, 'C', 'CAA', HET_01),  # Tests homozygosity
 #     Variation(3, 6, 'CAG', 'C', HET_10),  # Tests both variants are not on the copies chosen
 #     Variation(17, 18, 'G', 'T', HET_01),  # Test zipper (several variants should come from c2 before we get to this)
-#     Variation(23, 26, 'GTT', 'TTG', HOMOZYGOUS),  # Tests handling of homozygous variants
-#     Variation(29, 30, 'T', 'G', HOMOZYGOUS)  # Tests unequal var list lengths
+#     Variation(23, 26, 'GTT', 'TTG', HOM),  # Tests handling of homozygous variants
+#     Variation(29, 30, 'T', 'G', HOM)  # Tests unequal var list lengths
 #   ]
 #   c2 = [
 #     Variation(1, 2, 'C', 'CAA', HET_10),
@@ -162,15 +162,15 @@ def founder_population_test():
 #     Variation(7, 8, 'G', 'T', HET_01),
 #     Variation(9, 12, 'GTT', '', HET_10),
 #     Variation(15, 18, 'GTT', 'G', HET_10),  # Test partial overlap on different copies (should not affect each other)
-#     Variation(23, 26, 'GTT', 'TTG', HOMOZYGOUS)
+#     Variation(23, 26, 'GTT', 'TTG', HOM)
 #   ]
 #   which_copy = (1, 0)
 #   correct_pairing = [
-#     Variation(1, 2, 'C', 'CAA', HOMOZYGOUS),  # Tests homozygosity
+#     Variation(1, 2, 'C', 'CAA', HOM),  # Tests homozygosity
 #     Variation(9, 12, 'GTT', '', HET_01),
 #     Variation(15, 18, 'GTT', 'G', HET_01),  # Test partial overlap on different copies (should not affect each other)
 #     Variation(17, 18, 'G', 'T', HET_10),  # Test zipper (several variants should come from c2 before we get to this)
-#     Variation(23, 26, 'GTT', 'TTG', HOMOZYGOUS),  # Tests handling of homozygous variants
+#     Variation(23, 26, 'GTT', 'TTG', HOM),  # Tests handling of homozygous variants
 #     Variation(29, 30, 'T', 'G', HET_10)  # Tests unequal var list lengths
 #   ]
 #   assert correct_pairing == pair_one_chrom(c1, c2, which_copy)
@@ -199,11 +199,11 @@ def founder_population_test():
 #
 #   correct_g3 = {
 #     1: [
-#       Variation(1, 2, 'C', 'CAA', HOMOZYGOUS)
+#       Variation(1, 2, 'C', 'CAA', HOM)
 #     ],
 #     2: [
-#       Variation(7, 8, 'G', 'T', HOMOZYGOUS),
-#       Variation(17, 18, 'G', 'T', HOMOZYGOUS),
+#       Variation(7, 8, 'G', 'T', HOM),
+#       Variation(17, 18, 'G', 'T', HOM),
 #     ]
 #   }
 #   assert correct_g3 == fertilize_one(g1, g2, which_copy)
@@ -216,20 +216,20 @@ def founder_population_test():
 #     Variation(1, 2, 'C', 'CAA', HET_01),
 #     Variation(3, 6, 'CAG', 'C', HET_10),
 #     Variation(17, 18, 'G', 'T', HET_01),
-#     Variation(23, 26, 'GTT', 'TTG', HOMOZYGOUS),
-#     Variation(29, 30, 'T', 'G', HOMOZYGOUS)
+#     Variation(23, 26, 'GTT', 'TTG', HOM),
+#     Variation(29, 30, 'T', 'G', HOM)
 #   ]
 #
 #   hot_spots = numpy.array([])  # No hotspots, no crossover
-#   numpy.testing.assert_array_equal(numpy.array([0, 0, 0, 0, 0]),  # Hot spot is narrow and over first variant
+#   numpy.testing.assert_array_equal(numpy.array([0, 0, 0, 0, 0]),  # Hot spot is narrow and over first data
 #                                    place_crossovers_on_chrom(c1, hot_spots, numpy.random.RandomState(seed=1)))
 #
 #   hot_spots = numpy.array([[1, 1, .5]])
-#   numpy.testing.assert_array_equal(numpy.array([1, 0, 0, 0, 0]),  # Hot spot is narrow and over first variant
+#   numpy.testing.assert_array_equal(numpy.array([1, 0, 0, 0, 0]),  # Hot spot is narrow and over first data
 #                                    place_crossovers_on_chrom(c1, hot_spots, numpy.random.RandomState(seed=1)))
 #
 #   hot_spots = numpy.array([[17, 1, .5]])
-#   numpy.testing.assert_array_equal(numpy.array([0, 0, 1, 0, 0]),  # Hot spot is narrow and over third variant
+#   numpy.testing.assert_array_equal(numpy.array([0, 0, 1, 0, 0]),  # Hot spot is narrow and over third data
 #                                    place_crossovers_on_chrom(c1, hot_spots, numpy.random.RandomState(seed=1)))
 #
 #   hot_spots = numpy.array([[1, 1, .5], [17, 1, .5]])
@@ -247,7 +247,7 @@ def founder_population_test():
 #   # data = numpy.concatenate([numpy.nonzero(place_crossovers_on_chrom(c1, hot_spots, rng))[0] for n in range(100)])
 #   # pylab.hist(data)
 #   # pylab.plot()
-#   # The denser your variant structure, the clearer is the sum of gaussian model
+#   # The denser your data structure, the clearer is the sum of gaussian model
 #
 #
 # @nottest
@@ -264,7 +264,7 @@ def founder_population_test():
 #   hot_spots = {1: numpy.array([[1, 1, .5]]), 2: numpy.array([[7, 1, .5]])}
 #   rngs = get_rngs(1)
 #
-#   assert [{1: [Variation(POS=1, stop=2, REF='C', ALT='CAA', zygosity=HOMOZYGOUS)],
+#   assert [{1: [Variation(POS=1, stop=2, REF='C', ALT='CAA', zygosity=HOM)],
 #            2: [Variation(POS=7, stop=8, REF='G', ALT='T', zygosity=HET_10),
 #                Variation(POS=17, stop=18, REF='G', ALT='T', zygosity=HET_01)]},
 #           {1: [Variation(POS=1, stop=2, REF='C', ALT='CAA', zygosity=HET_10)],
@@ -306,14 +306,14 @@ def founder_population_test():
 #   models = denovo.load_variant_models(params_json['ss_variant_models'])
 #   for m in models: reset_model(m)
 #   ch = spawn(g1, g2, hot_spots, rngs, 2, ref, models)
-#   correct_ch = [{1: [Variation(POS=1,stop=2,REF='C',ALT='CAA',zygosity=HOMOZYGOUS),
+#   correct_ch = [{1: [Variation(POS=1,stop=2,REF='C',ALT='CAA',zygosity=HOM),
 #                      Variation(POS=7,stop=8,REF='T',ALT='A',zygosity=HET_10),
 #                      Variation(POS=9,stop=10,REF='A',ALT='G',zygosity=HET_01)],
 #                  2: [Variation(POS=7,stop=8,REF='G',ALT='T',zygosity=HET_10),
 #                      Variation(POS=17,stop=18,REF='G',ALT='T',zygosity=HET_01)]},
 #                 {1: [Variation(POS=1,stop=2,REF='C',ALT='CAA',zygosity=HET_10),
 #                      Variation(POS=7,stop=8,REF='T',ALT='G',zygosity=HET_10),
-#                      Variation(POS=16,stop=17,REF='T',ALT='A',zygosity=HOMOZYGOUS)],
+#                      Variation(POS=16,stop=17,REF='T',ALT='A',zygosity=HOM)],
 #                  2: [Variation(POS=7,stop=8,REF='G',ALT='T',zygosity=HET_01),
 #                      Variation(POS=17,stop=18,REF='G',ALT='T',zygosity=HET_10)]}]
 #   assert_equal(correct_ch, ch)
@@ -364,7 +364,7 @@ def founder_population_test():
 #
 #   pop = de_novo_population(ref, models, size=2)
 #   assert pop[0][1][0].POS == 16, pop
-#   assert pop[1][2][1].zygosity == HOMOZYGOUS
+#   assert pop[1][2][1].zygosity == HOM
 #
 #
 # @nottest

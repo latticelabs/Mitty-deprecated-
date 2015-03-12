@@ -7,9 +7,9 @@ logger = logging.getLogger(__name__)
 
 __example_param_text = """
 {
-  "chromosome": [4],   # List of chromosomes to apply the variant to
-  "p": 0.01,           # probability that the variant will occur at any given base
-  "phet": 0.5,         # probability that the variant will be heterozygous
+  "chromosome": [4],   # List of chromosomes to apply the data to
+  "p": 0.01,           # probability that the data will occur at any given base
+  "phet": 0.5,         # probability that the data will be heterozygous
   "ins_len_lo": 10,
   "ins_len_hi": 20,
   "sub_seq_len": 5
@@ -17,7 +17,7 @@ __example_param_text = """
 """
 
 _description = """
-This variant generates low complexity insertions that consist of repeated copies of the same subsequence.
+This data generates low complexity insertions that consist of repeated copies of the same subsequence.
 """ + __example_param_text
 
 _example_params = eval(__example_param_text)
