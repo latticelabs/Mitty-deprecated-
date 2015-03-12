@@ -7,21 +7,23 @@ mitty.lib.variation.Chromosome -> samp_I_chrom_X
 mitty.lib.variation.Sample -> samples
 
 var_X
-rowid, pos, ref, alt  rowid corresponds to index
+rowid, pos, stop, ref, alt  rowid corresponds to index
 
-samp_I_chrom_X
+sample_I_chrom_X
 rowid, index, gt  rowid is in order of variant. index corresponds to var_X
 
 samples
 rowid, generation, serial, fitness, p1, p2    p1, p2 are the serials of the parents. We now the generation is one less
 """
 import sqlite3 as sq
-#import mitty.lib.variation as vr
+import mitty.lib.variation as vr
 
 
-def var_factory(cursor, row):
-  """For speed, assumes we load the columns in the order they are in the db."""
-  return vr.new_(row[0], row[1], row[2])
+# def var_factory(cursor, row):
+#   """For speed, assumes we load the columns in the order they are in the db."""
+#   v = vr.new_variant(row[1], row[2], row[3], row[4])
+#   v.index = row[0]
+#   return v
 
 
 def sample_table_name(sample_name, chrom_name):
@@ -34,8 +36,23 @@ def connect(db_name='population.sqlite3'):
   :returns conn: connection object"""
   conn = sq.connect(db_name)
   #conn.text_factory = str
-  conn.row_factory = var_factory
+  #conn.row_factory = var_factory
   return conn
+
+
+def save_variant_master_list(conn, ml):
+  """
+  :param conn: connection object
+  :param ml: master list of variants
+  :return: nothing
+
+  For now, we assume this is always a fresh database and we are writing all the variants in one go
+  """
+  for chrom in ml.keys():
+    conn.execute("CREATE TABLE chrom_{:d} (pos INTEGER, stop INTEGER, ref TEXT, alt TEXT)".format(chrom))
+    insert_clause = "INSERT INTO chrom_{:d} (rowid, pos, stop, ref, alt) VALUES (?, ?, ?, ?, ?)".format(chrom)
+    conn.executemany(insert_clause, (v.as_tuple() for v in ml[chrom].values()))
+  conn.commit()
 
 
 def erase_sample(sample_name, g, conn):
