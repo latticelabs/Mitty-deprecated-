@@ -2,6 +2,7 @@
 from os.path import splitext
 import os
 import gzip
+import time
 
 import pysam
 
@@ -12,11 +13,13 @@ logger = logging.getLogger(__name__)
 def load_multi_fasta_gz(fa_fname):
   """Given a gzipped multi fa.gz file load it into a dictionary
   :param fa_fname: fasta.gz file with one or more fasta sequences
-  :returns ref_seq: a list of tuples of the form (seq_id, seq)
+  :returns ref_seq: a list of tuples of the form (seq_id, seq_len, seq) in the order they are found in the file, which is the
+                    same as chromosome number (with a 1 offset, because of 0-indexing)
 
   Pure Python 2min 9s to load hg38
   Cythonized 2min 6s - since we are mostly in Python native functions, we are at speed limit
   """
+  t0 = time.time()
   ref_seq = []
   with gzip.open(fa_fname, 'r') as fp:
     l = fp.read()
@@ -31,7 +34,9 @@ def load_multi_fasta_gz(fa_fname):
       continue  # Empty line, ignore
     seq_id = seq_string[:idx]
     seq = seq_string[idx:].replace('\n', '').upper()
-    ref_seq += [(seq_id, seq)]
+    ref_seq += [(seq_id, len(seq), seq)]
+  t1 = time.time()
+  logger.debug('Loaded reference in {:f} s'.format(t1 - t0))
   return ref_seq
 
 
