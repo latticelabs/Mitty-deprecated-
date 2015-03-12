@@ -48,7 +48,7 @@ cdef class Variant:
       return not (other.hash == self.hash)
 
   def as_tuple(self):
-    return self.pos, self.stop, self.ref, self.alt
+    return self.index, self.pos, self.stop, self.ref, self.alt
 
 
 cpdef Variant new_variant(unsigned long pos, unsigned long stop, bytes ref, bytes alt):
