@@ -81,7 +81,8 @@ def test_mating():
 
 def test_stock_breeder():
   """Stock breeding algorithm."""
-  brdr = gen.StockBreeder(child_factor=2.0)
+  # These tests use random seeds. Need to figure out if there is a way to make these more deterministic
+  brdr = gen.StockBreeder(child_factor=2.0, master_seed=3)
   p1 = gen.Sample(0, 0)
   p1.fitness = 0
   p2 = gen.Sample(0, 1)
@@ -92,6 +93,7 @@ def test_stock_breeder():
   assert [c[0].p1, c[0].p2] == [p1, p2]
 
   p2.fitness = 1
+  brdr = gen.StockBreeder(child_factor=2.0, master_seed=3)
   c = brdr.breed([[p1, p2]], generation=1)
   assert len(c) == 3
 

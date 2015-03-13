@@ -1340,7 +1340,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_2__richcmp__(PyObject 
  *       return not (other.hash == self.hash)
  * 
  *   def as_tuple(self):             # <<<<<<<<<<<<<<
- *     return self.pos, self.stop, self.ref, self.alt
+ *     return self.index, self.pos, self.stop, self.ref, self.alt
  * 
  */
 
@@ -1363,6 +1363,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_4as_tuple(struct __pyx
   PyObject *__pyx_t_1 = NULL;
   PyObject *__pyx_t_2 = NULL;
   PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -1371,38 +1372,43 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_4as_tuple(struct __pyx
   /* "mitty/lib/variation.pyx":51
  * 
  *   def as_tuple(self):
- *     return self.pos, self.stop, self.ref, self.alt             # <<<<<<<<<<<<<<
+ *     return self.index, self.pos, self.stop, self.ref, self.alt             # <<<<<<<<<<<<<<
  * 
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->pos); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->index); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->stop); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_2 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->pos); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = PyTuple_New(4); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_3 = __Pyx_PyInt_From_unsigned_long(__pyx_v_self->stop); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_3);
-  PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_1);
+  __pyx_t_4 = PyTuple_New(5); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 51; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_4);
+  PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_1);
   __Pyx_GIVEREF(__pyx_t_1);
-  PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_t_2);
+  PyTuple_SET_ITEM(__pyx_t_4, 1, __pyx_t_2);
   __Pyx_GIVEREF(__pyx_t_2);
+  PyTuple_SET_ITEM(__pyx_t_4, 2, __pyx_t_3);
+  __Pyx_GIVEREF(__pyx_t_3);
   __Pyx_INCREF(__pyx_v_self->ref);
-  PyTuple_SET_ITEM(__pyx_t_3, 2, __pyx_v_self->ref);
+  PyTuple_SET_ITEM(__pyx_t_4, 3, __pyx_v_self->ref);
   __Pyx_GIVEREF(__pyx_v_self->ref);
   __Pyx_INCREF(__pyx_v_self->alt);
-  PyTuple_SET_ITEM(__pyx_t_3, 3, __pyx_v_self->alt);
+  PyTuple_SET_ITEM(__pyx_t_4, 4, __pyx_v_self->alt);
   __Pyx_GIVEREF(__pyx_v_self->alt);
   __pyx_t_1 = 0;
   __pyx_t_2 = 0;
-  __pyx_r = __pyx_t_3;
   __pyx_t_3 = 0;
+  __pyx_r = __pyx_t_4;
+  __pyx_t_4 = 0;
   goto __pyx_L0;
 
   /* "mitty/lib/variation.pyx":50
  *       return not (other.hash == self.hash)
  * 
  *   def as_tuple(self):             # <<<<<<<<<<<<<<
- *     return self.pos, self.stop, self.ref, self.alt
+ *     return self.index, self.pos, self.stop, self.ref, self.alt
  * 
  */
 
@@ -1411,6 +1417,7 @@ static PyObject *__pyx_pf_5mitty_3lib_9variation_7Variant_4as_tuple(struct __pyx
   __Pyx_XDECREF(__pyx_t_1);
   __Pyx_XDECREF(__pyx_t_2);
   __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
   __Pyx_AddTraceback("mitty.lib.variation.Variant.as_tuple", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;

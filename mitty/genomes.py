@@ -4,8 +4,8 @@ __cmd__ = """This command line program generates a database of genomes given a s
 Commandline::
 
   Usage:
-    genomes generate --pfile=PFILE  [--continue] [-v]
-    genomes write (vcf|vcfs) --dbfile=DBFILE  (<gen> <serial>)... [-v]
+    genomes generate --pfile=PFILE  [--continue] [-v|-V]
+    genomes write (vcf|vcfs) --dbfile=DBFILE  (<gen> <serial>)... [-v|-V]
     genomes explain (parameters|variantmodel <model_name>|populationmodel <model_name>)
     genomes list (variantmodels|populationmodels)
 
@@ -73,7 +73,7 @@ import docopt
 
 import mitty.lib
 import mitty.lib.io as mio
-#import mitty.lib.db as db
+import mitty.lib.db as db
 
 #from mitty.lib.genome import FastaGenome
 import mitty.lib.variation as vr
@@ -90,8 +90,11 @@ def cli():  # pragma: no cover
   else:
     cmd_args = docopt.docopt(__cmd__)  # Version string?
 
-  level = logging.DEBUG if cmd_args['-v'] else logging.WARNING
+  level = logging.DEBUG if cmd_args['-V'] else logging.WARNING
   logging.basicConfig(level=level)
+
+  if cmd_args['-v']:
+    logger.setLevel(logging.DEBUG)
 
   if cmd_args['generate']:
     generate(cmd_args)
@@ -108,6 +111,8 @@ def generate(cmd_args):
 
   base_dir = os.path.dirname(cmd_args['--pfile'])     # Other files will be with respect to this
   params = json.load(open(cmd_args['--pfile'], 'r'))
+
+  conn = db.connect(mitty.lib.rpath(base_dir, params['files']['dbfile']))
 
   ref_genome = mio.load_multi_fasta_gz(mitty.lib.rpath(base_dir, params['files']['reference']))
   master_seed = int(params['rng']['master_seed'])
@@ -140,9 +145,11 @@ def generate(cmd_args):
     g1 = gen.create_next_generation(g1, fitness, mater, breeder, culler)
     gen.genomify(g1, crosser)
     add_denovo_variants_from_models_to_population(g1, models, ml, seed)
-    generations.append(g1)
-    if n > n_ancestors:
-      _ = generations.popleft()  # Get rid of earliest ancestors to save space
+    # generations.append(g1)
+    # if n > n_ancestors:
+    #   _ = generations.popleft()  # Get rid of earliest ancestors to save space
+
+  #db.save_variant_master_list(conn, ml)
 
 
 def load_variant_models(ref, model_param_json):
@@ -168,8 +175,9 @@ def add_denovo_variants_from_models_to_genome(g1, models, ml, master_seed=1):
       dnv = vr.create_gtv_iterable(pvd[0], pvd[1], pvd[2], pvd[3])
       if chrom not in g1:  # Need to make a new chromosome for this.
         g1[chrom] = vr.Chromosome()
-      s = g1.get(chrom)
-      vr.add_denovo_variants_to_chromosome(s, dnv, ml)
+      if chrom not in ml:  # Need to make a new chromosome for this.
+        ml[chrom] = {}
+      vr.add_denovo_variants_to_chromosome(g1[chrom], dnv, ml[chrom])
 
 
 def add_denovo_variants_from_models_to_population(p, models, ml, master_seed=1):

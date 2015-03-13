@@ -1,7 +1,7 @@
 {
   "files": {
     "reference": "../data/chimera.fa.gz",
-    "dbfile": "Out/test.vcf.gz"          
+    "dbfile": "Out/mypopulation.db"
   },
   "rng": {
     "master_seed": 1

@@ -112,19 +112,20 @@ class StockFitness:
 
   def sample_fitness(self, sample):
     """Modifies fitness in place"""
-    g = sample.genome
-    fit = 0
-    v_count = 0
-    for ch, chrom in g:
-      for gtv in chrom:
-        if self.l0 < gtv.pos < self.l1:
-          fit += 1.0
-        elif self.l1 < gtv.pos < self.l2:
-          fit -= 1.0
-        else:
-          continue
-        v_count += 1
-    sample.fitness = fit / v_count if v_count else 0
+    sample.fitness = 0.0
+    # g = sample.genome
+    # fit = 0
+    # v_count = 0
+    # for ch, chrom in g:
+    #   for gtv in chrom:
+    #     if self.l0 < gtv.pos < self.l1:
+    #       fit += 1.0
+    #     elif self.l1 < gtv.pos < self.l2:
+    #       fit -= 1.0
+    #     else:
+    #       continue
+    #     v_count += 1
+    # sample.fitness = fit / v_count if v_count else 0
 
   def fitness(self, generation):
     for g in generation:

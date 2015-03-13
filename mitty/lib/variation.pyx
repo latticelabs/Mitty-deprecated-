@@ -18,7 +18,7 @@ GT = ['0|0', '0|1', '1|0', '1|1']  # This needs to match rev 3 definitions
 
 cdef class Variant:
   """Variant(pos, stop, REF, ALT)
-  A lightweight class to carry a single data
+  A lightweight class to describe a single variation without regard to genotype
 
   Attributes:
     pos    - position of data
