@@ -4,44 +4,72 @@ import tempfile
 import os
 
 import mitty.lib.io as mio
-import mitty.lib.variation as vr
+#import mitty.lib.variation as vr
 #from mitty.lib.io import *
 from mitty.tests import *  # To get definitions from the setup script
-from nose.tools import assert_list_equal, assert_dict_equal
+#from nose.tools import assert_list_equal, assert_dict_equal
 
 
-def master_list_round_trip_test():
-  """Save a master list and then load it back."""
-  l = {}
-  sample = [vr.cgt(l, 1, 4, 'CAA', 'C', vr.HOMOZYGOUS),
-            vr.cgt(l, 13, 16, 'CAA', 'C', vr.HET_10),
-            vr.cgt(l, 20, 23, 'CAA', 'C', vr.HET_10),
-            vr.cgt(l, 26, 29, 'CAA', 'C', vr.HOMOZYGOUS)]
-  temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
-  os.close(temp_fp)
-  conn = mio.db(temp_name)
-  mio.save_variant_master_list('chr1', l, conn)
-  rt_l = mio.load_variant_master_list('chr1', conn)
-  assert_dict_equal(l, rt_l, rt_l)
-  os.remove(temp_name)
+def unzipped_multi_fasta_test():
+  """Load unzipped multi-fasta."""
+  ref = mio.Fasta(multi_fasta=os.path.join(example_data_dir, 'chimera.fa'))
+  assert len(ref) == 0
+  assert len(ref[4]) == 702
+  assert len(ref) == 4
 
 
-def sample_list_round_trip_test():
-  """Save a sample and then load it back."""
-  l = {}
-  sample = [vr.cgt(l, 1, 4, 'CAA', 'C', vr.HOMOZYGOUS),
-            vr.cgt(l, 13, 16, 'CAA', 'C', vr.HET_10),
-            vr.cgt(l, 20, 23, 'CAA', 'C', vr.HET_10),
-            vr.cgt(l, 26, 29, 'CAA', 'C', vr.HOMOZYGOUS)]
-  temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
-  os.close(temp_fp)
-  conn = mio.db(temp_name)
-  mio.save_sample('s1', 'chr1', sample, conn)
-  rt_sample = mio.load_sample('s1', 'chr1', conn)
-  #mio.save_variant_master_list('chr1', l, conn)
-  #rt_l = mio.load_variant_master_list('chr1', conn)
-  assert_list_equal(sample, rt_sample, rt_sample)
-  os.remove(temp_name)
+def gzipped_multi_fasta_test():
+  """Load gzipped multi-fasta."""
+  ref = mio.Fasta(multi_fasta=os.path.join(example_data_dir, 'chimera.fa.gz'))
+  assert len(ref) == 0
+  assert len(ref[4]) == 702
+  assert len(ref) == 4
+
+
+def multi_dir_test():
+  """Load reference from directory"""
+  ref = mio.Fasta(multi_dir=example_data_dir)
+  assert len(ref) == 0
+  assert len(ref[4]) == 702
+  assert len(ref) == 1
+  assert len(ref[4]) == 702
+  assert len(ref) == 1
+  assert len(ref[3]) == 717
+  assert len(ref) == 2
+
+
+# def master_list_round_trip_test():
+#   """Save a master list and then load it back."""
+#   l = {}
+#   sample = [vr.cgt(l, 1, 4, 'CAA', 'C', vr.HOMOZYGOUS),
+#             vr.cgt(l, 13, 16, 'CAA', 'C', vr.HET_10),
+#             vr.cgt(l, 20, 23, 'CAA', 'C', vr.HET_10),
+#             vr.cgt(l, 26, 29, 'CAA', 'C', vr.HOMOZYGOUS)]
+#   temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
+#   os.close(temp_fp)
+#   conn = mio.db(temp_name)
+#   mio.save_variant_master_list('chr1', l, conn)
+#   rt_l = mio.load_variant_master_list('chr1', conn)
+#   assert_dict_equal(l, rt_l, rt_l)
+#   os.remove(temp_name)
+#
+#
+# def sample_list_round_trip_test():
+#   """Save a sample and then load it back."""
+#   l = {}
+#   sample = [vr.cgt(l, 1, 4, 'CAA', 'C', vr.HOMOZYGOUS),
+#             vr.cgt(l, 13, 16, 'CAA', 'C', vr.HET_10),
+#             vr.cgt(l, 20, 23, 'CAA', 'C', vr.HET_10),
+#             vr.cgt(l, 26, 29, 'CAA', 'C', vr.HOMOZYGOUS)]
+#   temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
+#   os.close(temp_fp)
+#   conn = mio.db(temp_name)
+#   mio.save_sample('s1', 'chr1', sample, conn)
+#   rt_sample = mio.load_sample('s1', 'chr1', conn)
+#   #mio.save_variant_master_list('chr1', l, conn)
+#   #rt_l = mio.load_variant_master_list('chr1', conn)
+#   assert_list_equal(sample, rt_sample, rt_sample)
+#   os.remove(temp_name)
 
 
 # def vcf2chrom_test():
