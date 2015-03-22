@@ -3,10 +3,10 @@
 
 class QuantizedSfs:
   """A class to store the quantized site frequency spectrum and related variant list"""
-  def __init__(self, levels=10, ideal_sfs=None):
-    assert len(ideal_sfs) == levels
-    self.quantized_master_list = [[] for _ in range(levels)]
-    self.quantized_p = [0.0 for _ in range(levels)]
+  def __init__(self, p=[float(n)/10.0 for n in range(10)], ideal_sfs=None):
+    assert len(ideal_sfs) == len(p)
+    self.quantized_master_list = [[] for _ in range(len(p))]
+    self.quantized_p = p
     self.ideal_sfs = ideal_sfs
     assert abs(sum(self.ideal_sfs) - 1.0) < 1e3
 
@@ -16,10 +16,10 @@ class QuantizedSfs:
                      None and the algorithm will still work
     """
     assert len(variants) == len(self.quantized_master_list), 'The new variants do not have the right number of buckets'
-    #First, do a bare add of the list
+    #Do a bare add of the list
     for n in range(len(self.quantized_master_list)):
       self.quantized_master_list[n] += variants[n]
-    self.balance_sfs()
+    #self.balance_sfs()  # Better to do this when we are ready
 
   def balance_sfs(self):
     """Pour variants from one bucket to another to make sure the sfs is approximated well"""
@@ -45,26 +45,35 @@ class QuantizedSfs:
           self.quantized_master_list[n2] = l1[dl:]  # Interestingly Python handles over indexing well during slicing
           n2 += 1
 
-  # def __repr__(self):
-  #   return self.quantized_master_list
+  def __repr__(self):
+    """Fun ASCII histogram!"""
+    variant_counts = [len(p) for p in self.quantized_master_list]
+    total_variant_count = sum(variant_counts)
+    ideal_variant_counts = [(f * total_variant_count) for f in self.ideal_sfs]
 
-# import numpy
-# sfs = QuantizedSfs(ideal_sfs=numpy.ones(10) * 0.1)
-# sfs.add(variants=[[None]*n for n in range(10)])
+    # We plot it as a sideways bargraph
+    size_x = 80  # columns
 
-import numpy
-sfs = QuantizedSfs(ideal_sfs=numpy.ones(10) * 0.1)
-iv = [[n]*n for n in range(10)]
-print iv
-sfs.add(variants=iv)
-print sfs.quantized_master_list
+    #Bring the data into this grid.
+    scaling_factor = float(size_x) / max(variant_counts + ideal_variant_counts)
+    scaled_x1 = [int(v * scaling_factor + 0.5) for v in variant_counts]
+    scaled_x2 = [int(v * scaling_factor + 0.5) for v in ideal_variant_counts]
+    rep_str = ''
+    for v1, v2, p in zip(scaled_x1, scaled_x2, self.quantized_p):
+      rep_str += '{:1.2f} '.format(p) + '-' * v1 + '\n'
+      rep_str += '     ' + ' ' * v2 + '|\n'
+    return rep_str
 
-print '\n\n\n'
-isfs = numpy.arange(10) + 1.0
-isfs /= isfs.sum()
-sfs = QuantizedSfs(ideal_sfs=isfs)
-iv = [[n]*n for n in range(10)]
-print iv
-sfs.add(variants=iv)
-print sfs.quantized_master_list
 
+if __name__ == "__main__":
+  # Couldn't resist a cool demo!
+  #isfs = [n + 1 for n in range(10)]
+  k = .5
+  isfs = [10 * k**n for n in range(10)]
+  isfs = [float(v)/sum(isfs) for v in isfs]
+  sfs = QuantizedSfs(p=[float(n)/10.0 for n in range(10)], ideal_sfs=isfs)
+  iv = [[n]*n*100 for n in range(10)]
+  sfs.add(variants=iv)
+  print(sfs)
+  sfs.balance_sfs()
+  print(sfs)
