@@ -47,7 +47,8 @@ class VariantList:
     :param p: probability values
     :param sfs: proportion
 
-    sum(p * sfs) = 1.0 for this to work"""
+    sum(sfs) = 1.0 for this to work"""
+    assert len(p) == len(sfs)
     assert abs(1.0 - sum(sfs)) < 1e-6
     idx = self.variants['p'].argsort()  # We need the data sorted by probability value for this to work
     n_max = len(self)
@@ -58,7 +59,7 @@ class VariantList:
     self.site_freq_spectrum = (p, sfs)
 
   def select(self, rng):
-    """
+    """Use the rng to select variants from the master list based on their probabilities
     :param rng: a random number generator with the .rand method returning uniform random numbers (0.0, 1.0)
     :return: idx: A list of indexes into the variants indicating which have been chosen
     """
@@ -67,7 +68,11 @@ class VariantList:
 
   def zip_up_chromosome(self, idx0, idx1):
     """Given two chromosomes, go through each copy, variant by variant, making sure they don't clash and merging any
-    homozygous ones. Return us a chromosome array. This should only be done if the list is sorted"""
+    homozygous ones. Return us a chromosome array. Will sort master list if not sorted
+    :param idx0: proposed indexes for chrom copy 0
+    :param idx1: proposed indexes for chrom copy 1
+    :returns: chrom, a list of tuples (index, genotype)
+    """
     if not self.sorted:
       self.sort()
 
@@ -79,7 +84,10 @@ class VariantList:
     return merge_homozygous(pos, z0, z1)
 
   def generate_chromosome(self, rng):
-    """Wrapper around select and zip_up_chromosome."""
+    """Convenient wrapper around select and zip_up_chromosome
+    :param rng: a random number generator with the .rand method returning uniform random numbers (0.0, 1.0)
+    :returns: chrom, a list of tuples (index, genotype)
+    """
     return self.zip_up_chromosome(*self.select(rng))
 
   def __repr__(self):
@@ -92,7 +100,7 @@ class VariantList:
       ideal_cnt = [0 for _ in range(11)]
 
     # Now histogram the actual data
-    dp = (sfs_p[1:] - sfs_p[:-1]) / 2.0
+    dp = (sfs_p[1:] - sfs_p[:-1]) / 2.0 if len(sfs_p) > 1 else [0.5]
     actual_cnt, be = np.histogram(self.variants['p'], np.concatenate(([0], sfs_p[:-1] + dp, [sfs_p[-1] + dp[-1]])))
 
     # We plot it as a sideways bar-graph
@@ -159,8 +167,3 @@ def merge_homozygous(pos, z0, z1):
       n0 += 1
       n1 += 1  # Lets move along
   return chrom
-
-
-
-
-
