@@ -102,10 +102,10 @@ def merge_homozygous(pos, z0, z1):
   n0, n1 = 0, 0
   chrom = []
   while n0 < n_max0 and n1 < n_max1:
-    while pos[z0[n0]] < pos[z1[n1]] and n0 < n_max0 and n1 < n_max1:
+    while n0 < n_max0 and n1 < n_max1 and pos[z0[n0]] < pos[z1[n1]]:
       chrom += [(z0[n0], 0)]
       n0 += 1
-    while pos[z1[n1]] < pos[z0[n0]] and n0 < n_max0 and n1 < n_max1:
+    while n0 < n_max0 and n1 < n_max1 and pos[z1[n1]] < pos[z0[n0]]:
       chrom += [(z1[n1], 1)]
       n1 += 1
     # When we get here, we are either equal, or we've run out of stuff
