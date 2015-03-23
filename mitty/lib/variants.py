@@ -17,6 +17,9 @@ class VariantList:
                                                dtype=[('pos', 'i4'), ('stop', 'i4'), ('ref', 'object'), ('alt', 'object'), ('p', 'f2')])
     self.sorted = False
 
+  def __len__(self):
+    return self.variants.shape[0]
+
   def add(self, pos_a=[], stop_a=[], ref_a=[], alt_a=[], p_a=[]):
     """Add more variants to the list
 
