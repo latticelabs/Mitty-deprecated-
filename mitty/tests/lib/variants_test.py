@@ -82,8 +82,26 @@ def select_test():
   assert_array_equal(idx[1], [0, 2])
 
 
+def collision_test():
+  """Collisions"""
+  pos =  [1, 3, 5, 7]
+  stop = [3, 4, 7, 8]
+  #          ^     ^  <-- these collide
+  z_idx = vr.avoid_collisions(pos, stop, [0, 1, 2, 3])
+  assert_array_equal(z_idx, [0, 2])
+
+
+def merge_test():
+  """Merging"""
+  pos =  [1, 3, 5, 7]
+  z0 = [0, 2, 3]
+  z1 = [1, 2, 3]
+  chrom = vr.merge_homozygous(pos, z0, z1)
+  assert_array_equal(chrom, [(0, 0), (1, 1), (2, 2), (3, 2)])
+
+
 def zip_test():
-  """Zip chromosomes together (Need to make tests more rigorous)."""
+  """Zip chromosomes together"""
   pos = [1, 2, 20]
   stop = [5, 3, 21]
   ref = ['ACTGA', 'C', 'T']
