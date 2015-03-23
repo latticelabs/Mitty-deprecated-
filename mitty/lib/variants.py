@@ -20,6 +20,9 @@ class VariantList:
   def __len__(self):
     return self.variants.shape[0]
 
+  def __repr__(self):
+    pass
+
   def add(self, pos_a=[], stop_a=[], ref_a=[], alt_a=[], p_a=[]):
     """Add more variants to the list
 
@@ -44,9 +47,16 @@ class VariantList:
   def balance_probabilities(self, p, sfs):
     """Use the ideal site probability spectrum to rescale the probability values
     :param p: probability values
-    :param sfs: proportion"""
-    raise NotImplementedError('To do')
-    #idx = self.variants['p'].argsort()  # We need the data sorted by probability value for this to work
+    :param sfs: proportion
+
+    sum(p * sfs) = 1.0 for this to work"""
+    assert abs(1.0 - (p * sfs).sum()) < 1e-6
+    idx = self.variants['p'].argsort()  # We need the data sorted by probability value for this to work
+    n_max = len(self)
+    n = 0
+    for pi, f in zip(p, sfs):
+      self.variants['p'][n:n + int(f * n_max + .5)] = pi  # Over index is handled gracefully
+      n += int(f * n_max + .5)
 
   def select(self, rng):
     """
