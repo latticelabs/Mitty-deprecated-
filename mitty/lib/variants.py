@@ -16,12 +16,10 @@ class VariantList:
     self.variants = np.core.records.fromarrays([pos_a, stop_a, ref_a, alt_a, p_a],
                                                dtype=[('pos', 'i4'), ('stop', 'i4'), ('ref', 'object'), ('alt', 'object'), ('p', 'f2')])
     self.sorted = False
+    self.site_freq_spectrum = None
 
   def __len__(self):
     return self.variants.shape[0]
-
-  def __repr__(self):
-    pass
 
   def add(self, pos_a=[], stop_a=[], ref_a=[], alt_a=[], p_a=[]):
     """Add more variants to the list
@@ -50,13 +48,14 @@ class VariantList:
     :param sfs: proportion
 
     sum(p * sfs) = 1.0 for this to work"""
-    assert abs(1.0 - (p * sfs).sum()) < 1e-6
+    assert abs(1.0 - sum(sfs)) < 1e-6
     idx = self.variants['p'].argsort()  # We need the data sorted by probability value for this to work
     n_max = len(self)
     n = 0
     for pi, f in zip(p, sfs):
       self.variants['p'][n:n + int(f * n_max + .5)] = pi  # Over index is handled gracefully
       n += int(f * n_max + .5)
+    self.site_freq_spectrum = (p, sfs)
 
   def select(self, rng):
     """
@@ -82,6 +81,35 @@ class VariantList:
   def generate_chromosome(self, rng):
     """Wrapper around select and zip_up_chromosome."""
     return self.zip_up_chromosome(*self.select(rng))
+
+  def __repr__(self):
+    """Fun ASCII histogram!"""
+    if self.site_freq_spectrum is not None:
+      sfs_p, sfs = self.site_freq_spectrum
+      ideal_cnt = [f * self.variants.shape[0] for f in sfs]
+    else:
+      sfs_p = np.linspace(0, 1.0, num=11)  # Default is to histogram in 11 bins
+      ideal_cnt = [0 for _ in range(11)]
+
+    # Now histogram the actual data
+    dp = (sfs_p[1:] - sfs_p[:-1]) / 2.0
+    actual_cnt, be = np.histogram(self.variants['p'], np.concatenate(([0], sfs_p[:-1] + dp, [sfs_p[-1] + dp[-1]])))
+
+    # We plot it as a sideways bar-graph
+    size_x = min(max(actual_cnt), 80)  # columns
+
+    #Bring the data into this grid.
+    scaling_factor = float(size_x) / max(max(actual_cnt), max(ideal_cnt))
+    scaled_actual = [int(v * scaling_factor + 0.5) for v in actual_cnt]
+    scaled_ideal = [int(v * scaling_factor + 0.5) for v in ideal_cnt]
+    rep_str = ''
+    for na, sc_a, sc_i, p in zip(actual_cnt, scaled_actual, scaled_ideal, sfs_p):
+      rep_str += '{:1.2f} '.format(p)
+      if sc_i <= sc_a:  # The | for the ideal comes before or overlaps with the last -
+        rep_str += '-' * (sc_i - 1) + ('|' if sc_i else '') + '-' * (sc_a - sc_i) + ' {:d}\n'.format(na)
+      else:  # The | comes beyond the last -
+        rep_str += '-' * sc_a + ' ' * (sc_i - sc_a) + '| {:d}\n'.format(na)
+    return rep_str
 
 
 def avoid_collisions(pos, stop, idx):
