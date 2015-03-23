@@ -1,29 +1,37 @@
 """Library to handle database interactions.
 
-tables in database (X is the chromosome number):
+The master list of variants are stored in M tables named master_chrom_1, master_chrom_2, ... master_chrom_M
 
-mitty.lib.variation.Variant -> var_X
-mitty.lib.variation.Chromosome -> samp_I_chrom_X
-mitty.lib.variation.Sample -> samples
+Columns::
 
-var_X
-rowid, pos, stop, ref, alt  rowid corresponds to index
+  rowid  - corresponds to index
+  pos    -
+  stop   -
+  ref    -
+  alt    -
+  p      - probability of variant (to make the sfs)
 
-sample_I_chrom_X
-rowid, index, gt  rowid is in order of variant. index corresponds to var_X
 
-samples
-rowid, generation, serial, fitness, p1, p2    p1, p2 are the serials of the parents. We now the generation is one less
+Sample data is stored in M tables named sample_chrom_1, ....
+
+Columns::
+
+  rowid  - sample id
+  gen    - generation
+  serial - serial within the generation
+  data   - binary blob
+
+          Chromosome data is stored as a sequence of 4N bytes
+          30 bits represent the index and 2 bits represent the genotype
+          This is stored as a blob in the vlist field
+
 """
 import sqlite3 as sq
-import mitty.lib.variation as vr
+import struct
 
+import numpy
 
-# def var_factory(cursor, row):
-#   """For speed, assumes we load the columns in the order they are in the db."""
-#   v = vr.new_variant(row[1], row[2], row[3], row[4])
-#   v.index = row[0]
-#   return v
+import mitty.lib.variants as vr
 
 
 def sample_table_name(sample_name, chrom_name):
@@ -35,74 +43,86 @@ def connect(db_name='population.sqlite3'):
   :param db_name: The database name
   :returns conn: connection object"""
   conn = sq.connect(db_name)
-  #conn.text_factory = str
-  #conn.row_factory = var_factory
   return conn
 
 
-def save_variant_master_list(conn, ml):
+def save_master_list(conn, chrom, ml):
   """
   :param conn: connection object
+  :param chrom: chromosome number
   :param ml: master list of variants
   :return: nothing
 
-  For now, we assume this is always a fresh database and we are writing all the variants in one go
+  THIS WIPES ANY PREVIOUS DATA AND WRITES THE LIST AFRESH
   """
-  for chrom in ml.keys():
-    conn.execute("CREATE TABLE chrom_{:d} (pos INTEGER, stop INTEGER, ref TEXT, alt TEXT)".format(chrom))
-    insert_clause = "INSERT INTO chrom_{:d} (rowid, pos, stop, ref, alt) VALUES (?, ?, ?, ?, ?)".format(chrom)
-    conn.executemany(insert_clause, (v.as_tuple() for v in ml[chrom].values()))
+  assert type(chrom) == int, 'Chromosome must be a number'
+  assert chrom > 0, 'Chromosome numbering starts at 1'
+  assert ml.sorted, 'Master list has not been sorted. Please check your program'
+  assert len(ml) <= 1073741823, 'Master list has more than 2^30-1 variants.'  # I want whoever gets here to mail me: kaushik.ghose@sbgenomics.com
+
+  conn.execute("DROP TABLE IF EXISTS master_chrom_{:d}".format(chrom))
+  conn.execute("CREATE TABLE master_chrom_{:d} (pos INTEGER, stop INTEGER, ref TEXT, alt TEXT, p FLOAT)".format(chrom))
+
+  insert_clause = "INSERT INTO master_chrom_{:d} (pos, stop, ref, alt, p) VALUES (?, ?, ?, ?, ?)".format(chrom)
+  conn.executemany(insert_clause, ml.variants.tolist())
   conn.commit()
 
 
-def erase_sample(sample_name, g, conn):
-  """Drop tables associated with this sample
-  :param sample_name: name of the sample
-  :param g: Genome object. Only needed for the chromosome ids
-  :param conn: The connection object.
+def load_master_list(conn, chrom):
   """
-  for chrom_name in g.keys():
-    conn.execute("DROP TABLE IF EXISTS {:s}".format(sample_table_name(sample_name, chrom_name)))
-
-
-def save_sample(sample_name, g, conn):
-  """Save the sample in the database
-  :param sample_name: name of the sample
-  :param g: Genome object
-  :param conn: The connection object.
-
-  Note: this erases previous data for this sample
+  :param conn: connection object
+  :param chrom: chromosome number
+  :returns ml: master list of variants
   """
-  erase_sample(sample_name, g, conn)
-  for k, chrom in g.iteritems():
-    table_name = sample_table_name(sample_name, k)
-    conn.execute("CREATE TABLE {:s} (pos INTEGER PRIMARY KEY, stop INTEGER, gt INTEGER, ref TEXT, alt TEXT)".format(table_name))
-    insert_clause = "INSERT INTO {:s}(pos, stop, gt, ref, alt) VALUES (?, ?, ?, ?, ?)".format(table_name)
-    conn.executemany(insert_clause, (c.as_tuple() for c in chrom))
+  assert type(chrom) == int, 'Chromosome must be a number'
+  assert chrom > 0, 'Chromosome numbering starts at 1'
+
+  # # Surely numpy has a better way of doing this, but fromiter does not work
+  # c = []
+  # for col in ['pos', 'stop', 'ref', 'alt', 'p']:
+  #   c += [[r for r in conn.execute("SELECT {:s} FROM master_chrom_{:d}".format(col, chrom))]]
+  #ml = vr.VariantList(*c)
+
+  dtype = [('pos', 'i4'), ('stop', 'i4'), ('ref', 'object'), ('alt', 'object'), ('p', 'f2')]
+  rows = [c for c in conn.execute("SELECT * FROM master_chrom_{:d}".format(chrom))]
+  ml = vr.VariantList()
+  ml.variants = numpy.core.records.fromrecords(rows, dtype=dtype)
+  ml.sorted = True  # We assume that this had been sorted etc. before saving
+  return ml
+
+
+def save_sample(conn, gen, serial, chrom, variants):
+  """Save the sample chromosomes into the database
+
+  :param conn: connection object
+  :param gen: generation
+  :param serial: serial number within the generation
+  :param chrom: chromosome number
+  :param variants: list of tuples as returned by generate_chromosome
+  :return: rowid corresponding to this sample
+
+  Chromosome data is stored as a sequence of 4N bytes
+  30 bits represent the index and 2 bits represent the genotype
+  This is stored as a blob in the vlist field
+  """
+  c = conn.cursor()
+  c.execute("CREATE TABLE IF NOT EXISTS sample_chrom_{:d} (gen INTEGER, serial INTEGER, vlist BLOB)".format(chrom))
+  c.execute("INSERT INTO sample_chrom_{:d} (gen, serial, vlist) VALUES (?, ?, ?)".format(chrom), (gen, serial,
+            sq.Binary(struct.pack('{:d}I'.format(len(variants)), *[v[0] << 2 | v[1] for v in variants]))))
   conn.commit()
+  return c.lastrowid
 
 
-def load_sample(sample_name, g, conn):
+def load_sample(conn, gen, serial, chrom):
   """Load the sample in the database
-  :param sample_name: name of the sample
-  :param g: Genome object. Only needed for the chromosome ids. Any actual data in this object will be erased
-  :param conn: The connection object.
-  :returns g implicitly (changes g in place)
+
+  :param conn: connection object
+  :param gen: generation
+  :param serial: serial number within the generation
+  :param chrom: chromosome number
+  :return: variants: list of tuples same as returned by generate_chromosome
   """
-  for k, chrom in g.iteritems():
-    table_name = sample_table_name(sample_name, k)
-    g[k] = [r for r in conn.execute("SELECT * FROM {:s}".format(table_name))]
-
-
-# def initialize_population_table(conn):
-#   """Create a new table to store population data.
-#   DESTROYS ANY EXISTING POPULATION TABLE
-#   :param conn: The connection object
-#   """
-#   conn.execute("DROP TABLE IF EXISTS population")
-#   conn.execute("CREATE TABLE population (gen INTEGER, serial INTEGER, p1 INTEGER, p2 INTEGER, "
-#                "FOREIGN KEY(p1) REFERENCES population(rowid), FOREIGN KEY(p2) REFERENCES population(rowid))")
-#
-#
-# def save_subpopulation(conn):
-
+  c = conn.cursor()
+  c.execute("SELECT vlist FROM sample_chrom_{:d} WHERE gen==? AND serial==?".format(chrom), (gen, serial))
+  row = next(c, None)
+  return [(b >> 2, b & 0x3) for b in struct.unpack('{:d}I'.format(len(row[0]) / 4), row[0])] if row is not None else []

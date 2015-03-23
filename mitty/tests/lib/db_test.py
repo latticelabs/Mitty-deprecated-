@@ -1,48 +1,47 @@
 import tempfile
 import os
-from nose.tools import assert_list_equal, assert_dict_equal
+from nose.tools import assert_list_equal, assert_dict_equal, assert_sequence_equal
+from nose.tools import assert_raises
+from numpy.testing import assert_array_equal
 
-from mitty.lib import db
-from mitty.lib.variation import HOMOZYGOUS as HOM, HET_01, HET_10
+import mitty.lib.variants as vr
+import mitty.lib.db as mdb
+
+
+def master_list_roundtrip_test():
+  """Master list round trip"""
+  pos = [1, 10, 20]
+  stop = [2, 11, 21]
+  ref = ['A', 'C', 'T']
+  alt = ['AA', 'CAT', 'G']
+  p = [0.1, 0.5, 0.9]
+  ml = vr.VariantList(pos, stop, ref, alt, p)
+
+  temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
+  os.close(temp_fp)
+  conn = mdb.connect(temp_name)
+
+  assert_raises(AssertionError, mdb.save_master_list, conn, 1, ml)  # We gotta sort this first
+
+  ml.sort()
+  mdb.save_master_list(conn, 1, ml)
+
+  ml2 = mdb.load_master_list(conn, 1)
+  assert_array_equal(ml.variants, ml2.variants)
 
 
 def sample_roundtrip_test():
   """Sample roundtrip (save and load from database)"""
+  chrom = [(1, 0), (2, 1), (3, 2), (1073741823, 2)]
+
   temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
   os.close(temp_fp)
-  conn = db.connect(temp_name)
+  conn = mdb.connect(temp_name)
 
-  c1 = [(1, 4, HOM, 'CAA', 'C'),
-        (13, 14, HET_10, 'C', 'G'),
-        (20, 21, HET_10, 'T', 'C'),
-        (26, 27, HOM, 'T', 'TCGA')]
-  c2 = [(4, 6, db.HOMOZYGOUS, 'CA', 'C'),
-        (13, 14, db.HET_10, 'C', 'G'),
-        (20, 21, db.HET_10, 'T', 'C'),
-        (26, 27, db.HOMOZYGOUS, 'T', 'TCGA')]
-  g = {'1': c1, '2': c2}
+  cid = mdb.save_sample(conn, 0, 0, 1, chrom)
+  assert cid == 1
 
-  db.save_sample('s1', g, conn)
-  rt_g = {'1': [], '2': []}
-  db.load_sample('s1', rt_g, conn)
-  assert_dict_equal(g, rt_g, rt_g)
-  os.remove(temp_name)
+  c2 = mdb.load_sample(conn, 0, 0, 1)
+  assert_sequence_equal(chrom, c2)
 
-
-def sample_overwrite_test():
-  """Overwrite sample"""
-  temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
-  os.close(temp_fp)
-  conn = db.connect(temp_name)
-  c1 = [(1, 4, db.HOMOZYGOUS, 'CAA', 'C'),
-        (13, 14, db.HET_10, 'C', 'G')]
-  c2 = [(4, 6, db.HOMOZYGOUS, 'CA', 'C'),
-        (20, 21, db.HET_10, 'T', 'C')]
-  g = {'1': c1}
-  db.save_sample('s1', g, conn)
-  g = {'2': c2}
-  db.save_sample('s1', g, conn)
-  rt_g = {'2': []}
-  db.load_sample('s1', rt_g, conn)
-  assert_dict_equal(g, rt_g, rt_g)
   os.remove(temp_name)
