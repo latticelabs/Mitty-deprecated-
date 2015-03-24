@@ -48,7 +48,7 @@ class Model:
               stop  - stop locations, (pos + 1 for SNPs)
               ref   - reference base,
               alt   - alt base,
-              p     - probability value for this variant
+              p     - probability value for this variant. These are uniformly distributed random values
     """
     assert 0 < seed < mitty.lib.SEED_MAX
     logger.debug('Master seed: {:d}'.format(seed))
@@ -64,7 +64,7 @@ class Model:
 
     # +1 because VCF files are 1 indexed
     #alts will be 0 if ref is not one of ACTG
-    return snp_locs + 1, snp_locs + 2, [ref[n] for n in snp_locs], base_subs, np.ones(len(snp_locs), dtype=float) * 0.1
+    return snp_locs + 1, snp_locs + 2, [ref[n] for n in snp_locs], base_subs, freq_rng.rand(len(snp_locs))
 
 
 def test():
