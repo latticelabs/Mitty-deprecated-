@@ -42,21 +42,21 @@ class VariantList:
     self.variants = self.variants[idx]
     self.sorted = True
 
-  def balance_probabilities(self, p, sfs):
+  def balance_probabilities(self, p, f):
     """Use the ideal site probability spectrum to rescale the probability values
     :param p: probability values
-    :param sfs: proportion
+    :param f: proportion
 
-    sum(sfs) = 1.0 for this to work"""
-    assert len(p) == len(sfs)
-    assert abs(1.0 - sum(sfs)) < 1e-6
+    sum(f) = 1.0 for this to work"""
+    assert len(p) == len(f)
+    assert abs(1.0 - sum(f)) < 1e-6
     idx = self.variants['p'].argsort()  # We need the data sorted by probability value for this to work
     n_max = len(self)
     n = 0
-    for pi, f in zip(p, sfs):
-      self.variants['p'][n:n + int(f * n_max + .5)] = pi  # Over index is handled gracefully
-      n += int(f * n_max + .5)
-    self.site_freq_spectrum = (p, sfs)
+    for p_i, f_i in zip(p, f):
+      self.variants['p'][idx[n:n + int(f_i * n_max + .5)]] = p_i  # Over index is handled gracefully
+      n += int(f_i * n_max + .5)
+    self.site_freq_spectrum = (p, f)
 
   def select(self, rng):
     """Use the rng to select variants from the master list based on their probabilities
