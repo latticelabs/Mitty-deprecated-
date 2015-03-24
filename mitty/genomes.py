@@ -65,7 +65,6 @@ __doc__ = __cmd__ + __param__
 
 import json
 import os
-from collections import deque
 import time
 
 import docopt
@@ -110,42 +109,19 @@ def generate(cmd_args):
   base_dir = os.path.dirname(cmd_args['--pfile'])     # Other files will be with respect to this
   params = json.load(open(cmd_args['--pfile'], 'r'))
 
-  #conn = db.connect(mitty.lib.rpath(base_dir, params['files']['dbfile']))  # We save our data to this db
+  pop_db_name = mitty.lib.rpath(base_dir, params['files']['dbfile'])
 
-  ref_genome = mio.Fasta(multi_fasta=params['files'].get('reference_file', None),
-                         multi_dir=params['files'].get('reference_dir', None))  # TODO: Ability to switch off persistence flag
+  ref = mio.Fasta(multi_fasta=mitty.lib.rpath(base_dir, params['files'].get('reference_file', None)),
+                  multi_dir=mitty.lib.rpath(base_dir, params['files'].get('reference_dir', None)))  # TODO: Ability to switch off persistence flag
   master_seed = int(params['rng']['master_seed'])
   assert 0 < master_seed < mitty.lib.SEED_MAX
 
-  pop_size = int(params['population_size'])
   sample_size = int(params['sample_size'])
+  chromosomes = params['chromosomes']
 
-
-
-
-
-  generations = deque()
-  ml = {}
-
-  seeds = mitty.lib.get_seeds(master_seed, n_generations)
-
-  g1 = gen.create_initial_generation(init_pop_size)
-  models = load_variant_models(ref_genome, params.get('initial_pop_variant_models', []))
-  add_denovo_variants_from_models_to_population(g1, models, ml, seeds[0])
-  generations.append(g1)
-
-  models = load_variant_models(ref_genome, params.get('steady_state_variant_models', []))
-  for n, seed in enumerate(seeds[1:]):
-    logger.debug('Running generation {:d} ({:d})'.format(n, len(g1)))
-    logger.debug(g1)
-    g1 = gen.create_next_generation(g1, fitness, mater, breeder, culler)
-    gen.genomify(g1, crosser)
-    add_denovo_variants_from_models_to_population(g1, models, ml, seed)
-    # generations.append(g1)
-    # if n > n_ancestors:
-    #   _ = generations.popleft()  # Get rid of earliest ancestors to save space
-
-  #db.save_variant_master_list(conn, ml)
+  run_simulations(pop_db_name, ref, sfs_model=load_site_frequency_model(params['site_model']),
+                  variant_models=load_variant_models(ref, params['variant_models']),
+                  chromosomes=chromosomes, sample_size=sample_size, master_seed=master_seed)
 
 
 def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=[], sample_size=1, master_seed=2):
@@ -164,46 +140,17 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
   conn.close()
 
 
+def load_site_frequency_model(sfs_model_json):
+  k, v = sfs_model_json.items()[0]
+  return mitty.lib.load_sfs_plugin(k).Model(**v)
+
+
 def load_variant_models(ref, model_param_json):
-  """Given a list of models and parameters load the relevant modules and store the parameters as tuples"""
+  """Given a json snippet corresponding to models and their parameters, load them"""
   return [mitty.lib.load_variant_plugin(k).Model(ref=ref, **v)
           for model_json in model_param_json
           for k, v in model_json.iteritems()]  # There really is only one key (the model name) and the value is the
                                                # parameter list
-
-
-def add_denovo_variants_from_models_to_genome(g1, models, ml, master_seed=1):
-  """Given an original genome add any variants that come off the variant_generator. g1 is modified in place
-
-  :param dict g1: genome
-  :param variant_generators: list of variant generator iterators
-  :param ml: master list of variants
-  :returns: g1 is modified in place
-  """
-  for model, seed in zip(models, mitty.lib.get_seeds(master_seed, len(models))):
-    dnv = model.variants(seed=seed)
-    # dnv is a dict with keys as chrom numbers and items as list of lists (pos, ref, alt, gt) from the variant plugin
-    for chrom, pvd in dnv.iteritems():  # pvd is a list of lists (pos, ref, alt, gt) from the variant plugin
-      dnv = vr.create_gtv_iterable(pvd[0], pvd[1], pvd[2], pvd[3])
-      if chrom not in g1:  # Need to make a new chromosome for this.
-        g1[chrom] = vr.Chromosome()
-      if chrom not in ml:  # Need to make a new chromosome for this.
-        ml[chrom] = {}
-      vr.add_denovo_variants_to_chromosome(g1[chrom], dnv, ml[chrom])
-
-
-def add_denovo_variants_from_models_to_population(p, models, ml, master_seed=1):
-  """Given a population (list of genomes) and a model list, repeatedly apply the models to each genome
-
-  :param p: list of gen.Sample from the same generation
-  :param mdl_list: list of models
-  :param ref: reference genome
-  :param ml: master list of variants
-  :param master_seed: this will drive seeds for this part of the simulation
-  :returns: modifies all genomes in p, in place
-  """
-  for g, seed in zip(p, mitty.lib.get_seeds(master_seed, len(p))):
-    add_denovo_variants_from_models_to_genome(g.genome, models, ml, seed)
 
 
 def write(cmd_args):
@@ -253,35 +200,6 @@ def print_variant_model_list():
 def print_population_model_list():
   pass
 
-  #   print_model_list()
-  #   exit(0)
-  # if cmd_args['explain']:
-  #   if '<model_name>' in cmd_args:
-  #     explain_model(cmd_args['<model_name>'])
-  #   exit(0)
-  #
-  # level = logging.DEBUG if cmd_args['-v'] else logging.WARNING
-  # logging.basicConfig(level=level)
-  #
-  # import os
-  # base_dir = os.path.dirname(cmd_args['--pfile'])     # Other files will be with respect to this
-  # params = json.load(open(cmd_args['--pfile'], 'r'))
-  # ref_genome = FastaGenome(seq_dir=mitty.lib.rpath(base_dir, params['files']['genome']), persist=True)
-  # vcf_file_name = mitty.lib.rpath(base_dir, params['files']['output vcf'])
-  # models = load_variant_model_list(params['denovo_variant_models'])
-  # master_seed = params['rng']['master_seed']
-  #
-  # t0 = time.time()
-  # g1 = main(ref=ref_genome, models=models, master_seed=master_seed)
-  # t1 = time.time()
-  # logger.debug('Computed variants in {:f} s'.format(t1 - t0))
-  #
-  # t0 = time.time()
-  # mitty.lib.io.vcf_save_gz(g1, vcf_file_name)
-  # t1 = time.time()
-  # logger.debug('Saved VCF file in {:f} s'.format(t1 - t0))
-  #
-  #
 
 if __name__ == "__main__":
   cli()

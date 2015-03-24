@@ -2,6 +2,7 @@ from nose.tools import assert_raises
 
 import os
 import tempfile
+import json
 
 import sqlite3 as sq
 
@@ -42,3 +43,44 @@ def run_simulations_test():
     assert len(chrom) > 0
 
   assert_raises(sq.OperationalError, mdb.load_sample, conn, 0, 0, 3)  # Should be no such table
+
+
+def integration_test():
+  """Command line program"""
+  test_params = {
+    "files": {
+      "reference_dir": example_data_dir,
+      "dbfile": "test.db"
+    },
+    "rng": {
+      "master_seed": 1
+    },
+    "sample_size": 1,
+    "site_model": {
+        "double_exp": {
+          "k1": 0.1,
+          "k2": 2.0,
+          "p0": 0.001,
+          "p1": 0.2,
+          "bin_cnt": 30
+        }
+    },
+    "chromosomes": [1, 2],
+    "variant_models": [
+      {
+        "snp": {
+          "p": 0.001
+        }
+      }
+    ]
+  }
+
+  tdir = tempfile.gettempdir()
+  pfile = os.path.join(tdir, 'pfile.json')
+  json.dump(test_params, open(pfile, 'w'))
+
+  genomes.generate({'--pfile': pfile})
+
+  conn = mdb.connect(os.path.join(tdir, 'test.db'))
+  ml = mdb.load_master_list(conn, 1)
+  assert len(ml) > 0
