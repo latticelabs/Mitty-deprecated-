@@ -1,12 +1,12 @@
-import vcf
-import io
 import tempfile
 import os
 
+import vcf
+
 import mitty.lib.io as mio
-#import mitty.lib.variation as vr
-#from mitty.lib.io import *
+import mitty.lib.variants as vr
 from mitty.tests import *  # To get definitions from the setup script
+from nose.tools import assert_raises
 #from nose.tools import assert_list_equal, assert_dict_equal
 
 
@@ -36,6 +36,44 @@ def multi_dir_test():
   assert len(ref) == 1
   assert len(ref[3]) == 717
   assert len(ref) == 2
+
+
+def vcf_contextmanager_test():
+  """VCF context manager/writing"""
+  def do_this(tn):
+    with mio.vcf_for_writing(tn, ['a', 'b']) as fp:
+      fp.write('a')
+
+  temp_fp, temp_name = tempfile.mkstemp(suffix='.vcf.gz')
+  os.close(temp_fp)
+
+  assert_raises(NotImplementedError, do_this, temp_name)
+
+  pos = [1, 10, 20, 30]
+  stop = [2, 11, 21, 35]
+  ref = ['A', 'C', 'T', 'GAAAA']
+  alt = ['AA', 'CAT', 'G', 'G']
+  p = [0.1, 0.5, 0.9, 0.2]
+  ml = vr.VariantList(pos, stop, ref, alt, p)
+  chrom = [(0, 0), (2, 1), (3,2)]
+
+  with mio.vcf_for_writing(temp_name, ['a']) as fp:
+    mio.write_chromosomes_to_vcf(fp, chrom=2, chrom_list=[chrom], master_list=ml)
+
+  rdr = vcf.Reader(filename=temp_name)
+  v = rdr.next()
+  assert v.POS == 1
+  assert v.REF == 'A'
+  assert v.ALT[0].sequence == 'AA'
+  assert v.genotype('a').gt_type == 1
+
+  v = rdr.next()
+  v = rdr.next()
+  assert v.POS == 30
+  assert v.REF == 'GAAAA'
+  assert v.ALT[0].sequence == 'G'
+  assert v.genotype('a').gt_type == 2
+
 
 
 # def master_list_round_trip_test():
