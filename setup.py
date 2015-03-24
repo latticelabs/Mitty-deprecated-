@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages, Extension
 
-cy_modules = ['mitty.lib.variation', 'mitty.lib.util', 'mitty.lib.generations']
+cy_modules = ['mitty.lib.util']
 
 
 def make_extension_modules(post_processor, source_file_extension):
@@ -25,6 +25,7 @@ setup(
     include_package_data=True,
     entry_points={
       # Register the built in plugins
+      'mitty.plugins.sfs': ['double_exp = mitty.plugins.site_frequency.double_exp'],
       'mitty.plugins.variants': ['snp = mitty.plugins.variants.snp_plugin',
                                  'delete = mitty.plugins.variants.delete_plugin',
                                  'bounded_delete = mitty.plugins.variants.bounded_len_delete_plugin',
