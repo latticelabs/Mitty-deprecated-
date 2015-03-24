@@ -117,6 +117,30 @@ def merge_test():
   assert_array_equal(chrom, [(0, 0), (1, 1), (2, 2), (3, 2)])
 
 
+def merge_test1():
+  """Merge stragglers"""
+  pos = [1, 2, 3, 4, 5]
+  z0 = [2, 4]
+  z1 = [3]
+  chrom = vr.merge_homozygous(pos, z0, z1)
+  assert_array_equal(chrom, [(2, 0), (3, 1), (4, 0)])
+
+  pos = [1, 2, 3, 4, 5]
+  z0 = [0, 1]
+  z1 = [2, 3]
+  chrom = vr.merge_homozygous(pos, z0, z1)
+  assert_array_equal(chrom, [(0, 0), (1, 0), (2, 1), (3, 1)])
+
+
+def merge_test2():
+  """Merging staggered"""
+  pos = [1, 2, 3, 4, 5]
+  z0 = [1, 2, 4]
+  z1 = [0, 3]
+  chrom = vr.merge_homozygous(pos, z0, z1)
+  assert_array_equal(chrom, [(0, 1), (1, 0), (2, 0), (3, 1), (4, 0)])
+
+
 def zip_test():
   """Zip chromosomes together"""
   pos = [1, 2, 20]

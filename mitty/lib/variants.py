@@ -151,13 +151,15 @@ def merge_homozygous(pos, z0, z1):
   n0, n1 = 0, 0
   chrom = []
   while n0 < n_max0 and n1 < n_max1:
-    while n0 < n_max0 and n1 < n_max1 and pos[z0[n0]] < pos[z1[n1]]:
+    if pos[z0[n0]] < pos[z1[n1]]:
       chrom += [(z0[n0], 0)]
       n0 += 1
-    while n0 < n_max0 and n1 < n_max1 and pos[z1[n1]] < pos[z0[n0]]:
+      continue
+    if pos[z0[n0]] > pos[z1[n1]]:
       chrom += [(z1[n1], 1)]
       n1 += 1
-    # When we get here, we are either equal, or we've run out of stuff
+      continue
+    # When we get here, we are equal
     if n0 < n_max0 and n1 < n_max1:  # We are equal. Are we homozygous, or just a one in a million het?
       if z0[n0] == z1[n1]:  # Yes, a hom
         chrom += [(z0[n0], 2)]
@@ -166,4 +168,13 @@ def merge_homozygous(pos, z0, z1):
         chrom += [(z1[n1], 1)]
       n0 += 1
       n1 += 1  # Lets move along
+
+  # Now zip in the remainders
+  while n0 < n_max0:
+    chrom += [(z0[n0], 0)]
+    n0 += 1
+  while n1 < n_max1:
+    chrom += [(z1[n1], 1)]
+    n1 += 1
+
   return chrom
