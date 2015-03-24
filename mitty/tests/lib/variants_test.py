@@ -1,6 +1,6 @@
 import mitty.lib.variants as vr
 from nose.tools import assert_sequence_equal
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 
 def initialize_test():
@@ -58,6 +58,23 @@ def sort_test():
 
   assert l.variants['pos'][1] == 5
   assert l.variants['alt'][2] == 'CAT'
+
+
+def balance_test():
+  """Balance the site frequency spectrum"""
+  pos = [1, 10, 20, 30]
+  stop = [2, 11, 21, 31]
+  ref = ['A', 'C', 'T', 'G']
+  alt = ['T', 'G', 'G', 'A']
+  p = [0.1, 0.9, 0.3, 0.2]
+  l = vr.VariantList(pos, stop, ref, alt, p)
+
+  # The core things here are to make sure the sfs is balanced AND the rank ordering is maintained as far as possible
+  p_sfs = [0.1, 0.2, 0.3]
+  f_sfs = [0.5, 0.25, 0.25]
+
+  l.balance_probabilities(p_sfs, f_sfs)
+  assert_array_almost_equal(l.variants['p'], [0.1, 0.3, 0.2, 0.1], decimal=3)
 
 
 def select_test():
