@@ -1,60 +1,59 @@
 #!python
-__cmd__ = """This command line program generates a database of genomes given a simulation parameter file.
+__cmd__ = """Generate simulated genomes from a simulation parameter file.
 
 Commandline::
 
   Usage:
-    genomes generate --pfile=PFILE  [--continue] [-v|-V]
-    genomes write (vcf|vcfs) --dbfile=DBFILE  (<gen> <serial>)... [-v|-V]
-    genomes explain (parameters|variantmodel <model_name>|populationmodel <model_name>)
+    genomes generate --pfile=PFILE  [-v|-V]
+    genomes write (vcf|vcfs) --dbfile=DBFILE  (<serial>)... [-v|-V]
+    genomes explain (parameters|(variantmodel|populationmodel) <model_name>)
     genomes list (variantmodels|populationmodels)
 
   Options:
     generate                Create a database of genomes by running the models specified
     --pfile=PFILE           Name for parameter file
-    --continue              Continue on from an interrupted population simulation
-    -v                      Dump detailed logger messages
-    write                   Write out the genomes
-    vcf                     Write out genomes in one multi-sample vcf file
+    -v                      Dump log messages
+    -V                      Dump detailed log messages
+    write                   Write out genome data from the database file in vcf format
+    vcf                     Write out all genomes in one multi-sample vcf file
     vcfs                    Write out the genomes in separate single sample vcf files
     --dbfile=DBFILE         Name of genome database file
-    gen                     Generation of sample
-    serial                  Serial number of sample
-    explain                 Explain something
-    parameters              Pring an example parameter file
-    variantmodel            Access the variant model plugins
-    <model_name>            The model to explain.
-    populationmodel         Access the population model plugins
+    <serial>                Serial number of sample
+    explain                 Explain the parameters/variant model/population model
     list                    List the models
 """
 
 __param__ = """Parameter file example::
 
   {
+    # Path notes: an absolute path is left as is. A relative path is taken relative to the parameter file location
     "files": {
-      "reference": "/Users/kghose/Data/hg38/",  # An absolute path is left as is
-      "dbfile": "Out/test.vcf.gz"          # a relative path is taken relative to the location of the *script*
+      "reference_dir": "/Users/kghose/Data/hg38/",  # Use this if the reference consists of multiple .fa files in a directory
+      "reference_file": "/Users/kghose/Data/hg38/hg38.fa.gz",  # Use this if reference is a single multi-fasta file
+      "dbfile": "Out/test.db"  # Output database file
     },
     "rng": {
       "master_seed": 1
     },
-    "generations": 10,            # Number of generations to run the model
-    "initial_pop_size": 10,       # Number of genomes to start with, created denovo
-    "generations_to_keep": 1,     # How many generations (in addition to the current one) should we store in the database
-    "initial_pop_variant_models": [   # The list of variant models should come under this key
+    "sample_size": 1,            # How many samples to generate
+    "site_model": {
+        "double_exp": {   # Name of model that handles the site frequency spectrum
+          "k1": 0.1,     # Population model parameters
+          "k2": 2.0,
+          "p0": 0.001,
+          "p1": 0.2,
+          "bin_cnt": 30
+        }
+      }
+    "chromosomes": [1, 2]        # Chromosomes to apply the models to
+    "variant_models": [          # The list of variant models should come under this key
       {
         "snp": {                 # name of the model. To get a list of plugin names type "denovo models"
-          "chromosome": [1, 2],  # Chromosomes to apply this model to
-          "phet": 0.5,           # Parameters required by the model
-          "p": 0.01,
-          "poisson_rng_seed": 1,
-          "base_sub_rng_seed": 2
+          "p": 0.01              # Parameters required by the model
         }
       },
       {                          # We can chain as many models as we wish
         "delete" : {             # We can repeat models if we want
-          "chromosome": [1],
-          "phet": 0.5,
           "p": 0.01
         }
       }
@@ -70,14 +69,13 @@ from collections import deque
 import time
 
 import docopt
+import numpy as np
 
 import mitty.lib
+import mitty.lib.util as mutil
 import mitty.lib.io as mio
-import mitty.lib.db as db
-
-#from mitty.lib.genome import FastaGenome
-import mitty.lib.variation as vr
-import mitty.lib.generations as gen
+import mitty.lib.db as mdb
+import mitty.lib.variants as vr
 
 import logging
 logger = logging.getLogger(__name__)
@@ -107,26 +105,24 @@ def cli():  # pragma: no cover
 
 
 def generate(cmd_args):
-  """Run a simulation based on the parameter file."""
+  """Generate genomes based on the simulation parameter file"""
 
   base_dir = os.path.dirname(cmd_args['--pfile'])     # Other files will be with respect to this
   params = json.load(open(cmd_args['--pfile'], 'r'))
 
-  conn = db.connect(mitty.lib.rpath(base_dir, params['files']['dbfile']))
+  #conn = db.connect(mitty.lib.rpath(base_dir, params['files']['dbfile']))  # We save our data to this db
 
-  ref_genome = mio.load_multi_fasta_gz(mitty.lib.rpath(base_dir, params['files']['reference']))
+  ref_genome = mio.Fasta(multi_fasta=params['files'].get('reference_file', None),
+                         multi_dir=params['files'].get('reference_dir', None))  # TODO: Ability to switch off persistence flag
   master_seed = int(params['rng']['master_seed'])
   assert 0 < master_seed < mitty.lib.SEED_MAX
 
-  init_pop_size = int(params['initial_pop_size'])
-  n_generations = int(params['generations'])
-  n_ancestors = int(params['generations_to_keep'])
+  pop_size = int(params['population_size'])
+  sample_size = int(params['sample_size'])
 
-  fitness = gen.StockFitness(ref_genome)
-  mater = gen.StockMater(incest_generations=1, master_seed=master_seed)
-  breeder = gen.StockBreeder(child_factor=2.5)
-  culler = gen.StockCuller(100)
-  crosser = gen.StockCrossOver(ref_genome)
+
+
+
 
   generations = deque()
   ml = {}
@@ -150,6 +146,22 @@ def generate(cmd_args):
     #   _ = generations.popleft()  # Get rid of earliest ancestors to save space
 
   #db.save_variant_master_list(conn, ml)
+
+
+def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=[], sample_size=1, master_seed=2):
+  seed_rng = np.random.RandomState(seed=master_seed)
+  conn = mdb.connect(db_name=pop_db_name)
+  for ch in chromosomes:
+    ml = vr.VariantList()
+    for m in variant_models:
+      ml.add(*m.get_variants(ref[ch], ch, *sfs_model.get_spectrum(), seed=seed_rng.randint(mutil.SEED_MAX)))
+    ml.sort()
+    ml.balance_probabilities(*sfs_model.get_spectrum())
+    mdb.save_master_list(conn, ch, ml)
+    rng = np.random.RandomState(seed_rng.randint(mutil.SEED_MAX))
+    for n in range(sample_size):
+      mdb.save_sample(conn, 0, n, ch, ml.generate_chromosome(rng))
+  conn.close()
 
 
 def load_variant_models(ref, model_param_json):
@@ -210,8 +222,9 @@ def explain(cmd_args):
 def explain_variant_model(name):
   try:
     mod = mitty.lib.load_variant_plugin(name)
-  except ImportError:
-    print('No model named {:s}'.format(name))
+  except ImportError as e:
+    print('{0}: {1}'.format(name, e))
+    print('Problem with loading model')
     return
   try:
     print('\n---- ' + name + ' (' + mod.__name__ + ') ----')
