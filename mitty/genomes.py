@@ -5,12 +5,14 @@ Commandline::
 
   Usage:
     genomes generate --pfile=PFILE  [-v|-V]
+    genomes dryrun --pfile=PFILE
     genomes write (vcf|vcfs) --dbfile=DBFILE  (<serial>)... [-v|-V]
     genomes explain (parameters|(variantmodel|populationmodel) <model_name>)
     genomes list (variantmodels|populationmodels)
 
   Options:
     generate                Create a database of genomes by running the models specified
+    dryrun                  Don't run simulation, but print out useful info about it
     --pfile=PFILE           Name for parameter file
     -v                      Dump log messages
     -V                      Dump detailed log messages
@@ -95,6 +97,8 @@ def cli():  # pragma: no cover
 
   if cmd_args['generate']:
     generate(cmd_args)
+  elif cmd_args['dryrun']:
+    dry_run(cmd_args)
   elif cmd_args['write']:
     write(cmd_args)
   elif cmd_args['explain']:
@@ -103,9 +107,23 @@ def cli():  # pragma: no cover
     print_list(cmd_args)
 
 
-def generate(cmd_args):
-  """Generate genomes based on the simulation parameter file"""
+def dry_run(cmd_args):
+  """Don't run simulation, but print out useful info about it"""
+  base_dir = os.path.dirname(cmd_args['--pfile'])     # Other files will be with respect to this
+  params = json.load(open(cmd_args['--pfile'], 'r'))
+  sfs_model = load_site_frequency_model(params['site_model'])
+  print('Site frequency model')
+  print(sfs_model)
 
+  p, f = sfs_model.get_spectrum()
+  print('1/sum(p_i * f_i) = {:2.1f}'.format(1./(p*f).sum()))
+
+
+def generate(cmd_args):
+  """Generate genomes based on the simulation parameter file
+
+  :param cmd_args: from doc opt parsing
+  """
   base_dir = os.path.dirname(cmd_args['--pfile'])     # Other files will be with respect to this
   params = json.load(open(cmd_args['--pfile'], 'r'))
 
@@ -125,6 +143,16 @@ def generate(cmd_args):
 
 
 def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=[], sample_size=1, master_seed=2):
+  """Save the generated genome(s) into the database.
+
+  :param pop_db_name:    name of database to save to
+  :param ref:            Fasta object reference genome
+  :param sfs_model:      site frequency model object
+  :param variant_models: list of variant model objects
+  :param chromosomes:    list of chromosomes to simulate
+  :param sample_size:    number of diploid genomes to simulate
+  :param master_seed:    seed for all random number generations
+  """
   seed_rng = np.random.RandomState(seed=master_seed)
   conn = mdb.connect(db_name=pop_db_name)
   for ch in chromosomes:
