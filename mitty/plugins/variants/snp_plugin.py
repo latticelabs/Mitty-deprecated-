@@ -26,7 +26,7 @@ _example_params = eval(__example_param_text)
 
 
 class Model:
-  def __init__(self, ref=[], p=0.01, t_mat=None):
+  def __init__(self, p=0.01, t_mat=None, **kwargs):
     assert 0 <= p <= 1.0, "Probability out of range"
     if t_mat is None:
       t_mat = [[0.32654629, 0.17292732, 0.24524503, 0.25528135],
