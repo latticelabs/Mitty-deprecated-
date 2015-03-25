@@ -68,6 +68,7 @@ __doc__ = __cmd__ + __param__
 import json
 import os
 import time
+import sys
 
 import docopt
 import numpy as np
@@ -137,9 +138,12 @@ def generate(cmd_args):
   sample_size = int(params['sample_size'])
   chromosomes = params['chromosomes']
 
+  t0 = time.time()
   run_simulations(pop_db_name, ref, sfs_model=load_site_frequency_model(params['site_model']),
                   variant_models=load_variant_models(ref, params['variant_models']),
                   chromosomes=chromosomes, sample_size=sample_size, master_seed=master_seed)
+  t1 = time.time()
+  logger.debug('Took {:f}s'.format(t1 - t0))
 
 
 def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=[], sample_size=1, master_seed=2):
@@ -165,7 +169,22 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
     rng = np.random.RandomState(seed_rng.randint(mutil.SEED_MAX))
     for n in range(sample_size):
       mdb.save_sample(conn, 0, n, ch, ml.generate_chromosome(rng))
+      progress_bar('Chrom {:d} '.format(ch), float(n)/sample_size, 80)
+    print('')
   conn.close()
+
+
+def progress_bar(title, f, cols):
+  """Draw a nifty progress bar.
+  '\r' trick from http://stackoverflow.com/questions/15685063/print-a-progress-bar-processing-in-python
+
+  :param title: leading text to print
+  :param f:     fraction completed
+  :param cols:  how many columns wide should the bar be
+  """
+  x = int(f * cols + 0.5)
+  sys.stdout.write('\r' + title + '[' + '.' * x + ' ' * (cols - x) + ']')
+  sys.stdout.flush()
 
 
 def load_site_frequency_model(sfs_model_json):
