@@ -1,30 +1,26 @@
 """This stock site frequency plugin employs a double exponential as a simple site frequency model.
 
-f =
-
-
+f = a1 * exp(-p * k1) + a2 * exp(-p * k2)   (f is normalized such that sum(f) = 1.0)
 """
-
-
 import numpy as np
 
-import mitty.lib
-import mitty.lib.util as mutil
 import logging
 logger = logging.getLogger(__name__)
 
 __example_param_text = """
 {
-  "p": 0.01,              # probability that the SNP will happen at any given base
-  "t_mat": [[ 0.32654629,  0.17292732,  0.24524503,  0.25528135],  # Base transition matrix
-            [ 0.3489394,   0.25942695,  0.04942584,  0.3422078],   # Leading diagonal is ignored
-            [ 0.28778188,  0.21087004,  0.25963262,  0.24171546],
-            [ 0.21644706,  0.20588717,  0.24978216,  0.32788362]],
+  "double_exp": {
+    "k1": 0.1,
+    "k2": 2.0,
+    "p0": 0.001,
+    "p1": 0.2,
+    "bin_cnt": 30
+  }
 }
 """
 
 _description = """
-This is the stock SNP plugin. A typical parameter set resembles
+This is a simple site frequency plugin. A typical parameter set resembles
 """ + __example_param_text
 
 _example_params = eval(__example_param_text)
@@ -68,5 +64,5 @@ class Model:
     scaling_factor = float(size_x) / self.f.max()
     rep_str = ''
     for p_i, f_i in zip(self.p, self.f):
-      rep_str += '{:1.2f} '.format(p_i) + '-' * int(scaling_factor * f_i + 0.5) + '\n'
+      rep_str += '{:1.3f} '.format(p_i) + '-' * int(scaling_factor * f_i + 0.5) + '\n'
     return rep_str
