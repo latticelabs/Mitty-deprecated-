@@ -38,11 +38,10 @@ setup(
       'mitty.benchmarking.tools': ['bwa = mitty.benchmarking.tool_wrappers.bwa'],
       # Command line scripts
       'console_scripts': ['genomes = mitty.genomes:cli',
-                          'population = mitty.population:cli',
                           'vcf2reads = mitty.vcf2reads:cli',
-                          'reads2bam = mitty.reads2bam:cli',
+                          'reads2bam = mitty.util.reads2bam:cli',
                           'splitta = mitty.util.splitta:cli',
-                          'checkbam = mitty.benchmarking.checkbam:cli']
+                          'checkbam = mitty.util.checkbam:cli']
     },
     install_requires=[
       'setuptools>=0.7',

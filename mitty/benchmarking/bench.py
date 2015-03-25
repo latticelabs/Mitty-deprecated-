@@ -2,13 +2,13 @@
 import os
 import json
 from collections import OrderedDict
+import logging
 
 import pysam
 
-from mitty.benchmarking import checkbam
 import mitty.lib
+from mitty.util import checkbam
 
-import logging
 logger = logging.getLogger(__name__)
 
 
