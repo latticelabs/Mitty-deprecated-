@@ -226,12 +226,30 @@ def inspect(cmd_args):
   pop_db_name = cmd_args['--dbfile']
   conn = mdb.connect(db_name=pop_db_name)
   chrom = mdb.chromosomes_in_db(conn)
-  print('{:d} chromosomes'.format(len(chrom)))
-  print('{:d} samples'.format(mdb.samples_in_db(conn)))
+  n_s = mdb.samples_in_db(conn)
+  len_stats = np.empty((len(chrom), 2), dtype=float)
+  sample_max = 100
+  for i, c in enumerate(chrom):
+    if n_s < sample_max:  # Take every sample
+      ss = range(n_s)
+    else:
+      ss = np.random.randint(0, n_s, sample_max)
+    s_len = np.empty(len(ss), dtype=float)
+    for j, s in enumerate(ss):
+      s_len[j] = len(mdb.load_sample(conn, 0, s, c))
+    len_stats[i, 0], len_stats[i, 1] = s_len.mean(), s_len.std()
+
+  print('{:s}:'.format(pop_db_name))
+  print('  {:d} chromosomes'.format(len(chrom)))
+  print('  {:d} samples'.format(n_s))
   print('Master list:')
   print('  Chrom\tVariants')
   for c in chrom:
     print('  {:d}\t{:d}'.format(c, mdb.variants_in_master_list(conn, c)))
+  print('Samples:')
+  print('  Chrom\tAvg variants\tStd variants')
+  for i, c in enumerate(chrom):
+    print('  {:d}\t{:<9.2f}\t{:.2f}'.format(c, len_stats[i, 0], len_stats[i, 1]))
 
 
 def explain(cmd_args):
