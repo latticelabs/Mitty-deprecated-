@@ -7,7 +7,7 @@ Commandline::
     genomes generate --pfile=PFILE  [-v|-V]
     genomes dryrun --pfile=PFILE
     genomes inspect --dbfile=DBFILE
-    genomes write (vcf|vcfs) --dbfile=DBFILE  (<serial>)... [-v|-V]
+    genomes write (vcf|vcfs) --dbfile=DBFILE  [<serial>]... [-v|-V]
     genomes explain (parameters|(variantmodel|populationmodel) <model_name>)
     genomes list (variantmodels|populationmodels)
 
@@ -22,7 +22,7 @@ Commandline::
     vcf                     Write out all genomes in one multi-sample vcf file
     vcfs                    Write out the genomes in separate single sample vcf files
     --dbfile=DBFILE         Name of genome database file
-    <serial>                Serial number of sample
+    serial                  Serial number of sample
     explain                 Explain the parameters/variant model/population model
     list                    List the models
 """
@@ -205,7 +205,17 @@ def load_variant_models(ref, model_param_json):
 
 
 def write(cmd_args):
-  pass
+  pop_db_name = cmd_args['--dbfile']
+  samples = cmd_args['<serial>']
+  conn = mdb.connect(db_name=pop_db_name)
+  if len(samples) == 0:
+    samples = [n for n in range(mdb.samples_in_db(conn))]
+
+  for spl in [int(s) for s in samples]:
+    with mio.vcf_for_writing('{:s}_s{:06d}.vcf'.format(pop_db_name, spl), ['s{:d}'.format(spl)]) as fp:
+      for ch in mdb.chromosomes_in_db(conn):
+        ml = mdb.load_master_list(conn, ch)
+        mio.write_chromosomes_to_vcf(fp, chrom=ch, chrom_list=[mdb.load_sample(conn, 0, spl, ch)], master_list=ml)
 
 
 def inspect(cmd_args):
