@@ -52,9 +52,7 @@ import numpy
 import vcf
 
 import mitty.lib
-import mitty.lib.io
-from mitty.lib.variation import *  # Yes, it's THAT important
-from mitty.lib.genome import FastaGenome
+import mitty.lib.io as mio
 
 DNA_complement = string.maketrans('ATCGN', 'TAGCN')
 pos_null = numpy.empty((0,), dtype='u4')  # Convenient, used in apply_one_variant
@@ -84,7 +82,7 @@ logger = logging.getLogger(__name__)
 
 
 #TODO: make this more elegant + move it to Cython?
-def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_len=10e6, over_lap_len=200):
+def get_variant_sequence_generator(ref_chrom_seq='', c1=None, chrom_copy=0, block_len=10e6, over_lap_len=200):
   """Return the computed data sequence in blocks
   Args:
     ref_chrom_seq   : (string) the reference sequence
@@ -120,17 +118,17 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
   ptr, var_ptr = 0, 0
   var_ptr_start = var_ptr
   var_ptr_finish = var_ptr + block_len
-  c1_iter = c1.__iter__()
+  c1_iter = c1.__iter__() if c1 else [].__iter__()
   variant = next(c1_iter, None)
   while ptr < l_ref_seq:
-    if variant is None or (ptr < variant.vd.POS - 1):  # We should copy just the reference
+    if variant is None or (ptr < variant.POS - 1):  # We should copy just the reference
       if variant is None:  # No more variants left
         ref_ptr_start = ptr
         ptr = min(ptr + var_ptr_finish - var_ptr, l_ref_seq)
         var_ptr += ptr - ref_ptr_start
       else:  # Copy as much of the reference as we can
         ref_ptr_start = ptr
-        ptr = min(ptr + var_ptr_finish - var_ptr, variant.vd.POS - 1)
+        ptr = min(ptr + var_ptr_finish - var_ptr, variant.POS - 1)
         var_ptr += ptr - ref_ptr_start
       seq_fragments += [ref_chrom_seq[ref_ptr_start:ptr]]
       arr_fragments += [[
@@ -139,17 +137,16 @@ def get_variant_sequence_generator(ref_chrom_seq='', c1=[], chrom_copy=0, block_
         numpy.zeros(ptr - ref_ptr_start, dtype='u4')
       ]]
     else:  # data entry exists and we are on it, expand it
-      alt, ref, het = variant.vd.ALT, variant.vd.REF, variant.het
-      if (het == HET_10 and cc == 1) or (het == HET_01 and cc == 0):
-        # This variation is on the other copy
+      alt, ref, het = variant.ALT[0].sequence, variant.REF, variant.samples[0].gt_nums
+      if (het[0] == '0' and cc == 0) or (het[2] == '0' and cc == 1):# This variation is on the other copy
         variant = next(c1_iter, None)  # Load the next data and move on as if nothing happened
         continue
 
       l_alt, l_ref = len(alt), len(ref)
       ptr_adv = l_ref  # When we get to this function, our pointer is sitting at POS
-      pos_alt = numpy.arange(variant.vd.POS, variant.vd.POS + min(l_alt, l_ref), dtype='u4')  # We might have ref bases in alt
+      pos_alt = numpy.arange(variant.POS, variant.POS + min(l_alt, l_ref), dtype='u4')  # We might have ref bases in alt
       if l_alt > l_ref:  # This was an insertion
-        pos_alt = numpy.concatenate((pos_alt, numpy.ones(l_alt - l_ref, dtype='u4') * variant.vd.stop))
+        pos_alt = numpy.concatenate((pos_alt, numpy.ones(l_alt - l_ref, dtype='u4') * (variant.POS + l_ref)))
 
       seq_fragments += [alt]
       arr_fragments += [[pos_alt, numpy.empty(l_alt, dtype='u4'), numpy.arange(l_alt, dtype='u4')]]
@@ -233,11 +230,11 @@ def package_reads(template_list, pos_array):
       read.POS, read.CIGAR = align_pos, cigar
 
 
-def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
+def reads_from_genome(ref=None, rdr=None, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
   """
   Args:
     ref          : reference genome
-    g1           : genome as retrieved from vcf file
+    rdr          : pyvcf reader
     chrom_list   : list of chromosomes to take reads from
     read_model   : read model
     model_params :
@@ -271,7 +268,11 @@ def reads_from_genome(ref={}, g1={}, chrom_list=[], read_model=None, model_param
     if seq is None: continue
     for cc in [0, 1]:
       logger.debug('Taking reads from copy {:d}'.format(cc))
-      vsg = get_variant_sequence_generator(ref_chrom_seq=seq, c1=g1.get(chrom, []), chrom_copy=cc,
+      try:
+        c1 = rdr.fetch(chrom, start=0) if rdr else None
+      except ValueError:
+        c1 = None
+      vsg = get_variant_sequence_generator(ref_chrom_seq=seq, c1=c1 if rdr else None, chrom_copy=cc,
                                            block_len=block_len, over_lap_len=overlap_len)
       for this_idx, this_seq_block, this_c_seq_block, this_arr in vsg:
         tl = read_model.generate_reads(this_idx, this_seq_block, this_c_seq_block, this_arr,
@@ -315,13 +316,13 @@ def write_reads_to_file(fastq_fp, fastq_c_fp, template_list, chrom, cc, serial_n
         fastq_c_fp.write('@' + qname + '\n' + template[1].corrupt_seq + '\n+\n' + template[1].PHRED + '\n')
 
 
-def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
+def main(fastq_fp, fastq_c_fp=None, ref=None, rdr=None, chrom_list=[], read_model=None, model_params={}, block_len=10e6, master_seed=1):
   """
   Args:
     fastq_fp         : File pointer
     fastq_c_fp       : File pointer for corrupted reads
     ref              : Reference genome
-    g1               : Variant genome (in VCF format)
+    rdr              : pyvcf reader
     chrom_list       : A list of completed Read objects. Paired reads come sequentially
     read_model       : Read model we imported
     model_params     : Copied from params['model_params']
@@ -334,7 +335,7 @@ def main(fastq_fp, fastq_c_fp=None, ref={}, g1={}, chrom_list=[], read_model=Non
   assert 0 < master_seed < mitty.lib.SEED_MAX
 
   model_params['generate_corrupted_reads'] = False if fastq_c_fp is None else True
-  read_gen = reads_from_genome(ref=ref, g1=g1, chrom_list=chrom_list,
+  read_gen = reads_from_genome(ref=ref, rdr=rdr, chrom_list=chrom_list,
                                read_model=read_model, model_params=model_params,
                                block_len=block_len, master_seed=master_seed)
   serial_no = 0
@@ -389,18 +390,17 @@ def cli():
   base_dir = os.path.dirname(args['--pfile'])     # Other files will be with respect to this
   params = json.load(open(args['--pfile'], 'r'))
 
-  ref_genome = FastaGenome(seq_dir=mitty.lib.rpath(base_dir, params['files']['genome']))
+  ref = mio.Fasta(multi_dir=mitty.lib.rpath(base_dir, params['files'].get('genome')))  # TODO: Ability to switch off persistence flag
+
   fp = open(mitty.lib.rpath(base_dir, params['files']['output prefix']) + '.fq', 'w')
   fp_c = open(mitty.lib.rpath(base_dir, params['files']['output prefix']) + '_c.fq', 'w') if args['--corrupt'] else None
-  g1 = mitty.lib.io.parse_vcf(
-    vcf.Reader(filename=mitty.lib.rpath(base_dir, params['files']['input vcf'])), chrom_list=params['take reads from']) \
-      if params['files'].get('input vcf', None) else {}
+  rdr = vcf.Reader(filename=mitty.lib.rpath(base_dir, params['files']['input vcf'])) if params['files'].get('input vcf', None) else None
   read_model = mitty.lib.load_reads_plugin(params['read_model'])
   model_params = params['model_params']
 
   import time
   t_start = time.time()
-  serial_no = main(fp, fastq_c_fp=fp_c, ref=ref_genome, g1=g1, chrom_list=params['take reads from'],
+  serial_no = main(fp, fastq_c_fp=fp_c, ref=ref, rdr=rdr, chrom_list=params['take reads from'],
        read_model=read_model, model_params=model_params, block_len=int(args['--block_len']),
        master_seed=int(params['rng']['master_seed']))
   t_end = time.time()

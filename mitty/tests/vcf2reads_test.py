@@ -2,8 +2,8 @@ from numpy.testing import assert_equal
 
 from mitty.lib.read import Read
 from mitty.vcf2reads import get_variant_sequence_generator, package_reads, reads_from_genome, write_reads_to_file
-from mitty.lib.variation import new_variation, HOMOZYGOUS, HET_01, HET_10
-
+#from mitty.lib.variation import new_variation, HOMOZYGOUS, HET_01, HET_10
+import vcf
 
 def generator_test1():
   """Sequence expand no variants."""
@@ -31,10 +31,22 @@ def generator_test1():
   assert cs == 'CTGA'
 
 
+HET_10 = '1|0'
+HET_01 = '0|1'
+HOMOZYGOUS = '1|1'
+
+
+def new_variation(pos, stop, ref, alt, het):
+  cl = vcf.model.make_calldata_tuple('gt_nums')(het)
+  _alt = vcf.model._Substitution(alt)
+  return vcf.model._Record(1, pos, '.', ref, [_alt], 100, 'PASS', '.', 'GT', {}, [cl])
+
+
 def generator_test2():
-  """Sequence expand with one data"""
+  """Sequence expand with one variant"""
   seq = 'ACTGACTGACTGACT'
   #     'ATGACTGACTGACT'
+
   c1 = [new_variation(1, 3, 'AC', 'A', HOMOZYGOUS)]
   vg = get_variant_sequence_generator(ref_chrom_seq=seq, c1=c1, chrom_copy=0, block_len=4, over_lap_len=1)
 
@@ -278,7 +290,7 @@ def reads_from_genome_test1():
   ref = {1: 'ACTGACTG'}
   chrom_list = [1, 2]  # The '2' should return us no reads, as genome has no chromosome 2
   # Generate data sequence in one go
-  rg = reads_from_genome(ref=ref, g1={}, chrom_list=chrom_list,
+  rg = reads_from_genome(ref=ref, rdr=None, chrom_list=chrom_list,
                          read_model=read_model, model_params=model_params,
                          block_len=10, master_seed=1)
   tl, chrom, cc = rg.next()
@@ -289,7 +301,7 @@ def reads_from_genome_test1():
   assert tl[1][1].perfect_seq == 'AG', tl
 
   # Sequence in blocks, results should be the same
-  rg = reads_from_genome(ref=ref, g1={}, chrom_list=chrom_list,
+  rg = reads_from_genome(ref=ref, rdr=None, chrom_list=chrom_list,
                          read_model=read_model, model_params=model_params,
                          block_len=6, master_seed=1)
   tl, chrom, cc = rg.next()
