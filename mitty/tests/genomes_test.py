@@ -46,7 +46,7 @@ def run_simulations_test():
 
 
 def integration_test():
-  """Command line program"""
+  """'genomes' command line program"""
   test_params = {
     "files": {
       "reference_dir": example_data_dir,

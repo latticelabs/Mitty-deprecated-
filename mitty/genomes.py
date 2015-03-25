@@ -187,7 +187,7 @@ def progress_bar(title, f, cols):
   :param cols:  how many columns wide should the bar be
   """
   x = int(f * cols + 0.5)
-  sys.stdout.write('\r' + title + '[' + '.' * x + ' ' * (cols - x) + ']')
+  sys.stdout.write('\r' + title + '[' + '.' * x + ' ' * (cols - x) + ']\r')
   sys.stdout.flush()
 
 
