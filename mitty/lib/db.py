@@ -126,3 +126,20 @@ def load_sample(conn, gen, serial, chrom):
   c.execute("SELECT vlist FROM sample_chrom_{:d} WHERE gen==? AND serial==?".format(chrom), (gen, serial))
   row = next(c, None)
   return [(b >> 2, b & 0x3) for b in struct.unpack('{:d}I'.format(len(row[0]) / 4), row[0])] if row is not None else []
+
+
+def chromosomes_in_db(conn):
+  c = conn.execute("SELECT name FROM sqlite_master WHERE TYPE='table' AND name LIKE 'master_chrom_%'")
+  return [int(row[0].replace('master_chrom_','')) for row in c]
+
+
+def variants_in_master_list(conn, chrom):
+  c = conn.execute("SELECT COUNT(rowid) FROM master_chrom_{:d}".format(chrom))
+  return c.next()[0]
+
+
+def samples_in_db(conn):
+  c = conn.execute("SELECT name FROM sqlite_master WHERE TYPE='table' AND name LIKE 'sample_chrom_%'")
+  table = c.next()[0]
+  c = conn.execute("SELECT COUNT(rowid) FROM {:s}".format(table))
+  return int(c.next()[0])

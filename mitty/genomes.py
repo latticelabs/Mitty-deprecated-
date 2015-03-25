@@ -6,6 +6,7 @@ Commandline::
   Usage:
     genomes generate --pfile=PFILE  [-v|-V]
     genomes dryrun --pfile=PFILE
+    genomes inspect --dbfile=DBFILE
     genomes write (vcf|vcfs) --dbfile=DBFILE  (<serial>)... [-v|-V]
     genomes explain (parameters|(variantmodel|populationmodel) <model_name>)
     genomes list (variantmodels|populationmodels)
@@ -17,6 +18,7 @@ Commandline::
     -v                      Dump log messages
     -V                      Dump detailed log messages
     write                   Write out genome data from the database file in vcf format
+    inspect                 Print useful info about the genomes in a database file
     vcf                     Write out all genomes in one multi-sample vcf file
     vcfs                    Write out the genomes in separate single sample vcf files
     --dbfile=DBFILE         Name of genome database file
@@ -102,6 +104,8 @@ def cli():  # pragma: no cover
     dry_run(cmd_args)
   elif cmd_args['write']:
     write(cmd_args)
+  elif cmd_args['inspect']:
+    inspect(cmd_args)
   elif cmd_args['explain']:
     explain(cmd_args)
   elif cmd_args['list']:
@@ -202,6 +206,22 @@ def load_variant_models(ref, model_param_json):
 
 def write(cmd_args):
   pass
+
+
+def inspect(cmd_args):
+  """Print some useful information about the database
+
+  :param cmd_args: parsed arguments
+  """
+  pop_db_name = cmd_args['--dbfile']
+  conn = mdb.connect(db_name=pop_db_name)
+  chrom = mdb.chromosomes_in_db(conn)
+  print('{:d} chromosomes'.format(len(chrom)))
+  print('{:d} samples'.format(mdb.samples_in_db(conn)))
+  print('Master list:')
+  print('  Chrom\tVariants')
+  for c in chrom:
+    print('  {:d}\t{:d}'.format(c, mdb.variants_in_master_list(conn, c)))
 
 
 def explain(cmd_args):
