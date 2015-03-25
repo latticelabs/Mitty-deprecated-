@@ -1,10 +1,12 @@
 import os
-import mitty.lib.variation
+#import mitty.lib.variation
 import mitty.lib.io
 import mitty.lib
 from shutil import rmtree
 # These need to be available to the rest of the test suite
 source_tree_root = os.path.join(os.path.dirname(__file__))
+example_data_dir = os.path.join(source_tree_root, 'data')
+
 example_fasta_genome = os.path.join(source_tree_root, 'data')
 data_dir = 'mitty_test_data_dir'  # tempfile.mkdtemp()
 small_vcf_name = os.path.join(data_dir, 'small.vcf')
@@ -50,10 +52,12 @@ def create_fake_bam():
 def setup_package():
   """In order to speed up tests we create a complete chain of data starting from a whole genome file and ending at
   simulated reads. If this function fails it means Mitty is broken in some fundamental way."""
-  os.makedirs(data_dir)
-  create_small_vcf()
-  create_null_reads()
+  pass
+  # os.makedirs(data_dir)
+  # create_small_vcf()
+  # create_null_reads()
 
 
 def teardown_package():
-  rmtree(data_dir)
+  pass
+  # rmtree(data_dir)
