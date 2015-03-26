@@ -148,12 +148,14 @@ def generate(cmd_args):
   t0 = time.time()
   run_simulations(pop_db_name, ref, sfs_model=load_site_frequency_model(params['site_model']),
                   variant_models=load_variant_models(ref, params['variant_models']),
-                  chromosomes=chromosomes, sample_size=sample_size, master_seed=master_seed)
+                  chromosomes=chromosomes, sample_size=sample_size, master_seed=master_seed,
+                  progress_bar_func=progress_bar)
   t1 = time.time()
   logger.debug('Took {:f}s'.format(t1 - t0))
 
 
-def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=[], sample_size=1, master_seed=2):
+def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=[], sample_size=1, master_seed=2,
+                    progress_bar_func=None):
   """Save the generated genome(s) into the database.
 
   :param pop_db_name:    name of database to save to
@@ -163,6 +165,7 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
   :param chromosomes:    list of chromosomes to simulate
   :param sample_size:    number of diploid genomes to simulate
   :param master_seed:    seed for all random number generations
+  :param progress_bar_func: if a proper progress bar function is passed, this will show a progress bar as we complete
   """
   seed_rng = np.random.RandomState(seed=master_seed)
   conn = mdb.connect(db_name=pop_db_name)
@@ -176,8 +179,9 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
     rng = np.random.RandomState(seed_rng.randint(mutil.SEED_MAX))
     for n in range(sample_size):
       mdb.save_sample(conn, 0, n, ch, ml.generate_chromosome(rng))
-      progress_bar('Chrom {:d} '.format(ch), float(n)/sample_size, 80)
-    print('')
+      if progress_bar_func is not None:
+        progress_bar_func('Chrom {:d} '.format(ch), float(n)/sample_size, 80)
+    if progress_bar_func is not None: print('')
     mdb.save_chromosome_metadata(conn, ch, ref.sequences[ch][1], ref[ch])
   conn.close()
 
