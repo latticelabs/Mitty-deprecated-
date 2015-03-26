@@ -63,6 +63,7 @@ class Model:
     size_x = 80  # columns
     scaling_factor = float(size_x) / self.f.max()
     rep_str = ''
+    rep_str += ' p                 f\n'
     for p_i, f_i in zip(self.p, self.f):
-      rep_str += '{:1.3f} '.format(p_i) + '-' * int(scaling_factor * f_i + 0.5) + '\n'
+      rep_str += '{:1.3f} '.format(p_i) + '-' * int(scaling_factor * f_i + 0.5) + '{:.3f}\n'.format(f_i)
     return rep_str
