@@ -178,6 +178,7 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
       mdb.save_sample(conn, 0, n, ch, ml.generate_chromosome(rng))
       progress_bar('Chrom {:d} '.format(ch), float(n)/sample_size, 80)
     print('')
+    mdb.save_chromosome_metadata(conn, ch, ref.sequences[ch][1], ref[ch])
   conn.close()
 
 
@@ -190,7 +191,7 @@ def progress_bar(title, f, cols):
   :param cols:  how many columns wide should the bar be
   """
   x = int(f * cols + 0.5)
-  sys.stdout.write('\r' + title + '[' + '.' * x + ' ' * (cols - x) + ']\r')
+  sys.stdout.write('\r' + title + '[' + '.' * x + ' ' * (cols - x) + ']')
   sys.stdout.flush()
 
 
@@ -230,7 +231,7 @@ def inspect(cmd_args):
   conn = mdb.connect(db_name=pop_db_name)
   chrom = mdb.chromosomes_in_db(conn)
   n_s = mdb.samples_in_db(conn)
-  len_stats = np.empty((len(chrom), 2), dtype=float)
+  variant_stats = np.empty((len(chrom), 3), dtype=float)
   sample_max = 100
   for i, c in enumerate(chrom):
     if n_s < sample_max:  # Take every sample
@@ -240,19 +241,20 @@ def inspect(cmd_args):
     s_len = np.empty(len(ss), dtype=float)
     for j, s in enumerate(ss):
       s_len[j] = len(mdb.load_sample(conn, 0, s, c))
-    len_stats[i, 0], len_stats[i, 1] = s_len.mean(), s_len.std()
+    _, seq_len = mdb.load_chromosome_metadata(conn, c)
+    variant_stats[i, :] = (s_len.mean(), s_len.std(), 1e6 * s_len.mean() / float(seq_len))
 
-  print('{:s}:'.format(pop_db_name))
-  print('  {:d} chromosomes'.format(len(chrom)))
-  print('  {:d} samples'.format(n_s))
-  print('Master list:')
-  print('  Chrom\tVariants')
+  print('{:s}'.format(pop_db_name))
+  print('\t{:d} chromosomes'.format(len(chrom)))
+  print('\t{:d} samples'.format(n_s))
+  print('Population')
+  print('\tChrom\tVariants')
   for c in chrom:
-    print('  {:d}\t{:d}'.format(c, mdb.variants_in_master_list(conn, c)))
-  print('Samples:')
-  print('  Chrom\tAvg variants\tStd variants')
+    print('\t{:d}\t{:d}'.format(c, mdb.variants_in_master_list(conn, c)))
+  print('Samples')
+  print('\tChrom\tAvg variants\tStd variants\tVariants/megabase')
   for i, c in enumerate(chrom):
-    print('  {:d}\t{:<9.2f}\t{:.2f}'.format(c, len_stats[i, 0], len_stats[i, 1]))
+    print('\t{:d}\t{:<9.2f}\t{:<9.2f}\t{:.1f}'.format(c, variant_stats[i, 0], variant_stats[i, 1], variant_stats[i, 2]))
 
 
 def explain(cmd_args):
