@@ -27,11 +27,12 @@ setup(
       # Register the built in plugins
       'mitty.plugins.sfs': ['double_exp = mitty.plugins.site_frequency.double_exp'],
       'mitty.plugins.variants': ['snp = mitty.plugins.variants.snp_plugin',
-                                 'delete = mitty.plugins.variants.delete_plugin',
-                                 'bounded_delete = mitty.plugins.variants.bounded_len_delete_plugin',
-                                 'insert = mitty.plugins.variants.insert_plugin',
-                                 'inversion = mitty.plugins.variants.inversion_plugin',
-                                 'low_entropy_insert = mitty.plugins.variants.low_entropy_insert_plugin'],
+                                 #'delete = mitty.plugins.variants.delete_plugin',
+                                 #'bounded_delete = mitty.plugins.variants.bounded_len_delete_plugin',
+                                 #'insert = mitty.plugins.variants.insert_plugin',
+                                 #'inversion = mitty.plugins.variants.inversion_plugin',
+                                 #'low_entropy_insert = mitty.plugins.variants.low_entropy_insert_plugin'
+                                 ],
       'mitty.plugins.reads': ['simple_sequential = mitty.plugins.reads.simple_sequential_plugin',
                               'simple_illumina = mitty.plugins.reads.simple_illumina_plugin'],
       # Register example tool wrapper
@@ -39,6 +40,7 @@ setup(
       # Command line scripts
       'console_scripts': ['genomes = mitty.genomes:cli',
                           'vcf2reads = mitty.vcf2reads:cli',
+                          'inspect = mitty.util.inspect:cli',
                           'reads2bam = mitty.util.reads2bam:cli',
                           'splitta = mitty.util.splitta:cli',
                           'checkbam = mitty.util.checkbam:cli']

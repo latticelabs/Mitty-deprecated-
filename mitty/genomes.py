@@ -6,7 +6,6 @@ Commandline::
   Usage:
     genomes generate --pfile=PFILE  [-v|-V]
     genomes dryrun --pfile=PFILE
-    genomes inspect --dbfile=DBFILE
     genomes write (vcf|vcfs) --dbfile=DBFILE  [<serial>]... [-v|-V]
     genomes explain (parameters|(variantmodel|populationmodel) <model_name>)
     genomes list (variantmodels|populationmodels)
@@ -18,7 +17,6 @@ Commandline::
     -v                      Dump log messages
     -V                      Dump detailed log messages
     write                   Write out genome data from the database file in vcf format
-    inspect                 Print useful info about the genomes in a database file
     vcf                     Write out all genomes in one multi-sample vcf file
     vcfs                    Write out the genomes in separate single sample vcf files
     --dbfile=DBFILE         Name of genome database file
@@ -104,8 +102,6 @@ def cli():  # pragma: no cover
     dry_run(cmd_args)
   elif cmd_args['write']:
     write(cmd_args)
-  elif cmd_args['inspect']:
-    inspect(cmd_args)
   elif cmd_args['explain']:
     explain(cmd_args)
   elif cmd_args['list']:
@@ -171,7 +167,7 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
   """
   seed_rng = np.random.RandomState(seed=master_seed)
   conn = mdb.connect(db_name=pop_db_name)
-  p, f = sfs_model.get_spectrum() if sfs_model is not None else None, None
+  p, f = sfs_model.get_spectrum() if sfs_model is not None else (None, None)
   for ch in chromosomes:
     ml = vr.VariantList()
     for m in variant_models:
@@ -229,41 +225,6 @@ def write(cmd_args):
       for ch in mdb.chromosomes_in_db(conn):
         ml = mdb.load_master_list(conn, ch)
         mio.write_chromosomes_to_vcf(fp, chrom=ch, chrom_list=[mdb.load_sample(conn, 0, spl, ch)], master_list=ml)
-
-
-def inspect(cmd_args):
-  """Print some useful information about the database
-
-  :param cmd_args: parsed arguments
-  """
-  pop_db_name = cmd_args['--dbfile']
-  conn = mdb.connect(db_name=pop_db_name)
-  chrom = mdb.chromosomes_in_db(conn)
-  n_s = mdb.samples_in_db(conn)
-  variant_stats = np.empty((len(chrom), 3), dtype=float)
-  sample_max = 100
-  for i, c in enumerate(chrom):
-    if n_s < sample_max:  # Take every sample
-      ss = range(n_s)
-    else:
-      ss = np.random.randint(0, n_s, sample_max)
-    s_len = np.empty(len(ss), dtype=float)
-    for j, s in enumerate(ss):
-      s_len[j] = len(mdb.load_sample(conn, 0, s, c))
-    _, seq_len = mdb.load_chromosome_metadata(conn, c)
-    variant_stats[i, :] = (s_len.mean(), s_len.std(), 1e6 * s_len.mean() / float(seq_len))
-
-  print('{:s}'.format(pop_db_name))
-  print('\t{:d} chromosomes'.format(len(chrom)))
-  print('\t{:d} samples'.format(n_s))
-  print('Population')
-  print('\tChrom\tVariants')
-  for c in chrom:
-    print('\t{:d}\t{:d}'.format(c, mdb.variants_in_master_list(conn, c)))
-  print('Samples')
-  print('\tChrom\tAvg variants\tStd variants\tVariants/megabase')
-  for i, c in enumerate(chrom):
-    print('\t{:d}\t{:<9.2f}\t{:<9.2f}\t{:.1f}'.format(c, variant_stats[i, 0], variant_stats[i, 1], variant_stats[i, 2]))
 
 
 def explain(cmd_args):
