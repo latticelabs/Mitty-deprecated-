@@ -52,11 +52,14 @@ class Model:
     """
     assert 0 < seed < mitty.lib.SEED_MAX
     logger.debug('Master seed: {:d}'.format(seed))
-    assert type(p) == np.ndarray, 'Site Freq spectrum should be numpy array'
-    assert type(f) == np.ndarray, 'Site Freq spectrum should be numpy array'
-    assert abs(1.0 - f.sum()) < 1e-6, 'Site freq spectrum should sum to 1.0'
 
-    p_eff = self.p / (p * f).sum()  # Effective per-base probability for master list
+    if p is not None:
+      assert type(p) == np.ndarray, 'Site Freq spectrum should be numpy array'
+      assert type(f) == np.ndarray, 'Site Freq spectrum should be numpy array'
+      assert abs(1.0 - f.sum()) < 1e-6, 'Site freq spectrum should sum to 1.0'
+      p_eff = self.p / (p * f).sum()  # Effective per-base probability for master list
+    else:
+      p_eff = self.p
 
     base_loc_rng, base_t_rng, freq_rng = mutil.initialize_rngs(seed, 3)
     snp_locs = np.array([x for x in mutil.place_poisson(base_loc_rng, p_eff, len(ref)) if ref[x] != 'N'], dtype='i4')
