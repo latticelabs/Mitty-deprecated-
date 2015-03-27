@@ -114,14 +114,16 @@ def cli():  # pragma: no cover
 
 def dry_run(cmd_args):
   """Don't run simulation, but print out useful info about it"""
-  base_dir = os.path.dirname(cmd_args['--pfile'])     # Other files will be with respect to this
   params = json.load(open(cmd_args['--pfile'], 'r'))
-  sfs_model = load_site_frequency_model(params['site_model'])
-  print('Site frequency model')
-  print(sfs_model)
-
-  p, f = sfs_model.get_spectrum()
-  print('1/sum(p_i * f_i) = {:2.1f}'.format(1./(p*f).sum()))
+  sfs_model = load_site_frequency_model(params.get('site_model', None))
+  if sfs_model:
+    print('Site frequency model')
+    print(sfs_model)
+    p, f = sfs_model.get_spectrum()
+    if len(p):  # Don't print this for a dud spectrum
+      print('1/sum(p_i * f_i) = {:2.1f}'.format(1./(p*f).sum()))
+  else:
+    print('No site model')
 
 
 def generate(cmd_args):
@@ -146,7 +148,7 @@ def generate(cmd_args):
   chromosomes = params['chromosomes']
 
   t0 = time.time()
-  run_simulations(pop_db_name, ref, sfs_model=load_site_frequency_model(params['site_model']),
+  run_simulations(pop_db_name, ref, sfs_model=load_site_frequency_model(params.get('site_model', None)),
                   variant_models=load_variant_models(ref, params['variant_models']),
                   chromosomes=chromosomes, sample_size=sample_size, master_seed=master_seed,
                   progress_bar_func=progress_bar)
@@ -169,12 +171,13 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
   """
   seed_rng = np.random.RandomState(seed=master_seed)
   conn = mdb.connect(db_name=pop_db_name)
+  p, f = sfs_model.get_spectrum() if sfs_model is not None else None, None
   for ch in chromosomes:
     ml = vr.VariantList()
     for m in variant_models:
-      ml.add(*m.get_variants(ref[ch], ch, *sfs_model.get_spectrum(), seed=seed_rng.randint(mutil.SEED_MAX)))
+      ml.add(*m.get_variants(ref[ch], ch, p, f, seed=seed_rng.randint(mutil.SEED_MAX)))
     ml.sort()
-    ml.balance_probabilities(*sfs_model.get_spectrum())
+    if sfs_model is not None: ml.balance_probabilities(*sfs_model.get_spectrum())
     mdb.save_master_list(conn, ch, ml)
     rng = np.random.RandomState(seed_rng.randint(mutil.SEED_MAX))
     for n in range(sample_size):
@@ -200,6 +203,8 @@ def progress_bar(title, f, cols):
 
 
 def load_site_frequency_model(sfs_model_json):
+  if sfs_model_json is None:
+    return None
   k, v = sfs_model_json.items()[0]
   return mitty.lib.load_sfs_plugin(k).Model(**v)
 
