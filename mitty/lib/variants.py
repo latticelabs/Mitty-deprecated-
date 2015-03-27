@@ -96,7 +96,7 @@ class VariantList:
       sfs_p, sfs = self.site_freq_spectrum
       ideal_cnt = [f * self.variants.shape[0] for f in sfs]
     else:
-      sfs_p = np.linspace(0, 1.0, num=11)  # Default is to histogram in 11 bins
+      sfs_p = np.linspace(0, self.variants['p'].max(), num=11)  # Default is to histogram in 11 bins
       ideal_cnt = [0 for _ in range(11)]
 
     # Now histogram the actual data
