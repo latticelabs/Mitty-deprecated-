@@ -29,6 +29,7 @@ def expand_sequence(ref_seq, ml, chrom, copy):
         pos_alt += len(alt[c[0]])
       else:
         alt_fragments += [ref[c[0]]]
+        pos_alt += len(ref[c[0]])
       pos_ref = stop[c[0]]
       c = next(c_iter, None)
   alt_fragments += [ref_seq[pos_ref:]]
