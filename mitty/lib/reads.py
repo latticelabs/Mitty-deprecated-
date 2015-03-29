@@ -9,7 +9,12 @@ def expand_sequence(ref_seq, ml, chrom, copy):
   :param ml:     master list of variants
   :param chrom:  list of variants, referring to master list
   :param copy:   0/1 which copy of the chromosome
-  :return alt_seq, dseq: consensus sequence and array used by roll_cigars to determine POS and CIGAR strings for reads
+  :return alt_seq, beacons: consensus sequence and array used by roll_cigars to determine POS and CIGAR strings for reads
+
+  beacons -> recarray with the fields
+              pos_ref: position on ref seq
+              pos_alt: position on alt seq
+              delta:  +k for insertions of length k, -k for deletions of length k, 0 for SNPs
   """
   pos_ref, pos_alt = 0, 0  # Current position in ref and alt coordinates
   alt_fragments = []
@@ -25,7 +30,7 @@ def expand_sequence(ref_seq, ml, chrom, copy):
     else:
       if c[1] == 2 or c[1] == copy:
         alt_fragments += [alt[c[0]]]
-        beacons += [[pos_ref, pos_alt, len(alt[c[0]]) - len(ref[c[0]])]]
+        beacons += [(pos_ref, pos_alt, len(alt[c[0]]) - len(ref[c[0]]))]
         pos_alt += len(alt[c[0]])
       else:
         alt_fragments += [ref[c[0]]]
@@ -33,11 +38,8 @@ def expand_sequence(ref_seq, ml, chrom, copy):
       pos_ref = stop[c[0]]
       c = next(c_iter, None)
   alt_fragments += [ref_seq[pos_ref:]]
-  return ''.join(alt_fragments), beacons
-
-
-#def roll_cigars(ml, )
-
+  dtype = [('ref_pos', 'i4'), ('alt_pos', 'i4'), ('delta', 'i4')]
+  return ''.join(alt_fragments), np.rec.fromrecords(beacons, dtype=dtype) if len(beacons) else np.rec.recarray((0, 3), dtype=dtype)
 
 
 from ctypes import *
