@@ -154,7 +154,7 @@ def write_chromosomes_to_vcf(fp, chrom=1, chrom_list=[], master_list=None):
   wr = fp.write
   ch = str(chrom)
   GT = ['1|0', '0|1', '1|1']
-  pos = master_list.variants['pos']
+  pos = master_list.variants['pos'] + 1  # VCF files are 1 indexed.
   ref = master_list.variants['ref']
   alt = master_list.variants['alt']
   for idx, gt in chrom_list[0]:

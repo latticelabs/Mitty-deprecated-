@@ -67,7 +67,7 @@ class Model:
 
     # +1 because VCF files are 1 indexed
     #alts will be 0 if ref is not one of ACTG
-    return snp_locs + 1, snp_locs + 2, [ref[n] for n in snp_locs], base_subs, freq_rng.rand(len(snp_locs))
+    return snp_locs, snp_locs + 1, [ref[n] for n in snp_locs], base_subs, freq_rng.rand(len(snp_locs))
 
 
 def test():
@@ -76,7 +76,7 @@ def test():
   m = Model(p=0.1)
   pos, stop, ref, alt, p = m.get_variants(ref_seq[1], 1, np.array([0.2]), np.array([1.0]), seed=10)
   for p, r in zip(pos, ref):
-    assert r == ref_seq[pos - 1]
+    assert r == ref_seq[pos]
 
 
 if __name__ == "__main__":

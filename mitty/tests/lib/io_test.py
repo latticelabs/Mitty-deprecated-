@@ -62,14 +62,14 @@ def vcf_contextmanager_test():
 
   rdr = vcf.Reader(filename=temp_name)
   v = rdr.next()
-  assert v.POS == 1
+  assert v.POS == 2
   assert v.REF == 'A'
   assert v.ALT[0].sequence == 'AA'
   assert v.genotype('a').gt_type == 1
 
   v = rdr.next()
   v = rdr.next()
-  assert v.POS == 30
+  assert v.POS == 31
   assert v.REF == 'GAAAA'
   assert v.ALT[0].sequence == 'G'
   assert v.genotype('a').gt_type == 2
