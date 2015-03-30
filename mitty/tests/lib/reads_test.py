@@ -11,49 +11,50 @@ def expand_seq_test1():
   alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 0)
 
   assert ref_seq == alt_seq
-  assert_sequence_equal(beacons, [])
+  assert_sequence_equal(beacons[1:-1], [])
 
 
 def expand_seq_test2():
   """Sequence expand one variant of each type"""
-  #          123456789012345
+  #          012345678901234
   ref_seq = 'ACTGACTGACTGACT'
 
-  pos = [4]
-  stop = [5]
+  pos = [3]
+  stop = [4]
   ref = ['G']
   alt = ['T']
   p = [0.1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
   chrom = [(0, 1)]
-  #        123456789012345
+  #        012345678901234
   #ref     ACTGACTGACTGACT
   m_alt = 'ACTTACTGACTGACT'
   alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 0)
   assert ref_seq == alt_seq, alt_seq
-  assert_sequence_equal(beacons, [], str(beacons))
+  assert_sequence_equal(beacons[1:-1], [], str(beacons))
 
   alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 1)
   assert alt_seq == m_alt, alt_seq
-  assert_sequence_equal(beacons.tolist(), [(3, 3, 0)])
+  assert_sequence_equal(beacons[1:-1].tolist(), [(3, 3, 0)])
 
-  pos = [4]
-  stop = [5]
+  pos = [3]
+  stop = [4]
   ref = ['G']
   alt = ['GAAA']
   p = [0.1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
   chrom = [(0, 0)]
 
-  #        1234   56789012345
+  #        0123   45678901234
   #ref     ACTG   ACTGACTGACT
   m_alt = 'ACTGAAAACTGACTGACT'
+  #        012345678901234567
   alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 0)
   assert alt_seq == m_alt, alt_seq
-  assert_sequence_equal(beacons.tolist(), [(3, 3, 3)])
+  assert_sequence_equal(beacons[1:-1].tolist(), [(3, 3, 3)])
 
-  pos = [4]
-  stop = [8]
+  pos = [3]
+  stop = [7]
   ref = ['GACT']
   alt = ['G']
   p = [0.1]
@@ -66,7 +67,7 @@ def expand_seq_test2():
   m_alt = 'ACTGGACTGACT'
   alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 0)
   assert alt_seq == m_alt, alt_seq
-  assert_sequence_equal(beacons.tolist(), [(3, 3, -3)])
+  assert_sequence_equal(beacons[1:-1].tolist(), [(3, 3, -3)])
 
 
 def expand_seq_test3():
@@ -74,8 +75,8 @@ def expand_seq_test3():
   #          123456789012
   ref_seq = 'ACTGACTGACTG'
 
-  pos = [4, 6]
-  stop = [5, 9]
+  pos = [3, 5]
+  stop = [4, 8]
   ref = ['G', 'CTG']
   alt = ['GAT', 'C']
   p = [0.1, 0.1]
@@ -86,7 +87,7 @@ def expand_seq_test3():
   m_alt = 'ACTGATAC' + 'ACTG'
   alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 1)
   assert alt_seq == m_alt, alt_seq
-  assert_sequence_equal(beacons.tolist(), [(3, 3, 2), (5, 7, -2)], beacons)
+  assert_sequence_equal(beacons[1:-1].tolist(), [(3, 3, 2), (5, 7, -2)], beacons)
 
   chrom = [(0, 0), (1, 1)]
   #        12345678   9012
@@ -94,10 +95,10 @@ def expand_seq_test3():
   m_alt = 'ACTGAC' + 'ACTG'
   alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 1)
   assert alt_seq == m_alt, alt_seq
-  assert_sequence_equal(beacons.tolist(), [(5, 5, -2)], beacons)
+  assert_sequence_equal(beacons[1:-1].tolist(), [(5, 5, -2)], beacons)
 
-  pos = [2, 6, 8]
-  stop = [5, 7, 9]
+  pos = [1, 5, 7]
+  stop = [4, 6, 8]
   ref = ['CTG', 'C', 'G']
   alt = ['C', 'T', 'GAT']
   p = [0.1, 0.1, 0.1]
@@ -110,4 +111,4 @@ def expand_seq_test3():
   #         ^   ^ ^
   alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 0)
   assert alt_seq == m_alt, alt_seq
-  assert_sequence_equal(beacons.tolist(), [(1, 1, -2), (5, 3, 0), (7, 5, 2)])
+  assert_sequence_equal(beacons[1:-1].tolist(), [(1, 1, -2), (5, 3, 0), (7, 5, 2)])

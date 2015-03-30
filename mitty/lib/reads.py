@@ -9,17 +9,18 @@ def expand_sequence(ref_seq, ml, chrom, copy):
   :param ml:     master list of variants
   :param chrom:  list of variants, referring to master list
   :param copy:   0/1 which copy of the chromosome
-  :return alt_seq, beacons: consensus sequence and array used by roll_cigars to determine POS and CIGAR strings for reads
+  :return alt_seq, variant_waypoint: consensus sequence and array used by roll_cigars to determine POS and CIGAR strings for reads
 
-  beacons -> recarray with the fields
+  variant_waypoint -> recarray with the fields
               pos_ref: position on ref seq
               pos_alt: position on alt seq
               delta:  +k for insertions of length k, -k for deletions of length k, 0 for SNPs
+
   """
   pos_ref, pos_alt = 0, 0  # Current position in ref and alt coordinates
   alt_fragments = []
-  beacons = []
-  pos, stop, ref, alt = ml.variants['pos'] - 1, ml.variants['stop'] - 1, ml.variants['ref'], ml.variants['alt']
+  variant_waypoint = [(-1, -1, -1)]  # The start waypoint, guaranteed to be to the left and out of range of any base
+  pos, stop, ref, alt = ml.variants['pos'], ml.variants['stop'], ml.variants['ref'], ml.variants['alt']
   c_iter = chrom.__iter__()
   c = next(c_iter, None)
   while c:
@@ -30,7 +31,7 @@ def expand_sequence(ref_seq, ml, chrom, copy):
     else:
       if c[1] == 2 or c[1] == copy:
         alt_fragments += [alt[c[0]]]
-        beacons += [(pos_ref, pos_alt, len(alt[c[0]]) - len(ref[c[0]]))]
+        variant_waypoint += [(pos_ref, pos_alt, len(alt[c[0]]) - len(ref[c[0]]))]
         pos_alt += len(alt[c[0]])
       else:
         alt_fragments += [ref[c[0]]]
@@ -38,8 +39,9 @@ def expand_sequence(ref_seq, ml, chrom, copy):
       pos_ref = stop[c[0]]
       c = next(c_iter, None)
   alt_fragments += [ref_seq[pos_ref:]]
-  dtype = [('ref_pos', 'i4'), ('alt_pos', 'i4'), ('delta', 'i4')]
-  return ''.join(alt_fragments), np.rec.fromrecords(beacons, dtype=dtype) if len(beacons) else np.rec.recarray((0, 3), dtype=dtype)
+  variant_waypoint += [(2 ** 31 - 1, 2 ** 31 - 1, 2 ** 31 - 1)]  # The end waypoint, guaranteed to be to the right of any base
+  dtype = [('ref_pos', 'i4'), ('alt_pos', 'i4'), ('stop', 'i4')]
+  return ''.join(alt_fragments), np.rec.fromrecords(variant_waypoint, dtype=dtype)
 
 
 from ctypes import *
