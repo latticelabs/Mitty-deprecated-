@@ -19,7 +19,7 @@ def expand_sequence(ref_seq, ml, chrom, copy):
   """
   pos_ref, pos_alt = 0, 0  # Current position in ref and alt coordinates
   alt_fragments = []
-  variant_waypoint = [(-1, -1, -1)]  # The start waypoint, guaranteed to be to the left and out of range of any base
+  variant_waypoint = [(-1, -1, 0)]  # The start waypoint, guaranteed to be to the left and out of range of any base and not an insertion or deletion
   pos, stop, ref, alt = ml.variants['pos'], ml.variants['stop'], ml.variants['ref'], ml.variants['alt']
   c_iter = chrom.__iter__()
   c = next(c_iter, None)
@@ -31,7 +31,9 @@ def expand_sequence(ref_seq, ml, chrom, copy):
     else:
       if c[1] == 2 or c[1] == copy:
         alt_fragments += [alt[c[0]]]
-        variant_waypoint += [(pos_ref, pos_alt, len(alt[c[0]]) - len(ref[c[0]]))]
+        dl = len(alt[c[0]]) - len(ref[c[0]])
+        dp = 0 if dl == 0 else 1  # We shift the waypoint position to be the first non-match base
+        variant_waypoint += [(pos_ref + dp, pos_alt + dp, dl)]
         pos_alt += len(alt[c[0]])
       else:
         alt_fragments += [ref[c[0]]]
@@ -39,48 +41,12 @@ def expand_sequence(ref_seq, ml, chrom, copy):
       pos_ref = stop[c[0]]
       c = next(c_iter, None)
   alt_fragments += [ref_seq[pos_ref:]]
-  variant_waypoint += [(2 ** 31 - 1, 2 ** 31 - 1, 2 ** 31 - 1)]  # The end waypoint, guaranteed to be to the right of any base
+  variant_waypoint += [(2 ** 31 - 1, 2 ** 31 - 1, -1)]  # The end waypoint, guaranteed to be to the right of any base and not a SNP
   dtype = [('ref_pos', 'i4'), ('alt_pos', 'i4'), ('delta', 'i4')]
   return ''.join(alt_fragments), np.rec.fromrecords(variant_waypoint, dtype=dtype)
 
 
-pref = lambda x, s: str(x) + s if x > 0 else ''
-
-state_machine = {
-  'b': {
-    'S': lambda l, k, x: pref(l - 1, 'M') + '1X',
-    'D': lambda l, k, x: pref(l, 'M'),
-    'I': lambda l, k, x: pref(l, 'M'),
-    'e': lambda l, k, x: pref(l, 'M')
-  },
-  'bI': {
-    'S': lambda l, k, x: pref(k, 'S') + pref(l - 1 - k, 'M') + '1X',
-    'D': lambda l, k, x: pref(k, 'S') + pref(l - k, 'M'),
-    'I': lambda l, k, x: pref(k, 'S') + pref(l - k, 'M'),
-    'e': lambda l, k, x: pref(k, 'S') + pref(l - k, 'M')
-  },
-  'S': {
-    'S': lambda l, k, x: pref(l - 1, 'M') + '1X',
-    'D': lambda l, k, x: pref(l, 'M'),
-    'I': lambda l, k, x: pref(l, 'M'),
-    'e': lambda l, k, x: pref(l, 'M')
-  },
-  'D' : {
-    'S': lambda l, k, x: pref(x, 'D') + pref(l - 1, 'M') + '1X',
-    'D': lambda l, k, x: pref(x, 'D') + pref(l, 'M'),
-    'I': lambda l, k, x: pref(x, 'D') + pref(l, 'M'),
-    'e': lambda l, k, x: pref(x, 'D') + pref(l, 'M')
-  },
-  'I': {
-    'S': lambda l, k, x: pref(k, 'I') + pref(l - 1 - k, 'M') + '1X',
-    'D': lambda l, k, x: pref(k, 'I') + pref(l - k, 'M'),
-    'I': lambda l, k, x: pref(k, 'I') + pref(l - k, 'M'),
-    'e': lambda l, k, x: pref(k, 'I') + pref(l - k, 'M'),
-    'eI': lambda l, k, x: pref(l, 'S')
-  }
-}
-
-
+# TODO: make this code more elegant
 def roll_cigars(variant_waypoints, reads):
   """Use beacons to generate POS and CIGAR strings for reads
 
@@ -88,34 +54,43 @@ def roll_cigars(variant_waypoints, reads):
   :param reads: numpy recarray with fields 'start_a' and 'read_len'
   :return: list of CIGAR strings same length as reads array
   """
-  vw_r, vw_a, dl = variant_waypoints['ref_pos'], variant_waypoints['alt_pos'], variant_waypoints['delta']
-  st_a, rd_len = reads['start_a'], reads['read_len']
-  beacon_to_right = np.searchsorted(vw_a, st_a)
+  v_r, v_a, dl = variant_waypoints['ref_pos'], variant_waypoints['alt_pos'], variant_waypoints['delta']
+  rd_st, rd_len = reads['start_a'], reads['read_len']
+  waypoint_right = np.searchsorted(v_a, rd_st)
   cigars = []
-  for n in range(reads.shape[0]):
-    this_cigar = ''
-    b1 = beacon_to_right[n]
-    curr_pos = st_a[n]
-    read_stop = st_a[n] + rd_len[n]
-    state = 'b' if vw_a[b1 - 1] + dl[b1 - 1] < curr_pos else 'bI'
-    while state != 'e' and state != 'eI':
-      print state, curr_pos
-      l = min(vw_a[b1] - curr_pos, rd_len[n])
-      k = vw_a[b1 - 1] + dl[b1 - 1] - curr_pos
-      x = -dl[b1 - 1]
-      if vw_a[b1] > read_stop:
-        new_state = 'eI' if state == 'I' else 'e'
-      elif dl[b1] == 0:
-        new_state = 'S'
-      elif dl[b1] < 0:
-        new_state = 'D'
-      else:
-        new_state = 'I'
-      this_cigar += state_machine[state][new_state](l, k, x)
-      curr_pos = vw_a[b1]
-      state = new_state
-      b1 += 1
-    cigars += [this_cigar]
+  for rd_no in range(reads.shape[0]):
+    r_start = rd_st[rd_no]
+    r_stop = rd_st[rd_no] + rd_len[rd_no] - 1
+    n = waypoint_right[rd_no]
+
+    m = min(v_a[n], r_stop + 1) - r_start
+    cigar = str(m) + 'M' if m > 0 else ''
+    if dl[n - 1] > 0:  # The previous variant was an insertion, possibility for soft-clipping
+      sc = v_a[n - 1] + dl[n - 1] - r_start
+      if sc > 0:  # Yes, a soft-clip
+        cigar = str(sc) + 'S' + (str(m - sc) + 'M' if m - sc > 0 else '')
+    if dl[n] > 0 and r_start == v_a[n]:  # Corner case: we are starting right at an insertion
+      if v_a[n] + dl[n] - 1 >= r_stop:  # Completely inside insertion
+        cigar = str(rd_len[rd_no]) + 'S'
+      else:  # Soft-clipped, then with Ms
+        m = min(v_a[n + 1], r_stop + 1) - r_start
+        sc = min(dl[n], r_stop + 1 - r_start)
+        cigar = str(sc) + 'S' + str(m - sc) + 'M'
+      n += 1
+    while r_stop >= v_a[n]:
+      if dl[n] == 0:  # SNP
+        m = min(v_a[n+1], r_stop + 1) - v_a[n] - 1
+        cigar += '1X' + (str(m) + 'M' if m > 0 else '')
+      elif dl[n] > 0:  # INS
+        if v_a[n] + dl[n] - 1 < r_stop:  # Insert has anchor on other side
+          m = min(v_a[n + 1], r_stop + 1) - v_a[n] - dl[n]
+          cigar += str(dl[n]) + 'I' + (str(m) + 'M' if m > 0 else '')
+        else:  # Handle soft-clip at end
+          cigar += str(r_stop - v_a[n] + 1) + 'S'
+      else:  # DEL
+        cigar += str(-dl[n]) + 'D' + str(v_a[n+1] - v_a[n]) + 'M'
+      n += 1
+    cigars += [cigar]
   return cigars
 
 
