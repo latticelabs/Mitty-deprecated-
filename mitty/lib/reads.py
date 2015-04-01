@@ -69,26 +69,29 @@ def roll_cigars(variant_waypoints, reads):
       sc = v_a[n - 1] + dl[n - 1] - r_start
       if sc > 0:  # Yes, a soft-clip
         cigar = str(sc) + 'S' + (str(m - sc) + 'M' if m - sc > 0 else '')
-    if dl[n] > 0 and r_start == v_a[n]:  # Corner case: we are starting right at an insertion
-      if v_a[n] + dl[n] - 1 >= r_stop:  # Completely inside insertion
-        cigar = str(rd_len[rd_no]) + 'S'
-      else:  # Soft-clipped, then with Ms
-        m = min(v_a[n + 1], r_stop + 1) - r_start
-        sc = min(dl[n], r_stop + 1 - r_start)
-        cigar = str(sc) + 'S' + str(m - sc) + 'M'
-      n += 1
     while r_stop >= v_a[n]:
       if dl[n] == 0:  # SNP
         m = min(v_a[n+1], r_stop + 1) - v_a[n] - 1
         cigar += '1X' + (str(m) + 'M' if m > 0 else '')
       elif dl[n] > 0:  # INS
-        if v_a[n] + dl[n] - 1 < r_stop:  # Insert has anchor on other side
+        if r_start == v_a[n]:  # Corner case: we are starting right at an insertion
+          if v_a[n] + dl[n] - 1 >= r_stop:  # Completely inside insertion
+            cigar = str(rd_len[rd_no]) + 'S'
+          else:  # Soft-clipped, then with Ms
+            m = min(v_a[n + 1], r_stop + 1) - r_start
+            sc = min(dl[n], r_stop + 1 - r_start)
+            cigar = str(sc) + 'S' + str(m - sc) + 'M'
+        elif v_a[n] + dl[n] - 1 < r_stop:  # Insert has anchor on other side
           m = min(v_a[n + 1], r_stop + 1) - v_a[n] - dl[n]
           cigar += str(dl[n]) + 'I' + (str(m) + 'M' if m > 0 else '')
         else:  # Handle soft-clip at end
           cigar += str(r_stop - v_a[n] + 1) + 'S'
       else:  # DEL
-        cigar += str(-dl[n]) + 'D' + str(v_a[n+1] - v_a[n]) + 'M'
+        m = min(v_a[n + 1], r_stop + 1) - v_a[n]
+        if r_start != v_a[n]:
+          cigar += str(-dl[n]) + 'D' + str(m) + 'M'
+        else:
+          cigar += str(m) + 'M'  # Corner case: if we start right at a deletion
       n += 1
     cigars += [cigar]
   return cigars
