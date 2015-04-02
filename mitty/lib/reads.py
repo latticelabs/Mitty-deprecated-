@@ -29,19 +29,29 @@ def expand_sequence(ref_seq, ml, chrom, copy):
       pos_alt += pos[c[0]] - pos_ref
       pos_ref = pos[c[0]]
     else:
-      if c[1] == 2 or c[1] == copy:
+      if c[1] == 2 or c[1] == copy:  # The variant applies to this chromosome copy
         alt_fragments += [alt[c[0]]]
         dl = len(alt[c[0]]) - len(ref[c[0]])
-        dp = 0 if dl == 0 else 1  # We shift the waypoint position to be the first non-match base
-        variant_waypoint += [(pos_ref + dp, pos_alt + dp, dl)]
+        if dl == 0:
+          variant_waypoint += [(pos_ref, pos_alt, dl)]  # For SNPs the waypoints don't move, so ref/alt stay same
+        else:
+          variant_waypoint += [(pos_ref + len(ref[c[0]]), pos_alt + 1, dl)]
+          # We shift the waypoint position to be the first non-match base
         pos_alt += len(alt[c[0]])
-      else:
+      else:  # Skip this variant
         alt_fragments += [ref[c[0]]]
         pos_alt += len(ref[c[0]])
       pos_ref = stop[c[0]]
       c = next(c_iter, None)
   alt_fragments += [ref_seq[pos_ref:]]
-  variant_waypoint += [(2 ** 31 - 1, 2 ** 31 - 1, -1)]  # The end waypoint, guaranteed to be to the right of any base and not a SNP
+
+  final_delta = variant_waypoint[-1][0] - variant_waypoint[-1][1]
+  if final_delta > 0:
+    final_ref, final_alt = 2 ** 31 - 1, 2 ** 31 - 1 - final_delta
+  else:
+    final_ref, final_alt = 2 ** 31 - 1 - final_delta, 2 ** 31 - 1
+  variant_waypoint += [(final_ref, final_alt, -1)]
+  # The end waypoint, guaranteed to be to the right of any base and not a SNP, and maintaining the delta
   dtype = [('ref_pos', 'i4'), ('alt_pos', 'i4'), ('delta', 'i4')]
   return ''.join(alt_fragments), np.rec.fromrecords(variant_waypoint, dtype=dtype)
 
@@ -58,6 +68,7 @@ def roll_cigars(variant_waypoints, reads):
   rd_st, rd_len = reads['start_a'], reads['read_len']
   waypoint_right = np.searchsorted(v_a, rd_st)
   cigars = []
+  pos = []
   for rd_no in range(reads.shape[0]):
     r_start = rd_st[rd_no]
     r_stop = rd_st[rd_no] + rd_len[rd_no] - 1
@@ -65,10 +76,16 @@ def roll_cigars(variant_waypoints, reads):
 
     m = min(v_a[n], r_stop + 1) - r_start
     cigar = str(m) + 'M' if m > 0 else ''
+    this_pos = v_r[n - 1] + r_start - v_a[n - 1]  # In our system the previous waypoint has the delta between ref and alt
     if dl[n - 1] > 0:  # The previous variant was an insertion, possibility for soft-clipping
+      this_pos = v_r[n - 1] + max(r_start - v_a[n - 1] - dl[n - 1], 0)  # POS is nearest match base (and INS has been shifted one base to the right for waypoint)
       sc = v_a[n - 1] + dl[n - 1] - r_start
       if sc > 0:  # Yes, a soft-clip
         cigar = str(sc) + 'S' + (str(m - sc) + 'M' if m - sc > 0 else '')
+    if r_start == v_a[n] and dl[n] < 0:  # Corner case: we are starting at a deletion
+      this_pos = v_r[n] + r_start - v_a[n]
+
+    pos += [this_pos]  # POS is 0 indexed as per BAM spec
     while r_stop >= v_a[n]:
       if dl[n] == 0:  # SNP
         m = min(v_a[n+1], r_stop + 1) - v_a[n] - 1
@@ -94,7 +111,7 @@ def roll_cigars(variant_waypoints, reads):
           cigar += str(m) + 'M'  # Corner case: if we start right at a deletion
       n += 1
     cigars += [cigar]
-  return cigars
+  return pos, cigars
 
 
 from ctypes import *
