@@ -194,7 +194,7 @@ def run(cmd_args):
         progress_bar('Generating reads ', f=float(blocks_done)/total_blocks, cols=80)
   print('')
   t1 = time.time()
-  logger.debug('Took {:f}s'.format(t1 - t0))
+  logger.debug('Took {:f}s to write {:d} templates'.format(t1 - t0, first_serial_no))
 
 
 def reads_from_variants_only(seq, seq_c, ml, chrom, cpy, variant_window, coverage_per_block, corrupt, seed):
@@ -236,15 +236,15 @@ def write_reads_to_file(fastq_fp, fastq_c_fp, reads, paired, pos, cigars, ch, cc
       fastq_fp.write('@' + qname + '\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
       fastq_fp.write('@' + qname + '\n' + pr_seq[n + 1] + '\n+\n' + '~' * len(pr_seq[n + 1]) + '\n')
       if fastq_c_fp is not None:
-        fastq_c_fp.write('@' + qname + '\n' + cr_seq[n] + '\n+\n' + '~' * len(cr_seq[n]) + '\n')
-        fastq_c_fp.write('@' + qname + '\n' + cr_seq[n + 1] + '\n+\n' + '~' * len(cr_seq[n + 1]) + '\n')
+        fastq_c_fp.write('@' + qname + '\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
+        fastq_c_fp.write('@' + qname + '\n' + cr_seq[n + 1] + '\n+\n' + phred[n + 1] + '\n')
       cntr += 1
   else:
     for n in xrange(0, reads.shape[0]):
       qname = 'r{:d}|{:d}:{:s}'.format(cntr, pos[n], cigars[n])
-      fastq_fp.write('@' + qname + '\n' + pr_seq[n] + '\n+\n' + phred + '\n')
+      fastq_fp.write('@' + qname + '\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
       if fastq_c_fp is not None:
-        fastq_c_fp.write('@' + qname + '\n' + cr_seq[n] + '\n+\n' + phred + '\n')
+        fastq_c_fp.write('@' + qname + '\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
       cntr += 1
 
   return cntr
