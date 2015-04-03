@@ -62,7 +62,9 @@ def roll_cigars(variant_waypoints, reads):
 
   :param variant_waypoints: recarray, as returned by expand_sequence (pos_ref, pos_alt, delta)
   :param reads: numpy recarray with fields 'start_a' and 'read_len'
-  :return: list of CIGAR strings same length as reads array
+  :return: pos, cigars
+     - list of POS values
+     - list of CIGAR strings same length as reads array
   """
   v_r, v_a, dl = variant_waypoints['ref_pos'], variant_waypoints['alt_pos'], variant_waypoints['delta']
   rd_st, rd_len = reads['start_a'], reads['read_len']
