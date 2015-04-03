@@ -36,11 +36,13 @@ class Model:
     self.error_profile = max_p_error * (np.exp(k*l) - 1)/(np.exp(k) - 1)
     self.phred = ''.join([chr(int(33 + max(0, min(-10*np.log10(p), 93)))) for p in self.error_profile])
 
-  def get_reads(self, seq, seq_c, coverage, corrupt, seed=1):
+  def get_reads(self, seq, seq_c, start_base=0, end_base=None, coverage=0.01, corrupt=False, seed=1):
     """The main simulation calls this function.
 
     :param seq:      forward sequence
     :param seq_c:    complement of sequence
+    :param start_base: base to start taking reads from
+    :param end_base: base to stop
     :param coverage: coverage
     :param corrupt:  T/F whether we should compute corrupted read or not
     :param seed:     random number generator seed
@@ -58,7 +60,7 @@ class Model:
     p_read = coverage / float(self.read_len) # Per base probability of a read
     template_loc_rng, read_order_rng, template_len_rng, error_loc_rng, base_choice_rng = mutil.initialize_rngs(seed, 5)
 
-    template_locs = np.array([x for x in mutil.place_poisson(template_loc_rng, p_read, len(seq)) if seq[x] != 'N'], dtype='i4')
+    template_locs = np.array([x for x in mutil.place_poisson(template_loc_rng, p_read, start_base, end_base or len(seq)) if seq[x] != 'N'], dtype='i4')
     # TODO, refactor this into mutil by having seq as an numpy array rather than string
     # also change for variant plugins. Need to change io.py. Should be transparent (non breaking change) at io.py
     template_lens = (template_len_rng.randn(template_locs.shape[0]) * self.template_len_sd + self.template_len_mean).astype('i4')
@@ -117,7 +119,7 @@ def self_test():
   seq = 'ATGTCGCCGGGCGCCATGCGTGCCGTTGTTCCCATTATCCCATTCCTTTTGGTTCTTGTCGGTGTATCGGGGGTTCCCACCAACGTCTCCTCCACCACCCAACCCCAACTCCAGACCACCGGTCGTCCCTCGCATGAAGCCCCCAACATGACCCAGACCGGCACCACCGACTCTCCCACCGCCATCAGCCTTACCACGCCCGACCACACACCCCCCATGCCAAGTATCGGACTGGAGGAGGAGGAAGAGGAGGAGGGGGCCGGGGATGGCGAACATCTTGAGGGGGGAGATGGGACCCGTGACACCCTACCCCAGTCCCCGGGTCCAGCCGTCCCGTTGGCCGGGGATGACGAGAAGGACAAACCCAACCGTCCCGTAGTCCCACCCCCCGGTCCCAACAACTCCCCCGCGCGCCCCGAGACCAGTCGACCGAAGACACCCCCCACCAGTATCGGGCCGCTGGCAACTCGACCCACGACCCAACTCCCCTCAAAGGGGCGACCCTTGGTTCCGACGCCTCAACATACCCCGCTGTTCTCGTTCCTCACTGCCTCCCCCGCCCTGGACACCCTCTTCGTCGTCAGCACCGTCATCCACACCTTATCGTTTTTGTGTATTGTTGCGATGGCGACACACCTGTGTGGCGGTTGGTCCAGACGCGGGCGACGCACACACCCTAGCGTGCGTTACGTGTGCCTGCCGCCCGAACGCGGGTAG'
   seq_c = string.translate(seq, DNA_complement)
   mdl = Model(4, 8, 2, max_p_error=1)
-  rd = mdl.get_reads(seq, seq_c, .00001, True)
+  rd = mdl.get_reads(seq, seq_c, start_base=0, end_base=len(seq), coverage=.00001, corrupt=True)
   assert type(rd) == np.core.records.recarray  # Basically, the previous code should just run
 
 
