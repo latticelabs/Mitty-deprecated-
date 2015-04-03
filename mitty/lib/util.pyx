@@ -1,5 +1,9 @@
+import string
 import numpy
 from mitty.lib import SEED_MAX
+
+
+DNA_complement = string.maketrans('ATCGN', 'TAGCN')
 
 
 def initialize_rngs(unsigned long master_seed, int n_rngs=4):
