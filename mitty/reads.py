@@ -30,15 +30,15 @@ __param__ = """Parameter file example::
       "reference_dir": "/Users/kghose/Data/hg38/",  # Use this if the reference consists of multiple .fa files in a directory
       "reference_file": "/Users/kghose/Data/hg38/hg38.fa.gz",  # Use this if reference is a single multi-fasta file
       "dbfile": "Out/test.db"  # Genomes database file. Leave out if taking reads from a reference, or from VCF file
-      "input vcf": "Out/test.vcf",  # Use this if using a VCF file. Leave out if taking reads from a reference, or from VCF file
-      "sample" : {
-        "gen": 0,      # Use gen and serial for database
-        "serial": 1,
-        "name": "HN23456" # Use name for VCF file
-      }
-      "output prefix": "Out/reads"  # Output file name prefix
+      "input_vcf": "Out/test.vcf",  # Use this if using a VCF file. Leave out if taking reads from a reference, or from VCF file
+      "output_prefix": "Out/reads"  # Output file name prefix
                                     # the reads will be called reads.fq and reads_c.fq if we call for corrupted reads too
     },
+    "sample" : {
+      "gen": 0,      # Use gen and serial for database
+      "serial": 1,
+      "name": "HN23456" # Use name for VCF file
+    }
     "rng": {
       "master_seed": 1
     },
@@ -160,14 +160,14 @@ def run(cmd_args):
   #TODO: make sure cpb is sane
   coverage = float(params['coverage'])
   coverage_per_block = float(cmd_args['--coverage_per_block'])
-  blocks_to_do = int(coverage / coverage_per_block)
+  blocks_to_do = int(0.5 * coverage / coverage_per_block)  # Coverage reduced by 2 because we have two chromosome copies
   coverage_per_block = coverage / blocks_to_do
   read_model = mitty.lib.load_reads_plugin(params['read_model']).Model(**params['model_params'])
   corrupt = bool(params['corrupt'])
 
   t0 = time.time()
   first_serial_no = 0
-  fname_prefix = mitty.lib.rpath(base_dir, params['files']['output prefix'])
+  fname_prefix = mitty.lib.rpath(base_dir, params['files']['output_prefix'])
   fastq_fp = open(fname_prefix + '.fq', 'w')
   fastq_c_fp = open(fname_prefix + '_c.fq', 'w') if corrupt else None
 
