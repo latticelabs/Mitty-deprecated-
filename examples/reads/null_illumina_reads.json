@@ -1,18 +1,21 @@
 {
   "files": {
-    "genome": "../data",
-    "output prefix": "Out/reads"
+    "reference_dir": "../data",
+    "output_prefix": "Out/reads"
   },
   "rng": {
     "master_seed": 1
   },
-  "take reads from": [1, 2, 3, 4],
+  "chromosomes": [1, 2, 3, 4],
+  "variants_only": false,
   "read_model": "simple_illumina",
+  "coverage": 30,
+  "corrupt": true,
   "model_params": {
-    "coverage": 30.0,
     "read_len": 100,
-    "template_len": 250,
-    "max_p_error": 0.5,
-    "k": 0.9
+    "template_len_mean": 200,
+    "template_len_sd": 20,
+    "max_p_error": 0.1,
+    "k": 100 
   }
 }
