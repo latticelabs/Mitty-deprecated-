@@ -43,6 +43,7 @@ def connect(db_name='population.sqlite3'):
   :param db_name: The database name
   :returns conn: connection object"""
   conn = sq.connect(db_name)
+  conn.text_factory = str  # Otherwise our ref and alts will be unicode, bleh!
   return conn
 
 
