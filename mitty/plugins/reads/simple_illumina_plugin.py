@@ -32,7 +32,7 @@ class Model:
   def __init__(self, read_len=100, template_len_mean=250, template_len_sd=50, max_p_error=0.01, k=20):
     """."""
     self.read_len, self.template_len_mean, self.template_len_sd = read_len, template_len_mean, template_len_sd
-    l = np.linspace(0, 1, self.read_len)
+    l = np.linspace(1e-10, 1, self.read_len)
     self.error_profile = max_p_error * (np.exp(k*l) - 1)/(np.exp(k) - 1)
     self.phred = ''.join([chr(int(33 + max(0, min(-10*np.log10(p), 93)))) for p in self.error_profile])
 
