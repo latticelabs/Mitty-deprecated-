@@ -185,7 +185,7 @@ def run(cmd_args):
       seq_c = mitty.lib.string.translate(seq, mitty.lib.DNA_complement)
       for blk in range(blocks_to_do):
         if not params['variants_only']:
-          reads, paired = read_model.get_reads(seq, seq_c, coverage=coverage_per_block, corrupt=corrupt)
+          reads, paired = read_model.get_reads(seq, seq_c, coverage=coverage_per_block, corrupt=corrupt, seed=seed_rng.randint(0, mitty.lib.SEED_MAX))
         else:
           raise(NotImplementedError, 'Reads from variants only is being developed')
         pos, cigars = lib_reads.roll_cigars(variant_waypoints, reads)
