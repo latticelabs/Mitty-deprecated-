@@ -1,6 +1,6 @@
 from numpy.testing import assert_equal
 
-from mitty.lib.read import Read
+from mitty.lib.reads import Read
 from mitty.vcf2reads import get_variant_sequence_generator, package_reads, reads_from_genome, write_reads_to_file
 #from mitty.lib.variation import new_variation, HOMOZYGOUS, HET_01, HET_10
 import vcf
