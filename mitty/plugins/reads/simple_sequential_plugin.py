@@ -3,14 +3,11 @@
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
 """
-from mitty.lib.read import Read, direction
-
 __example_param_text = """
 {
-  'paired': True,      #Are the reads paired or not.
-  'read_len': 100,     #length of each read
-  'template_len': 250, #length of template (only used for paired reads)
-  'read_advance': 20   #how much to advance along the reference after generating a read. Determines "coverage"
+  'read_len': 100,          # length of each read
+  'template_len': 250,      # length of template, only needed for paired reads
+  'paired': True            # Give paired reads?
 }
 """
 
@@ -21,44 +18,85 @@ Example parameter set:
 
 _example_params = eval(__example_param_text)
 
+import numpy as np
 
-def initialize(model_params):
-  return {
-    'paired': model_params['paired'],
-    'read_len': model_params['read_len'],
-    'template_len': model_params['template_len'],
-    'read_advance': model_params['read_advance']
-  }
+import logging
+logger = logging.getLogger(__name__)
 
 
-def max_read_len(read_model_state):
-  return read_model_state['read_len']
+class Model:
+  def __init__(self, read_len=100, template_len=250, paired=True):
+    """."""
+    self.read_len, self.template_len, self.paired = read_len, template_len, paired
+    self.start_base = 0
 
+  def get_reads(self, seq, seq_c, start_base=0, end_base=None, coverage=0.01, corrupt=False, seed=1):
+    """The main simulation calls this function.
 
-def overlap_len(read_model_state):
-  if read_model_state['paired']:
-    return read_model_state['template_len'] - 1
-  else:
-    return read_model_state['read_len']
+    :param seq:      forward sequence
+    :param seq_c:    complement of sequence
+    :param start_base: base to start taking reads from
+    :param end_base: base to stop
+    :param coverage: coverage
+    :param corrupt:  T/F whether we should compute corrupted read or not
+    :param seed:     random number generator seed
+    :return: reads, paired
 
+    reads is a numpy recarray with the following fields
+      'start_a'  -> start index on the seq
+      'read_len' -> length of the read
+      'rev_complement' ->  0 or 1, indicating if the read is from the forward or reverse strand
+      'perfect_read'     -> perfect read sequence
+      'corrupted_read'   -> corrupted read sequence
 
-def generate_reads(this_idx, this_seq_block, this_c_seq_block, this_arr, read_model_data, master_seed):
-  seq = [this_seq_block, this_c_seq_block]
-  paired = read_model_data.get('paired', False)
-  ra = read_model_data.get('read_advance', 10)
-  rl = read_model_data.get('read_len', 100)
-  tl = read_model_data.get('template_len', 250) if paired else rl
-  template_list = []
-  strand = 0
-  for n in range(0, len(this_seq_block) - tl, ra):
-    # n is in local coordinates - references to this_seq_block, this_arr etc.
-    r1 = Read(perfect_seq=seq[1][n:n+rl][::-1] if strand else seq[0][n:n+rl],
-              _start_idx=n, _stop_idx=n+rl, direction=direction[strand])
-    if paired:
-      r2 = Read(perfect_seq=seq[0][n+tl-rl:n+tl] if strand else seq[1][n+tl-rl:n+tl][::-1],
-                _start_idx=n+tl-rl, _stop_idx=n+tl, direction=direction[1 - strand])
-      template_list += [[r1, r2]]
+    paired indicates if the reads are in pairs or not
+    """
+    assert len(seq) > self.template_len, 'Template size should be less than sequence length'
+    while seq[self.start_base] == 'N' or self.start_base < start_base:
+      self.start_base += 10
+
+    stride = float(self.read_len) / coverage
+    template_locs = np.array([x for x in np.arange(self.start_base, end_base or len(seq), stride, dtype='i4') if seq[x] != 'N'], dtype='i4')
+
+    dtype = [('start_a', 'i4'), ('read_len', 'i4'), ('read_order', 'i1'),
+             ('perfect_reads', 'S' + str(self.read_len)), ('corrupt_reads', 'S' + str(self.read_len)),
+             ('phred', 'S' + str(self.read_len))]
+
+    reads = np.core.recarray(dtype=dtype, shape=(2 if self.paired else 1) * template_locs.shape[0])
+    reads['read_len'] = self.read_len
+    if self.paired:
+      reads['start_a'][::2] = template_locs
+      reads['start_a'][1::2] = template_locs + self.template_len - self.read_len
+      reads['read_order'][::2] = 0
+      reads['read_order'][1::2] = 1
     else:
-      template_list += [[r1]]
-    strand = 1 - strand
-  return template_list
+      reads['start_a'] = template_locs
+      reads['read_len'] = self.read_len
+      reads['read_order'] = 0
+
+    r_start, r_len, r_o, pr, cr = reads['start_a'], reads['read_len'], reads['read_order'], reads['perfect_reads'], reads['corrupt_reads']
+    for n in xrange(reads.shape[0]):
+      if r_o[n] == 0:  # Forward read
+        pr[n] = seq[r_start[n]:r_start[n] + r_len[n]]
+      else:  # Reverse strand read
+        pr[n] = seq_c[r_start[n]:r_start[n] + r_len[n]][::-1]
+      if corrupt:
+        cr[n] = pr[n]
+
+    return reads, self.paired
+
+
+def self_test():
+  """Basic self test"""
+  import string
+  DNA_complement = string.maketrans('ATCGN', 'TAGCN')
+  seq = 'ATGTCGCCGGGCGCCATGCGTGCCGTTGTTCCCATTATCCCATTCCTTTTGGTTCTTGTCGGTGTATCGGGGGTTCCCACCAACGTCTCCTCCACCACCCAACCCCAACTCCAGACCACCGGTCGTCCCTCGCATGAAGCCCCCAACATGACCCAGACCGGCACCACCGACTCTCCCACCGCCATCAGCCTTACCACGCCCGACCACACACCCCCCATGCCAAGTATCGGACTGGAGGAGGAGGAAGAGGAGGAGGGGGCCGGGGATGGCGAACATCTTGAGGGGGGAGATGGGACCCGTGACACCCTACCCCAGTCCCCGGGTCCAGCCGTCCCGTTGGCCGGGGATGACGAGAAGGACAAACCCAACCGTCCCGTAGTCCCACCCCCCGGTCCCAACAACTCCCCCGCGCGCCCCGAGACCAGTCGACCGAAGACACCCCCCACCAGTATCGGGCCGCTGGCAACTCGACCCACGACCCAACTCCCCTCAAAGGGGCGACCCTTGGTTCCGACGCCTCAACATACCCCGCTGTTCTCGTTCCTCACTGCCTCCCCCGCCCTGGACACCCTCTTCGTCGTCAGCACCGTCATCCACACCTTATCGTTTTTGTGTATTGTTGCGATGGCGACACACCTGTGTGGCGGTTGGTCCAGACGCGGGCGACGCACACACCCTAGCGTGCGTTACGTGTGCCTGCCGCCCGAACGCGGGTAG'
+  seq_c = string.translate(seq, DNA_complement)
+  mdl = Model(4, 8, True)
+  rd, paired = mdl.get_reads(seq, seq_c, start_base=0, end_base=len(seq), coverage=.00001, corrupt=True)
+  assert type(rd) == np.core.records.recarray  # Basically, the previous code should just run
+  assert paired is True
+
+
+if __name__ == "__main__":
+  print _description
