@@ -39,7 +39,7 @@ setup(
       'mitty.benchmarking.tools': ['bwa = mitty.benchmarking.tool_wrappers.bwa'],
       # Command line scripts
       'console_scripts': ['genomes = mitty.genomes:cli',
-                          'vcf2reads = mitty.vcf2reads:cli',
+                          'reads = mitty.reads:cli',
                           'inspect = mitty.util.inspect:cli',
                           'reads2bam = mitty.util.reads2bam:cli',
                           'splitta = mitty.util.splitta:cli',
