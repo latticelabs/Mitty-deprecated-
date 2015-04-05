@@ -57,7 +57,8 @@ class Model:
 
     paired indicates if the reads are in pairs or not
     """
-    p_read = coverage / float(self.read_len) # Per base probability of a read
+    assert len(seq) > self.template_len_mean * 3, 'Template size should be less than 1/3rd sequence length'
+    p_read = coverage / float(self.read_len)  # Per base probability of a read
     template_loc_rng, read_order_rng, template_len_rng, error_loc_rng, base_choice_rng = mutil.initialize_rngs(seed, 5)
 
     template_locs = np.array([x for x in mutil.place_poisson(template_loc_rng, p_read, start_base, min(end_base or len(seq), len(seq) - self.template_len_mean * 3)) if seq[x] != 'N'], dtype='i4')
