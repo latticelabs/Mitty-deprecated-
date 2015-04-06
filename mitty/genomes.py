@@ -158,7 +158,7 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
 
   :param pop_db_name:    name of database to save to
   :param ref:            Fasta object reference genome
-  :param sfs_model:      site frequency model object
+  :param sfs_model:      Site frequency model object. If None, no re-balancing of variant probabilities will occur
   :param variant_models: list of variant model objects
   :param chromosomes:    list of chromosomes to simulate
   :param sample_size:    number of diploid genomes to simulate
