@@ -58,10 +58,10 @@ class Model:
     paired indicates if the reads are in pairs or not
     """
     assert len(seq) > self.template_len_mean * 3, 'Template size should be less than 1/3rd sequence length'
-    p_read = coverage / float(self.read_len)  # Per base probability of a read
+    p_template = 0.5 * coverage / float(self.read_len)  # Per base probability of a read
     template_loc_rng, read_order_rng, template_len_rng, error_loc_rng, base_choice_rng = mutil.initialize_rngs(seed, 5)
 
-    template_locs = np.array([x for x in mutil.place_poisson(template_loc_rng, p_read, start_base, min(end_base or len(seq), len(seq) - self.template_len_mean * 3)) if seq[x] != 'N'], dtype='i4')
+    template_locs = np.array([x for x in mutil.place_poisson(template_loc_rng, p_template, start_base, min(end_base or len(seq), len(seq) - self.template_len_mean * 3)) if seq[x] != 'N'], dtype='i4')
     # TODO, refactor this into mutil by having seq as an numpy array rather than string
     # also change for variant plugins. Need to change io.py. Should be transparent (non breaking change) at io.py
     template_lens = (template_len_rng.randn(template_locs.shape[0]) * self.template_len_sd + self.template_len_mean).astype('i4')
