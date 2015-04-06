@@ -160,12 +160,13 @@ def generate(cmd_args):
   seed_rng = np.random.RandomState(seed=master_seed)
 
   chromosomes = params['chromosomes']
-  coverage = float(params['coverage'])
+
+  coverage_per_chromosome = float(params['coverage']) / 2.0
   coverage_per_block = float(params['coverage_per_block'])
-  assert coverage_per_block < coverage / 4.0, 'Reduce coverage per block to less than 1/4th of coverage'
-  blocks_to_do = int(0.5 * coverage / coverage_per_block)  # Coverage reduced by 2 because we have two chromosome copies
-  actual_coverage_per_block = coverage / blocks_to_do  # Actual coverage has to be adjusted, because blocks_to_do is an int
-  total_blocks = len(chromosomes) * 2 * blocks_to_do
+
+  blocks_to_do = int(coverage_per_chromosome / coverage_per_block)
+  actual_coverage_per_block = coverage_per_chromosome / blocks_to_do  # Actual coverage has to be adjusted, because blocks_to_do is an int
+  total_blocks = len(chromosomes) * 2 * blocks_to_do  # For the progress bar
 
   read_model = mitty.lib.load_reads_plugin(params['read_model']).Model(**params['model_params'])
   corrupt = bool(params['corrupt'])
@@ -194,7 +195,7 @@ def generate(cmd_args):
         if not variants_only:
           reads, paired = read_model.get_reads(seq, seq_c, coverage=actual_coverage_per_block, corrupt=corrupt, seed=seed_rng.randint(0, mitty.lib.SEED_MAX))
         else:
-          reads, paired = reads_from_variants_only(seq, seq_c, variant_waypoints, variant_window, read_model, coverage, corrupt, seed_rng)
+          reads, paired = reads_from_variants_only(seq, seq_c, variant_waypoints, variant_window, read_model, actual_coverage_per_block, corrupt, seed_rng)
         pos, cigars = lib_reads.roll_cigars(variant_waypoints, reads)
         first_serial_no = write_reads_to_file(fastq_fp, fastq_c_fp, reads, paired, pos, cigars, ch, cpy, first_serial_no)
         blocks_done += 1
