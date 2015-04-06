@@ -5,7 +5,7 @@ The read characteristics are governed by the chosen read plugin.
 Commandline::
 
   Usage:
-    reads  --pfile=PFILE  [--coverage_per_block=CPB] [-v|-V]
+    reads  --pfile=PFILE  [-v|-V]
     reads list
     reads explain (parameters|model <model_name>)
 
@@ -47,6 +47,9 @@ __param__ = """Parameter file example::
     "variant_window": 500,              # Only used if variants_only is true. Reads will be taken from this vicinity
     "corrupt": true,                    # If true, corrupted reads will also be written
     "coverage": 10,                     # Coverage
+    "coverage_per_block": 0.01          # For each block of the simulation we generate reads giving this coverage
+                                        # In some simulations we will have too many reads to fit in memory and we must
+                                        # write them out in blocks of smaller size.
     "read_model": "simple_illumina",    # Model specific parameters, need to be under the key "model_params"
     "model_params": {
       "read_len": 100,          # length of each read
@@ -98,7 +101,7 @@ def cli():  # pragma: no cover
   elif cmd_args['explain']:
     explain(cmd_args)
   else:
-    run(cmd_args)
+    generate(cmd_args)
 
 
 def print_list(cmd_args):
@@ -128,7 +131,7 @@ def explain_read_model(name):
   return
 
 
-def run(cmd_args):
+def generate(cmd_args):
   """The main read generating loop
 
   :param cmd_args: parameters as parsed by doc_opt
@@ -157,21 +160,24 @@ def run(cmd_args):
   seed_rng = np.random.RandomState(seed=master_seed)
 
   chromosomes = params['chromosomes']
-  #TODO: make sure cpb is sane
   coverage = float(params['coverage'])
-  coverage_per_block = float(cmd_args['--coverage_per_block'])
+  coverage_per_block = float(params['coverage_per_block'])
+  assert coverage_per_block < coverage / 4.0, 'Reduce coverage per block to less than 1/4th of coverage'
   blocks_to_do = int(0.5 * coverage / coverage_per_block)  # Coverage reduced by 2 because we have two chromosome copies
-  coverage_per_block = coverage / blocks_to_do
+  actual_coverage_per_block = coverage / blocks_to_do  # Actual coverage has to be adjusted, because blocks_to_do is an int
+  total_blocks = len(chromosomes) * 2 * blocks_to_do
+
   read_model = mitty.lib.load_reads_plugin(params['read_model']).Model(**params['model_params'])
   corrupt = bool(params['corrupt'])
+
+  variants_only = params.get('variants_only', None)
+  variant_window = int(params.get('variant_window', 200)) if variants_only else None
 
   t0 = time.time()
   first_serial_no = 0
   fname_prefix = mitty.lib.rpath(base_dir, params['files']['output_prefix'])
   fastq_fp = open(fname_prefix + '.fq', 'w')
   fastq_c_fp = open(fname_prefix + '_c.fq', 'w') if corrupt else None
-
-  total_blocks = len(chromosomes) * 2 * blocks_to_do
 
   blocks_done = 0
   for ch in chromosomes:
@@ -184,34 +190,38 @@ def run(cmd_args):
       seq, variant_waypoints = lib_reads.expand_sequence(ref[ch], ml, chrom, cpy)
       seq_c = mitty.lib.string.translate(seq, mitty.lib.DNA_complement)
       for blk in range(blocks_to_do):
-        if not params['variants_only']:
-          reads, paired = read_model.get_reads(seq, seq_c, coverage=coverage_per_block, corrupt=corrupt, seed=seed_rng.randint(0, mitty.lib.SEED_MAX))
+        progress_bar('Generating reads ', f=float(blocks_done)/total_blocks, cols=80)
+        if not variants_only:
+          reads, paired = read_model.get_reads(seq, seq_c, coverage=actual_coverage_per_block, corrupt=corrupt, seed=seed_rng.randint(0, mitty.lib.SEED_MAX))
         else:
-          raise(NotImplementedError, 'Reads from variants only is being developed')
+          reads, paired = reads_from_variants_only(seq, seq_c, variant_waypoints, variant_window, read_model, coverage, corrupt, seed_rng)
         pos, cigars = lib_reads.roll_cigars(variant_waypoints, reads)
         first_serial_no = write_reads_to_file(fastq_fp, fastq_c_fp, reads, paired, pos, cigars, ch, cpy, first_serial_no)
         blocks_done += 1
-        progress_bar('Generating reads ', f=float(blocks_done)/total_blocks, cols=80)
   print('')
   t1 = time.time()
   logger.debug('Took {:f}s to write {:d} templates'.format(t1 - t0, first_serial_no))
 
 
-def reads_from_variants_only(seq, seq_c, ml, chrom, cpy, variant_window, coverage_per_block, corrupt, seed):
-  """To do
+def reads_from_variants_only(seq, seq_c, variant_waypoints, variant_window, read_model, coverage, corrupt, seed_rng):
+  """Wrapper around read function to get reads only from around variant locations
 
   :param seq:      forward sequence
   :param seq_c:    complement sequence
-  :param ml:       master list of variants
-  :param chrom:    list of pointers to master list
-  :param cpy:      which copy of chromosome we are considering
+  :param variant_waypoints: as returned by expand_sequence
   :param variant_window: how many bases before and after variant should we include
   :param coverage_per_block: coverage level per batch of reads
   :param corrupt:  T/F generate corrupted reads too or not
   :param seed:     seed for the simulation
   :return:
   """
-  pass
+  reads, paired = [], False
+  for v in variant_waypoints:  # [1:-1]:
+    start, stop = max(v[1] - variant_window, 0), min(v[1] + variant_window, len(seq))
+    # v[1] is the pos of the variant in sequence coordinates (rather than ref coordinates)
+    these_reads, paired = read_model.get_reads(seq, seq_c, start_base=start, end_base=stop, coverage=coverage, corrupt=corrupt, seed=seed_rng.randint(0, mitty.lib.SEED_MAX))
+    reads += [these_reads]
+  return np.concatenate(reads), paired
 
 
 def write_reads_to_file(fastq_fp, fastq_c_fp, reads, paired, pos, cigars, ch, cc, first_serial_no):
