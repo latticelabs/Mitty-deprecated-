@@ -84,10 +84,14 @@ def load_master_list(conn, chrom):
   #   c += [[r for r in conn.execute("SELECT {:s} FROM master_chrom_{:d}".format(col, chrom))]]
   #ml = vr.VariantList(*c)
 
-  dtype = [('pos', 'i4'), ('stop', 'i4'), ('ref', 'object'), ('alt', 'object'), ('p', 'f2')]
-  rows = [c for c in conn.execute("SELECT * FROM master_chrom_{:d}".format(chrom))]
   ml = vr.VariantList()
-  ml.variants = numpy.core.records.fromrecords(rows, dtype=dtype)
+
+  try:
+    rows = [c for c in conn.execute("SELECT * FROM master_chrom_{:d}".format(chrom))]
+    dtype = [('pos', 'i4'), ('stop', 'i4'), ('ref', 'object'), ('alt', 'object'), ('p', 'f2')]
+    ml.variants = numpy.core.records.fromrecords(rows, dtype=dtype)
+  except sq.OperationalError:
+    pass  # TODO: log some kind of warning? Or assume we just don' have any variants for that chromosome?
   ml.sorted = True  # We assume that this had been sorted etc. before saving
   return ml
 
@@ -124,8 +128,11 @@ def load_sample(conn, gen, serial, chrom):
   :return: variants: list of tuples same as returned by generate_chromosome
   """
   c = conn.cursor()
-  c.execute("SELECT vlist FROM sample_chrom_{:d} WHERE gen==? AND serial==?".format(chrom), (gen, serial))
-  row = next(c, None)
+  try:
+    c.execute("SELECT vlist FROM sample_chrom_{:d} WHERE gen==? AND serial==?".format(chrom), (gen, serial))
+    row = next(c, None)
+  except sq.OperationalError:
+    row = None  # We assume that no such table means, simply, no variants in that chromosome
   return [(b >> 2, b & 0x3) for b in struct.unpack('{:d}I'.format(len(row[0]) / 4), row[0])] if row is not None else []
 
 
