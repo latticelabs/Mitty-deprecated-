@@ -41,7 +41,7 @@ setup(
       'console_scripts': ['genomes = mitty.genomes:cli',
                           'reads = mitty.reads:cli',
                           'inspect = mitty.util.inspect:cli',
-                          'reads2bam = mitty.util.reads2bam:cli',
+                          'perfectbam = mitty.util.perfectbam:cli',
                           'splitta = mitty.util.splitta:cli',
                           'checkbam = mitty.util.checkbam:cli']
     },
