@@ -243,7 +243,7 @@ def write_reads_to_file(fastq_fp, fastq_c_fp, reads, paired, pos, cigars, ch, cc
 
   if paired:
     for n in xrange(0, reads.shape[0], 2):
-      qname = 'r{:d}|{:d}:{:d}|{:d}:{:s}|{:d}:{:s}'.format(cntr, ch, cc, pos[n], cigars[n], pos[n + 1], cigars[n + 1])
+      qname = 'r{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:s}'.format(cntr, ch, cc, pos[n], cigars[n], pos[n + 1], cigars[n + 1])
       fastq_fp.write('@' + qname + '\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
       fastq_fp.write('@' + qname + '\n' + pr_seq[n + 1] + '\n+\n' + '~' * len(pr_seq[n + 1]) + '\n')
       if fastq_c_fp is not None:
@@ -252,7 +252,7 @@ def write_reads_to_file(fastq_fp, fastq_c_fp, reads, paired, pos, cigars, ch, cc
       cntr += 1
   else:
     for n in xrange(0, reads.shape[0]):
-      qname = 'r{:d}|{:d}:{:s}'.format(cntr, pos[n], cigars[n])
+      qname = 'r{:d}|{:d}|{:s}'.format(cntr, pos[n], cigars[n])
       fastq_fp.write('@' + qname + '\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
       if fastq_c_fp is not None:
         fastq_c_fp.write('@' + qname + '\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
