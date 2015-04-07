@@ -40,41 +40,21 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# def analyze_bam(bam_fp, window=0, block_size=100000):
-#   """Given a read iterator from a BAM file, process each read and return a list of lists suitable for writing to csv
-#   file."""
-#   total_reads_cntr, bad_reads_cntr = Counter(), Counter()
-#   keep_reading = True
-#   while keep_reading:
-#     misaligned_reads = [None] * block_size
-#     current_count = block_size
-#     while current_count > 0:
-#       try:
-#         read = bam_fp.next()
-#         correct_chrom_no, _, correct_pos, correct_cigar = interpret_read_qname(read.qname, read.is_read2)
-#         total_reads_cntr[correct_chrom_no] += 1
-#         if correct_chrom_no == read.tid + 1 and abs(correct_pos - (read.pos + 1)) <= window:  # BAM is zero indexed
-#           # This read is correctly aligned
-#           continue
-#         misaligned_reads[block_size - current_count] = \
-#           [read.qname, correct_chrom_no, correct_pos, read.tid + 1, read.pos + 1, read.mapq, read.mate_is_unmapped, read.seq]
-#         bad_reads_cntr[correct_chrom_no] += 1
-#         current_count -= 1
-#       except StopIteration:
-#         keep_reading = False
-#         break
-#     if current_count > 0:
-#       del misaligned_reads[block_size - current_count:]
-#
-#     yield misaligned_reads, total_reads_cntr, bad_reads_cntr
-
-
-# def write_csv_header(csv_fp):
-#   csv_fp.write('qname, correct_chrom, correct_pos, aligned_chrom, aligned_pos, mapping_qual, mate_is_unmapped, seq\n')
-#
-#
-# def write_csv(csv_fp, misaligned_reads):
-#   csv_fp.writelines((', '.join(map(str, line)) + '\n' for line in misaligned_reads))
+def csv_header():
+  header = [
+    'qname',
+    'error_type',
+    'correct_chrom',
+    'correct_pos',
+    'correct_cigar',
+    'aligned_chrom',
+    'aligned_pos',
+    'aligned_cigar',
+    'mapping_qual',
+    'mate_is_unmapped',
+    'seq',
+  ]
+  return header
 
 
 def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window):
@@ -87,6 +67,8 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window):
   :param window:
   :return:
   """
+  csv_fp.write('\t'.join(csv_header()) + '\n')
+
   total_read_count = float(bam_in_fp.count())
   bam_in_fp.reset()  # This is bad pysam design. The count() action iterates through the file!
   f0 = 0
@@ -95,12 +77,12 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window):
     # qname = 'r{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:s}'
     if read.is_paired:
       if read.is_read1:
-        rd_ser, chrom, cpy, pos, cigar, _, _ = read.qname.split('|')
+        rd_ser, chrom, cpy, ro, pos, cigar, _, _, _ = read.qname.split('|')
       else:
-        rd_ser, chrom, cpy, _, _, pos, cigar = read.qname.split('|')
+        rd_ser, chrom, cpy, _, _, _, ro, pos, cigar = read.qname.split('|')
     else:
-      rd_ser, chrom, cpy, pos, cigar = read.qname.split('|')
-    chrom, pos = int(chrom), int(pos)
+      rd_ser, chrom, cpy, ro, pos, cigar = read.qname.split('|')
+    ro, chrom, pos = int(ro), int(chrom), int(pos)
     total_reads_cntr[chrom] += 1
 
     error_type = 0x0
@@ -117,10 +99,37 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window):
                                        read.mapq, read.mate_is_unmapped, read.query_sequence])) + '\n')
 
     # Now write out the perfect alignment
+    read.is_reverse = 1 - ro
+    read.mate_is_reverse = ro
+    read.mate_is_unmapped = False  # Gotta check this - what if mate is deep in an insert?
+
     read.reference_id = chrom - 1
     read.pos = pos
     read.cigarstring = cigar  # What if this is deep in an insert?
-    read.mate_is_unmapped = False  # Gotta check this - what if mate is deep in an insert?
+
+    # read.cigar = [cig for cig in read.cigar if cig[0] != 8]
+
+    # # TEST CODE:
+    # seq = ''
+    # pos = 0
+    # flag = False
+    # for cig in read.cigar:
+    #   if cig[0] == 0:
+    #     seq += '=' * cig[1]
+    #     pos += cig[1]
+    #   elif cig[0] == 1:
+    #     seq += read.seq[pos:pos + cig[1]]
+    #     pos += cig[1]
+    #   elif cig[0] == 8:
+    #     seq += read.seq[pos:pos + cig[1]]
+    #     pos += cig[1]
+    #     flag = True
+    # if flag:
+    #   print read.seq
+    # read.seq = seq
+    # if flag:
+    #   print read.seq
+
     bam_out_fp.write(read)
 
     f = n / total_read_count
