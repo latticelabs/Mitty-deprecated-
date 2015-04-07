@@ -1,5 +1,7 @@
 import string
+
 import numpy
+
 from mitty.lib import SEED_MAX
 
 
@@ -12,14 +14,19 @@ def initialize_rngs(unsigned long master_seed, int n_rngs=4):
           for seed in numpy.random.RandomState(seed=master_seed).randint(SEED_MAX, size=n_rngs)]
 
 
-def place_poisson(rng, float p, unsigned long start_x, unsigned long end_x):
-  """Given a random number generator, a probability and an end point, generate poisson distributed events. For short
-  end_p this may, by chance, generate fewer locations that normal"""
+def place_poisson_seq(rng, float p, unsigned long start_x, unsigned long end_x, bytes seq):
+  """Given a random number generator, a probability and an end point, generate poisson distributed events. Skip bases
+  that don't belong  For short end_p this may, by chance, generate fewer locations that normal"""
   if p == 0.0:
     return numpy.array([])
-  est_block_size = <unsigned long>(<float>end_x * p * 1.2)
+
+  cdef:
+    char *s = seq
+    unsigned long est_block_size = <unsigned long>(<float>end_x * p * 1.2)
+    unsigned long idx
+
   these_locs = rng.geometric(p=p, size=est_block_size).cumsum()
-  return these_locs[numpy.searchsorted(these_locs, start_x):numpy.searchsorted(these_locs, end_x)]
+  return numpy.array([idx for idx in these_locs[numpy.searchsorted(these_locs, start_x):numpy.searchsorted(these_locs, end_x)] if s[idx] != 'N'], dtype='i4')
 
 
 cdef unsigned char sub_base(unsigned char orig_base, unsigned char sub_mat[85][3], float ct_mat[85][3], float r):

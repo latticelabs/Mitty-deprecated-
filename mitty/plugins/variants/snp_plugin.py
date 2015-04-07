@@ -62,7 +62,7 @@ class Model:
       p_eff = self.p
 
     base_loc_rng, base_t_rng, freq_rng = mutil.initialize_rngs(seed, 3)
-    snp_locs = np.array([x for x in mutil.place_poisson(base_loc_rng, p_eff, 0, len(ref)) if ref[x] != 'N'], dtype='i4')
+    snp_locs = mutil.place_poisson_seq(base_loc_rng, p_eff, 0, len(ref), ref)  #np.array([x for x in mutil.place_poisson(base_loc_rng, p_eff, 0, len(ref)) if ref[x] != 'N'], dtype='i4')
     base_subs = mutil.base_subs(ref, snp_locs, self.t_mat, base_t_rng)
 
     # +1 because VCF files are 1 indexed

@@ -61,22 +61,26 @@ class Model:
     p_template = 0.5 * coverage / float(self.read_len)  # Per base probability of a read
     template_loc_rng, read_order_rng, template_len_rng, error_loc_rng, base_choice_rng = mutil.initialize_rngs(seed, 5)
 
-    template_locs = np.array([x for x in mutil.place_poisson(template_loc_rng, p_template, start_base, min(end_base or len(seq), len(seq) - self.template_len_mean * 3)) if seq[x] != 'N'], dtype='i4')
-    # TODO, refactor this into mutil by having seq as an numpy array rather than string
-    # also change for variant plugins. Need to change io.py. Should be transparent (non breaking change) at io.py
+    template_locs = mutil.place_poisson_seq(template_loc_rng, p_template, start_base, min(end_base or len(seq), len(seq) - self.template_len_mean * 3), seq)
     template_lens = (template_len_rng.randn(template_locs.shape[0]) * self.template_len_sd + self.template_len_mean).astype('i4')
     np.clip(template_lens, self.read_len, self.template_len_mean * 3, template_lens)
     read_order = read_order_rng.randint(2, size=template_locs.shape[0])  # Which read comes first?
+    idx_fwd, = np.nonzero(read_order == 0)
+    idx_rev, = np.nonzero(read_order == 1)
 
     dtype = [('start_a', 'i4'), ('read_len', 'i4'), ('read_order', 'i1'),
              ('perfect_reads', 'S' + str(self.read_len)), ('corrupt_reads', 'S' + str(self.read_len)),
              ('phred', 'S' + str(self.read_len))]
     reads = np.core.recarray(dtype=dtype, shape=2 * template_locs.shape[0])
-    reads['start_a'][::2] = template_locs
-    reads['start_a'][1::2] = template_locs + template_lens - self.read_len
-    reads['read_len'] = self.read_len
+    reads['start_a'][2 * idx_fwd] = template_locs[idx_fwd]
+    reads['start_a'][2 * idx_fwd + 1] = template_locs[idx_fwd] + template_lens[idx_fwd] - self.read_len
+    reads['start_a'][2 * idx_rev + 1] = template_locs[idx_rev]
+    reads['start_a'][2 * idx_rev] = template_locs[idx_rev] + template_lens[idx_rev] - self.read_len
     reads['read_order'][::2] = read_order[:]
     reads['read_order'][1::2] = 1 - read_order[:]
+
+    #reads['start_a'][1::2] = template_locs + template_lens - self.read_len
+    reads['read_len'] = self.read_len
     r_start, r_len, r_o, pr = reads['start_a'], reads['read_len'], reads['read_order'], reads['perfect_reads']
     for n in xrange(reads.shape[0]):
       if r_o[n] == 0:  # Forward read

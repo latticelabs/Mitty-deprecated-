@@ -14,7 +14,7 @@ def place_poisson_test():
   correct_locs = correct_locs[:idx[0]]
 
   rng = numpy.random.RandomState(seed=1)
-  computed_locs = mitty.lib.util.place_poisson(rng, p, 0, end_p)
+  computed_locs = mitty.lib.util.place_poisson_seq(rng, p, 0, end_p, 'A' * end_p)
 
   assert_array_equal(correct_locs, computed_locs)
 
