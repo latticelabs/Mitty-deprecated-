@@ -42,7 +42,8 @@ def run_simulations_test():
     chrom = mdb.load_sample(conn, 0, n, 2)
     assert len(chrom) > 0
 
-  assert_raises(sq.OperationalError, mdb.load_sample, conn, 0, 0, 3)  # Should be no such table
+  ml = mdb.load_sample(conn, 0, 0, 3)  # Should be no such table
+  assert len(ml) == 0
 
 
 def integration_test():
