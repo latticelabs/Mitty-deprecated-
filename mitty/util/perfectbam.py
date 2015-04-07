@@ -106,7 +106,7 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window):
     error_type = 0x0
     if read.reference_id != chrom - 1:
       error_type |= 0x1
-    if read.pos != pos:
+    if not (-window <= read.pos - pos <= window):
       error_type |= 0x2
     if read.cigarstring != cigar:
       error_type |= 0x4
