@@ -57,36 +57,42 @@ class Model:
 
     paired indicates if the reads are in pairs or not
     """
-    assert len(seq) > self.template_len_mean * 3, 'Template size should be less than 1/3rd sequence length'
-    p_template = 0.5 * coverage / float(self.read_len)  # Per base probability of a read
+    end_base = end_base or len(seq)
+    #assert len(seq) > self.template_len_mean * 3, 'Template size should be less than 1/3rd sequence length'
+    p_template = 0.5 * coverage / float(self.read_len)  # Per base probability of a template
     template_loc_rng, read_order_rng, template_len_rng, error_loc_rng, base_choice_rng = mutil.initialize_rngs(seed, 5)
-
-    template_locs = mutil.place_poisson_seq(template_loc_rng, p_template, start_base, min(end_base or len(seq), len(seq) - self.template_len_mean * 3), seq)
+    template_locs = mutil.place_poisson_seq(template_loc_rng, p_template, start_base, end_base, seq)
     template_lens = (template_len_rng.randn(template_locs.shape[0]) * self.template_len_sd + self.template_len_mean).astype('i4')
-    np.clip(template_lens, self.read_len, self.template_len_mean * 3, template_lens)
+    idx = (template_locs + template_lens < end_base).nonzero()[0]
+    template_locs = template_locs[idx]
+    template_lens = template_lens[idx]
+
     read_order = read_order_rng.randint(2, size=template_locs.shape[0])  # Which read comes first?
-    idx_fwd, = np.nonzero(read_order == 0)
-    idx_rev, = np.nonzero(read_order == 1)
 
     dtype = [('start_a', 'i4'), ('read_len', 'i4'), ('read_order', 'i1'),
              ('perfect_reads', 'S' + str(self.read_len)), ('corrupt_reads', 'S' + str(self.read_len)),
              ('phred', 'S' + str(self.read_len))]
-    reads = np.core.recarray(dtype=dtype, shape=2 * template_locs.shape[0])
-    reads['start_a'][2 * idx_fwd] = template_locs[idx_fwd]
-    reads['start_a'][2 * idx_fwd + 1] = template_locs[idx_fwd] + template_lens[idx_fwd] - self.read_len
-    reads['start_a'][2 * idx_rev + 1] = template_locs[idx_rev]
-    reads['start_a'][2 * idx_rev] = template_locs[idx_rev] + template_lens[idx_rev] - self.read_len
+    reads = np.recarray(dtype=dtype, shape=2 * template_locs.shape[0])
+    r_start, r_o, pr = reads['start_a'], reads['read_order'], reads['perfect_reads']
+    reads['read_len'] = self.read_len
     reads['read_order'][::2] = read_order[:]
     reads['read_order'][1::2] = 1 - read_order[:]
+    r_len = self.read_len
 
-    #reads['start_a'][1::2] = template_locs + template_lens - self.read_len
-    reads['read_len'] = self.read_len
-    r_start, r_len, r_o, pr = reads['start_a'], reads['read_len'], reads['read_order'], reads['perfect_reads']
+    idx_fwd = (read_order == 0).nonzero()[0]
+    idx_rev = read_order.nonzero()[0]
+
+    r_start[2 * idx_fwd] = template_locs[idx_fwd]
+    r_start[2 * idx_fwd + 1] = template_locs[idx_fwd] + template_lens[idx_fwd] - r_len
+    r_start[2 * idx_rev] = template_locs[idx_rev] + template_lens[idx_rev] - r_len
+    r_start[2 * idx_rev + 1] = template_locs[idx_rev]
+
     for n in xrange(reads.shape[0]):
-      if r_o[n] == 0:  # Forward read
-        pr[n] = seq[r_start[n]:r_start[n] + r_len[n]]
+      if r_o[n] == 0:  # Forward read comes first
+        pr[n] = seq[r_start[n]:r_start[n] + r_len]
       else:  # Reverse strand read
-        pr[n] = seq_c[r_start[n]:r_start[n] + r_len[n]][::-1]
+        pr[n] = seq_c[r_start[n]:r_start[n] + r_len][::-1]
+
     if corrupt:
       self.corrupt_reads(reads, error_loc_rng, base_choice_rng)
     return reads, True
