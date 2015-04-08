@@ -68,7 +68,6 @@ __doc__ = __cmd__ + __param__
 import json
 import os
 import time
-import sys
 
 import numpy as np
 import docopt
@@ -181,6 +180,7 @@ def generate(cmd_args):
   fastq_c_fp = open(fname_prefix + '_c.fq', 'w') if corrupt else None
 
   blocks_done = 0
+  mitty.lib.progress_bar('Generating reads ', f=float(blocks_done) / total_blocks, cols=80)
   for ch in chromosomes:
     if not null_reads:
       ml = mdb.load_master_list(conn, ch)
@@ -191,7 +191,6 @@ def generate(cmd_args):
       seq, variant_waypoints = lib_reads.expand_sequence(ref[ch], ml, chrom, cpy)
       seq_c = mitty.lib.string.translate(seq, mitty.lib.DNA_complement)
       for blk in range(blocks_to_do):
-        progress_bar('Generating reads ', f=float(blocks_done)/total_blocks, cols=80)
         if not variants_only:
           reads, paired = read_model.get_reads(seq, seq_c, coverage=actual_coverage_per_block, corrupt=corrupt, seed=seed_rng.randint(0, mitty.lib.SEED_MAX))
         else:
@@ -199,6 +198,7 @@ def generate(cmd_args):
         pos, cigars = lib_reads.roll_cigars(variant_waypoints, reads)
         first_serial_no = write_reads_to_file(fastq_fp, fastq_c_fp, reads, paired, pos, cigars, ch, cpy, first_serial_no)
         blocks_done += 1
+        mitty.lib.progress_bar('Generating reads ', f=float(blocks_done) / total_blocks, cols=80)
   print('')
   t1 = time.time()
   logger.debug('Took {:f}s to write {:d} templates'.format(t1 - t0, first_serial_no))
@@ -259,19 +259,6 @@ def write_reads_to_file(fastq_fp, fastq_c_fp, reads, paired, pos, cigars, ch, cc
       cntr += 1
 
   return cntr
-
-
-def progress_bar(title, f, cols):
-  """Draw a nifty progress bar.
-  '\r' trick from http://stackoverflow.com/questions/15685063/print-a-progress-bar-processing-in-python
-
-  :param title: leading text to print
-  :param f:     fraction completed
-  :param cols:  how many columns wide should the bar be
-  """
-  x = int(f * cols + 0.5)
-  sys.stdout.write('\r' + title + '[' + '.' * x + ' ' * (cols - x) + ']')
-  sys.stdout.flush()
 
 
 if __name__ == '__main__':

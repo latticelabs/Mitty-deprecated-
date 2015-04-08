@@ -147,7 +147,7 @@ def generate(cmd_args):
   run_simulations(pop_db_name, ref, sfs_model=load_site_frequency_model(params.get('site_model', None)),
                   variant_models=load_variant_models(ref, params['variant_models']),
                   chromosomes=chromosomes, sample_size=sample_size, master_seed=master_seed,
-                  progress_bar_func=progress_bar)
+                  progress_bar_func=mitty.lib.progress_bar)
   t1 = time.time()
   logger.debug('Took {:f}s'.format(t1 - t0))
 
@@ -183,19 +183,6 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
     if progress_bar_func is not None: print('')
     mdb.save_chromosome_metadata(conn, ch, ref.sequences[ch][1], ref[ch])
   conn.close()
-
-
-def progress_bar(title, f, cols):
-  """Draw a nifty progress bar.
-  '\r' trick from http://stackoverflow.com/questions/15685063/print-a-progress-bar-processing-in-python
-
-  :param title: leading text to print
-  :param f:     fraction completed
-  :param cols:  how many columns wide should the bar be
-  """
-  x = int(f * cols + 0.5)
-  sys.stdout.write('\r' + title + '[' + '.' * x + ' ' * (cols - x) + ']')
-  sys.stdout.flush()
 
 
 def load_site_frequency_model(sfs_model_json):

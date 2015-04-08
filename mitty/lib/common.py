@@ -2,6 +2,7 @@
 
 import os
 import random
+import sys
 import warnings
 import pkg_resources
 
@@ -70,3 +71,16 @@ def load_benchmark_tool_wrapper(name):
 
 import string
 DNA_complement = string.maketrans('ATCGN', 'TAGCN')
+
+
+def progress_bar(title, f, cols):
+  """Draw a nifty progress bar.
+  '\r' trick from http://stackoverflow.com/questions/15685063/print-a-progress-bar-processing-in-python
+
+  :param title: leading text to print
+  :param f:     fraction completed
+  :param cols:  how many columns wide should the bar be
+  """
+  x = int(f * cols + 0.5)
+  sys.stdout.write('\r' + title + '[' + '.' * x + ' ' * (cols - x) + ']')
+  sys.stdout.flush()
