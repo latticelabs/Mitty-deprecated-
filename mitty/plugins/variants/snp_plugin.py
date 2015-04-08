@@ -55,8 +55,9 @@ class Model:
     assert 0 < seed < mitty.lib.SEED_MAX
     logger.debug('Master seed: {:d}'.format(seed))
 
-    p_eff = scale_probability_and_validate(self.p, p, f)
     base_loc_rng, base_t_rng, freq_rng = mutil.initialize_rngs(seed, 3)
+
+    p_eff = scale_probability_and_validate(self.p, p, f)
     snp_locs = mutil.place_poisson_seq(base_loc_rng, p_eff, 0, len(ref), ref)  #np.array([x for x in mutil.place_poisson(base_loc_rng, p_eff, 0, len(ref)) if ref[x] != 'N'], dtype='i4')
     base_subs = mutil.base_subs(ref, snp_locs, self.t_mat, base_t_rng)
 
@@ -69,7 +70,7 @@ def test():
   m = Model(p=0.1)
   pos, stop, ref, alt, p = m.get_variants(ref_seq, 1, np.array([0.2]), np.array([1.0]), seed=10)
   for p, r in zip(pos, ref):
-    assert r == ref_seq[pos]
+    assert r == ref_seq[p]
 
 
 if __name__ == "__main__":
