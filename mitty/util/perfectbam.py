@@ -1,12 +1,15 @@
 #!python
+from mitty.lib import progress_bar
+
 __cmd__ = """Commandline::
 
   Usage:
-    perfectbam  --inbam=INBAM  [--window=WN] [-v]
+    perfectbam  --inbam=INBAM  [--window=WN] [-x] [-v]
 
   Options:
     --inbam=INBAM           Input bam file name of reads
     --window=WN             Size of tolerance window [default: 0]
+    -x                      Use extended CIGAR ('X's and '='s) rather than traditional CIGAR (just 'M's)
     -v                      Dump detailed logger messages
 """
 __param__ = """Given a bam file containing simulated reads aligned by a tool:
@@ -28,13 +31,13 @@ __doc__ = __cmd__ + __param__
 
 import os
 import json
-import sys
 
 import pysam
 from collections import Counter
 import docopt
 
 import mitty.lib.io as mio  # For the bam sort and index function
+from mitty.lib.reads import old_style_cigar
 
 import logging
 logger = logging.getLogger(__name__)
@@ -57,7 +60,7 @@ def csv_header():
   return header
 
 
-def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window):
+def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window, extended=False):
   """Main processing function that goes through the bam file, analyzing read alignment and writing out
 
   :param bam_in_fp:
@@ -83,6 +86,9 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window):
     else:
       rd_ser, chrom, cpy, ro, pos, cigar = read.qname.split('|')
     ro, chrom, pos = int(ro), int(chrom), int(pos)
+    if not extended:
+      cigar = old_style_cigar(cigar)
+
     total_reads_cntr[chrom] += 1
 
     error_type = 0x0
@@ -102,58 +108,20 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window):
     read.is_reverse = 1 - ro
     read.mate_is_reverse = ro
     read.mate_is_unmapped = False  # Gotta check this - what if mate is deep in an insert?
-
     read.reference_id = chrom - 1
     read.pos = pos
     read.cigarstring = cigar  # What if this is deep in an insert?
-
-    # read.cigar = [cig for cig in read.cigar if cig[0] != 8]
-
-    # # TEST CODE:
-    # seq = ''
-    # pos = 0
-    # flag = False
-    # for cig in read.cigar:
-    #   if cig[0] == 0:
-    #     seq += '=' * cig[1]
-    #     pos += cig[1]
-    #   elif cig[0] == 1:
-    #     seq += read.seq[pos:pos + cig[1]]
-    #     pos += cig[1]
-    #   elif cig[0] == 8:
-    #     seq += read.seq[pos:pos + cig[1]]
-    #     pos += cig[1]
-    #     flag = True
-    # if flag:
-    #   print read.seq
-    # read.seq = seq
-    # if flag:
-    #   print read.seq
-
     bam_out_fp.write(read)
 
     f = n / total_read_count
     if f - f0 >= 0.01:
-      progress_bar('Processing BAM', f, 80)
+      progress_bar('Processing BAM ', f, 80)
       f0 = f
   print('\n')
 
   json.dump({"read_counts": {str(k): v for k,v in total_reads_cntr.iteritems()},
              "incorrectly_aligned_read_counts": {str(k): v for k, v in incorrectly_aligned_reads_cntr.iteritems()}},
             json_fp, indent=2)
-
-
-def progress_bar(title, f, cols):
-  """Draw a nifty progress bar.
-  '\r' trick from http://stackoverflow.com/questions/15685063/print-a-progress-bar-processing-in-python
-
-  :param title: leading text to print
-  :param f:     fraction completed
-  :param cols:  how many columns wide should the bar be
-  """
-  x = int(f * cols + 0.5)
-  sys.stdout.write('\r' + title + '[' + '.' * x + ' ' * (cols - x) + ']')
-  sys.stdout.flush()
 
 
 def cli():
@@ -174,7 +142,7 @@ def cli():
       pysam.AlignmentFile(perfect_bam_fname, 'wb', template=bam_in_fp) as bam_out_fp, \
       open(csv_fname, 'w') as csv_out_fp, open(summary_fname, 'w') as json_out_fp:
     main(bam_in_fp=bam_in_fp, bam_out_fp=bam_out_fp, csv_fp=csv_out_fp, json_fp=json_out_fp,
-         window=int(args['--window']))
+         window=int(args['--window']), extended=bool(args['-x']))
   mio.sort_and_index_bam(perfect_bam_fname)
 
 
