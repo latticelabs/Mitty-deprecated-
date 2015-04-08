@@ -289,3 +289,12 @@ def cigar_test6():
   assert cigars[3] == '1=2I1=1X2=', cigars[3]
   assert cigars[4] == '2S1=1X2=2D1=', cigars[4]
   assert cigars[5] == '1X2=2D1=1X2=1S', cigars[5]
+
+
+def old_style_cigar_test():
+  """Converting extended cigars to old style cigars"""
+  assert reads.old_style_cigar('100=') == '100M'
+  assert reads.old_style_cigar('20=1X40=') == '61M'
+  assert reads.old_style_cigar('20S1X40=') == '20S41M'
+  assert reads.old_style_cigar('20S1X30I40=') == '20S1M30I40M'
+  assert reads.old_style_cigar('20S1X30I40=30D1X1X20M') == '20S1M30I40M30D22M'

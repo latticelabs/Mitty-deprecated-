@@ -1,4 +1,6 @@
 """Infrastructure to handle reads"""
+import re
+
 import numpy as np
 
 
@@ -114,3 +116,23 @@ def roll_cigars(variant_waypoints, reads):
       n += 1
     cigars += [cigar]
   return pos, cigars
+
+
+cig_re = re.compile(r'(\d+?)M(\d+?)M')
+
+
+def old_style_cigar(cigar):
+  """Given an extended cigar ('X's for mismatch and '=' for match) convert it into an old style cigar with 'M's and no
+  'X's
+
+  :param cigar:
+  :return: old style cigar
+  """
+  cigar = cigar.replace('=', 'M')  # First replace all '='s with 'M's
+  if 'X' in cigar:  # More complicated - need to merge Xs and =s into Ms as needed
+    cigar = cigar.replace('X', 'M')
+    # Now we need to collapse the 'M's as needed
+    cigar, n = cig_re.subn(lambda m: str(int(m.group(1)) + int(m.group(2))) + 'M', cigar)
+    while n:
+      cigar, n = cig_re.subn(lambda m: str(int(m.group(1)) + int(m.group(2))) + 'M', cigar)
+  return cigar
