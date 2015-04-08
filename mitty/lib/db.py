@@ -136,17 +136,18 @@ def load_sample(conn, gen, serial, chrom):
   return [(b >> 2, b & 0x3) for b in struct.unpack('{:d}I'.format(len(row[0]) / 4), row[0])] if row is not None else []
 
 
-def save_chromosome_metadata(conn, chrom, seq_id, seq):
+def save_chromosome_metadata(conn, chrom, seq_id, seq, seq_md5):
   """Save chromosome sequence metadata in db
 
   :param conn:   connection object
   :param chrom:  chromosome number
   :param seq_id: sequence id as found in fasta
   :param seq:    sequence string
+  :param seq_md5:md5 hash of sequence string
   """
   c = conn.cursor()
-  c.execute("CREATE TABLE IF NOT EXISTS chrom_metadata (chrom INTEGER, seq_id TEXT, seq_len INTEGER)")
-  c.execute("INSERT INTO chrom_metadata (chrom, seq_id, seq_len) VALUES (?, ?, ?)", (chrom, seq_id, len(seq)))
+  c.execute("CREATE TABLE IF NOT EXISTS chrom_metadata (chrom INTEGER, seq_id TEXT, seq_len INTEGER, seq_md5 INTEGER)")
+  c.execute("INSERT INTO chrom_metadata (chrom, seq_id, seq_len, seq_md5) VALUES (?, ?, ?, ?)", (chrom, seq_id, len(seq), seq_md5))
   conn.commit()
 
 
@@ -155,7 +156,7 @@ def load_chromosome_metadata(conn, chrom):
 
   :param conn:   connection object
   :param chrom:  chromosome number
-  :returns seq_id, seq_len
+  :returns seq_id, seq_len, seq_md5
   """
   c = conn.cursor()
   c.execute("SELECT * FROM chrom_metadata WHERE chrom=?", (chrom,))

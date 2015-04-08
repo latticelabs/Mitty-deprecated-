@@ -181,7 +181,7 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
       if progress_bar_func is not None:
         progress_bar_func('Chrom {:d} '.format(ch), float(n)/sample_size, 80)
     if progress_bar_func is not None: print('')
-    mdb.save_chromosome_metadata(conn, ch, ref.sequences[ch][1], ref[ch])
+    mdb.save_chromosome_metadata(conn, ch, ref.get_seq_id(ch), ref[ch], ref.get_seq_md5(ch))
   conn.close()
 
 

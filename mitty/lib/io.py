@@ -4,6 +4,7 @@ import os
 import glob
 import gzip
 from contextlib import contextmanager
+import hashlib  # We decided to include md5 hashes of the sequences too
 
 import pysam
 
@@ -23,38 +24,52 @@ class Fasta:
     :param multi_dir: fill out if input is in the form of multiple files in a directory numbered chr1.fa, chr2.fa etc.
     """
     self.format = MULTI_DIR if multi_fasta is None else MULTI_FASTA
-    self.get_sequence = self.get_multi_dir if self.format == MULTI_DIR else self.get_multi_fasta
+    self._load_sequence_from_file = self.get_multi_dir if self.format == MULTI_DIR else self.get_multi_fasta
     self.multi_fasta = multi_fasta
     self.multi_dir = multi_dir
-    self.sequences = {}  # This is a dict of tuples of (seq, seq_id)
+    self.sequences = {}  # This is a dict of dict of (seq, id, md5)
     self.persist = persistent
 
   def __getitem__(self, item):
     """This allows us to use Python's index notation to get sequences from the reference"""
-    return self.sequences.get(item, self.get_sequence(item))[0]
+    return self.sequences.get(item, self._load_sequence_from_file(item))['seq']
 
   def get_multi_dir(self, item):
     """We get here because we don't have the sequence in memory"""
     fa_fname = glob.os.path.join(self.multi_dir, 'chr{:s}.fa'.format(str(item)))
     if not glob.os.path.exists(fa_fname):
       raise IOError('{:s} does not exist'.format(fa_fname))
-    seq = load_single_line_unzipped_fasta(fa_fname)
+    seq, sid = load_single_line_unzipped_fasta(fa_fname)
+    ret_val = {'seq': seq, 'id': sid, 'md5': hashlib.md5(seq).hexdigest()}
     if self.persist:
-      self.sequences[item] = seq
-    return seq
+      self.sequences[item] = ret_val
+    return ret_val
 
   def get_multi_fasta(self, item):
     """We get here because we don't have the sequence in memory"""
     ref_seqs = load_generic_multi_fasta(self.multi_fasta)
+    ret_val = {k: {'seq': v[0], 'id': v[1], 'md5': hashlib.md5(v[0]).hexdigest()} for k, v in ref_seqs.iteritems()}
     if self.persist:
-      self.sequences = ref_seqs
-    return ref_seqs[item]
+      self.sequences = ret_val
+    return ret_val[item]
 
   def __len__(self):
     return len(self.sequences)
 
   def get(self, item, default=None):
     return self.__getitem__(item) or default
+
+  def get_seq(self, chrom):
+    return self.sequences.get(chrom, self._load_sequence_from_file(chrom))['seq']
+
+  def get_seq_len(self, chrom):
+    return len(self.sequences.get(chrom, self._load_sequence_from_file(chrom))['seq'])
+
+  def get_seq_id(self, chrom):
+    return self.sequences.get(chrom, self._load_sequence_from_file(chrom))['id']
+
+  def get_seq_md5(self, chrom):
+    return self.sequences.get(chrom, self._load_sequence_from_file(chrom))['md5']
 
 
 def load_single_line_unzipped_fasta(fa_fname):
