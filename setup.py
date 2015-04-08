@@ -27,7 +27,7 @@ setup(
       # Register the built in plugins
       'mitty.plugins.sfs': ['double_exp = mitty.plugins.site_frequency.double_exp'],
       'mitty.plugins.variants': ['snp = mitty.plugins.variants.snp_plugin',
-                                 #'delete = mitty.plugins.variants.delete_plugin',
+                                 'delete = mitty.plugins.variants.delete_plugin',
                                  #'bounded_delete = mitty.plugins.variants.bounded_len_delete_plugin',
                                  #'insert = mitty.plugins.variants.insert_plugin',
                                  #'inversion = mitty.plugins.variants.inversion_plugin',
