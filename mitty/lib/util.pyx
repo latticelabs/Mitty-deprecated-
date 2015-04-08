@@ -117,7 +117,8 @@ cdef markov_chain_sequence_gen(
       break
 
   rg = rng.rand
-  l[0] = 0
+  seq[0] = first_letter
+  l[0] = 1
 
   while keep_running:
     r = rg()  # Slowest part
@@ -125,7 +126,7 @@ cdef markov_chain_sequence_gen(
       if r < ct_mat[last_letter][n]:
         break
     if n == 4:
-      if l[0] > 1: keep_running = 0 # We can stop if we have a length 2 sequence
+      if l[0] > 2: keep_running = 0 # We can stop if we have a length 2 sequence
     else:
       seq[l[0]] = alphabet[n]
       last_letter = n
@@ -156,8 +157,9 @@ def markov_sequences(bytes seq, ins_pts, max_len, t_mat, rng):
     for j in range(1, 5):
       ct_mat[i][j] = ct_mat[i][j-1] + t_mat[i][j]
 
-  insertions = []
+  insertions, lengths = [], []
   for ip in ins_pts:
     markov_chain_sequence_gen(s[ip], ct_mat, pre_string, &l, max_len, rng)
     insertions += [pre_string[:l]]
-  return insertions
+    lengths += [l]
+  return insertions, lengths
