@@ -113,13 +113,13 @@ def load_generic_multi_fasta(fa_fname):
 # For now we concentrate on saving individual VCF files. Next version will have multi-vcf
 
 @contextmanager
-def vcf_for_writing(vcf_gz_name, sample_names, bgzip_and_index=True):
+def vcf_for_writing(vcf_gz_name, sample_names, contig_info=[]):
   """Start a context with a handle to a vcf file
 
   Given a master list for a given chromosome and a set of samples, save them to a VCF file.
-  :param vcf_name: Name of output vcf file
+  :param vcf_gz_name: Name of output vcf.gz file
   :param sample_names: list of sample names
-  :param bgzip_and_index: If True bgzip and index the file at the end
+  :param contig_info: list of the form [(chrom, seq_id, seq_len, seq_md5) ... ]
 
   Example usage:
   with vcf_for_writing('test.vcf', ['a','b']) as fp:
@@ -136,10 +136,13 @@ def vcf_for_writing(vcf_gz_name, sample_names, bgzip_and_index=True):
   with open(vcf_name, 'w') as fp:
     # Write header etc. before handing us the file pointer
     sample_header = '\t'.join(sample_names)
+    contigs = '\n'.join(['##contig=<ID={:s},length={:d},md5={:s}>'.format(ci[0].split(' ')[0], ci[1], ci[2]) for ci in contig_info])
+    # When we write the sequence id, we need to remove everything after the first space
     fp.write(
       "##fileformat=VCFv4.1\n"
+      "{:s}"
       "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n"
-      "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{:s}\n".format(sample_header)
+      "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{:s}\n".format(contigs + '\n' if len(contigs) else '', sample_header)
     )
     yield fp  # This where the writing happens
 
@@ -155,25 +158,25 @@ def compress_and_index_vcf(in_vcf_name, out_vcf_name):
   pysam.tabix_index(out_vcf_name, force=True, preset='vcf')
 
 
-def write_chromosomes_to_vcf(fp, chrom=1, chrom_list=[], master_list=None):
+def write_chromosomes_to_vcf(fp, seq_id='chr1', chrom_list=[], master_list=None):
   """Write out the chromosomes to as VCF lines
 
   :param fp: file pointer to context opened vcf file
-  :param chrom: chromosome number
+  :param seq_id: sequence id, should match
   :param chrom_list: list of chromosome objects
   :param master_list: master list that the chromosome object indexes refer to
   """
   if len(chrom_list) > 1:
     raise NotImplementedError('Multiple sample VCF file saving is not supported in this version.')
 
+  seq_id = seq_id.split(' ')[0]  # Only take things up to the first space
   wr = fp.write
-  ch = str(chrom)
   GT = ['1|0', '0|1', '1|1']
   pos = master_list.variants['pos'] + 1  # VCF files are 1 indexed.
   ref = master_list.variants['ref']
   alt = master_list.variants['alt']
   for idx, gt in chrom_list[0]:
-    wr(ch + "\t" + str(pos[idx]) + "\t.\t" + ref[idx] + "\t" + alt[idx] + "\t100\tPASS\t.\tGT\t" + GT[gt] + "\n")
+    wr(seq_id + "\t" + str(pos[idx]) + "\t.\t" + ref[idx] + "\t" + alt[idx] + "\t100\tPASS\t.\tGT\t" + GT[gt] + "\n")
 
 
 def load_vcf(rdr, sample_labels=None, max_rows=-1):

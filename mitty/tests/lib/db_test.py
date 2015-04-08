@@ -55,18 +55,18 @@ def chrom_metadata_roundtrip_test():
 
   seq_id1 = 'Old McDonald had a farm'
   seq1 = 'Eeya Eeya O. And on this farm he had a goat, Eeya Eeya O'
-  mdb.save_chromosome_metadata(conn, 1, seq_id1, len(seq1), 22)
+  mdb.save_chromosome_metadata(conn, 1, seq_id1, len(seq1), '22')
 
   seq_id2 = 'Five little monkeys jumping on the bed'
   seq2 = 'One fell down and bumped his head. Mommy called the doctor, and the doctor said "No more monkeys jumping on the bed"'
-  mdb.save_chromosome_metadata(conn, 2, seq_id2, len(seq2), 9675)
+  mdb.save_chromosome_metadata(conn, 2, seq_id2, len(seq2), '9675')
 
-  sid1, slen1, md51 = mdb.load_chromosome_metadata(conn, 1)
-  sid2, slen2, md52 = mdb.load_chromosome_metadata(conn, 2)
+  _, sid1, slen1, md51 = mdb.load_chromosome_metadata(conn, 1)
+  _, sid2, slen2, md52 = mdb.load_chromosome_metadata(conn, 2)
 
   assert sid1 == seq_id1
   assert sid2 == seq_id2
   assert len(seq1) == slen1
   assert len(seq2) == slen2
-  assert md51 == 22
-  assert md52 == 9675
+  assert md51 == '22'
+  assert md52 == '9675'

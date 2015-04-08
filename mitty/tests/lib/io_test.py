@@ -58,7 +58,7 @@ def vcf_contextmanager_test():
   chrom = [(0, 0), (2, 1), (3,2)]
 
   with mio.vcf_for_writing(temp_name, ['a']) as fp:
-    mio.write_chromosomes_to_vcf(fp, chrom=2, chrom_list=[chrom], master_list=ml)
+    mio.write_chromosomes_to_vcf(fp, seq_id='chr2', chrom_list=[chrom], master_list=ml)
 
   rdr = vcf.Reader(filename=temp_name)
   v = rdr.next()

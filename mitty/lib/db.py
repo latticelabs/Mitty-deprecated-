@@ -146,7 +146,7 @@ def save_chromosome_metadata(conn, chrom, seq_id, seq_len, seq_md5):
   :param seq_md5:md5 hash of sequence string
   """
   c = conn.cursor()
-  c.execute("CREATE TABLE IF NOT EXISTS chrom_metadata (chrom INTEGER, seq_id TEXT, seq_len INTEGER, seq_md5 INTEGER)")
+  c.execute("CREATE TABLE IF NOT EXISTS chrom_metadata (chrom INTEGER, seq_id TEXT, seq_len INTEGER, seq_md5 TEXT)")
   c.execute("INSERT INTO chrom_metadata (chrom, seq_id, seq_len, seq_md5) VALUES (?, ?, ?, ?)", (chrom, seq_id, seq_len, seq_md5))
   conn.commit()
 
@@ -156,17 +156,19 @@ def load_chromosome_metadata(conn, chrom):
 
   :param conn:   connection object
   :param chrom:  chromosome number
-  :returns seq_id, seq_len, seq_md5
+  :returns chrom, seq_id, seq_len, seq_md5
   """
   c = conn.cursor()
-  c.execute("SELECT * FROM chrom_metadata WHERE chrom=?", (chrom,))
+  c.execute("SELECT chrom, seq_id, seq_len, seq_md5 FROM chrom_metadata WHERE chrom=?", (chrom,))
   row = next(c, None)
-  return row[1:]
+  return row
 
 
 def chromosomes_in_db(conn):
-  c = conn.execute("SELECT name FROM sqlite_master WHERE TYPE='table' AND name LIKE 'master_chrom_%'")
-  return [int(row[0].replace('master_chrom_','')) for row in c]
+  # c = conn.execute("SELECT name FROM sqlite_master WHERE TYPE='table' AND name LIKE 'master_chrom_%'")
+  # return [int(row[0].replace('master_chrom_','')) for row in c]
+  c = conn.execute("SELECT chrom, seq_id, seq_len, seq_md5 FROM chrom_metadata ORDER BY seq_id ASC")
+  return [row for row in c]
 
 
 def variants_in_master_list(conn, chrom):

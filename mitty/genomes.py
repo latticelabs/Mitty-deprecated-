@@ -181,7 +181,7 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
       if progress_bar_func is not None:
         progress_bar_func('Chrom {:d} '.format(ch), float(n)/sample_size, 80)
     if progress_bar_func is not None: print('')
-    mdb.save_chromosome_metadata(conn, ch, ref.get_seq_id(ch), ref[ch], ref.get_seq_md5(ch))
+    mdb.save_chromosome_metadata(conn, ch, ref.get_seq_id(ch), len(ref[ch]), ref.get_seq_md5(ch))
   conn.close()
 
 
@@ -207,11 +207,12 @@ def write(cmd_args):
   if len(samples) == 0:
     samples = [n for n in range(mdb.samples_in_db(conn))]
 
+  contig_info = [mdb.load_chromosome_metadata(conn, ch[0])[1:] for ch in mdb.chromosomes_in_db(conn)]
   for spl in [int(s) for s in samples]:
-    with mio.vcf_for_writing('{:s}_s{:06d}.vcf'.format(pop_db_name, spl), ['s{:d}'.format(spl)]) as fp:
+    with mio.vcf_for_writing('{:s}_s{:06d}.vcf'.format(pop_db_name, spl), ['s{:d}'.format(spl)], contig_info) as fp:
       for ch in mdb.chromosomes_in_db(conn):
-        ml = mdb.load_master_list(conn, ch)
-        mio.write_chromosomes_to_vcf(fp, chrom=ch, chrom_list=[mdb.load_sample(conn, 0, spl, ch)], master_list=ml)
+        ml = mdb.load_master_list(conn, ch[0])
+        mio.write_chromosomes_to_vcf(fp, seq_id=ch[1], chrom_list=[mdb.load_sample(conn, 0, spl, ch[0])], master_list=ml)
 
 
 def explain(cmd_args):
