@@ -77,13 +77,13 @@ def roll_cigars(variant_waypoints, reads):
     n = waypoint_right[rd_no]
 
     m = min(v_a[n], r_stop + 1) - r_start
-    cigar = str(m) + 'M' if m > 0 else ''
+    cigar = str(m) + '=' if m > 0 else ''
     this_pos = v_r[n - 1] + r_start - v_a[n - 1]  # In our system the previous waypoint has the delta between ref and alt
     if dl[n - 1] > 0:  # The previous variant was an insertion, possibility for soft-clipping
       this_pos = v_r[n - 1] + max(r_start - v_a[n - 1] - dl[n - 1], 0)  # POS is nearest match base (and INS has been shifted one base to the right for waypoint)
       sc = v_a[n - 1] + dl[n - 1] - r_start
       if sc > 0:  # Yes, a soft-clip
-        cigar = str(sc) + 'S' + (str(m - sc) + 'M' if m - sc > 0 else '')
+        cigar = str(sc) + 'S' + (str(m - sc) + '=' if m - sc > 0 else '')
     if r_start == v_a[n] and dl[n] < 0:  # Corner case: we are starting at a deletion
       this_pos = v_r[n] + r_start - v_a[n]
 
@@ -91,7 +91,7 @@ def roll_cigars(variant_waypoints, reads):
     while r_stop >= v_a[n]:
       if dl[n] == 0:  # SNP
         m = min(v_a[n+1], r_stop + 1) - v_a[n] - 1
-        cigar += '1X' + (str(m) + 'M' if m > 0 else '')
+        cigar += '1X' + (str(m) + '=' if m > 0 else '')
       elif dl[n] > 0:  # INS
         if r_start == v_a[n]:  # Corner case: we are starting right at an insertion
           if v_a[n] + dl[n] - 1 >= r_stop:  # Completely inside insertion
@@ -99,18 +99,18 @@ def roll_cigars(variant_waypoints, reads):
           else:  # Soft-clipped, then with Ms
             m = min(v_a[n + 1], r_stop + 1) - r_start
             sc = min(dl[n], r_stop + 1 - r_start)
-            cigar = str(sc) + 'S' + str(m - sc) + 'M'
+            cigar = str(sc) + 'S' + str(m - sc) + '='
         elif v_a[n] + dl[n] - 1 < r_stop:  # Insert has anchor on other side
           m = min(v_a[n + 1], r_stop + 1) - v_a[n] - dl[n]
-          cigar += str(dl[n]) + 'I' + (str(m) + 'M' if m > 0 else '')
+          cigar += str(dl[n]) + 'I' + (str(m) + '=' if m > 0 else '')
         else:  # Handle soft-clip at end
           cigar += str(r_stop - v_a[n] + 1) + 'S'
       else:  # DEL
         m = min(v_a[n + 1], r_stop + 1) - v_a[n]
         if r_start != v_a[n]:
-          cigar += str(-dl[n]) + 'D' + str(m) + 'M'
+          cigar += str(-dl[n]) + 'D' + str(m) + '='
         else:
-          cigar += str(m) + 'M'  # Corner case: if we start right at a deletion
+          cigar += str(m) + '='  # Corner case: if we start right at a deletion
       n += 1
     cigars += [cigar]
   return pos, cigars

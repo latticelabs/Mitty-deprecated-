@@ -129,7 +129,7 @@ def cigar_test1():
   read_list = np.rec.fromrecords([(n, 3) for n in range(0, 8)], names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
   for cigar in cigars:
-    assert cigar == '3M', cigar
+    assert cigar == '3=', cigar
   for n, p in enumerate(pos):
     assert p == n
 
@@ -154,12 +154,12 @@ def cigar_test2():
   alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 0)
   read_list = np.rec.fromrecords([(n, 3) for n in range(6)], names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
-  assert cigars[0] == '3M', cigars[0]
-  assert cigars[1] == '2M1X', cigars[1]
-  assert cigars[2] == '1M1X1M', cigars[2]
-  assert cigars[3] == '1X2M', cigars[3]
-  assert cigars[4] == '3M', cigars[4]
-  assert cigars[5] == '3M', cigars[5]
+  assert cigars[0] == '3=', cigars[0]
+  assert cigars[1] == '2=1X', cigars[1]
+  assert cigars[2] == '1=1X1=', cigars[2]
+  assert cigars[3] == '1X2=', cigars[3]
+  assert cigars[4] == '3=', cigars[4]
+  assert cigars[5] == '3=', cigars[5]
 
   for n, p in enumerate(pos):
     assert p == n
@@ -183,12 +183,12 @@ def cigar_test3():
   alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 0)
   read_list = np.rec.fromrecords([(n, 3) for n in range(6)], names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
-  assert cigars[0] == '3M', cigars[0]
-  assert cigars[1] == '3M', cigars[1]
-  assert cigars[2] == '2M1S', cigars[2]
-  assert cigars[3] == '1M1I1M', cigars[3]
-  assert cigars[4] == '1S2M', cigars[4]
-  assert cigars[5] == '3M', cigars[5]
+  assert cigars[0] == '3=', cigars[0]
+  assert cigars[1] == '3=', cigars[1]
+  assert cigars[2] == '2=1S', cigars[2]
+  assert cigars[3] == '1=1I1=', cigars[3]
+  assert cigars[4] == '1S2=', cigars[4]
+  assert cigars[5] == '3=', cigars[5]
 
   assert pos[0] == 0
   assert pos[1] == 1
@@ -216,13 +216,13 @@ def cigar_test4():
   alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 0)
   read_list = np.rec.fromrecords([(n, 3) for n in range(7)], names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
-  assert cigars[0] == '3M', cigars[0]
-  assert cigars[1] == '3M', cigars[1]
-  assert cigars[2] == '2M1S', cigars[2]
-  assert cigars[3] == '1M2S', cigars[3]
+  assert cigars[0] == '3=', cigars[0]
+  assert cigars[1] == '3=', cigars[1]
+  assert cigars[2] == '2=1S', cigars[2]
+  assert cigars[3] == '1=2S', cigars[3]
   assert cigars[4] == '3S', cigars[4]
   assert cigars[5] == '3S', cigars[5]
-  assert cigars[6] == '2S1M', cigars[6]
+  assert cigars[6] == '2S1=', cigars[6]
 
   assert pos[0] == 0
   assert pos[3] == 3
@@ -248,12 +248,12 @@ def cigar_test5():
   alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 0)
   read_list = np.rec.fromrecords([(n, 3) for n in range(6)], names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
-  assert cigars[0] == '3M', cigars[0]
-  assert cigars[1] == '3M', cigars[1]
-  assert cigars[2] == '2M2D1M', cigars[2]
-  assert cigars[3] == '1M2D2M', cigars[3]
-  assert cigars[4] == '3M', cigars[4]
-  assert cigars[5] == '3M', cigars[5]
+  assert cigars[0] == '3=', cigars[0]
+  assert cigars[1] == '3=', cigars[1]
+  assert cigars[2] == '2=2D1=', cigars[2]
+  assert cigars[3] == '1=2D2=', cigars[3]
+  assert cigars[4] == '3=', cigars[4]
+  assert cigars[5] == '3=', cigars[5]
 
   assert pos[0] == 0
   assert pos[3] == 3
@@ -283,9 +283,9 @@ def cigar_test6():
   read_list = np.rec.fromrecords([(0, 3), (0, 4), (0, 5), (0, 7), (1, 7), (4, 8)],
                                  names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
-  assert cigars[0] == '1M2S', cigars[0]
-  assert cigars[1] == '1M2I1M', cigars[1]
-  assert cigars[2] == '1M2I1M1X', cigars[2]
-  assert cigars[3] == '1M2I1M1X2M', cigars[3]
-  assert cigars[4] == '2S1M1X2M2D1M', cigars[4]
-  assert cigars[5] == '1X2M2D1M1X2M1S', cigars[5]
+  assert cigars[0] == '1=2S', cigars[0]
+  assert cigars[1] == '1=2I1=', cigars[1]
+  assert cigars[2] == '1=2I1=1X', cigars[2]
+  assert cigars[3] == '1=2I1=1X2=', cigars[3]
+  assert cigars[4] == '2S1=1X2=2D1=', cigars[4]
+  assert cigars[5] == '1X2=2D1=1X2=1S', cigars[5]
