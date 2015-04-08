@@ -5,6 +5,8 @@ import numpy as np
 
 import mitty.lib
 import mitty.lib.util as mutil
+from mitty.plugins.variants import scale_probability_and_validate
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -53,20 +55,11 @@ class Model:
     assert 0 < seed < mitty.lib.SEED_MAX
     logger.debug('Master seed: {:d}'.format(seed))
 
-    if p is not None:
-      assert type(p) == np.ndarray, 'Site Freq spectrum should be numpy array'
-      assert type(f) == np.ndarray, 'Site Freq spectrum should be numpy array'
-      assert abs(1.0 - f.sum()) < 1e-6, 'Site freq spectrum should sum to 1.0'
-      p_eff = self.p / (p * f).sum()  # Effective per-base probability for master list
-    else:
-      p_eff = self.p
-
+    p_eff = scale_probability_and_validate(self.p, p, f)
     base_loc_rng, base_t_rng, freq_rng = mutil.initialize_rngs(seed, 3)
     snp_locs = mutil.place_poisson_seq(base_loc_rng, p_eff, 0, len(ref), ref)  #np.array([x for x in mutil.place_poisson(base_loc_rng, p_eff, 0, len(ref)) if ref[x] != 'N'], dtype='i4')
     base_subs = mutil.base_subs(ref, snp_locs, self.t_mat, base_t_rng)
 
-    # +1 because VCF files are 1 indexed
-    #alts will be 0 if ref is not one of ACTG
     return snp_locs, snp_locs + 1, [ref[n] for n in snp_locs], base_subs, freq_rng.rand(len(snp_locs))
 
 
@@ -74,7 +67,7 @@ def test():
   """Basic test"""
   ref_seq = 'ACTGACTGACTGACTGACTGACTGACTGACTGACTG'
   m = Model(p=0.1)
-  pos, stop, ref, alt, p = m.get_variants(ref_seq[1], 1, np.array([0.2]), np.array([1.0]), seed=10)
+  pos, stop, ref, alt, p = m.get_variants(ref_seq, 1, np.array([0.2]), np.array([1.0]), seed=10)
   for p, r in zip(pos, ref):
     assert r == ref_seq[pos]
 
