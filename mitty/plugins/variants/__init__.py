@@ -1,1 +1,1 @@
-__author__ = 'kghose'
+from mitty.plugins.variants.common import *
