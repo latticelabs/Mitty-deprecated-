@@ -239,7 +239,17 @@ def explain_variant_model(name):
 
 
 def explain_population_model(name):
-  pass
+  try:
+    mod = mitty.lib.load_sfs_plugin(name)
+  except ImportError as e:
+    print('{0}: {1}'.format(name, e))
+    print('Problem with loading population model')
+    return
+  try:
+    print('\n---- ' + name + ' (' + mod.__name__ + ') ----')
+    print(mod._description)
+  except AttributeError:
+    print('No help for model "{:s}" available'.format(name))
 
 
 def print_list(cmd_args):
@@ -256,7 +266,9 @@ def print_variant_model_list():
 
 
 def print_population_model_list():
-  pass
+  print('\nAvailable population models\n----------------')
+  for name, mod_name in mitty.lib.discover_all_sfs_plugins():
+    print('- {:s} ({:s})\n'.format(name, mod_name))
 
 
 if __name__ == "__main__":
