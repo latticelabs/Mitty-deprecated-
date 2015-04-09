@@ -10,8 +10,10 @@ logger = logging.getLogger(__name__)
 __example_param_text = """
 {
   "double_exp": {
-    "k1": 0.1,
-    "k2": 2.0,
+    "a1": 1.0,
+    "k1": 20.0,
+    "a2": 0.1,
+    "k2": 5.0,
     "p0": 0.001,
     "p1": 0.2,
     "bin_cnt": 30
