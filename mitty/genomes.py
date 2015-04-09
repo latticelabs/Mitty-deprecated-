@@ -4,7 +4,7 @@ __cmd__ = """Generate simulated genomes from a simulation parameter file.
 Commandline::
 
   Usage:
-    genomes generate --pfile=PFILE  [-v|-V]
+    genomes generate --pfile=PFILE  [-v|-V] [-p]
     genomes dryrun --pfile=PFILE
     genomes write (vcf|vcfs) --dbfile=DBFILE  [<serial>]... [-v|-V]
     genomes explain (parameters|(variantmodel|populationmodel) <model_name>)
@@ -16,6 +16,7 @@ Commandline::
     --pfile=PFILE           Name for parameter file
     -v                      Dump log messages
     -V                      Dump detailed log messages
+    -p                      Show progress bar
     write                   Write out genome data from the database file in vcf format
     vcf                     Write out all genomes in one multi-sample vcf file
     vcfs                    Write out the genomes in separate single sample vcf files
@@ -147,7 +148,7 @@ def generate(cmd_args):
   run_simulations(pop_db_name, ref, sfs_model=load_site_frequency_model(params.get('site_model', None)),
                   variant_models=load_variant_models(ref, params['variant_models']),
                   chromosomes=chromosomes, sample_size=sample_size, master_seed=master_seed,
-                  progress_bar_func=mitty.lib.progress_bar)
+                  progress_bar_func=mitty.lib.progress_bar if cmd_args['-p'] else None)
   t1 = time.time()
   logger.debug('Took {:f}s'.format(t1 - t0))
 
