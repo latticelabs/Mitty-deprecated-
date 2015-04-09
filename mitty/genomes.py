@@ -171,7 +171,7 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
   for ch in chromosomes:
     ml = vr.VariantList()
     for m in variant_models:
-      ml.add(*m.get_variants(ref[ch], ch, p, f, seed=seed_rng.randint(mutil.SEED_MAX)))
+      ml.add(*m.get_variants(ref[ch]['seq'], ch, p, f, seed=seed_rng.randint(mutil.SEED_MAX)))
     ml.sort()
     if sfs_model is not None: ml.balance_probabilities(*sfs_model.get_spectrum())
     mdb.save_master_list(conn, ch, ml)
@@ -181,7 +181,7 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
       if progress_bar_func is not None:
         progress_bar_func('Chrom {:d} '.format(ch), float(n)/sample_size, 80)
     if progress_bar_func is not None: print('')
-    mdb.save_chromosome_metadata(conn, ch, ref.get_seq_id(ch), len(ref[ch]), ref.get_seq_md5(ch))
+    mdb.save_chromosome_metadata(conn, ch, ref[ch]['id'], len(ref[ch]['seq']), ref[ch]['md5'])
   conn.close()
 
 

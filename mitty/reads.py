@@ -188,7 +188,7 @@ def generate(cmd_args):
     else:
       ml, chrom = vr.VariantList(), []  # Need a dummy variant list for nulls
     for cpy in [0, 1]:
-      seq, variant_waypoints = lib_reads.expand_sequence(ref[ch], ml, chrom, cpy)
+      seq, variant_waypoints = lib_reads.expand_sequence(ref[ch]['seq'], ml, chrom, cpy)
       seq_c = mitty.lib.string.translate(seq, mitty.lib.DNA_complement)
       for blk in range(blocks_to_do):
         if not variants_only:

@@ -32,7 +32,7 @@ class Fasta:
 
   def __getitem__(self, item):
     """This allows us to use Python's index notation to get sequences from the reference"""
-    return self.sequences.get(item, self._load_sequence_from_file(item))['seq']
+    return self.sequences[item] if item in self.sequences else self._load_sequence_from_file(item)
 
   def get_multi_dir(self, item):
     """We get here because we don't have the sequence in memory"""
@@ -60,16 +60,25 @@ class Fasta:
     return self.__getitem__(item) or default
 
   def get_seq(self, chrom):
-    return self.sequences.get(chrom, self._load_sequence_from_file(chrom))['seq']
+    return self.sequences[chrom]['seq']
 
   def get_seq_len(self, chrom):
-    return len(self.sequences.get(chrom, self._load_sequence_from_file(chrom))['seq'])
+    return len(self.sequences[chrom]['seq'])
 
   def get_seq_id(self, chrom):
-    return self.sequences.get(chrom, self._load_sequence_from_file(chrom))['id']
+    return self.sequences[chrom]['id']
 
   def get_seq_md5(self, chrom):
-    return self.sequences.get(chrom, self._load_sequence_from_file(chrom))['md5']
+    return self.sequences[chrom]['md5']
+
+  def __repr__(self):
+    """Nice summary of what we have in the genome"""
+    result = ''
+    result += ('Multi fasta file: ' + self.multi_fasta) if self.multi_fasta else ('Multi dir: ' + self.multi_dir)
+    result += '\n{:d} chromosomes\n'.format(len(self))
+    for n in range(len(self)):
+      result += '{:d} ({:s}) {:d} bases\n'.format(n + 1, self.get_seq_id(n + 1), self.get_seq_len(n + 1))
+    return result
 
 
 def load_single_line_unzipped_fasta(fa_fname):
