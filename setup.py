@@ -1,18 +1,4 @@
-from setuptools import setup, find_packages, Extension
-
-cy_modules = ['mitty.lib.util']
-
-
-def make_extension_modules(post_processor, source_file_extension):
-    return post_processor([Extension(cl, ['{:s}.{:s}'.format(cl.replace('.', '/'), source_file_extension)]) for cl in cy_modules])
-
-
-def extension_modules():
-    try:
-        from Cython.Build import cythonize
-        return make_extension_modules(cythonize, 'pyx')
-    except ImportError:
-        return make_extension_modules(lambda arg: arg, 'c')
+from setuptools import setup, find_packages
 
 
 setup(
@@ -46,11 +32,10 @@ setup(
                           'checkbam = mitty.util.checkbam:cli']
     },
     install_requires=[
+      'cython',
       'setuptools>=0.7',
       'numpy>=1.9.0',
       'docopt>=0.6.2',
-      'pysam>=0.8.1',
-      'PyVCF==0.7.0dev'
+      'pysam>=0.8.1'
     ],
-    ext_modules=extension_modules(),
 )
