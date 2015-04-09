@@ -5,6 +5,8 @@ Commandline::
 
   Usage:
     genomes generate --pfile=PFILE  [-v|-V] [-p]
+    genomes inspect --dbfile=DBFILE
+    genomes inspect sfs <chrom>  --dbfile=DBFILE
     genomes dryrun --pfile=PFILE
     genomes write (vcf|vcfs) --dbfile=DBFILE  [<serial>]... [-v|-V]
     genomes explain (parameters|(variantmodel|populationmodel) <model_name>)
@@ -12,6 +14,9 @@ Commandline::
 
   Options:
     generate                Create a database of genomes by running the models specified
+    inspect                 Give summary information about a genome database
+    sfs                     Print the site frequency spectrum
+    <chrom>                 Which chromosome's site frequncy spectrum to print
     dryrun                  Don't run simulation, but print out useful info about it
     --pfile=PFILE           Name for parameter file
     -v                      Dump log messages
@@ -107,6 +112,10 @@ def cli():  # pragma: no cover
     explain(cmd_args)
   elif cmd_args['list']:
     print_list(cmd_args)
+  elif cmd_args['sfs']:  # This should come before 'inspect', or we need to do an additional test
+    print_sfs(cmd_args)
+  elif cmd_args['inspect']:
+    inspect(cmd_args)
 
 
 def dry_run(cmd_args):
@@ -270,6 +279,50 @@ def print_population_model_list():
   print('\nAvailable population models\n----------------')
   for name, mod_name in mitty.lib.discover_all_sfs_plugins():
     print('- {:s} ({:s})\n'.format(name, mod_name))
+
+
+def inspect(cmd_args):
+  """Print some useful information about the database
+
+  :param cmd_args: parsed arguments
+  """
+  pop_db_name = cmd_args['--dbfile']
+  conn = mdb.connect(db_name=pop_db_name)
+  chrom_list = mdb.chromosomes_in_db(conn)
+  n_s = mdb.samples_in_db(conn)
+  variant_stats = np.empty((len(chrom_list), 3), dtype=float)
+  sample_max = 100
+  for i, c in enumerate(chrom_list):
+    if n_s < sample_max:  # Take every sample
+      ss = range(n_s)
+    else:
+      ss = np.random.randint(0, n_s, sample_max)
+    s_len = np.empty(len(ss), dtype=float)
+    for j, s in enumerate(ss):
+      s_len[j] = len(mdb.load_sample(conn, 0, s, c[0]))
+    _, _, seq_len, _ = mdb.load_chromosome_metadata(conn, c[0])
+    variant_stats[i, :] = (s_len.mean(), s_len.std(), 1e6 * s_len.mean() / float(seq_len))
+
+  print('{:s}'.format(pop_db_name))
+  print('\t{:d} chromosomes'.format(len(chrom_list)))
+  print('\t{:d} samples'.format(n_s))
+  print('Unique variants in population')
+  print('\tChrom\tVariants')
+  for c in chrom_list:
+    print('\t{:d}\t{:d}'.format(c[0], mdb.variants_in_master_list(conn, c[0])))
+  print('Variants in samples')
+  print('\tChrom\tAvg variants\tStd variants\tVariants/megabase')
+  for i, c in enumerate(chrom_list):
+    print('\t{:d}\t{:<9.2f}\t{:<9.2f}\t{:.1f}'.format(c[0], variant_stats[i, 0], variant_stats[i, 1], variant_stats[i, 2]))
+
+
+def print_sfs(cmd_args):
+  pop_db_name = cmd_args['--dbfile']
+  conn = mdb.connect(db_name=pop_db_name)
+  chrom = int(cmd_args['<chrom>'])
+  ml = mdb.load_master_list(conn, chrom)
+  print('Site frequency spectrum for chrom {:d}'.format(chrom))
+  print(ml)
 
 
 if __name__ == "__main__":
