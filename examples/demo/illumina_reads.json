@@ -1,0 +1,26 @@
+{
+  "files": {
+    "reference_file": "../data/red_alga.fa.gz",
+    "output_prefix": "Out/reads",
+    "dbfile": "Out/red_alga_genomes.db"
+  },
+  "sample" : {
+    "gen": 0,
+    "serial": 3
+  },
+  "rng": {
+    "master_seed": 123456
+  },
+  "chromosomes": [1, 2, 3, 4],
+  "read_model": "simple_illumina",
+  "coverage": 30,
+  "coverage_per_block": 5,
+  "corrupt": true,
+  "model_params": {
+    "read_len": 100,
+    "template_len_mean": 250,
+    "template_len_sd": 20,
+    "max_p_error": 0.1,
+    "k": 100 
+  }
+}
