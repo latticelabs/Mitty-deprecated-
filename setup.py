@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='mitty',
-    version='1.1.0.dev',
+    version='1.1.0',
     description='Simulator for genomic data',
     author='Seven Bridges Genomics',
     author_email='kaushik.ghose@sbgenomics.com',
