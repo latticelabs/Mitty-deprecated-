@@ -6,76 +6,134 @@ This quickstart is for the impatient - like me - who like to type in commands an
 there)
 
 We will introduce Mitty via a data simulation problem. Let us say our colleague Heng Li has written an aligner
-called ``bwa`` and we want to figure out how well it does at aligning.
+called ``bwa`` and a variant caller called ``samtools`` and we want to figure out how well they do using synthetic data.
 
 Our plan is as follows:
 
-* Sprinkle some variants on the reference genome to create a sample genome
-* Take 10x Illumina like reads from this sample genome
-* Use `bwa` to align the reads to the reference genome
+* Consider a small reference genome (we will use the Red Alga, *Cyanidioschyzon merolae strain 10D*, record_, ftp_)
+* Sprinkle some variants on the reference genome to create a population of 1000 sample genomes (why not?)
+* Take 30x Illumina like reads from one of the sample genomes
+* Use `bwa` to align the reads back to the reference genome
 * Assess how well `bwa` aligned the reads
 
-*For this exercise we won't use the human chromosome but rather some test data included with the Mitty source
-distribution in the `examples` directory. The commands for the entire example is available under `examples/complete`*
 
-Note that Mitty expects each chromosome file to be stored in a separate fasta file with no newlines (Please see
-:ref:`ref-genome`).
+.. _record: http://www.ncbi.nlm.nih.gov/assembly/GCF_000091205.1/#/def
+.. _ftp: ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF_000091205.1_ASM9120v1
 
-Adding variants
----------------
-The example reference genome has four "chromosomes". Let's add SNPs to the first two. We will need the `denovo` program
-for this. Let's look into what kind of models we have available:
 
-.. command-output::  denovo models
+Creating genomes
+----------------
+The example reference genome has 20 chromosomes. We'd like to add SNPs, insertions and deletions to chromosome 1 and 2.
+We will need the ``genomes`` program for this
 
-Ok, the `snp` plugin sounds promising, what kind of parameters does it need?
+.. command-output::  genomes
 
-.. command-output::  denovo explain snp
+We need the ``genomes generate`` tool, and we need a refresher on how to write a simulation parameter file
 
-Ok, we also want a refresher on how to write the parameter file (and what the command line options are) for denovo:
+.. command-output:: genomes explain parameters
 
-.. command-output::  denovo
+What are the variant models available to us?
 
-From this we first create a parameter file, let's call it `snp.json`:
+.. command-output:: genomes list variantmodels
 
-.. literalinclude:: ../examples/complete/snp.json
+What kind of parameters do they need?
+
+.. command-output::  genomes explain variantmodel snp
+
+What are the population models available to us?
+
+.. command-output:: genomes list populationmodels
+
+An example parameter snippet?
+
+.. command-output:: genomes explain populationmodel double_exp
+
+Let us create a parameter file for the simulations, calling it ``variations.json``:
+
+.. literalinclude:: ../examples/demo/variations.json
     :language: json
 
-Let's run this command and create a new genome (*We only use the -v option to see what's going on*).
+Before we run the actual simulation, let's make sure the site frequency spectrum looks satisfactory
 
-.. command-output:: mkdir -p ../examples/complete/out
-.. command-output::  denovo  --pfile=../examples/complete/snp.json -v
+.. command-output:: genomes dryrun --pfile ../examples/demo/variations.json
 
-Let's take a peek at the produced vcf
 
-.. command-output:: cat ../examples/complete/out/snp.vcf
+Let's run this command and create a database of simulated genomes
+
+.. command-output:: mkdir -p ../examples/demo/Out
+.. command-output:: genomes generate --pfile=../examples/demo/variations.json
+
+(*Using the -v option will give detailed logger messages and a progress bar*).
+
+Let's take a peek at the produced genomes database using the inspect function
+
+.. command-output:: genomes inspect --dbfile=../examples/demo/Out/red_alga_genomes.db
+
+We can also take a look at the site frequency spectrum in the generated population, for chromosome 1, for example
+
+.. command-output:: genomes inspect sfs 1 --dbfile=../examples/demo/Out/red_alga_genomes.db
+
+Right now, all our genomes are in a database. The rest of the world works in VCF files, so let's write out one of the
+samples as a VCF file
+
+.. command-output:: genomes write vcf --dbfile=../examples/demo/Out/red_alga_genomes.db 3
+.. command-output:: head -n 20 ../examples/demo/Out/red_alga_genomes.db_s000003.vcf
 
 Things seem to have run satisfactorily. Note that we produce phased VCF files and we also use the notation `1|0` since we
-have complete knowledge of the phasing. (Please see :ref:`var-genome`). Now let's generate a bag of reads from this genome.
+have complete knowledge of the phasing. Now let's generate a bag of reads from this genome.
 
 Taking reads
 ------------
-Let's first figure out what kind of read models we have available to us.
+We will use the `reads` program to generate a fastq file of reads from the selected genome.
 
-.. command-output::  vcf2reads models
-.. command-output::  vcf2reads models
+.. command-output:: reads
 
-`simple_illumina` sounds promising, what kind of parameter file does it need?
+We know how to get help for writing the parameter file
 
-.. command-output::  vcf2reads explain simple_illumina
+.. command-output:: reads explain parameters
 
-What parameters do we need to call `vcf2reads` and how do we structure the parameters file?
+What sort of read models are currently available?
 
-.. command-output:: vcf2reads
+.. command-output:: reads list
 
-From this we first create a parameter file, let's call it `illumina_reads.json`:
+``simple_illumina`` sounds promising, what kind of parameter file does it need?
 
-.. literalinclude:: ../examples/complete/illumina_reads.json
+.. command-output:: reads explain model simple_illumina
+
+Ok, let's put together a parameter file for our experiment, let's call it `illumina_reads.json`:
+
+.. literalinclude:: ../examples/demo/illumina_reads.json
     :language: json
 
 Let's run this command and create some reads from the variant genome
 
-.. command-output::  vcf2reads  --pfile=../examples/complete/illumina_reads.json -v
+.. command-output::  reads --pfile=../examples/complete/illumina_reads.json
+
+
+Testing alignment accuracy of BWA MEM
+-------------------------------------
+First, use BWA-MEM to create an alignment:
+
+.. command-output:: bwa index ../examples/data/red_alga.fa.gz
+.. command-output:: bwa mem -t 8 -p ../examples/data/red_alga.fa.gz  ../examples/demo/Out/vreads_c.fq > ../examples/demo/Out/temp.sam
+    :shell:
+.. command-output::  samtools view -Sb  ../examples/demo/Out/temp.sam > ../examples/demo/Out/temp.bam
+    :shell:
+
+.. command-output:: samtools sort ../examples/demo/Out/temp.bam  ../examples/demo/Out/vreads
+.. command-output:: samtools index ../examples/demo/Out/vreads.bam
+
+We can use an alignment browser, such as Tablet, to see the alignments
+
+.. image:: _static/vreads.bam_tablet.png
+
+Note how the reads are restricted to the variant locations, as we asked for.
+
+
+Then use the benchmarking tool `perfectbam` to analyze alignment performance and create a perfectly aligned BAM file
+
+.. command-output:: perfectbam --inbam=../examples/demo/Out/vreads.bam
+
 
 
 Creating a cheat alignment
