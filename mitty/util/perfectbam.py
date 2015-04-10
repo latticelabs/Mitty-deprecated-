@@ -1,6 +1,4 @@
 #!python
-from mitty.lib import progress_bar
-
 __cmd__ = """Commandline::
 
   Usage:
@@ -32,6 +30,7 @@ __doc__ = __cmd__ + __param__
 
 import os
 import json
+import time
 
 import pysam
 from collections import Counter
@@ -39,6 +38,7 @@ import docopt
 
 import mitty.lib.io as mio  # For the bam sort and index function
 from mitty.lib.reads import old_style_cigar
+from mitty.lib import progress_bar
 
 import logging
 logger = logging.getLogger(__name__)
@@ -69,14 +69,16 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window, extended=False, progres
   :param csv_fp:
   :param json_fp:
   :param window:
-  :return:
+  :return: number of reads processed
   """
   csv_fp.write('\t'.join(csv_header()) + '\n')
 
-  total_read_count = float(bam_in_fp.count())
-  bam_in_fp.reset()  # This is bad pysam design. The count() action iterates through the file!
+  total_read_count = float(bam_in_fp.mapped + bam_in_fp.unmapped)
   f0 = 0
   total_reads_cntr, incorrectly_aligned_reads_cntr = Counter(), Counter()
+
+  if progress_bar_func is not None: progress_bar_func('Processing BAM ', 0, 80)
+
   for n, read in enumerate(bam_in_fp):
     # qname = 'r{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:s}'
     if read.is_paired:
@@ -125,6 +127,8 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window, extended=False, progres
              "incorrectly_aligned_read_counts": {str(k): v for k, v in incorrectly_aligned_reads_cntr.iteritems()}},
             json_fp, indent=2)
 
+  return n
+
 
 def cli():
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
@@ -143,9 +147,15 @@ def cli():
   with pysam.AlignmentFile(args['--inbam'], 'rb') as bam_in_fp, \
       pysam.AlignmentFile(perfect_bam_fname, 'wb', template=bam_in_fp) as bam_out_fp, \
       open(csv_fname, 'w') as csv_out_fp, open(summary_fname, 'w') as json_out_fp:
-    main(bam_in_fp=bam_in_fp, bam_out_fp=bam_out_fp, csv_fp=csv_out_fp, json_fp=json_out_fp,
-         window=int(args['--window']), extended=bool(args['-x']), progress_bar_func=progress_bar if args['-p'] else None)
+    t0 = time.time()
+    read_count = main(bam_in_fp=bam_in_fp, bam_out_fp=bam_out_fp, csv_fp=csv_out_fp, json_fp=json_out_fp,
+                      window=int(args['--window']), extended=bool(args['-x']), progress_bar_func=progress_bar if args['-p'] else None)
+    t1 = time.time()
+    logger.debug('Analyzed {:d} reads in BAM in {:2.2f}s'.format(read_count, t1 - t0))
+  t0 = time.time()
   mio.sort_and_index_bam(perfect_bam_fname)
+  t1 = time.time()
+  logger.debug('Sort and indexed perfect BAM in {:2.2f}s'.format(t1 - t0))
 
 
 if __name__ == "__main__":
