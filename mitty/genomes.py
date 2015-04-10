@@ -28,8 +28,7 @@ Commandline::
     --dbfile=DBFILE         Name of genome database file
     serial                  Serial number of sample
     explain                 Explain the parameters/variant model/population model
-    list                    List the models
-"""
+    list                    List the models"""
 
 __param__ = """Parameter file example::
 
@@ -74,7 +73,6 @@ __doc__ = __cmd__ + __param__
 import json
 import os
 import time
-import sys
 
 import docopt
 import numpy as np
