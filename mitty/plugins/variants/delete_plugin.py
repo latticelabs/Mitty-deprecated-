@@ -57,7 +57,7 @@ class Model:
 
     p_eff = scale_probability_and_validate(self.p, p, f)
     del_locs = mutil.place_poisson_seq(base_loc_rng, p_eff, 0, len(ref), ref)
-    del_lens = del_len_rng.geometric(p=p_eff, size=del_locs.shape[0])
+    del_lens = del_len_rng.geometric(p=self.p_end, size=del_locs.shape[0])
     np.clip(del_lens, a_min=self.del_len_min, a_max=self.del_len_max, out=del_lens)  # Make sure our deletions are clipped at the level we want
     idx = ((del_locs + del_lens) < len(ref)).nonzero()[0]   # Get rid of any deletions that go past the sequence end
     del_locs = del_locs[idx]
