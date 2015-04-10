@@ -1,3 +1,57 @@
+Read plugin API
+===============
+
+Read Models need to supply two methods:
+
+.. code:: python
+  write_reads(self, file_prefix, seq, seq_c, variant_waypoints, chrom, coverage, reads_per_block=1000000, seed=1)
+
+and
+
+.. code:: python
+  correct_reads(self, file_prefix, seq, seq_c, variant_waypoints, chrom, coverage, reads_per_block=1000000, seed=1)
+
+
+
+
+
+
+
+
+
+
+1. Read plugins have to do more work, because reads and read file format (eg pacbio/sergentis) can be very custom
+
+1. We chose coverage per block, rather than reads, because if we did reads sequentially from start to finish of sequence
+then we would have a bias in the fastq file. By doing repeated blocks of reads over the whole sequence we ensure reads are
+distributed from start to finish at any part of the fastq
+
+
+
+For benchmarking, the only thing required from read files is a tagging, done in the qname field, of POS and CIGAR for
+that read. Since all reads from the same template need to have the same id if we have M reads as part of the template
+we simply chain them all together with a separator::
+
+  tN|POS:CIGAR:D|POS:CIGAR:D|...
+
+Here N is the template serial id
+| separates fields
+POS is the position of the first fragment and so on
+: separates values in a field
+CIGAR is the CIGAR string
+D is the character '>' to indicate forward string and '<' to indicate reverse string
+
+
+
+
+
+
+
+
+
+
+
+
 Algorithms for computing correct CIGAR and POS values for simulated reads
 --------------------------
 

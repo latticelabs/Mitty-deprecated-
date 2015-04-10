@@ -13,9 +13,9 @@ Mitty documentation
 
     introduction
     quickstart
-    files
-    components
-    developer
+..    files
+..    components
+..    developer
 
 Indices and tables
 ==================

@@ -1,20 +1,27 @@
 {
   "files": {
-    "genome": "../data",
-    "input vcf": "out/snp.vcf.gz",
-    "output prefix": "out/reads"
+    "reference_dir": "../data",
+    "output_prefix": "Out/reads",
+    "dbfile": "Out/chimera_no_sfs.db"
+  },
+  "sample" : {
+    "gen": 0,
+    "serial": 0
   },
   "rng": {
     "master_seed": 1
   },
-
-  "take reads from": [1],
+  "chromosomes": [1, 2, 3, 4],
+  "variants_only": false,
   "read_model": "simple_illumina",
+  "coverage": 30,
+  "coverage_per_block": 5,
+  "corrupt": false,
   "model_params": {
-    "coverage": 10,
     "read_len": 100,
-    "template_len": 250,
-    "max_p_error": 0.07,
-    "k": 0.3
+    "template_len_mean": 200,
+    "template_len_sd": 20,
+    "max_p_error": 0.1,
+    "k": 100 
   }
 }

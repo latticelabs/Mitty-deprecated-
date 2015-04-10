@@ -104,17 +104,83 @@ Ok, let's put together a parameter file for our experiment, let's call it `illum
 
 .. literalinclude:: ../examples/demo/illumina_reads.json
     :language: json
+    :linenos:
 
 Let's run this command and create some reads from the variant genome
 
 .. command-output::  reads --pfile=../examples/complete/illumina_reads.json
-
 
 Testing alignment accuracy of BWA MEM
 -------------------------------------
 First, use BWA-MEM to create an alignment:
 
 .. command-output:: bwa index ../examples/data/red_alga.fa.gz
+.. command-output:: bwa mem -t 8 -p ../examples/data/red_alga.fa.gz  ../examples/demo/Out/reads_c.fq > ../examples/demo/Out/temp.sam
+    :shell:
+.. command-output:: samtools view -Sb  ../examples/demo/Out/temp.sam > ../examples/demo/Out/temp.bam
+    :shell:
+
+.. command-output:: samtools sort ../examples/demo/Out/temp.bam  ../examples/demo/Out/reads
+.. command-output:: samtools index ../examples/demo/Out/reads.bam
+
+We can use an alignment browser, such as [Tablet]_, to see the alignments
+
+.. image:: _static/reads.bam_tablet.png
+
+(You can see that the coverage is what we dialled in. The one red colored base is a read error - since we are inspecting
+the corrupted reads file)
+
+.. [Tablet] Milne I, Stephen G, Bayer M, Cock PJA, Pritchard L, Cardle L, Shaw PD and Marshall D. 2013. Using Tablet for visual exploration of second-generation sequencing data. Briefings in Bioinformatics 14(2), 193-202. (`web`_)
+.. _web: http://ics.hutton.ac.uk/tablet/
+
+
+Analyse the alignment
+.....................
+
+We use ``perfectbam`` to both analyze the performance of the aligner and to create a perfectly aligned ``.bam`` file from the
+``.bam`` file output by the aligner.
+
+.. command-output::  perfectbam --inbam=../examples/demo/Out/reads.bam
+
+`perfectbam` creates a `.json` file with some summary performance statistics and a `.csv` file with details about the
+misaligned reads.
+
+.. command-output:: head -n 15 ../examples/demo/Out/reads_summary.json
+
+.. command-output:: head -n 10 ../examples/demo/Out/reads_misaligned.csv
+
+We all know how exciting it is to scroll through a .csv file, so we have some additional tools to analyse the misaligned
+reads and display the information graphically (These require Matplotlib_ to be installed).
+
+.. command-output:: plot_align circle ../examples/demo/Out/reads.bam
+.. #image:: _static/red_alga_circle_plot_whole.png
+.. image:: ../examples/demo/Out/reads_circle_plot.png
+
+This is a plot of where the reads end up after alignment. As can be seen, while a small percentage of reads end up in
+different chromosomes, most of the misalignments are local (the lines end up on the same chromosome).
+
+.. command-output:: plot_align matrix ../examples/demo/Out/reads.bam
+.. image:: ../examples/demo/Out/reads_matrix_plot.png
+
+
+.. _Matplotlib: http://matplotlib.org/index.html
+
+Taking reads just from regions around variants
+----------------------------------------------
+By setting the ``variants_only`` flag to *True* in the parameters file we can selectively generate reads from regions bordering
+a variation.
+
+.. AArgh. Could not get Sphinx to
+..  a) highlight the line (https://github.com/ClusterHQ/flocker/issues/337) - I think the lame green highlight matches the background
+..  b) show matching line numbers (:lineno-match: and :lineno-start: make the code block disappear)
+
+.. literalinclude:: ../examples/demo/illumina_reads_variants_only.json
+    :language: json
+    :emphasize-lines: 15
+    :lineno-match:
+    :lines: 13-17
+
+.. command-output:: reads --pfile=../examples/demo/illumina_reads_variants_only.json
 .. command-output:: bwa mem -t 8 -p ../examples/data/red_alga.fa.gz  ../examples/demo/Out/vreads_c.fq > ../examples/demo/Out/temp.sam
     :shell:
 .. command-output::  samtools view -Sb  ../examples/demo/Out/temp.sam > ../examples/demo/Out/temp.bam
@@ -130,65 +196,6 @@ We can use an alignment browser, such as Tablet, to see the alignments
 Note how the reads are restricted to the variant locations, as we asked for.
 
 
-Then use the benchmarking tool `perfectbam` to analyze alignment performance and create a perfectly aligned BAM file
-
-.. command-output:: perfectbam --inbam=../examples/demo/Out/vreads.bam
-
-
-
-Creating a cheat alignment
---------------------------
-We can use `reads2bam.py` to create a cheat alignment ...
-
-.. command-output::  reads2bam -p --fa_dir=../examples/data/ --fastq ../examples/complete/out/reads.fq --bam=../examples/complete/out/reads.bam -v
-
-
-... and view it using `samtools tview` (We, of course, need `samtools` installed for this to work)
-
-.. command-output::  samtools tview -d T -p "gi|4630864|dbj|AB026117.1|:6950" ../examples/complete/out/reads.bam ../examples/data/chimera.fa.gz
-
-We can see one of the SNPs we put in!
-
-
-Creating an alignment
----------------------
-We can now use bwa to align the simulated reads (make sure you have generated the index for the reference):
-
-.. command-output::  bwa mem -t 8 -p ../examples/data/chimera.fa.gz  ../examples/complete/out/reads.fq > ../examples/complete/out/test.sam
-    :shell:
-
-.. command-output::  samtools view -Sb  ../examples/complete/out/test.sam > ../examples/complete/out/temp.bam
-    :shell:
-
-.. command-output:: samtools sort ../examples/complete/out/temp.bam  ../examples/complete/out/test
-.. command-output:: samtools index ../examples/complete/out/test.bam
-
-
-And the check the alignment
-
-.. command-output::  samtools tview -d T -p "gi|4630864|dbj|AB026117.1|:6950" ../examples/complete/out/test.bam ../examples/data/chimera.fa.gz
-
-We can see one of the SNPs we put in!
-
-
-Assessing alignment accuracy
-----------------------------
-The ``checkbam`` tool allows us to read in a ``.bam`` file generated by an aligner and check alignment accuracy provided
-the original reads were produced by Mitty.
-
-.. command-output:: checkbam  --inbam ../examples/complete/out/test.bam --out_prefix ../examples/complete/out/ -v
-
-This is the ``.json`` file with a summary of alignment performance
-
-.. command-output:: cat ../examples/complete/out/misalign.json
-
-
-and this is the ``.csv`` file with details of how the reads were misaligned
-
-.. command-output:: head -n 10 ../examples/complete/out/misalign.csv
-
-
-Quick-start II
-==============
-
-TODO: Population simulations tutorial
+Analysing variant callers
+-------------------------
+TODO

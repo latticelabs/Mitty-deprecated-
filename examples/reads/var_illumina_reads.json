@@ -15,6 +15,7 @@
   "variants_only": false,
   "read_model": "simple_illumina",
   "coverage": 30,
+  "coverage_per_block": 5,
   "corrupt": true,
   "model_params": {
     "read_len": 100,

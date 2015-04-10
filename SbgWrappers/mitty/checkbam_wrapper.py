@@ -30,7 +30,7 @@ class Checkbam(define.Wrapper):
 
   def execute(self):
 
-    process = Process('checkbam.py', '--inbam', self.inputs.bam, '--fout', self.params.output_name, '--block_size', self.params.block_size, '-v' )
+    process = Process('perfectbam.py', '--inbam', self.inputs.bam, '--fout', self.params.output_name, '--block_size', self.params.block_size, '-v' )
     process.run()
 
     # add output files to the output wrapper list

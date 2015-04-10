@@ -7,9 +7,10 @@
     "master_seed": 1
   },
   "chromosomes": [1, 2, 3, 4],
-  "variants_only": false,
+  "variants_only": true,
   "read_model": "simple_illumina",
   "coverage": 30,
+  "coverage_per_block": 1,
   "corrupt": true,
   "model_params": {
     "read_len": 100,

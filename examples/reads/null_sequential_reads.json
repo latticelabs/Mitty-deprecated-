@@ -10,6 +10,7 @@
   "variants_only": false,
   "read_model": "simple_sequential",
   "coverage": 30,
+  "coverage_per_block": 1,
   "corrupt": false,
   "model_params": {
     "read_len": 100,
