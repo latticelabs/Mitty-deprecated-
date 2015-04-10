@@ -26,7 +26,7 @@ setup(
       # Command line scripts
       'console_scripts': ['genomes = mitty.genomes:cli',
                           'reads = mitty.reads:cli',
-                          'inspect = mitty.util.inspect:cli',
+                          'plot_align = mitty.util.plot_align:cli [mplot]',
                           'perfectbam = mitty.util.perfectbam:cli',
                           'splitta = mitty.util.splitta:cli',
                           'checkbam = mitty.util.checkbam:cli']
@@ -38,4 +38,7 @@ setup(
       'docopt>=0.6.2',
       'pysam>=0.8.1'
     ],
+    extras_require = {
+      'mplot': ['matplotlib>=1.4.2']
+    }
 )
