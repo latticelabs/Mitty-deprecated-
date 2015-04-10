@@ -80,7 +80,7 @@ def integration_test():
   pfile = os.path.join(tdir, 'pfile.json')
   json.dump(test_params, open(pfile, 'w'))
 
-  genomes.generate({'--pfile': pfile})
+  genomes.generate({'--pfile': pfile, '-p': False})
 
   conn = mdb.connect(os.path.join(tdir, 'test.db'))
   ml = mdb.load_master_list(conn, 1)
