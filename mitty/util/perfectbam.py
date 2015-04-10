@@ -123,8 +123,9 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window, extended=False, progres
         f0 = f
   if progress_bar_func is not None: print('\n')
 
-  json.dump({"read_counts": {str(k): v for k,v in total_reads_cntr.iteritems()},
-             "incorrectly_aligned_read_counts": {str(k): v for k, v in incorrectly_aligned_reads_cntr.iteritems()}},
+  json.dump({'sequence_header': bam_in_fp.header['SQ'],
+             'read_counts': {str(k): v for k,v in total_reads_cntr.iteritems()},
+             'incorrectly_aligned_read_counts': {str(k): v for k, v in incorrectly_aligned_reads_cntr.iteritems()}},
             json_fp, indent=2)
 
   return n
