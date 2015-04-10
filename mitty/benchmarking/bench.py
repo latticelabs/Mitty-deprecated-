@@ -7,7 +7,7 @@ import logging
 import pysam
 
 import mitty.lib
-from mitty.util import checkbam
+from mitty.util import perfectbam
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +173,7 @@ def analyze_bam(out_file_set, bench_p_set, out_prefix, **kwargs):
   with pysam.Samfile(out_file_set['out_bam']) as bam_in_fp, \
        open(os.path.join(out_prefix, 'bench.csv'), 'w') as csv_out_fp, \
        open(os.path.join(out_prefix, 'bench.json'), 'w') as json_out_fp:
-    checkbam.main(bam_fp=bam_in_fp, csv_fp=csv_out_fp, json_fp=json_out_fp,
+    perfectbam.main(bam_fp=bam_in_fp, csv_fp=csv_out_fp, json_fp=json_out_fp,
                   window=bench_p_set['window'], block_size=bench_p_set['block_size'])
 
 
