@@ -1,5 +1,5 @@
-Quick-start I
-=============
+Quick-start
+===========
 
 (For an overview of how Mitty is structured and some of the conventions used please see the detailed documentation.
 This quickstart is for the impatient - like me - who like to type in commands and see stuff happen and go from
@@ -125,7 +125,7 @@ First, use BWA-MEM to create an alignment:
 
 We can use an alignment browser, such as [Tablet]_, to see the alignments
 
-.. image:: _static/reads.bam_tablet.png
+.. image:: _static/reads_bam_tablet.png
 
 (You can see that the coverage is what we dialled in. The one red colored base is a read error - since we are inspecting
 the corrupted reads file)
@@ -191,7 +191,7 @@ a variation.
 
 We can use an alignment browser, such as Tablet, to see the alignments
 
-.. image:: _static/vreads.bam_tablet.png
+.. image:: _static/vreads_bam_tablet.png
 
 Note how the reads are restricted to the variant locations, as we asked for.
 

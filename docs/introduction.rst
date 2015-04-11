@@ -1,7 +1,7 @@
 Overview
 ++++++++
 
-.. include:: ../Readme.md
+.. include:: ../Readme.rst
 
 
 Trivia

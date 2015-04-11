@@ -13,9 +13,11 @@ Mitty documentation
 
     introduction
     quickstart
+..    developer
+..    ramblings
+
 ..    files
 ..    components
-..    developer
 
 Indices and tables
 ==================
