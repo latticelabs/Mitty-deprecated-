@@ -23,7 +23,14 @@ Generate reads from a genome using the `reads` program and a `.json` file descri
 
     reads --pfile reads.json
     
-Use the `perfectbam` program to analyze `.bam` files produced by aligners from the simulated reads
+Analyze `.bam` files produced by aligners from the simulated reads::
+
+    perfectbam --inbam=../examples/demo/Out/reads.bam
+
+Plot the results of the analysis::
+
+    plot_align circle ../examples/demo/Out/reads.bam
+    plot_align matrix ../examples/demo/Out/reads.bam
 
 
 Installation
@@ -32,7 +39,7 @@ Installation
 Virtual environments
 --------------------
 While not required, it is strongly recommended that you use `virtual environments`_ for your Python code. I find
-``virtualenvwrapper`` [1_] awesome for managing Python virtual environments::
+`virtualenvwrapper`_ awesome for managing Python virtual environments::
 
     sudo pip install virtualenvwrapper
     source /usr/local/bin/virtualenvwrapper.sh  # You may want to add this to your login script
@@ -53,7 +60,7 @@ And when you want to come back do::
 
 
 .. _virtual environments: http://docs.python-guide.org/en/latest/dev/virtualenvs/
-.. _1: https://virtualenvwrapper.readthedocs.org/en/latest/
+.. _virtualenvwrapper: https://virtualenvwrapper.readthedocs.org/en/latest/
 
 
 Mitty installation
