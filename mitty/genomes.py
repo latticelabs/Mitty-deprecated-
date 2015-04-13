@@ -35,32 +35,32 @@ __param__ = """Parameter file example::
   {
     # Path notes: an absolute path is left as is. A relative path is taken relative to the parameter file location
     "files": {
-      "reference_dir": "/Users/kghose/Data/hg38/",  # Use this if the reference consists of multiple .fa files in a directory
-      "reference_file": "/Users/kghose/Data/hg38/hg38.fa.gz",  # Use this if reference is a single multi-fasta file
+      "reference_dir": "/Users/kghose/Data/hg38/",  # If reference is chr1.fa, chr2.fa ... in this directory
+      "reference_file": "/Users/kghose/Data/hg38/hg38.fa.gz",  # If reference is a single gz fasta file
       "dbfile": "Out/test.db"  # Output database file
     },
     "rng": {
       "master_seed": 1
     },
-    "sample_size": 1,            # How many samples to generate
+    "sample_size": 1,      # How many samples to generate
     "site_model": {
-        "double_exp": {   # Name of model that handles the site frequency spectrum
-          "k1": 0.1,     # Population model parameters
+        "double_exp": {    # Name of model that handles the site frequency spectrum
+          "k1": 0.1,       # Population model parameters
           "k2": 2.0,
           "p0": 0.001,
           "p1": 0.2,
           "bin_cnt": 30
         }
       }
-    "chromosomes": [1, 2]        # Chromosomes to apply the models to
-    "variant_models": [          # The list of variant models should come under this key
+    "chromosomes": [1, 2]  # Chromosomes to apply the models to
+    "variant_models": [    # The list of variant models should come under this key
       {
-        "snp": {                 # name of the model. To get a list of plugin names type "denovo models"
-          "p": 0.01              # Parameters required by the model
+        "snp": {           # name of the model.
+          "p": 0.01        # Parameters required by the model
         }
       },
-      {                          # We can chain as many models as we wish
-        "delete" : {             # We can repeat models if we want
+      {                    # We can chain as many models as we wish. We can also repeat models.
+        "delete" : {
           "p": 0.01
         }
       }

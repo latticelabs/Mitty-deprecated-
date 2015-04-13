@@ -99,7 +99,7 @@ add_module_names = False
 #show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'friendly'
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
@@ -200,7 +200,7 @@ latex_elements = {
   #'papersize': 'letterpaper',
 
   # The font size ('10pt', '11pt' or '12pt').
-  #'pointsize': '10pt',
+  #'pointsize': '9pt',
 
   # Additional stuff for the LaTeX preamble.
   #'preamble': '',
@@ -226,7 +226,7 @@ latex_logo = logo_file
 #latex_show_pagerefs = False
 
 # If true, show URL addresses after external links.
-#latex_show_urls = False
+latex_show_urls = 'footnote'
 
 # Documents to append as an appendix to all manuals.
 #latex_appendices = []

@@ -63,7 +63,7 @@ Let's run this command and create a database of simulated genomes
 .. command-output:: mkdir -p ../examples/demo/Out
 .. command-output:: genomes generate --pfile=../examples/demo/variations.json
 
-(*Using the -v option will give detailed logger messages and a progress bar*).
+(*Using the -v option will give detailed logger messages, using the -p option will give a progress bar*).
 
 Let's take a peek at the produced genomes database using the inspect function
 
