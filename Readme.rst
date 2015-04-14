@@ -67,7 +67,7 @@ Mitty installation
 ------------------
 On Linux, you may first need to pull some dependencies (as needed) such as ::
 
-    sudo apt-get install python-pip git python-numpy python-dev cython
+    sudo apt-get install python-pip git python-numpy python-dev cython zlib1g-dev
 
 For the dev team, you will want the `develop` branch of Mitty ::
     
