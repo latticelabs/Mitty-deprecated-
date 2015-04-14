@@ -17,6 +17,9 @@ import docopt
 import json
 import os
 
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 import matplotlib.patches as patches
