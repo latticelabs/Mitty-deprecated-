@@ -39,6 +39,6 @@ setup(
       'pysam>=0.8.1'
     ],
     extras_require = {
-      'mplot': ['matplotlib>=1.4.2']
+      'mplot': ['matplotlib>=1.3.0']
     }
 )
