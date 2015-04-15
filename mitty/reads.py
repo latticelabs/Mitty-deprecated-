@@ -32,8 +32,12 @@ __param__ = """Parameter file example::
       "reference_file": "/Users/kghose/Data/hg38/hg38.fa.gz",  # Use this if reference is a single multi-fasta file
       "dbfile": "Out/test.db"  # Genomes database file. Leave out if taking reads from a reference, or from VCF file
       "input_vcf": "Out/test.vcf",  # Use this if using a VCF file. Leave out if taking reads from a reference, or from VCF file
-      "output_prefix": "Out/reads"  # Output file name prefix
+      "output_prefix": "Out/reads", # Output file name prefix
                                     # the reads will be called reads.fq and reads_c.fq if we call for corrupted reads too
+      "interleaved": true     # Set to false if you need separate files for each mate of a pair
+                              # files will then be named reads_1.fq, reads_c_1.fq and reads_2.fq, reads_c_2.fq
+                              # If the reads are actually not paired and you set interleaved to false you will get two
+                              # files _1 and _2 and all the data will be in _1 only
     },
     "sample" : {
       "gen": 0,      # Use gen and serial for database
@@ -133,7 +137,7 @@ def explain_read_model(name):
 
 def generate_reads_loop(ref, conn=None, gen=None, serial=None, chromosomes=[], read_model=None,
                         variants_only=False, variant_window=None,
-                        fastq_fp=None, fastq_c_fp=None,
+                        fastq_fp=[], fastq_c_fp=[],
                         actual_coverage_per_block=1.0, blocks_to_do=1,
                         master_seed=1,
                         progress_bar_func=None):
@@ -147,8 +151,9 @@ def generate_reads_loop(ref, conn=None, gen=None, serial=None, chromosomes=[], r
   :param read_model: read model object
   :param variants_only: True if reads should be taken from regions neighboring variants only
   :param variant_window: Size of region (in bases) around variants for local reads
-  :param fastq_fp:   file pointer to perfect reads file
-  :param fastq_c_fp: file pointer to corrupted reads file, leave None to skip computing corrupted reads
+  :param fastq_fp:   List of two file pointers to perfect reads files. If interleaved, the pointers are same
+  :param fastq_c_fp: List of two file pointers to corrupted reads file, leave None to skip computing corrupted reads.
+                     If interleaved, the pointers are same
   :param actual_coverage_per_block: coverage of reads per computation block
   :param blocks_to_do: total blocks that need to be done per pass
   :param master_seed: rng seed
@@ -179,7 +184,8 @@ def generate_reads_loop(ref, conn=None, gen=None, serial=None, chromosomes=[], r
           reads, paired = reads_from_variants_only(seq, seq_c, variant_waypoints, variant_window, read_model,
                                                    actual_coverage_per_block, corrupt, seed_rng)
         pos, cigars = lib_reads.roll_cigars(variant_waypoints, reads)
-        first_serial_no = write_reads_to_file(fastq_fp, fastq_c_fp, reads, paired, pos, cigars, ch, cpy,
+        first_serial_no = write_reads_to_file(fastq_fp[0], fastq_fp[1], fastq_c_fp[0], fastq_c_fp[1],
+                                              reads, paired, pos, cigars, ch, cpy,
                                               first_serial_no)
         blocks_done += 1
         if progress_bar_func: progress_bar_func('Generating reads ', f=float(blocks_done) / total_blocks, cols=80)
@@ -232,8 +238,12 @@ def generate(cmd_args):
 
   t0 = time.time()
   fname_prefix = mitty.lib.rpath(base_dir, params['files']['output_prefix'])
-  fastq_fp = open(fname_prefix + '.fq', 'w')
-  fastq_c_fp = open(fname_prefix + '_c.fq', 'w') if corrupt else None
+  if params['files'].get('interleaved', True):
+    fastq_fp = [open(fname_prefix + '.fq', 'w')] * 2
+    fastq_c_fp = [open(fname_prefix + '_c.fq', 'w')] * 2 if corrupt else [None, None]
+  else:  # Need two files separately
+    fastq_fp = [open(fname_prefix + '_1.fq', 'w'), open(fname_prefix + '_2.fq', 'w')]
+    fastq_c_fp = [open(fname_prefix + '_c_1.fq', 'w'), open(fname_prefix + '_c_2.fq', 'w')] if corrupt else [None, None]
 
   read_count = generate_reads_loop(ref=ref, conn=conn, gen=gen, serial=serial, chromosomes=chromosomes,
                                    read_model=read_model, variants_only=variants_only, variant_window=variant_window,
@@ -252,9 +262,8 @@ def reads_from_variants_only(seq, seq_c, variant_waypoints, variant_window, read
   :param seq_c:    complement sequence
   :param variant_waypoints: as returned by expand_sequence
   :param variant_window: how many bases before and after variant should we include
-  :param coverage_per_block: coverage level per batch of reads
   :param corrupt:  T/F generate corrupted reads too or not
-  :param seed:     seed for the simulation
+  :param seed_rng:    rng for seed generation
   :return:
   """
   reads, paired = [], False
@@ -266,10 +275,13 @@ def reads_from_variants_only(seq, seq_c, variant_waypoints, variant_window, read
   return np.concatenate(reads), paired
 
 
-def write_reads_to_file(fastq_fp, fastq_c_fp, reads, paired, pos, cigars, ch, cc, first_serial_no):
+def write_reads_to_file(fastq_fp_1, fastq_fp_2, fastq_c_fp_1, fastq_c_fp_2,
+                        reads, paired, pos, cigars, ch, cc, first_serial_no):
   """
-  :param fastq_fp:     file pointer to perfect reads file
-  :param fastq_c_fp:   file pointer to corrupted reads file (None if no corrupted reads being written)
+  :param fastq_fp_1:   file pointer to perfect reads file
+  :param fastq_fp_2:   file pointer to perfect reads file 2. Same as 1 if interleaving. None if not paired
+  :param fastq_c_fp_1: file pointer to corrupted reads file. None if no corrupted reads being written
+  :param fastq_c_fp_2: file pointer to corrupted reads file 2. Same as 1 if interleaving. None if no corrupted reads being written. None if not paired
   :param reads:        reads recarray
   :param paired:       bool, are reads paired
   :param pos:          list of POS values for the reads
@@ -285,18 +297,18 @@ def write_reads_to_file(fastq_fp, fastq_c_fp, reads, paired, pos, cigars, ch, cc
   if paired:
     for n in xrange(0, reads.shape[0], 2):
       qname = 'r{:d}|{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:d}|{:s}'.format(cntr, ch, cc, ro[n], pos[n], cigars[n], ro[n + 1], pos[n + 1], cigars[n + 1])
-      fastq_fp.write('@' + qname + '\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
-      fastq_fp.write('@' + qname + '\n' + pr_seq[n + 1] + '\n+\n' + '~' * len(pr_seq[n + 1]) + '\n')
-      if fastq_c_fp is not None:
-        fastq_c_fp.write('@' + qname + '\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
-        fastq_c_fp.write('@' + qname + '\n' + cr_seq[n + 1] + '\n+\n' + phred[n + 1] + '\n')
+      fastq_fp_1.write('@' + qname + ' /1\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
+      fastq_fp_2.write('@' + qname + ' /2\n' + pr_seq[n + 1] + '\n+\n' + '~' * len(pr_seq[n + 1]) + '\n')
+      if fastq_c_fp_1 is not None:
+        fastq_c_fp_1.write('@' + qname + ' /1\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
+        fastq_c_fp_2.write('@' + qname + ' /2\n' + cr_seq[n + 1] + '\n+\n' + phred[n + 1] + '\n')
       cntr += 1
   else:
     for n in xrange(0, reads.shape[0]):
       qname = 'r{:d}|{:d}|{:d}|{:d}|{:d}|{:s}'.format(cntr, ch, cc, ro[n], pos[n], cigars[n])
-      fastq_fp.write('@' + qname + '\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
-      if fastq_c_fp is not None:
-        fastq_c_fp.write('@' + qname + '\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
+      fastq_fp_1.write('@' + qname + '\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
+      if fastq_c_fp_1 is not None:
+        fastq_c_fp_1.write('@' + qname + '\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
       cntr += 1
 
   return cntr
