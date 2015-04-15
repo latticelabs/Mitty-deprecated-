@@ -8,7 +8,7 @@ Commandline::
     genomes inspect --dbfile=DBFILE
     genomes inspect sfs <chrom>  --dbfile=DBFILE
     genomes dryrun --pfile=PFILE
-    genomes write (vcf|vcfs) --dbfile=DBFILE  [<serial>]... [-v|-V]
+    genomes write (vcf|vcfs) --dbfile=DBFILE  [master] [<serial>]... --outdir=OUTDIR [-v|-V]
     genomes explain (parameters|(variantmodel|populationmodel) <model_name>)
     genomes list (variantmodels|populationmodels)
 
@@ -26,7 +26,9 @@ Commandline::
     vcf                     Write out all genomes in one multi-sample vcf file
     vcfs                    Write out the genomes in separate single sample vcf files
     --dbfile=DBFILE         Name of genome database file
-    serial                  Serial number of sample
+    master                  Write  a VCF file with all the variants, no sample tag
+    serial                  Serial number of sample. Ignored if 'master' is used
+    --outdir=OUTDIR         The directory to write the files to
     explain                 Explain the parameters/variant model/population model
     list                    List the models"""
 
@@ -210,14 +212,31 @@ def load_variant_models(ref, model_param_json):
 
 def write(cmd_args):
   pop_db_name = cmd_args['--dbfile']
-  samples = cmd_args['<serial>']
   conn = mdb.connect(db_name=pop_db_name)
-  if len(samples) == 0:
-    samples = [n for n in range(mdb.samples_in_db(conn))]
+  out_dir_name = cmd_args['--outdir']
+  if cmd_args['master']:
+    write_master_vcf(conn, out_dir_name)
+  else:
+    samples = cmd_args['<serial>']
+    if len(samples) == 0:
+      samples = [n for n in range(mdb.samples_in_db(conn))]
+    write_sample_vcfs(conn, samples, out_dir_name)
 
+
+def write_master_vcf(conn, out_dir_name):
+  contig_info = [mdb.load_chromosome_metadata(conn, ch[0])[1:] for ch in mdb.chromosomes_in_db(conn)]
+  fname = os.path.join(out_dir_name, 'master.vcf')
+  with mio.vcf_for_writing(fname, [], contig_info) as fp:
+    for ch in mdb.chromosomes_in_db(conn):
+      ml = mdb.load_master_list(conn, ch[0])
+      mio.write_chromosomes_to_vcf(fp, seq_id=ch[1], chrom_list=[], master_list=ml)
+
+
+def write_sample_vcfs(conn, samples, out_dir_name):
   contig_info = [mdb.load_chromosome_metadata(conn, ch[0])[1:] for ch in mdb.chromosomes_in_db(conn)]
   for spl in [int(s) for s in samples]:
-    with mio.vcf_for_writing('{:s}_s{:06d}.vcf'.format(pop_db_name, spl), ['s{:d}'.format(spl)], contig_info) as fp:
+    fname = os.path.join(out_dir_name, 's{:d}.vcf'.format(spl))
+    with mio.vcf_for_writing(fname, ['s{:d}'.format(spl)], contig_info) as fp:
       for ch in mdb.chromosomes_in_db(conn):
         ml = mdb.load_master_list(conn, ch[0])
         mio.write_chromosomes_to_vcf(fp, seq_id=ch[1], chrom_list=[mdb.load_sample(conn, 0, spl, ch[0])], master_list=ml)
