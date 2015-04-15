@@ -5,6 +5,7 @@ import glob
 import gzip
 from contextlib import contextmanager
 import hashlib  # We decided to include md5 hashes of the sequences too
+from itertools import izip
 
 import pysam
 
@@ -123,11 +124,11 @@ def load_generic_multi_fasta(fa_fname):
 
 @contextmanager
 def vcf_for_writing(vcf_gz_name, sample_names, contig_info=[]):
-  """Start a context with a handle to a vcf file
+  """Start a context with a handle to a vcf file. Write header before handing us the file pointer
 
   Given a master list for a given chromosome and a set of samples, save them to a VCF file.
   :param vcf_gz_name: Name of output vcf.gz file
-  :param sample_names: list of sample names
+  :param sample_names: list of sample names. If empty, write out master list with allele frequency
   :param contig_info: list of the form [(chrom, seq_id, seq_len, seq_md5) ... ]
 
   Example usage:
@@ -142,17 +143,19 @@ def vcf_for_writing(vcf_gz_name, sample_names, contig_info=[]):
     vcf_name += '.vcf'
     vcf_gz_name = vcf_name + '.gz'
 
+  header = "##fileformat=VCFv4.1\n"
+  header += ''.join(['##contig=<ID={:s},length={:d},md5={:s}>\n'.format(ci[0].split(' ')[0], ci[1], ci[2]) for ci in contig_info])
+  # When we write the contig id, we need to remove everything after the first space
+  if len(sample_names):
+    header += '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'  # We'll be writing samples
+  else:
+    header += '##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency">\n'  # We'll be writing out master list
+  header += "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"
+  if len(sample_names): header += "\tFORMAT\t" + '\t'.join(sample_names)
+  header += "\n"
+
   with open(vcf_name, 'w') as fp:
-    # Write header etc. before handing us the file pointer
-    sample_header = '\t'.join(sample_names)
-    contigs = '\n'.join(['##contig=<ID={:s},length={:d},md5={:s}>'.format(ci[0].split(' ')[0], ci[1], ci[2]) for ci in contig_info])
-    # When we write the sequence id, we need to remove everything after the first space
-    fp.write(
-      "##fileformat=VCFv4.1\n"
-      "{:s}"
-      "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n"
-      "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{:s}\n".format(contigs + '\n' if len(contigs) else '', sample_header)
-    )
+    fp.write(header)
     yield fp  # This where the writing happens
 
   compress_and_index_vcf(str(vcf_name), str(vcf_gz_name))
@@ -178,14 +181,20 @@ def write_chromosomes_to_vcf(fp, seq_id='chr1', chrom_list=[], master_list=None)
   if len(chrom_list) > 1:
     raise NotImplementedError('Multiple sample VCF file saving is not supported in this version.')
 
-  seq_id = seq_id.split(' ')[0]  # Only take things up to the first space
+  seq_id = seq_id.split(' ')[0]  # Only take contig_id upto up to the first space
   wr = fp.write
-  GT = ['1|0', '0|1', '1|1']
+  gt_string = ['1|0', '0|1', '1|1']
   pos = master_list.variants['pos'] + 1  # VCF files are 1 indexed.
   ref = master_list.variants['ref']
   alt = master_list.variants['alt']
-  for idx, gt in chrom_list[0]:
-    wr(seq_id + "\t" + str(pos[idx]) + "\t.\t" + ref[idx] + "\t" + alt[idx] + "\t100\tPASS\t.\tGT\t" + GT[gt] + "\n")
+  maf = master_list.variants['p']
+
+  if len(chrom_list) == 0:  # We want to write master list
+    for p, r, a, f in izip(pos, ref, alt, maf):
+      wr(seq_id + '\t' + str(p) + '\t.\t' + r + '\t' + a + '\t100\tPASS\tAF=' + str(f) + '\n')
+  else:
+    for idx, gt in chrom_list[0]:
+      wr(seq_id + "\t" + str(pos[idx]) + "\t.\t" + ref[idx] + "\t" + alt[idx] + "\t100\tPASS\t.\tGT\t" + gt_string[gt] + "\n")
 
 
 def load_vcf(rdr, sample_labels=None, max_rows=-1):
