@@ -61,7 +61,7 @@ Before we run the actual simulation, let's make sure the site frequency spectrum
 Let's run this command and create a database of simulated genomes
 
 .. command-output:: mkdir -p ../examples/demo/Out
-.. command-output:: genomes generate --pfile=../examples/demo/variations.json
+.. command-output:: genomes generate --pfile=../examples/demo/variations.json -v
 
 (*Using the -v option will give detailed logger messages, using the -p option will give a progress bar*).
 
@@ -76,8 +76,8 @@ We can also take a look at the site frequency spectrum in the generated populati
 Right now, all our genomes are in a database. The rest of the world works in VCF files, so let's write out one of the
 samples as a VCF file
 
-.. command-output:: genomes write vcf --dbfile=../examples/demo/Out/red_alga_genomes.db 3
-.. command-output:: head -n 20 ../examples/demo/Out/red_alga_genomes.db_s000003.vcf
+.. command-output:: genomes write vcf --dbfile=../examples/demo/Out/red_alga_genomes.db 3 --outdir ../examples/demo/Out/
+.. command-output:: head -n 20 ../examples/demo/Out/s3.vcf
 
 Things seem to have run satisfactorily. Note that we produce phased VCF files and we also use the notation `1|0` since we
 have complete knowledge of the phasing. Now let's generate a bag of reads from this genome.
@@ -108,7 +108,7 @@ Ok, let's put together a parameter file for our experiment, let's call it `illum
 
 Let's run this command and create some reads from the variant genome
 
-.. command-output::  reads --pfile=../examples/complete/illumina_reads.json
+.. command-output::  reads --pfile=../examples/demo/illumina_reads.json -v
 
 Testing alignment accuracy of BWA MEM
 -------------------------------------
@@ -152,8 +152,7 @@ misaligned reads.
 We all know how exciting it is to scroll through a .csv file, so we have some additional tools to analyse the misaligned
 reads and display the information graphically (These require Matplotlib_ to be installed).
 
-.. command-output:: plot_align circle ../examples/demo/Out/reads.bam
-.. #image:: _static/red_alga_circle_plot_whole.png
+.. command-output:: plot_align circle ../examples/demo/Out/reads.bam  --down-sample 100
 .. image:: ../examples/demo/Out/reads_circle_plot.png
 
 This is a plot of where the reads end up after alignment. As can be seen, while a small percentage of reads end up in
