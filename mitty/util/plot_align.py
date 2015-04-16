@@ -3,13 +3,14 @@
 Commandline::
 
   Usage:
-    alignment (circle|matrix) <bam_file> [pdf]
+    alignment (circle|matrix) <bam_file> [--down-sample=S] [pdf]
 
   Options:
-    circle         Plot a circle plot
-    matrix         Plot a 2D histogram
-    <bam_file>     Name of original bam file
-    pdf            Should the output be pdf? (png otherwise)
+    circle           Plot a circle plot
+    matrix           Plot a 2D histogram
+    <bam_file>       Name of original bam file
+    --down-sample=S  Factor by which to down-sample
+    pdf              Should the output be pdf? (png otherwise)
 
 """
 import csv
@@ -24,7 +25,7 @@ import matplotlib.pyplot as plt
 from matplotlib.path import Path
 import matplotlib.patches as patches
 from matplotlib.colors import LogNorm
-import numpy
+import numpy as np
 
 
 def draw_circle_plot(chrom_lens, mis):
@@ -42,7 +43,7 @@ def plot_genome_as_a_circle(chrom_lens, radius=1, chrom_gap=0.001, chrom_thick=0
   :param (float) chrom_thick: thickness of chromosome
   """
   total_len = sum(chrom_lens)
-  radians_per_base = (2.0 * numpy.pi - len(chrom_lens) * chrom_gap) / total_len  # With allowance for chrom gaps
+  radians_per_base = (2.0 * np.pi - len(chrom_lens) * chrom_gap) / total_len  # With allowance for chrom gaps
 
   xticks = []
   xticklabels = []
@@ -50,7 +51,7 @@ def plot_genome_as_a_circle(chrom_lens, radius=1, chrom_gap=0.001, chrom_thick=0
   start_radian = 0
   for ch_no, l in enumerate(chrom_lens):
     end_radian = start_radian + l * radians_per_base
-    theta = numpy.arange(start_radian, end_radian, delta_radian)
+    theta = np.arange(start_radian, end_radian, delta_radian)
     plt.plot(theta, [radius] * theta.size, lw=chrom_thick)
     xticks.append((start_radian + end_radian)/2)
     xticklabels.append(str(ch_no + 1))
@@ -71,7 +72,7 @@ def plot_mis_alignments_on_a_circle(chrom_lens, misalignments, radius=1, chrom_g
   :param (float) lw: thickness of drawn line
   """
   total_len = sum(chrom_lens)
-  radians_per_base = (2.0 * numpy.pi - len(chrom_lens) * chrom_gap) / total_len  # With allowance for chrom gaps
+  radians_per_base = (2.0 * np.pi - len(chrom_lens) * chrom_gap) / total_len  # With allowance for chrom gaps
 
   # http://matplotlib.org/users/path_tutorial.html
   codes = [
@@ -105,7 +106,7 @@ def draw_matrix_plot(chrom_lens, mis):
 def flatten_coordinates(chrom_lens, mis):
   # First work out the chromosome offsets
   chrom_offsets = reduce(lambda x, y: x + [x[-1] + y], chrom_lens, [0])
-  flattened_coordinates = numpy.array([[chrom_offsets[r[0] - 1] + r[1], chrom_offsets[r[2] - 1] + r[3]] for r in mis])
+  flattened_coordinates = np.array([[chrom_offsets[r[0] - 1] + r[1], chrom_offsets[r[2] - 1] + r[3]] for r in mis])
   return flattened_coordinates, chrom_offsets
 
 
@@ -114,7 +115,7 @@ def plot_mis_alignment_matrix(data, chrom_offsets, histogram=False):
   :param (ndarray) data: n x 2 array of read positions (unrolled to whole genome) 1st column = correct 2nd column computed
   """
   if histogram:
-    h, xe, ye = numpy.histogram2d(data[:, 1], data[:, 0], bins=100, range=[[0, chrom_offsets[-1]], [0, chrom_offsets[-1]]])
+    h, xe, ye = np.histogram2d(data[:, 1], data[:, 0], bins=100, range=[[0, chrom_offsets[-1]], [0, chrom_offsets[-1]]])
     #plt.imshow(h, origin="lower", extent=(0, chrom_offsets[-1], 0, chrom_offsets[-1]), cmap=plt.cm.gray_r, norm=LogNorm(), interpolation=None)
     plt.matshow(h, origin="lower", extent=(0, chrom_offsets[-1], 0, chrom_offsets[-1]), cmap=plt.cm.gray_r, norm=LogNorm(), interpolation=None)
   else:
@@ -139,7 +140,7 @@ def cli():
   summary_fname = prefix + '_summary.json'
   misalignments_fname = prefix + '_misaligned.csv'
 
-  chrom_lens, mis = process_inputs(summary_fname, misalignments_fname)
+  chrom_lens, mis = process_inputs(summary_fname, misalignments_fname, args['--down-sample'])
   plot_suffix = '.pdf' if args['pdf'] else '.png'
 
   if args['circle']:
@@ -152,7 +153,7 @@ def cli():
   plt.savefig(plot_fname)
 
 
-def process_inputs(summary_fname, misalignments_fname):
+def process_inputs(summary_fname, misalignments_fname, down_sample=None):
   """Read in the .json and .csv files produced by perfectbam and prepare the data structures we need for plotting
 
   :param summary_fname:        the _summary.json file
@@ -163,7 +164,12 @@ def process_inputs(summary_fname, misalignments_fname):
   chrom_lens = [sh['LN'] for sh in summary['sequence_header']]
   with open(misalignments_fname, 'r') as csv_fp:
     csv_fp.readline()  # Get rid of the header
-    misalignments = [[int(r) for r in [row[2], row[3], row[5], row[6]]] for row in csv.reader(csv_fp)]
+    if down_sample is None:
+      misalignments = [[int(r) for r in [row[2], row[3], row[5], row[6]]] for row in csv.reader(csv_fp)]
+    else:
+      skip = int(down_sample)
+      misalignments = [[int(r) for r in [row[2], row[3], row[5], row[6]]] for n, row in enumerate(csv.reader(csv_fp)) if n % skip == 0]
+
   return chrom_lens, misalignments
 
 
