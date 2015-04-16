@@ -158,6 +158,7 @@ def process_inputs(summary_fname, misalignments_fname, down_sample=None):
 
   :param summary_fname:        the _summary.json file
   :param misalignments_fname:  the _misalignments.csv file
+  :param down_sample:          the factor by which to skip reads during loading
   :return: chrom_lens, misalignments as needed by the plotting functions
   """
   summary = json.load(open(summary_fname, 'r'))
