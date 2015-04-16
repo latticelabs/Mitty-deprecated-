@@ -115,8 +115,10 @@ Testing alignment accuracy of BWA MEM
 First, use BWA-MEM to create an alignment:
 
 .. command-output:: bwa index ../examples/data/red_alga.fa.gz
+    :ellipsis: 1,-2
 .. command-output:: bwa mem -t 8 -p ../examples/data/red_alga.fa.gz  ../examples/demo/Out/reads_c.fq > ../examples/demo/Out/temp.sam
     :shell:
+    :ellipsis: 1,-2
 .. command-output:: samtools view -Sb  ../examples/demo/Out/temp.sam > ../examples/demo/Out/temp.bam
     :shell:
 
@@ -142,6 +144,7 @@ We use ``perfectbam`` to both analyze the performance of the aligner and to crea
 
 .. command-output::  perfectbam --inbam=../examples/demo/Out/reads.bam
 
+
 `perfectbam` creates a `.json` file with some summary performance statistics and a `.csv` file with details about the
 misaligned reads.
 
@@ -152,14 +155,20 @@ misaligned reads.
 We all know how exciting it is to scroll through a .csv file, so we have some additional tools to analyse the misaligned
 reads and display the information graphically (These require Matplotlib_ to be installed).
 
-.. command-output:: plot_align circle ../examples/demo/Out/reads.bam  --down-sample 100
-.. image:: ../examples/demo/Out/reads_circle_plot.png
+*(For aesthetic reasons, we will use a different reads file that has reads from all the chromosomes, but at lower coverage
+so it doesn't take so long to run)*
+
+.. command-output:: ../examples/demo/low_coverage_reads.sh
+  :ellipsis: 0
+
+.. command-output:: plot_align circle ../examples/demo/Out/null_reads_low.bam  --down-sample 10
+.. image:: ../examples/demo/Out/null_reads_low_circle_plot.png
 
 This is a plot of where the reads end up after alignment. As can be seen, while a small percentage of reads end up in
 different chromosomes, most of the misalignments are local (the lines end up on the same chromosome).
 
-.. command-output:: plot_align matrix ../examples/demo/Out/reads.bam
-.. image:: ../examples/demo/Out/reads_matrix_plot.png
+.. command-output:: plot_align matrix ../examples/demo/Out/null_reads_low.bam
+.. image:: ../examples/demo/Out/null_reads_low_matrix_plot.png
 
 
 .. _Matplotlib: http://matplotlib.org/index.html
@@ -169,9 +178,7 @@ Taking reads just from regions around variants
 By setting the ``variants_only`` flag to *True* in the parameters file we can selectively generate reads from regions bordering
 a variation.
 
-.. AArgh. Could not get Sphinx to
-..  a) highlight the line (https://github.com/ClusterHQ/flocker/issues/337) - I think the lame green highlight matches the background
-..  b) show matching line numbers (:lineno-match: and :lineno-start: make the code block disappear)
+.. AArgh. Could not get Sphinx to highlight the line (https://github.com/ClusterHQ/flocker/issues/337) - I think the lame green highlight matches the background
 
 .. literalinclude:: ../examples/demo/illumina_reads_variants_only.json
     :language: json
@@ -182,6 +189,7 @@ a variation.
 .. command-output:: reads --pfile=../examples/demo/illumina_reads_variants_only.json
 .. command-output:: bwa mem -t 8 -p ../examples/data/red_alga.fa.gz  ../examples/demo/Out/vreads_c.fq > ../examples/demo/Out/temp.sam
     :shell:
+    :ellipsis: 1,-2
 .. command-output::  samtools view -Sb  ../examples/demo/Out/temp.sam > ../examples/demo/Out/temp.bam
     :shell:
 
