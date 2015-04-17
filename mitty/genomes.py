@@ -9,7 +9,7 @@ Commandline::
     genomes inspect sfs <chrom>  --dbfile=DBFILE
     genomes dryrun --pfile=PFILE
     genomes write (vcf|vcfs) --dbfile=DBFILE  [master] [<serial>]... --outdir=OUTDIR [-v|-V]
-    genomes explain (parameters|(variantmodel|populationmodel) <model_name>)
+    genomes explain (parameters|(variantmodel|populationmodel) (all|<model_name>))
     genomes list (variantmodels|populationmodels)
 
   Options:
@@ -246,9 +246,20 @@ def explain(cmd_args):
   if cmd_args['parameters']:
     print(__param__)
   elif cmd_args['variantmodel']:
-    explain_variant_model(cmd_args['<model_name>'])
+    if cmd_args['all']:
+      explain_all_variant_models()
+    else:
+      explain_variant_model(cmd_args['<model_name>'])
   elif cmd_args['populationmodel']:
-    explain_population_model(cmd_args['<model_name>'])
+    if cmd_args['all']:
+      explain_all_population_models()
+    else:
+      explain_population_model(cmd_args['<model_name>'])
+
+
+def explain_all_variant_models():
+  for name, mod_name in mitty.lib.discover_all_variant_plugins():
+    explain_variant_model(name)
 
 
 def explain_variant_model(name):
@@ -263,6 +274,11 @@ def explain_variant_model(name):
     print(mod._description)
   except AttributeError:
     print('No help for model "{:s}" available'.format(name))
+
+
+def explain_all_population_models():
+  for name, mod_name in mitty.lib.discover_all_sfs_plugins():
+    explain_population_model(name)
 
 
 def explain_population_model(name):

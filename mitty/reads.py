@@ -7,7 +7,7 @@ Commandline::
   Usage:
     reads  --pfile=PFILE  [-v|-V] [-p]
     reads list
-    reads explain (parameters|model <model_name>)
+    reads explain (parameters|model (all|<model_name>))
 
   Options:
     --pfile=PFILE   Name for parameter file
@@ -133,6 +133,11 @@ def explain_read_model(name):
   except AttributeError:
     print('No help for model "{:s}" available'.format(name))
   return
+
+
+def explain_all_read_models():
+  for name, mod_name in mitty.lib.discover_all_reads_plugins():
+    explain_read_model(name)
 
 
 def generate_reads_loop(ref, conn=None, gen=None, serial=None, chromosomes=[], read_model=None,

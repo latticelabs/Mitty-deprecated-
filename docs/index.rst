@@ -13,6 +13,8 @@ Mitty documentation
 
     introduction
     quickstart
+    theory_and_algorithms
+    models
 ..    developer
 ..    ramblings
 
