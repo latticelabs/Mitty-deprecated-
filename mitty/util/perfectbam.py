@@ -128,7 +128,7 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window, extended=False, progres
              'incorrectly_aligned_read_counts': {str(k): v for k, v in incorrectly_aligned_reads_cntr.iteritems()}},
             json_fp, indent=2)
 
-  return n
+  return total_read_count
 
 
 def cli():
