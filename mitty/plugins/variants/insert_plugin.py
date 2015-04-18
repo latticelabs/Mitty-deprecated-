@@ -68,7 +68,15 @@ class Model:
     ins_list, len_list = mutil.markov_sequences(ref, ins_locs, self.max_len, pt_mat, ins_markov_rng)
     lengths = np.array(len_list, dtype='i4')
 
-    return ins_locs, ins_locs + 1, [ins[0] for ins in ins_list], ins_list, lengths / float(lengths.max())
+    return ins_locs, ins_locs + 1, [ins[0] for ins in ins_list], ins_list, (1.0 - lengths / float(lengths.max())) if lengths.shape[0] else []
+
+
+def test0():
+  """Edge case - no variants generated"""
+  ref_seq = 'ACTGACTGACTGACTGACTGACTGACTGACTGACTG'
+  m = Model(p=0.00001)
+  pos, stop, ref, alt, p = m.get_variants(ref_seq, 1, np.array([0.2]), np.array([1.0]), seed=10)
+  assert len(pos) == 0  # This should just run and not crash
 
 
 def test():

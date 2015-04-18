@@ -62,11 +62,22 @@ class Model:
     idx = ((del_locs + del_lens) < len(ref)).nonzero()[0]   # Get rid of any deletions that go past the sequence end
     del_locs = del_locs[idx]
     del_lens = del_lens[idx]
-    # http://stackoverflow.com/questions/8081545/convert-list-of-tuples-to-multiple-lists-in-python
-    idx, refs, alts = map(list, itertools.izip(*((n, ref[del_loc:del_loc + del_len], ref[del_loc]) for n, (del_loc, del_len) in enumerate(np.nditer([del_locs, del_lens])) if ref[del_loc + del_len - 1] != 'N')))
-    # This gets rid of any deletions that stretch into the 'N' regions of a sequence
-    return del_locs[idx], del_locs[idx] + del_lens[idx], refs, alts, del_lens[idx] / float(del_lens[idx].max())
+    if len(del_locs):
+      # http://stackoverflow.com/questions/8081545/convert-list-of-tuples-to-multiple-lists-in-python
+      idx, refs, alts = map(list, itertools.izip(*((n, ref[del_loc:del_loc + del_len], ref[del_loc]) for n, (del_loc, del_len) in enumerate(np.nditer([del_locs, del_lens])) if ref[del_loc + del_len - 1] != 'N')))
+      # This gets rid of any deletions that stretch into the 'N' regions of a sequence
+      del_locs, del_ends, p = del_locs[idx], del_locs[idx] + del_lens[idx], 1.0 - del_lens[idx] / float(del_lens[idx].max())
+    else:
+      del_ends, refs, alts, p = [], [], [], []
+    return del_locs, del_ends, refs, alts, p
 
+
+def test0():
+  """Edge case - no variants generated"""
+  ref_seq = 'ACTGACTGACTGACTGACTGACTGACTGACTGACTG'
+  m = Model(p=0.00001)
+  pos, stop, ref, alt, p = m.get_variants(ref_seq, 1, np.array([0.2]), np.array([1.0]), seed=10)
+  assert len(pos) == 0  # This should just run and not crash
 
 def test():
   """Basic test"""
