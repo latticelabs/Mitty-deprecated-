@@ -2,14 +2,15 @@
 __cmd__ = """Commandline::
 
   Usage:
-    perfectbam  --inbam=INBAM  [--window=WN] [-x] [-v] [-p]
+    perfectbam <inbam> [<out_prefix>] [--window=WN] [-x] [-v] [-p]
 
   Options:
-    --inbam=INBAM           Input bam file name of reads
-    --window=WN             Size of tolerance window [default: 0]
-    -x                      Use extended CIGAR ('X's and '='s) rather than traditional CIGAR (just 'M's)
-    -v                      Dump detailed logger messages
-    -p                      Show progress bar
+    <inbam>        Input bam file name of reads
+    <out_prefix>   Written files will have this prefix. If absent, the prefix will be the same as the bam file
+    --window=WN    Size of tolerance window [default: 0]
+    -x             Use extended CIGAR ('X's and '='s) rather than traditional CIGAR (just 'M's)
+    -v             Dump detailed logger messages
+    -p             Show progress bar
 """
 __param__ = """Given a bam file containing simulated reads aligned by a tool:
   1. Produce a new bam that re-aligns all reads so that their alignment is perfect
@@ -128,7 +129,7 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window, extended=False, progres
              'incorrectly_aligned_read_counts': {str(k): v for k, v in incorrectly_aligned_reads_cntr.iteritems()}},
             json_fp, indent=2)
 
-  return total_read_count
+  return int(total_read_count)
 
 
 def cli():
@@ -140,12 +141,12 @@ def cli():
   level = logging.DEBUG if args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
 
-  fname_prefix = os.path.splitext(args['--inbam'])[0]
+  fname_prefix = args['<out_prefix>'] or os.path.splitext(args['<inbam>'])[0]
   csv_fname = fname_prefix + '_misaligned.csv'
   summary_fname = fname_prefix + '_summary.json'
   perfect_bam_fname = fname_prefix + '_perfect.bam'
 
-  with pysam.AlignmentFile(args['--inbam'], 'rb') as bam_in_fp, \
+  with pysam.AlignmentFile(args['<inbam>'], 'rb') as bam_in_fp, \
       pysam.AlignmentFile(perfect_bam_fname, 'wb', template=bam_in_fp) as bam_out_fp, \
       open(csv_fname, 'w') as csv_out_fp, open(summary_fname, 'w') as json_out_fp:
     t0 = time.time()

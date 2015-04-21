@@ -5,17 +5,17 @@ The read characteristics are governed by the chosen read plugin.
 Commandline::
 
   Usage:
-    reads  --pfile=PFILE  [-v|-V] [-p]
+    reads generate <pfile>  [-v|-V] [-p]
     reads list
     reads explain (parameters|model (all|<model_name>))
 
   Options:
-    --pfile=PFILE   Name for parameter file
-    --coverage_per_block=CPB    Compute reads in blocks, each with this coverage [default: 1]
+    <pfile>         Name for parameter file
     list            List available models
     explain         Explain details about the indicated model
     parameters      Explain parameters
     model           Explain a model
+    all             Iterate over all models and explain them
     <model_name>    The model to explain
     -p              Show progress bar
     -v              Dump detailed logger messages
@@ -203,8 +203,8 @@ def executor(cmd_args):
 
   :param cmd_args: parameters as parsed by doc_opt
   """
-  base_dir = os.path.dirname(cmd_args['--pfile'])     # Other files will be with respect to this
-  params = json.load(open(cmd_args['--pfile'], 'r'))
+  base_dir = os.path.dirname(cmd_args['<pfile>'])     # Other files will be with respect to this
+  params = json.load(open(cmd_args['<pfile>'], 'r'))
 
   null_reads = True
   if 'dbfile' in params['files']:

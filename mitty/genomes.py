@@ -4,33 +4,35 @@ __cmd__ = """Generate simulated genomes from a simulation parameter file.
 Commandline::
 
   Usage:
-    genomes generate --pfile=PFILE  [-v|-V] [-p]
-    genomes inspect --dbfile=DBFILE
-    genomes inspect sfs <chrom>  --dbfile=DBFILE
-    genomes dryrun --pfile=PFILE
-    genomes write (vcf|vcfs) --dbfile=DBFILE  [master] [<serial>]... --outdir=OUTDIR [-v|-V]
+    genomes generate <pfile>  [-v|-V] [-p]
+    genomes dryrun <pfile>
+    genomes inspect <dbfile>
+    genomes inspect sfs <chrom> <dbfile>
+    genomes write ((vcf|vcfs)|master) <dbfile> <out_prefix> [<serial>]... [-v|-V]
     genomes explain (parameters|(variantmodel|populationmodel) (all|<model_name>))
     genomes list (variantmodels|populationmodels)
 
   Options:
     generate                Create a database of genomes by running the models specified
+    <pfile>                 Name for parameter file
+    dryrun                  Don't run simulation, but print out useful info about it
     inspect                 Give summary information about a genome database
+    <dbfile>                Name of genome database file
     sfs                     Print the site frequency spectrum
     <chrom>                 Which chromosome's site frequncy spectrum to print
-    dryrun                  Don't run simulation, but print out useful info about it
-    --pfile=PFILE           Name for parameter file
-    -v                      Dump log messages
-    -V                      Dump detailed log messages
-    -p                      Show progress bar
     write                   Write out genome data from the database file in vcf format
     vcf                     Write out all genomes in one multi-sample vcf file
     vcfs                    Write out the genomes in separate single sample vcf files
-    --dbfile=DBFILE         Name of genome database file
     master                  Write  a VCF file with all the variants, no sample tag
-    serial                  Serial number of sample. Ignored if 'master' is used
-    --outdir=OUTDIR         The directory to write the files to
+    <serial>                Serial number of sample. Not needed and Ignored if 'master' is used. Leave blank with vcf/vcfs to write all samples
+    <out_prefix>            Written files will have this prefix
     explain                 Explain the parameters/variant model/population model
-    list                    List the models"""
+    all                     Iterate over and explain all models
+    <model_name>            Explain specific model
+    list                    List the models
+    -v                      Dump log messages
+    -V                      Dump detailed log messages
+    -p                      Show progress bar"""
 
 __param__ = """Parameter file example::
 
@@ -120,7 +122,7 @@ def cli():  # pragma: no cover
 
 def dry_run(cmd_args):
   """Don't run simulation, but print out useful info about it"""
-  params = json.load(open(cmd_args['--pfile'], 'r'))
+  params = json.load(open(cmd_args['<pfile>'], 'r'))
   sfs_model = load_site_frequency_model(params.get('site_model', None))
   if sfs_model:
     print('Site frequency model')
@@ -137,8 +139,8 @@ def generate(cmd_args):
 
   :param cmd_args: from doc opt parsing
   """
-  base_dir = os.path.dirname(cmd_args['--pfile'])     # Other files will be with respect to this
-  params = json.load(open(cmd_args['--pfile'], 'r'))
+  base_dir = os.path.dirname(cmd_args['<pfile>'])     # Other files will be with respect to this
+  params = json.load(open(cmd_args['<pfile>'], 'r'))
 
   pop_db_name = mitty.lib.rpath(base_dir, params['files']['dbfile'])
   if os.path.exists(pop_db_name):
@@ -218,35 +220,49 @@ def load_variant_models(ref, model_param_json):
 
 
 def write(cmd_args):
-  pop_db_name = cmd_args['--dbfile']
+  pop_db_name = cmd_args['<dbfile>']
   conn = mdb.connect(db_name=pop_db_name)
-  out_dir_name = cmd_args['--outdir']
+  out_prefix = cmd_args['<out_prefix>']
   if cmd_args['master']:
-    write_master_vcf(conn, out_dir_name)
+    write_master_vcf(conn, out_prefix)
   else:
     samples = cmd_args['<serial>']
     if len(samples) == 0:
       samples = [n for n in range(mdb.samples_in_db(conn))]
-    write_sample_vcfs(conn, samples, out_dir_name)
+    if cmd_args['vcf']:
+      write_samples_vcf(conn, samples, out_prefix)
+    else:
+      write_sample_vcfs(conn, samples, out_prefix)
 
 
-def write_master_vcf(conn, out_dir_name):
+def write_master_vcf(conn, out_prefix):
   contig_info = [mdb.load_chromosome_metadata(conn, ch[0])[1:] for ch in mdb.chromosomes_in_db(conn)]
-  fname = os.path.join(out_dir_name, 'master.vcf')
+  fname = out_prefix + '_master.vcf'
   with mio.vcf_for_writing(fname, [], contig_info) as fp:
     for ch in mdb.chromosomes_in_db(conn):
       ml = mdb.load_master_list(conn, ch[0])
       mio.write_chromosomes_to_vcf(fp, seq_id=ch[1], chrom_list=[], master_list=ml)
 
 
-def write_sample_vcfs(conn, samples, out_dir_name):
+def write_sample_vcfs(conn, samples, out_prefix):
   contig_info = [mdb.load_chromosome_metadata(conn, ch[0])[1:] for ch in mdb.chromosomes_in_db(conn)]
   for spl in [int(s) for s in samples]:
-    fname = os.path.join(out_dir_name, 's{:d}.vcf'.format(spl))
+    fname = out_prefix + '_s{:d}.vcf'.format(spl)
     with mio.vcf_for_writing(fname, ['s{:d}'.format(spl)], contig_info) as fp:
       for ch in mdb.chromosomes_in_db(conn):
         ml = mdb.load_master_list(conn, ch[0])
         mio.write_chromosomes_to_vcf(fp, seq_id=ch[1], chrom_list=[mdb.load_sample(conn, 0, spl, ch[0])], master_list=ml)
+
+
+def write_samples_vcf(conn, samples, out_prefix):
+  _samples = [int(s) for s in samples]
+  contig_info = [mdb.load_chromosome_metadata(conn, ch[0])[1:] for ch in mdb.chromosomes_in_db(conn)]
+  sample_header = ['s{:d}'.format(spl) for spl in _samples]
+  fname = out_prefix + '_s{:d}.vcf'.format(spl)
+  with mio.vcf_for_writing(fname, sample_header, contig_info) as fp:
+    for ch in mdb.chromosomes_in_db(conn):
+      ml = mdb.load_master_list(conn, ch[0])
+      mio.write_chromosomes_to_vcf(fp, seq_id=ch[1], chrom_list=[mdb.load_sample(conn, 0, spl, ch[0]) for spl in _samples], master_list=ml)
 
 
 def explain(cmd_args):
@@ -326,7 +342,7 @@ def inspect(cmd_args):
 
   :param cmd_args: parsed arguments
   """
-  pop_db_name = cmd_args['--dbfile']
+  pop_db_name = cmd_args['<dbfile>']
   conn = mdb.connect(db_name=pop_db_name)
   chrom_list = mdb.chromosomes_in_db(conn)
   n_s = mdb.samples_in_db(conn)
@@ -357,7 +373,7 @@ def inspect(cmd_args):
 
 
 def print_sfs(cmd_args):
-  pop_db_name = cmd_args['--dbfile']
+  pop_db_name = cmd_args['<dbfile>']
   conn = mdb.connect(db_name=pop_db_name)
   chrom = int(cmd_args['<chrom>'])
   ml = mdb.load_master_list(conn, chrom)

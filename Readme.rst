@@ -75,12 +75,21 @@ For the dev team, you will want the `develop` branch of Mitty ::
 
 On mac os x this will pull all packages as needed, including numpy. 
 
+The SBG dev pi server contains wheels for most of the packages. You can use the devpi server (cuts down on compilation
+time in many cases) by adding teh following lines to your ~/.pip/pip.conf file (you may need to create the file first):
+
+::
+
+    [global]
+    extra-index-url = https://pip.sbgenomics.com/packages
+
+
     
 Run the tests
 -------------
 ::
 
-    pip install nose  #If needed
+    pip install nose  # If needed
     nosetests mitty.tests -v
 
 
@@ -90,3 +99,11 @@ Developing
 To develop on Mitty, simply clone the repository, and from the project root run ::
 
     pip install -e .
+
+
+Creating wheels
+---------------
+::
+
+    pip install wheel  # If needed
+    pip wheel .

@@ -52,32 +52,33 @@ Let us create a parameter file for the simulations, calling it ``variations.json
 
 .. literalinclude:: ../examples/demo/variations.json
     :language: json
+    :linenos:
 
 Before we run the actual simulation, let's make sure the site frequency spectrum looks satisfactory
 
-.. command-output:: genomes dryrun --pfile ../examples/demo/variations.json
+.. command-output:: genomes dryrun ../examples/demo/variations.json
 
 
 Let's run this command and create a database of simulated genomes
 
 .. command-output:: mkdir -p ../examples/demo/Out
-.. command-output:: genomes generate --pfile=../examples/demo/variations.json -v
+.. command-output:: genomes generate ../examples/demo/variations.json -v
 
 (*Using the -v option will give detailed logger messages, using the -p option will give a progress bar*).
 
 Let's take a peek at the produced genomes database using the inspect function
 
-.. command-output:: genomes inspect --dbfile=../examples/demo/Out/red_alga_genomes.db
+.. command-output:: genomes inspect ../examples/demo/Out/red_alga_genomes.db
 
 We can also take a look at the site frequency spectrum in the generated population, for chromosome 1, for example
 
-.. command-output:: genomes inspect sfs 1 --dbfile=../examples/demo/Out/red_alga_genomes.db
+.. command-output:: genomes inspect sfs 1 ../examples/demo/Out/red_alga_genomes.db
 
 Right now, all our genomes are in a database. The rest of the world works in VCF files, so let's write out one of the
 samples as a VCF file
 
-.. command-output:: genomes write vcf --dbfile=../examples/demo/Out/red_alga_genomes.db 3 --outdir ../examples/demo/Out/
-.. command-output:: head -n 20 ../examples/demo/Out/s3.vcf
+.. command-output:: genomes write vcf ../examples/demo/Out/red_alga_genomes.db ../examples/demo/Out/red_alga 3
+.. command-output:: head -n 20 ../examples/demo/Out/red_alga_s3.vcf
 
 Things seem to have run satisfactorily. Note that we produce phased VCF files and we also use the notation `1|0` since we
 have complete knowledge of the phasing. Now let's generate a bag of reads from this genome.
@@ -108,7 +109,7 @@ Ok, let's put together a parameter file for our experiment, let's call it `illum
 
 Let's run this command and create some reads from the variant genome
 
-.. command-output::  reads --pfile=../examples/demo/illumina_reads.json -v
+.. command-output::  reads generate ../examples/demo/illumina_reads.json -v
 
 Testing alignment accuracy of BWA MEM
 -------------------------------------
@@ -142,7 +143,7 @@ Analyse the alignment
 We use ``perfectbam`` to both analyze the performance of the aligner and to create a perfectly aligned ``.bam`` file from the
 ``.bam`` file output by the aligner.
 
-.. command-output::  perfectbam --inbam=../examples/demo/Out/reads.bam
+.. command-output::  perfectbam ../examples/demo/Out/reads.bam
 
 
 `perfectbam` creates a `.json` file with some summary performance statistics and a `.csv` file with details about the
@@ -186,15 +187,15 @@ a variation.
     :lineno-match:
     :lines: 13-17
 
-.. command-output:: reads --pfile=../examples/demo/illumina_reads_variants_only.json
-.. command-output:: bwa mem -t 8 -p ../examples/data/red_alga.fa.gz  ../examples/demo/Out/vreads_c.fq > ../examples/demo/Out/temp.sam
+.. command-output:: reads generate  ../examples/demo/illumina_reads_variants_only.json -v
+.. command-output:: bwa mem -t 8 -p  ../examples/data/red_alga.fa.gz  ../examples/demo/Out/vreads_c.fq > ../examples/demo/Out/temp.sam
     :shell:
     :ellipsis: 1,-2
 .. command-output::  samtools view -Sb  ../examples/demo/Out/temp.sam > ../examples/demo/Out/temp.bam
     :shell:
 
-.. command-output:: samtools sort ../examples/demo/Out/temp.bam  ../examples/demo/Out/vreads
-.. command-output:: samtools index ../examples/demo/Out/vreads.bam
+.. command-output:: samtools sort  ../examples/demo/Out/temp.bam  ../examples/demo/Out/vreads
+.. command-output:: samtools index  ../examples/demo/Out/vreads.bam
 
 We can use an alignment browser, such as Tablet, to see the alignments
 
