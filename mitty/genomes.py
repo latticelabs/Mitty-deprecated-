@@ -154,12 +154,14 @@ def generate(cmd_args):
   chromosomes = params['chromosomes']
 
   t0 = time.time()
-  run_simulations(pop_db_name, ref, sfs_model=load_site_frequency_model(params.get('site_model', None)),
-                  variant_models=load_variant_models(ref, params['variant_models']),
-                  chromosomes=chromosomes, sample_size=sample_size, master_seed=master_seed,
-                  progress_bar_func=mitty.lib.progress_bar if cmd_args['-p'] else None)
+  unique_variant_count, total_variant_count = \
+    run_simulations(pop_db_name, ref, sfs_model=load_site_frequency_model(params.get('site_model', None)),
+                    variant_models=load_variant_models(ref, params['variant_models']),
+                    chromosomes=chromosomes, sample_size=sample_size, master_seed=master_seed,
+                    progress_bar_func=mitty.lib.progress_bar if cmd_args['-p'] else None)
   t1 = time.time()
   logger.debug('Took {:f}s'.format(t1 - t0))
+  logger.debug('{:d} unique variants, {:d} variants in samples'.format(unique_variant_count, total_variant_count))
 
 
 def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=[], sample_size=1, master_seed=2,
@@ -178,6 +180,7 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
   seed_rng = np.random.RandomState(seed=master_seed)
   conn = mdb.connect(db_name=pop_db_name)
   p, f = sfs_model.get_spectrum() if sfs_model is not None else (None, None)
+  unique_variant_count, total_variant_count = 0, 0
   for ch in chromosomes:
     ml = vr.VariantList()
     for m in variant_models:
@@ -185,14 +188,18 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
     ml.sort()
     if sfs_model is not None: ml.balance_probabilities(*sfs_model.get_spectrum())
     mdb.save_master_list(conn, ch, ml)
+    unique_variant_count += len(ml)
     rng = np.random.RandomState(seed_rng.randint(mutil.SEED_MAX))
     for n in range(sample_size):
-      mdb.save_sample(conn, 0, n, ch, ml.generate_chromosome(rng))
+      this_sample = ml.generate_chromosome(rng)
+      mdb.save_sample(conn, 0, n, ch, this_sample)
+      total_variant_count += len(this_sample)
       if progress_bar_func is not None:
         progress_bar_func('Chrom {:d} '.format(ch), float(n)/sample_size, 80)
     if progress_bar_func is not None: print('')
     mdb.save_chromosome_metadata(conn, ch, ref[ch]['id'], len(ref[ch]['seq']), ref[ch]['md5'])
   conn.close()
+  return unique_variant_count, total_variant_count
 
 
 def load_site_frequency_model(sfs_model_json):
