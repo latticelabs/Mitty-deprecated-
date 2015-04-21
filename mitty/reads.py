@@ -105,7 +105,7 @@ def cli():  # pragma: no cover
   elif cmd_args['explain']:
     explain(cmd_args)
   else:
-    generate(cmd_args)
+    executor(cmd_args)
 
 
 def print_list(cmd_args):
@@ -198,8 +198,8 @@ def generate_reads_loop(ref, conn=None, gen=None, serial=None, chromosomes=[], r
   return first_serial_no
 
 
-def generate(cmd_args):
-  """The main read generating loop
+def executor(cmd_args):
+  """Executor for read generation. Parses command line arguments, sets up file handles and then off we go!
 
   :param cmd_args: parameters as parsed by doc_opt
   """
@@ -214,6 +214,7 @@ def generate(cmd_args):
     raise(NotImplementedError, 'Reading from VCF not implemented yet')
   else:
     conn = None
+    logger.debug('Taking reads from reference')
 
   if conn is not None:
     gen = params['sample']['gen']

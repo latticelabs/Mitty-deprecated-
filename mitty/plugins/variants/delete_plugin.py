@@ -79,6 +79,7 @@ def test0():
   pos, stop, ref, alt, p = m.get_variants(ref_seq, 1, np.array([0.2]), np.array([1.0]), seed=10)
   assert len(pos) == 0  # This should just run and not crash
 
+
 def test():
   """Basic test"""
   ref_seq = 'ACTGACTGACTGACTGACTGACTGACTGACTGACTG'
