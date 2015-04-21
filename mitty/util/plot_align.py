@@ -32,6 +32,7 @@ def draw_circle_plot(chrom_lens, mis):
   ax1 = plt.subplot(111, polar=True)
   plot_genome_as_a_circle(chrom_lens, radius=1, chrom_gap=0.05, chrom_thick=5)
   plot_mis_alignments_on_a_circle(chrom_lens, mis, radius=1, chrom_gap=0.05, lw=0.5)
+  ax1.set_rmax(1.04)
 
 
 def plot_genome_as_a_circle(chrom_lens, radius=1, chrom_gap=0.001, chrom_thick=0.1):
@@ -52,7 +53,7 @@ def plot_genome_as_a_circle(chrom_lens, radius=1, chrom_gap=0.001, chrom_thick=0
   for ch_no, l in enumerate(chrom_lens):
     end_radian = start_radian + l * radians_per_base
     theta = np.arange(start_radian, end_radian, delta_radian)
-    plt.plot(theta, [radius] * theta.size, lw=chrom_thick)
+    plt.plot(theta, [radius * 1.01] * theta.size, lw=chrom_thick)
     xticks.append((start_radian + end_radian)/2)
     xticklabels.append(str(ch_no + 1))
     start_radian = end_radian + chrom_gap
@@ -64,7 +65,7 @@ def plot_genome_as_a_circle(chrom_lens, radius=1, chrom_gap=0.001, chrom_thick=0
 
 
 def plot_mis_alignments_on_a_circle(chrom_lens, misalignments, radius=1, chrom_gap=0.001, lw=2):
-  """.
+  """Plot bezier curves indicating where misalignment reads originated and landed.
 
   :param (list) chrom_lens: list of chromosome lengths
   :param (list) misalignments: list of tuples (correct_chrom, correct_pos, aligned_chrom, aligned_pos)
@@ -86,16 +87,17 @@ def plot_mis_alignments_on_a_circle(chrom_lens, misalignments, radius=1, chrom_g
   for m in misalignments:
     t0 = (sum(chrom_lens[:m[0]-1]) + m[1]) * radians_per_base + (m[0]-1) * chrom_gap
     t1 = (sum(chrom_lens[:m[2]-1]) + m[3]) * radians_per_base + (m[2]-1) * chrom_gap
+    this_radius = max(min(1.0, abs(t1 - t0) / np.pi), 0.05) * radius
     verts = [
       (t0, radius),       # P0
-      (t0, .2 * radius),  # P1
-      (t1, .2 * radius),  # P2
+      (t0, radius - this_radius),  # P1
+      (t1, radius - this_radius),  # P2
       (t1, radius),       # P3
     ]
     path = Path(verts, codes)
     patch = patches.PathPatch(path, facecolor='none', lw=lw)
     ax.add_patch(patch)
-    plt.plot(t0, .99 * radius, 'x')
+    #plt.plot(t0, .99 * radius, '.')
 
 
 def draw_matrix_plot(chrom_lens, mis):
