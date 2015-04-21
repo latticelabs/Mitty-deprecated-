@@ -162,13 +162,13 @@ so it doesn't take so long to run)*
 .. command-output:: ../examples/demo/low_coverage_reads.sh
   :ellipsis: 0
 
-.. command-output:: plot_align circle ../examples/demo/Out/null_reads_low.bam  --down-sample 10
+.. command-output:: plot_align circle ../examples/demo/Out/null_reads_low  --down-sample 2
 .. image:: ../examples/demo/Out/null_reads_low_circle_plot.png
 
 This is a plot of where the reads end up after alignment. As can be seen, while a small percentage of reads end up in
 different chromosomes, most of the misalignments are local (the lines end up on the same chromosome).
 
-.. command-output:: plot_align matrix ../examples/demo/Out/null_reads_low.bam
+.. command-output:: plot_align matrix ../examples/demo/Out/null_reads_low
 .. image:: ../examples/demo/Out/null_reads_low_matrix_plot.png
 
 
