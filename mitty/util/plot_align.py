@@ -3,12 +3,12 @@
 Commandline::
 
   Usage:
-    alignment (circle|matrix) <bam_file> [--down-sample=S] [pdf]
+    plot_align (circle|matrix) <prefix> [--down-sample=S] [pdf]
 
   Options:
     circle           Plot a circle plot
     matrix           Plot a 2D histogram
-    <bam_file>       Name of original bam file
+    <prefix>         Prefix used by perfectbam
     --down-sample=S  Factor by which to down-sample
     pdf              Should the output be pdf? (png otherwise)
 
@@ -136,7 +136,7 @@ def cli():
   else:
     args = docopt.docopt(__doc__)
 
-  prefix = os.path.splitext(args['<bam_file>'])[0]
+  prefix = args['<prefix>']
   summary_fname = prefix + '_summary.json'
   misalignments_fname = prefix + '_misaligned.csv'
 
