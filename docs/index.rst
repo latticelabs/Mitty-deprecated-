@@ -13,6 +13,7 @@ Mitty documentation
 
     introduction
     quickstart
+    additional_utils
     theory_and_algorithms
     models
 ..    developer

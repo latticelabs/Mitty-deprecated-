@@ -1,9 +1,8 @@
 Quick-start
 ===========
 
-(For an overview of how Mitty is structured and some of the conventions used please see the detailed documentation.
-This quickstart is for the impatient - like me - who like to type in commands and see stuff happen and go from
-there)
+This quickstart introduces the most commonly used features of Mitty. For additional commands, utilities and usages
+please see :ref:`additional-utilities`
 
 We will introduce Mitty via a data simulation problem. Let us say our colleague Heng Li has written an aligner
 called ``bwa`` and a variant caller called ``samtools`` and we want to figure out how well they do using synthetic data.

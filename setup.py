@@ -27,6 +27,7 @@ setup(
       'console_scripts': ['genomes = mitty.genomes:cli',
                           'reads = mitty.reads:cli',
                           'plot_align = mitty.util.plot_align:cli [mplot]',
+                          'plot_gc_bias = mitty.util.plot_gc_bias:cli [mplot]',
                           'perfectbam = mitty.util.perfectbam:cli',
                           'splitta = mitty.util.splitta:cli',
                           'checkbam = mitty.util.checkbam:cli']

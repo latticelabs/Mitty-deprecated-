@@ -30,7 +30,8 @@ Analyze `.bam` files produced by aligners from the simulated reads::
 Plot the results of the analysis::
 
     plot_align circle ../examples/demo/Out/reads.bam
-    plot_align matrix ../examples/demo/Out/reads.bam
+
+.. image:: ../examples/demo/Out/null_reads_low_circle_plot.png
 
 
 Installation

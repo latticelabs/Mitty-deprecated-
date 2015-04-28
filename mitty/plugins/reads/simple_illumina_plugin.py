@@ -1,4 +1,14 @@
-"""This is the stock read plugin that approximates illumina reads
+"""This is the stock read plugin that approximates Illumina reads
+
+GC bias model based on:
+
+"Summarizing and correcting the GC content bias in high-throughput sequencing", Benjamini and Speed,
+Nucleic Acids Research, 2012
+http://nar.oxfordjournals.org/content/early/2012/02/08/nar.gks001.full
+
+1. "GC effect is mostly driven by the GC composition of the full fragment."
+2. "the GC curve is unimodal is key to this analysis. In all data sets shown,
+the rate of GC-poor or GC-rich fragments is significantly lower than average, in many cases zero."
 
 Seven Bridges Genomics
 Current contact: kaushik.ghose@sbgenomics.com
@@ -9,16 +19,20 @@ __example_param_text = """
   'template_len_mean': 250, # mean length of template
   'template_len_sd': 30,    # sd of template length
   'max_p_error': 0.01,      # Maximum error rate at tip of read
-  'k': 20                   # exponent
+  'k': 20,                  # exponent
+  'gc_bias': {              # Omit if not modeling GC bias
+    'bias_center': 0.5,     # Center of uni-modal window
+    'bias_height': 1.5,     # Maximum departure from mean coverage (peak of curve)
+    'bias_spread': 0.3      # Width measure of curve
+  }
 }
 """
 
-_description = """
-This read generator generates Illumina like reads with a exponential error profile
-Example parameter set:
-""" + __example_param_text
+_description = __doc__ + '\nExample parameter set:\n' + __example_param_text
 
 _example_params = eval(__example_param_text)
+
+from itertools import izip
 
 import numpy as np
 
@@ -29,12 +43,52 @@ logger = logging.getLogger(__name__)
 
 
 class Model:
-  def __init__(self, read_len=100, template_len_mean=250, template_len_sd=50, max_p_error=0.01, k=20):
-    """."""
+  """Stock read plugin that approximates Illumina reads"""
+  def __init__(self, read_len=100, template_len_mean=250, template_len_sd=50, max_p_error=0.01, k=20, gc_bias=None):
+    """Initialization
+
+    :param read_len:
+    :param template_len_mean:
+    :param template_len_sd:
+    :param max_p_error:
+    :param k:
+    :param gc_bias: dictionary with keys
+      bias_center' - Center of uni-modal window
+      bias_height  - Maximum departure from mean coverage (peak of curve)
+      bias_spread  - Width measure of curve
+    :return:
+    """
     self.read_len, self.template_len_mean, self.template_len_sd = read_len, template_len_mean, template_len_sd
     l = np.linspace(1e-10, 1, self.read_len)
     self.error_profile = max_p_error * (np.exp(k*l) - 1)/(np.exp(k) - 1)
     self.phred = ''.join([chr(int(33 + max(0, min(-10*np.log10(p), 93)))) for p in self.error_profile])
+    self.gc_bias = gc_bias
+    if gc_bias is not None:
+      self.gc_curve = self.initialize_gc_curve()
+
+  def initialize_gc_curve(self):
+    """This creates a lookup table for the GC bias curve. We split the GC content range [0, 1.0] into 100 bins. We
+    take the GC content of our read, multiply by 100, round to integer and look up the bias value (which is the
+    modified probability of the read."""
+    gc_f = np.linspace(0, 1.0, 100, dtype=float)
+    center, height, spread = self.gc_bias['bias_center'], self.gc_bias['bias_height'], self.gc_bias['bias_spread']
+    return height * np.exp(-((gc_f - center) / spread) ** 2)
+
+  def gc_bias_reads(self, template_locs, template_lens, seq, gc_bias_rng):
+    """
+
+    :param template_locs:
+    :param template_lens:
+    :return:
+    """
+    rg = gc_bias_rng.rand(len(template_locs))
+    s_cnt = seq.count
+    gc_crv = self.gc_curve
+    idx = [n for n, (r, t_loc, t_len) in enumerate(izip(rg, template_locs, template_lens))
+           if r < gc_crv[int(100 * (s_cnt('G', t_loc, t_loc + t_len) + s_cnt('C', t_loc, t_loc + t_len)) / float(t_len))]]
+    # return zip(*[(t_loc, t_len) for r, t_loc, t_len in izip(rg, template_locs, template_lens)
+    #              if r < gc_crv[int(100 * (s_cnt('G', t_loc, t_loc + t_len) + s_cnt('C', t_loc, t_loc + t_len)) / float(t_len))]])
+    return template_locs[idx], template_lens[idx]
 
   def get_reads(self, seq, seq_c, start_base=0, end_base=None, coverage=0.01, corrupt=False, seed=1):
     """The main simulation calls this function.
@@ -60,12 +114,17 @@ class Model:
     end_base = end_base or len(seq)
     #assert len(seq) > self.template_len_mean * 3, 'Template size should be less than 1/3rd sequence length'
     p_template = 0.5 * coverage / float(self.read_len)  # Per base probability of a template
-    template_loc_rng, read_order_rng, template_len_rng, error_loc_rng, base_choice_rng = mutil.initialize_rngs(seed, 5)
+    if self.gc_bias is not None:
+      p_template *= self.gc_bias['bias_height']
+    assert 0 < p_template < 0.1, 'Please lower coverage per block to less than {:f} otherwise accuracy will suffer'.format(0.1/p_template * coverage)
+
+    template_loc_rng, read_order_rng, template_len_rng, error_loc_rng, base_choice_rng, gc_bias_rng = mutil.initialize_rngs(seed, 6)
     template_locs = mutil.place_poisson_seq(template_loc_rng, p_template, start_base, end_base, seq)
     template_lens = (template_len_rng.randn(template_locs.shape[0]) * self.template_len_sd + self.template_len_mean).astype('i4')
     idx = (template_locs + template_lens < end_base).nonzero()[0]
-    template_locs = template_locs[idx]
-    template_lens = template_lens[idx]
+    template_locs, template_lens = template_locs[idx], template_lens[idx]
+    if self.gc_bias is not None:
+      template_locs, template_lens = self.gc_bias_reads(template_locs, template_lens, seq, gc_bias_rng)
 
     read_order = read_order_rng.randint(2, size=template_locs.shape[0])  # Which read comes first?
 
