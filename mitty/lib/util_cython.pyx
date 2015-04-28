@@ -1,6 +1,6 @@
 import string
 
-import numpy
+import numpy as np
 
 from mitty.lib import SEED_MAX
 
@@ -10,15 +10,15 @@ DNA_complement = string.maketrans('ATCGN', 'TAGCN')
 
 def initialize_rngs(unsigned long master_seed, int n_rngs=4):
   """Return n_rngs initialized from the master_seed"""
-  return [numpy.random.RandomState(seed=seed)
-          for seed in numpy.random.RandomState(seed=master_seed).randint(SEED_MAX, size=n_rngs)]
+  return [np.random.RandomState(seed=seed)
+          for seed in np.random.RandomState(seed=master_seed).randint(SEED_MAX, size=n_rngs)]
 
 
 def place_poisson_seq(rng, float p, unsigned long start_x, unsigned long end_x, bytes seq):
   """Given a random number generator, a probability and an end point, generate poisson distributed events. Skip bases
   that don't belong  For short end_p this may, by chance, generate fewer locations that normal"""
   if p == 0.0:
-    return numpy.array([])
+    return np.array([])
 
   cdef:
     char *s = seq
@@ -26,7 +26,7 @@ def place_poisson_seq(rng, float p, unsigned long start_x, unsigned long end_x, 
     unsigned long idx
 
   these_locs = rng.geometric(p=p, size=est_block_size).cumsum()
-  return numpy.array([idx for idx in these_locs[numpy.searchsorted(these_locs, start_x):numpy.searchsorted(these_locs, end_x)] if s[idx] != 'N'], dtype='i4')
+  return np.array([idx for idx in these_locs[np.searchsorted(these_locs, start_x):np.searchsorted(these_locs, end_x)] if s[idx] != 'N'], dtype='i4')
 
 
 cdef unsigned char sub_base(unsigned char orig_base, unsigned char sub_mat[85][3], float ct_mat[85][3], float r):
