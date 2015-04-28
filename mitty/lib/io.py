@@ -1,4 +1,5 @@
 """Some utilities related to loading/saving different file formats, compressing and indexing."""
+import warnings
 from os.path import splitext
 import os
 import glob
@@ -18,12 +19,19 @@ MULTI_DIR = 1
 
 
 class Fasta:
-  """This is a convenience wrapper around different ways of loading/accessing the reference genome."""
+  """This class handles loading of FASTA files.
+  multi_fasta  -  a traditional gzipped fasta file storing multiple sequences, possibly with newlines
+  multi_dir -  data split into multiple separate, unzipped, fasta files in one directory. Stored with no new-lines in
+               the sequence. This allows us to speedily load individual sequences.
+               This is useful if we have low memory (by setting persistent=False)
+               or are prototyping and don't want to wait for ever to have the entire file to load.
+               See the 'splitta' utility
+  """
   def __init__(self, multi_fasta=None, multi_dir=None, persistent=True, load_now=False):
     """
     :param multi_fasta: fill out if input file is a single file
     :param multi_dir: fill out if input is in the form of multiple files in a directory numbered chr1.fa, chr2.fa etc.
-    :param persistent: if True will keep multi_dir sequences in memory
+    :param persistent: if True will keep sequences in memory after loading
     :param load_now: if True will load a multi_fasta file into memory on init. Otherwise sequences are loaded on demand
     """
     self.format = MULTI_DIR if multi_fasta is None else MULTI_FASTA
@@ -32,8 +40,15 @@ class Fasta:
     self.multi_dir = multi_dir
     self.sequences = {}  # This is a dict of dict of (seq, id, md5)
     self.persist = persistent
-    if load_now and self.format == MULTI_FASTA:
-      self.get_multi_fasta(1)  # We call this just to load the sequences.
+    if load_now:
+      if self.format == MULTI_FASTA:
+        self.get_multi_fasta(1)  # We call this just to load the sequences.
+      else:
+        if not persistent:
+          logger.warning("Setting persistent to `True` because we've been asked to load all sequences")
+          self.persist = True
+        for chr in self.get_all_sequences_in_multi_dir():
+          pass
 
   def __getitem__(self, item):
     """This allows us to use Python's index notation to get sequences from the reference"""
@@ -50,6 +65,10 @@ class Fasta:
       self.sequences[item] = ret_val
     return ret_val
 
+  def get_all_sequences_in_multi_dir(self):
+    """Do a glob search in the multi_dir directory and indicate everything fitting the pattern chrX.fa"""
+    return [glob.re.findall('.*chr(.*).fa', f_path)[0] for f_path in glob.glob(glob.os.path.join(self.multi_dir, 'chr*.fa'))]
+
   def get_multi_fasta(self, item):
     """We get here because we don't have the sequence in memory"""
     ref_seqs = load_generic_multi_fasta(self.multi_fasta)
@@ -59,22 +78,33 @@ class Fasta:
     return ret_val[item]
 
   def __len__(self):
-    return len(self.sequences)
+    if self.format == MULTI_DIR:
+      return len(self.get_all_sequences_in_multi_dir())
+    else:  # multi-fasta
+      if self.persist:
+        if len(self.sequences) > 0:
+          return len(self.sequences)
+        else:
+          _ = self[1]  # Just to load the sequences
+          return len(self.sequences)
+      else:  # Wasteful, have to load file and throw-away just to get the number of sequences
+        warnings.warn('You asked for len, but have persist set to False. This will cause the multi fasta file to be reloaded every time you call len')
+        return len(load_generic_multi_fasta(self.multi_fasta))
 
   def get(self, item, default=None):
     return self.__getitem__(item) or default
 
   def get_seq(self, chrom):
-    return self.sequences[chrom]['seq']
+    return self[chrom]['seq']
 
   def get_seq_len(self, chrom):
-    return len(self.sequences[chrom]['seq'])
+    return len(self[chrom]['seq'])
 
   def get_seq_id(self, chrom):
-    return self.sequences[chrom]['id']
+    return self[chrom]['id']
 
   def get_seq_md5(self, chrom):
-    return self.sequences[chrom]['md5']
+    return self[chrom]['md5']
 
   def __repr__(self):
     """Nice summary of what we have in the genome"""

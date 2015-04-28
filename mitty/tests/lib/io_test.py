@@ -10,32 +10,24 @@ from nose.tools import assert_raises
 def unzipped_multi_fasta_test():
   """Load unzipped multi-fasta."""
   ref = mio.Fasta(multi_fasta=os.path.join(example_data_dir, 'chimera.fa'))
-  assert len(ref) == 0
-  assert len(ref[4]['seq']) == 702
   assert len(ref) == 4
+  assert len(ref[4]['seq']) == 702
 
 
 def gzipped_multi_fasta_test():
   """Load gzipped multi-fasta."""
   ref = mio.Fasta(multi_fasta=os.path.join(example_data_dir, 'chimera.fa.gz'))
-  assert len(ref) == 0
-  assert len(ref[4]['seq']) == 702
   assert len(ref) == 4
-
-  ref = mio.Fasta(multi_fasta=os.path.join(example_data_dir, 'chimera.fa.gz'), load_now=True)
+  assert len(ref[4]['seq']) == 702
   assert len(ref) == 4
 
 
 def multi_dir_test():
   """Load reference from directory"""
   ref = mio.Fasta(multi_dir=example_data_dir)
-  assert len(ref) == 0
+  assert len(ref) == 4
   assert len(ref[4]['seq']) == 702
-  assert len(ref) == 1
-  assert len(ref[4]['seq']) == 702
-  assert len(ref) == 1
   assert len(ref[3]['seq']) == 717
-  assert len(ref) == 2
 
 
 class Variant:
