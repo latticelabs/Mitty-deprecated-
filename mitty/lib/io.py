@@ -40,15 +40,15 @@ class Fasta:
     self.multi_dir = multi_dir
     self.sequences = {}  # This is a dict of dict of (seq, id, md5)
     self.persist = persistent
+    if load_now and not persistent:
+      logger.warning("Setting persistent to `True` because we've been asked to load all sequences")
+      self.persist = True
     if load_now:
       if self.format == MULTI_FASTA:
         self.get_multi_fasta(1)  # We call this just to load the sequences.
       else:
-        if not persistent:
-          logger.warning("Setting persistent to `True` because we've been asked to load all sequences")
-          self.persist = True
-        for chr in self.get_all_sequences_in_multi_dir():
-          pass
+        for chrom in self.get_all_sequences_in_multi_dir():
+          _ = self[chrom]  # Need to load all the sequences one by one
 
   def __getitem__(self, item):
     """This allows us to use Python's index notation to get sequences from the reference"""
