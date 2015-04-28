@@ -130,6 +130,11 @@ def dry_run(cmd_args):
     p, f = sfs_model.get_spectrum()
     if len(p):  # Don't print this for a dud spectrum
       print('1/sum(p_i * f_i) = {:2.1f}'.format(1./(p*f).sum()))
+    x, y = mutil.growth_curve_from_sfs(p, f)
+    print('\nGrowth curve:\n')
+    print('N\tv')
+    for _x, _y in zip(x, y):
+      print('{:d}\t{:f}'.format(_x, _y))
   else:
     print('No site model')
 
