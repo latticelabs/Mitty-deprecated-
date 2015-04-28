@@ -41,7 +41,7 @@ class Fasta:
     self.sequences = {}  # This is a dict of dict of (seq, id, md5)
     self.persist = persistent
     if load_now and not persistent:
-      logger.warning("Setting persistent to `True` because we've been asked to load all sequences")
+      warnings.warn("Setting persistent to `True` because we've been asked to load all sequences")
       self.persist = True
     if load_now:
       if self.format == MULTI_FASTA:
@@ -114,6 +114,10 @@ class Fasta:
     for n in range(len(self)):
       result += '{:d} ({:s}) {:d} bases\n'.format(n + 1, self.get_seq_id(n + 1), self.get_seq_len(n + 1))
     return result
+
+  def __iter__(self):
+    for n in range(1, len(self) + 1):
+      yield self[n]
 
 
 def load_single_line_unzipped_fasta(fa_fname):

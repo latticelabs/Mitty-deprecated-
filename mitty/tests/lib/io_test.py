@@ -30,6 +30,14 @@ def multi_dir_test():
   assert len(ref[3]['seq']) == 717
 
 
+def iter_test():
+  """Fasta iterator"""
+  ref = mio.Fasta(multi_dir=example_data_dir)
+  lengths = [34094, 5176, 717, 702]
+  for n, r in enumerate(ref):
+    assert len(r['seq']) == lengths[n]
+
+
 class Variant:
   """A lightweight test class that represents a row of a VCF file."""
   def __init__(self, chrom, pos, vid, ref, alt, qual, filter, huh, huh2, gt):
