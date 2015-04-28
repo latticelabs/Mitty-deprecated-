@@ -19,10 +19,12 @@ MULTI_DIR = 1
 
 class Fasta:
   """This is a convenience wrapper around different ways of loading/accessing the reference genome."""
-  def __init__(self, multi_fasta=None, multi_dir=None, persistent=True):
+  def __init__(self, multi_fasta=None, multi_dir=None, persistent=True, load_now=False):
     """
     :param multi_fasta: fill out if input file is a single file
     :param multi_dir: fill out if input is in the form of multiple files in a directory numbered chr1.fa, chr2.fa etc.
+    :param persistent: if True will keep multi_dir sequences in memory
+    :param load_now: if True will load a multi_fasta file into memory on init. Otherwise sequences are loaded on demand
     """
     self.format = MULTI_DIR if multi_fasta is None else MULTI_FASTA
     self._load_sequence_from_file = self.get_multi_dir if self.format == MULTI_DIR else self.get_multi_fasta
@@ -30,6 +32,8 @@ class Fasta:
     self.multi_dir = multi_dir
     self.sequences = {}  # This is a dict of dict of (seq, id, md5)
     self.persist = persistent
+    if load_now and self.format == MULTI_FASTA:
+      self.get_multi_fasta(1)  # We call this just to load the sequences.
 
   def __getitem__(self, item):
     """This allows us to use Python's index notation to get sequences from the reference"""

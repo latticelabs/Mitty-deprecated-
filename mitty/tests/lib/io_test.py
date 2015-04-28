@@ -22,6 +22,9 @@ def gzipped_multi_fasta_test():
   assert len(ref[4]['seq']) == 702
   assert len(ref) == 4
 
+  ref = mio.Fasta(multi_fasta=os.path.join(example_data_dir, 'chimera.fa.gz'), load_now=True)
+  assert len(ref) == 4
+
 
 def multi_dir_test():
   """Load reference from directory"""
