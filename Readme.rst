@@ -87,15 +87,21 @@ For the dev team, you will want the `develop` branch of Mitty ::
 On mac os x this will pull all packages as needed, including numpy. 
 
 The SBG dev pi server contains wheels for most of the packages. You can use the devpi server (cuts down on compilation
-time in many cases) by adding teh following lines to your ~/.pip/pip.conf file (you may need to create the file first):
+time in many cases) by adding the following lines to your ~/.pip/pip.conf file (you may need to create the file first):
 
 ::
 
     [global]
     extra-index-url = https://pip.sbgenomics.com/packages
 
+Installing optional dependencies
+................................
+The analysis report generators, like `plot_align` may require additional packages, like matplotlib, to run. To install
+these too you should add the tag `[mplot]` to the install command::
 
-    
+    pip install git+https://gitlab.sbgenomics.com:9443/graphgenome/mitty.git@develop#egg=mitty[mplot]
+
+
 Run the tests
 -------------
 ::
@@ -113,7 +119,7 @@ To develop on Mitty, simply clone the repository, and from the project root run 
 
 
 Creating wheels
----------------
+...............
 ::
 
     pip install wheel  # If needed
