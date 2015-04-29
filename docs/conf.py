@@ -16,7 +16,7 @@ import sys
 import os
 
 # My custom declarations
-logo_file = u'_static/sbg.png'
+logo_file = u'images/sbg.png'
 by_line = u'Seven Bridges Genomics\n(kaushik.ghose@sbgenomics.com)'
 
 # If extensions (or modules to document with autodoc) are in another directory,
