@@ -5,6 +5,8 @@ import random
 import sys
 import warnings
 import pkg_resources
+import inspect as py_inspect
+from itertools import izip_longest  # Both for inspecting default values
 
 SEED_MAX = (1 << 32) - 1  # Used for seeding rng
 SFS_PLUGIN_ENTRY_POINT = 'mitty.plugins.sfs'
@@ -84,3 +86,11 @@ def progress_bar(title, f, cols):
   x = int(f * cols + 0.5)
   sys.stdout.write('\r' + title + '[' + '.' * x + ' ' * (cols - x) + ']')
   sys.stdout.flush()
+
+
+def model_init_signature_string(obj):
+  """Given an Object, show it's __init__ signature so we can get the parameter defaults
+  :param obj: object
+  """
+  arg_spec = py_inspect.getargspec(obj)
+  return 'Model defaults: (' + ',  '.join(reversed(['{:s}={:s}'.format(k, str(v)) for k, v in izip_longest(reversed(arg_spec.args), reversed(arg_spec.defaults), fillvalue='?') if k != 'self'])) + ')'

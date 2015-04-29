@@ -130,6 +130,7 @@ def explain_read_model(name):
     return
   try:
     print(mod._description)
+    print(mitty.lib.model_init_signature_string(mod.Model.__init__))
   except AttributeError:
     print('No help for model "{:s}" available'.format(name))
   return

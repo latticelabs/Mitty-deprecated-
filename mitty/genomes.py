@@ -117,7 +117,7 @@ def cli():  # pragma: no cover
   elif cmd_args['sfs']:  # This should come before 'inspect', or we need to do an additional test
     print_sfs(cmd_args)
   elif cmd_args['inspect']:
-    inspect(cmd_args)
+    db_summary(cmd_args)
 
 
 def dry_run(cmd_args):
@@ -300,6 +300,7 @@ def explain_variant_model(name):
   try:
     print('\n---- ' + name + ' (' + mod.__name__ + ') ----')
     print(mod._description)
+    print(mitty.lib.model_init_signature_string(mod.Model.__init__))
   except AttributeError:
     print('No help for model "{:s}" available'.format(name))
 
@@ -319,6 +320,7 @@ def explain_population_model(name):
   try:
     print('\n---- ' + name + ' (' + mod.__name__ + ') ----')
     print(mod._description)
+    print(mitty.lib.model_init_signature_string(mod.Model.__init__))
   except AttributeError:
     print('No help for model "{:s}" available'.format(name))
 
@@ -342,7 +344,7 @@ def print_population_model_list():
     print('- {:s} ({:s})\n'.format(name, mod_name))
 
 
-def inspect(cmd_args):
+def db_summary(cmd_args):
   """Print some useful information about the database
 
   :param cmd_args: parsed arguments
