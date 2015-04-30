@@ -14,5 +14,5 @@ There is a utility for inspecting the GC bias in BAM files called `plot_gc_bias`
 
 (You will, of course, have noticed that the stock `simple_illumina` plugin has a GC bias parameter.)
 
-.. command-output:: plot_gc_bias ../examples/data/red_alga.fa.gz  ../examples/reads_gc_bias/Out/reads.bam --win 1000 --g0 0.45 --g1 0.65 --out Out/gc_bias.png
+.. command-output:: plot_gc_bias ../examples/data/red_alga.fa.gz  ../examples/reads_gc_bias/Out/reads.bam --win 1000 --g0 0.45 --g1 0.65 --out ../examples/reads_gc_bias/Out/gc_bias.png
 .. image:: ../examples/reads_gc_bias/Out/gc_bias.png
