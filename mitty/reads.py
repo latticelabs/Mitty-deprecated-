@@ -225,7 +225,7 @@ def executor(cmd_args):
 
   ref = mio.Fasta(multi_fasta=mitty.lib.rpath(base_dir, params['files'].get('reference_file', None)),
                   multi_dir=mitty.lib.rpath(base_dir, params['files'].get('reference_dir', None)),
-                  persistent=False)
+                  persistent=True)
   master_seed = int(params['rng']['master_seed'])
   assert 0 < master_seed < mitty.lib.SEED_MAX
 
@@ -245,6 +245,9 @@ def executor(cmd_args):
 
   t0 = time.time()
   fname_prefix = mitty.lib.rpath(base_dir, params['files']['output_prefix'])
+  if not os.path.exists(os.path.dirname(fname_prefix)):
+    os.makedirs(os.path.dirname(fname_prefix))
+
   if params['files'].get('interleaved', True):
     fastq_fp = [open(fname_prefix + '.fq', 'w')] * 2
     fastq_c_fp = [open(fname_prefix + '_c.fq', 'w')] * 2 if corrupt else [None, None]
