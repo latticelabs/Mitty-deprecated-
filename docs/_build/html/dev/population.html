@@ -1,0 +1,235 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Population simulations &mdash; Mitty 1.1.1dev documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic|Roboto+Slab:400,700|Inconsolata:400,700&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Mitty 1.1.1dev documentation" href="../index.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+          <a href="../index.html" class="fa fa-home"> Mitty</a>
+        
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">1. Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../introduction.html#installation">1.1. Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../introduction.html#trivia">1.2. Trivia</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">2. Quick-start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#creating-genomes">2.1. Creating genomes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#taking-reads">2.2. Taking reads</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#testing-alignment-accuracy-of-bwa-mem">2.3. Testing alignment accuracy of BWA MEM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#taking-reads-just-from-regions-around-variants">2.4. Taking reads just from regions around variants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#analysing-variant-callers">2.5. Analysing variant callers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../additional_utils.html">3. Additional Utilities</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../additional_utils.html#plot-gc-bias-plot-gc-bias-of-a-bam-file">3.1. <cite>plot_gc_bias</cite>: Plot GC bias of a BAM file</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../theory_and_algorithms.html">4. Theory and algorithms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../theory_and_algorithms.html#population-simulations">4.1. Population simulations</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../models.html">5. Stock Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../models.html#variant-models">5.1. Variant models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models.html#population-models">5.2. Population models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models.html#read-models">5.3. Read models</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../index.html">Mitty</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../index.html">Docs</a> &raquo;</li>
+      
+    <li>Population simulations</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="../_sources/dev/population.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="population-simulations">
+<span id="pop-sims"></span><h1>Population simulations<a class="headerlink" href="#population-simulations" title="Permalink to this headline">¶</a></h1>
+<p>Variations observed in human populations are due to shuffling of genes during sexual reproduction and (a little) due
+to errors introduced during the copying of DNA during meiosis. Mitty can generate a flotilla of VCF files simulating
+samples in a population that observe required statistics.</p>
+<div class="section" id="concepts">
+<h2>Concepts<a class="headerlink" href="#concepts" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="founder-populations">
+<h3>Founder populations<a class="headerlink" href="#founder-populations" title="Permalink to this headline">¶</a></h3>
+<p>Population simulations start with a founder population. To create a founder population we construct a dense list of
+variants called <em>common ancestral variants - AV</em>. We then create &#8216;haplotypes&#8217; by</p>
+<p>For each sample of the population we take variants, with replacement,
+from <em>AV</em> and then, on top of that, add freshly generated denovo variants (<em>dv</em>) which are unlikely to overlap with <em>AV</em>.
+A mix of about 95% variants from <em>AV</em> and 5% <em>dv</em> will result in gross variant statistics that match that reported by
+the 1000G project.</p>
+<p>Note that this population will not stand up to deeper scrutiny as it will not exhibit any
+recombination hot-spots or any meaningful haplotypes.</p>
+</div>
+<div class="section" id="generated-populations">
+<h3>Generated Populations<a class="headerlink" href="#generated-populations" title="Permalink to this headline">¶</a></h3>
+<p>For some requirements, the initial founder population is enough, while for others, we need to simulate sexual
+reproduction over several generations. Sexual reproduction mimics mendelian shuffling of variants, recombination
+and denovo mutations. A simulation of fitness and recessiveness is also incorporated which can be used to simulates the
+weeding out of deleterious mutations. In all stages we keep a log of the transformations performed such that we can
+trace the ancestry of an individual genome. These transformations result in genome samples that have haplotypes,
+have discoverable hotspots and are amenable to linkage disequilibrium analysis.</p>
+</div>
+</div>
+<div class="section" id="algorithms">
+<h2>Algorithms<a class="headerlink" href="#algorithms" title="Permalink to this headline">¶</a></h2>
+<p>(Also see <a class="reference internal" href="denovo.html#denovo-variant-generation"><span>Generating denovo variants</span></a>)</p>
+<p>The founder</p>
+</div>
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
+<table class="docutils citation" frame="void" id="myers2006" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[myers2006]</td><td>Myers S, Spencer CC, Auton A, Bottolo L, Freeman C, Donnelly P, McVean G. The distribution and causes of meiotic recombination in the human genome. Biochem Soc Trans. 2006 Aug;34(Pt 4):526-30. doi:10.1042/BST0340526</td></tr>
+</tbody>
+</table>
+<p>p1    .     .
+p2       .
+p3   .  .
+p4     .   .</p>
+<p>p1 + p2  .  .  .</p>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014,Seven Bridges Genomics
+(kaushik.ghose@sbgenomics.com).
+    </p>
+  </div>
+
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1.1.1dev',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
