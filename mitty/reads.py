@@ -307,11 +307,11 @@ def write_reads_to_file(fastq_fp_1, fastq_fp_2, fastq_c_fp_1, fastq_c_fp_2,
   if paired:
     for n in xrange(0, reads.shape[0], 2):
       qname = 'r{:d}|{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:d}|{:s}'.format(cntr, ch, cc, ro[n], pos[n], cigars[n], ro[n + 1], pos[n + 1], cigars[n + 1])
-      fastq_fp_1.write('@' + qname + ' /1\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
-      fastq_fp_2.write('@' + qname + ' /2\n' + pr_seq[n + 1] + '\n+\n' + '~' * len(pr_seq[n + 1]) + '\n')
+      fastq_fp_1.write('@' + qname + '/1\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
+      fastq_fp_2.write('@' + qname + '/2\n' + pr_seq[n + 1] + '\n+\n' + '~' * len(pr_seq[n + 1]) + '\n')
       if fastq_c_fp_1 is not None:
-        fastq_c_fp_1.write('@' + qname + ' /1\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
-        fastq_c_fp_2.write('@' + qname + ' /2\n' + cr_seq[n + 1] + '\n+\n' + phred[n + 1] + '\n')
+        fastq_c_fp_1.write('@' + qname + '/1\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
+        fastq_c_fp_2.write('@' + qname + '/2\n' + cr_seq[n + 1] + '\n+\n' + phred[n + 1] + '\n')
       cntr += 1
   else:
     for n in xrange(0, reads.shape[0]):
