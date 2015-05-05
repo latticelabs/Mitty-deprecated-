@@ -30,7 +30,8 @@ setup(
                           'plot_gc_bias = mitty.util.plot_gc_bias:cli [mplot]',
                           'perfectbam = mitty.util.perfectbam:cli',
                           'splitta = mitty.util.splitta:cli',
-                          'checkbam = mitty.util.checkbam:cli']
+                          'checkbam = mitty.util.checkbam:cli',
+                          'countkmer = mitty.util.kmers:cli']
     },
     install_requires=[
       'cython',

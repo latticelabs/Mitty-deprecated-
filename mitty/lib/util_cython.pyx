@@ -163,3 +163,23 @@ def markov_sequences(bytes seq, ins_pts, max_len, t_mat, rng):
     insertions += [pre_string[:l]]
     lengths += [l]
   return insertions, lengths
+
+
+def parse_sequence(bytes seq, int k=10, kmers={}):
+  """Go through the sequence filling out the k-mer dictionary
+
+  :param seq:   the sequence
+  :param k:     the k-mer length
+  :param kmers: the kmer dictionary
+  :return: (changes kmers in place)
+  """
+  cdef:
+    char *c = seq
+    int l = len(seq), n
+
+  for n in xrange(l):
+    if c[n] == 'N': continue
+    try:
+      kmers[c[n:n+k]] += 1
+    except KeyError:
+      kmers[c[n:n+k]] = 1
