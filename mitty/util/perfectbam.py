@@ -81,14 +81,14 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window, extended=False, progres
   if progress_bar_func is not None: progress_bar_func('Processing BAM ', 0, 80)
 
   for n, read in enumerate(bam_in_fp):
-    # qname = 'r{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:s}'
+    # qname = '{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:s}'
     if read.is_paired:
       if read.is_read1:
-        rd_ser, chrom, cpy, ro, pos, cigar, _, _, _ = read.qname.split('|')
+        _, chrom, cpy, ro, pos, cigar, _, _, _ = read.qname.split('|')
       else:
-        rd_ser, chrom, cpy, _, _, _, ro, pos, cigar = read.qname.split('|')
+        _, chrom, cpy, _, _, _, ro, pos, cigar = read.qname.split('|')
     else:
-      rd_ser, chrom, cpy, ro, pos, cigar = read.qname.split('|')
+      _, chrom, cpy, ro, pos, cigar = read.qname.split('|')
     ro, chrom, pos = int(ro), int(chrom), int(pos)
     if not extended:
       cigar = old_style_cigar(cigar)
