@@ -31,7 +31,7 @@ setup(
                           'perfectbam = mitty.util.perfectbam:cli',
                           'splitta = mitty.util.splitta:cli',
                           'checkbam = mitty.util.checkbam:cli',
-                          'countkmer = mitty.util.kmers:cli']
+                          'countkmers = mitty.util.countkmers:cli']
     },
     install_requires=[
       'cython',
