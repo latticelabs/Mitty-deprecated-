@@ -1,4 +1,7 @@
 import string
+from libcpp.map cimport map as cmap
+from cython.operator cimport dereference as deref, preincrement as inc
+from libcpp.string cimport string as cstring
 
 import numpy as np
 
@@ -165,6 +168,26 @@ def markov_sequences(bytes seq, ins_pts, max_len, t_mat, rng):
   return insertions, lengths
 
 
+# def parse_sequence(bytes seq, int k=10, kmers={}):
+#   """Go through the sequence filling out the k-mer dictionary
+#
+#   :param seq:   the sequence
+#   :param k:     the k-mer length
+#   :param kmers: the kmer dictionary
+#   :return: (changes kmers in place)
+#   """
+#   cdef:
+#     char *c = seq
+#     int l = len(seq), n
+#
+#   for n in xrange(l - k):
+#     if c[n] == 'N': continue
+#     try:
+#       kmers[c[n:n+k]] += 1
+#     except KeyError:
+#       kmers[c[n:n+k]] = 1
+
+
 def parse_sequence(bytes seq, int k=10, kmers={}):
   """Go through the sequence filling out the k-mer dictionary
 
@@ -177,9 +200,42 @@ def parse_sequence(bytes seq, int k=10, kmers={}):
     char *c = seq
     int l = len(seq), n
 
-  for n in xrange(l):
-    if c[n] == 'N': continue
+  for n in xrange(l - k):
+    if c[n] == 'N' or c[n + k - 1] == 'N': continue
     try:
-      kmers[c[n:n+k]] += 1
+      kmers[seq[n:n+k]] += 1
     except KeyError:
-      kmers[c[n:n+k]] = 1
+      kmers[seq[n:n+k]] = 1
+
+
+# def parse_sequence(bytes seq, int k=10, kmers={}):
+#   """Go through the sequence filling out the k-mer dictionary
+#
+#   :param seq:   the sequence
+#   :param k:     the k-mer length
+#   :param kmers: the kmer dictionary
+#   :return: (changes kmers in place)
+#   """
+#   cdef:
+#     cmap[cstring, int] map_mer
+#     char* c = seq
+#     #cstring c = seq
+#     int l = len(seq), n
+#
+#   for _k, v in kmers.iteritems():
+#     map_mer[_k] = v
+#
+#   for n in xrange(l):
+#     if c[n] == 'N': continue
+#     if map_mer.find(seq[n:n + k]) == map_mer.end():
+#       map_mer[seq[n:n + k]] = 1
+#     else:
+#       map_mer[seq[n:n + k]] += 1
+#
+#   #print(map_mer.size())
+#
+#
+#   itr = map_mer.begin()
+#   while itr != map_mer.end():
+#     kmers[deref(itr).first] = deref(itr).second
+#     inc(itr)

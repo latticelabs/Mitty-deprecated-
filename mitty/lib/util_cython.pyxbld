@@ -1,0 +1,6 @@
+# http://stackoverflow.com/questions/21702900/how-to-use-unordered-map-in-cython
+def make_ext(modname, pyxfilename):
+  from distutils.extension import Extension
+  return Extension(name=modname,
+                   sources=[pyxfilename],
+                   language='C++')

@@ -3,12 +3,13 @@
 Commandline::
 
   Usage:
-    plot_align (circle|matrix) <prefix> [--down-sample=S] [pdf]
+    plot_align (circle|matrix) <prefix> [--kmer=K] [--down-sample=S] [pdf]
 
   Options:
     circle           Plot a circle plot
     matrix           Plot a 2D histogram
     <prefix>         Prefix used by perfectbam
+    --kmer=K         File storing kmer counts - needed for mappability plot
     --down-sample=S  Factor by which to down-sample
     pdf              Should the output be pdf? (png otherwise)
 
@@ -129,6 +130,12 @@ def plot_mis_alignment_matrix(data, chrom_offsets, histogram=False):
   plt.setp(ax.get_xticklabels(), visible=False)
   plt.setp(ax.get_yticklabels(), visible=False)
   plt.setp(ax, xticks=chrom_offsets, yticks=chrom_offsets, xlabel='Correct position', ylabel='Aligned position')
+
+
+def draw_mappability_plot(mis, kmer):
+  """Plot locations of misaligned plots along-with measures of how unique the k-mers in the sequences are."""
+
+
 
 
 def cli():
