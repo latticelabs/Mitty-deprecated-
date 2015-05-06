@@ -1,9 +1,23 @@
-"""Command-line program and library for counting k-mers in a genome.
+"""Command-line program and library for counting k-mers in a genome. Produces a Python pickle file with a dictionary
+of k-mer counts in the genome. The 'md5' entry stores the sequence ids and md5 sums so we can cross check with the
+reference genome if we wish.
+kmers = {
+  'md5': {
+    'gi|568336015|gb|CM000671.2| Homo sapiens chromosome 9, GRCh38 reference primary assembly': '6c198acf68b5af7b9d676dfdd531b5de',
+    'gi|568336001|gb|CM000685.2| Homo sapiens chromosome X, GRCh38 reference primary assembly': '2b3a55ff7f58eb308420c8a9b11cac50',
+    ...
+  }
+  'kmers': {
+    'GATGACATGG': 2993,
+    'TTATTTATTG': 19149,
+    ...
+  }
+}
 
 Commandline::
 
   Usage:
-    kmer  <fasta> <out> [-k=K] [-v] [-p]
+    countkmers  <fasta> <out> [-k=K] [-v] [-p]
 
   Options:
     <fasta>     Fasta file
