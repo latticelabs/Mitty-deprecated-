@@ -65,11 +65,13 @@ def csv_header():
 def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window, extended=False, progress_bar_func=None):
   """Main processing function that goes through the bam file, analyzing read alignment and writing out
 
-  :param bam_in_fp:
-  :param bam_out_fp:
-  :param csv_fp:
-  :param json_fp:
-  :param window:
+  :param bam_in_fp:  Pointer to original BAM
+  :param bam_out_fp: Pointer to perfect BAM being created
+  :param csv_fp:     Pointer to .csv file
+  :param json_fp:    Pointer to summary .json file
+  :param window:     Tolerance window for deciding if read is correctly aligned
+  :param extended:   If True write out new style CIGARs (With '=' and 'X')
+  :param progress_bar_func: Our famous progress bar, if we want it
   :return: number of reads processed
   """
   csv_fp.write('\t'.join(csv_header()) + '\n')
