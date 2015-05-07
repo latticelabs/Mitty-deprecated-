@@ -1,7 +1,4 @@
 import string
-from libcpp.map cimport map as cmap
-from cython.operator cimport dereference as deref, preincrement as inc
-from libcpp.string cimport string as cstring
 
 import numpy as np
 
@@ -168,26 +165,6 @@ def markov_sequences(bytes seq, ins_pts, max_len, t_mat, rng):
   return insertions, lengths
 
 
-# def parse_sequence(bytes seq, int k=10, kmers={}):
-#   """Go through the sequence filling out the k-mer dictionary
-#
-#   :param seq:   the sequence
-#   :param k:     the k-mer length
-#   :param kmers: the kmer dictionary
-#   :return: (changes kmers in place)
-#   """
-#   cdef:
-#     char *c = seq
-#     int l = len(seq), n
-#
-#   for n in xrange(l - k):
-#     if c[n] == 'N': continue
-#     try:
-#       kmers[c[n:n+k]] += 1
-#     except KeyError:
-#       kmers[c[n:n+k]] = 1
-
-
 def parse_sequence(bytes seq, int k=10, kmers={}):
   """Go through the sequence filling out the k-mer dictionary
 
@@ -201,11 +178,52 @@ def parse_sequence(bytes seq, int k=10, kmers={}):
     int l = len(seq), n
 
   for n in xrange(l - k):
-    if c[n] == 'N' or c[n + k - 1] == 'N': continue
     try:
       kmers[seq[n:n+k]] += 1
     except KeyError:
       kmers[seq[n:n+k]] = 1
+
+
+cdef float sequence_k_mer_score(bytes seq, int k, k_mer_count_table):
+  cdef:
+    int n, cnt
+    float score = 0
+    char *c = seq
+  for n in range(len(seq) - k):
+    score += k_mer_count_table.get(c[n:n + k], 1)
+    cnt += 1
+  return score / cnt
+
+
+def score_long_sequence(bytes seq, int step, int k, k_mer_count_table):
+  """Step through seq in step increments scoring each segment
+
+  :param seq:
+  :param step:
+  :param k:
+  :param k_mer_count_table:
+  :return:
+  """
+  cdef:
+    char *c = seq
+    int i, idx = 0
+  scores = np.empty(int(len(seq)/float(step)), dtype=np.uint16)
+  for i in range(scores.shape[0]):
+    scores[i] = k_mer_count_table.get(c[idx:idx + k], 1)
+    idx += step
+  return scores
+
+
+def score_sequences_by_k_mer_count(sequence_list, k_mer_count_table):
+  """Given a list of sequences and a k-mer count table score the sequence based on k-mer count content
+
+  :param sequence_list:      list of sequences
+  :param k_mer_count_table:  the k-mer count table dictionary. Keys = k-mers, values = counts in genome
+  :return: list of scores, same size as sequence_list
+  """
+  if len(k_mer_count_table) == 0: return []
+  k = len(k_mer_count_table.keys()[0])
+  return [sequence_k_mer_score(seq, k, k_mer_count_table) for seq in sequence_list]
 
 
 # def parse_sequence(bytes seq, int k=10, kmers={}):
