@@ -207,7 +207,7 @@ def score_long_sequence(bytes seq, int step, int k, k_mer_count_table):
   cdef:
     char *c = seq
     int i, idx = 0
-  scores = np.empty(int(len(seq)/float(step)), dtype=np.uint16)
+  scores = np.empty(int(len(seq)/float(step)), dtype=np.uint32)
   for i in range(scores.shape[0]):
     scores[i] = k_mer_count_table.get(c[idx:idx + k], 1)
     idx += step
