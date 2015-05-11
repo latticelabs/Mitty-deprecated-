@@ -17,7 +17,8 @@ Produces a Python pickle file with a dictionary of k-mer counts in the genome::
 (The 'md5' entry stores the sequence ids and md5 sums so we can cross check with the reference genome if we wish.)
 
 If asked to compute a genome score, a sampled k-mer score is computed for each chromosome and is dumped as a list of
-arrays (one for every chromosome) in a .npz (compressed numpy) file.
+arrays (one for every chromosome) in a .npz (compressed numpy) file. The first 'array' in the list has a single element
+corresponding to the value of 'D' (score computed every D bases)
 
 Commandline::
 
