@@ -117,6 +117,11 @@ To develop on Mitty, simply clone the repository, and from the project root run 
 
     pip install -e .
 
+or, for the optional, plotting dependencies
+
+::
+
+  pip install -e .[mplot]
 
 Creating wheels
 ...............
