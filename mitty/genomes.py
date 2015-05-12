@@ -151,6 +151,9 @@ def generate(cmd_args):
   if os.path.exists(pop_db_name):
     logger.warning('Removed old simulation file')
     os.remove(pop_db_name)
+  if not os.path.exists(os.path.dirname(pop_db_name)):
+    logger.warning('Creating output directory {:s}'.format(pop_db_name))
+    os.makedirs(os.path.dirname(pop_db_name))
 
   ref = mio.Fasta(multi_fasta=mitty.lib.rpath(base_dir, params['files'].get('reference_file', None)),
                   multi_dir=mitty.lib.rpath(base_dir, params['files'].get('reference_dir', None)))  # TODO: Ability to switch off persistence flag
