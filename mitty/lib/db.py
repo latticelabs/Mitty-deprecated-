@@ -167,7 +167,7 @@ def load_chromosome_metadata(conn, chrom):
 def chromosomes_in_db(conn):
   # c = conn.execute("SELECT name FROM sqlite_master WHERE TYPE='table' AND name LIKE 'master_chrom_%'")
   # return [int(row[0].replace('master_chrom_','')) for row in c]
-  c = conn.execute("SELECT chrom, seq_id, seq_len, seq_md5 FROM chrom_metadata ORDER BY seq_id ASC")
+  c = conn.execute("SELECT chrom, seq_id, seq_len, seq_md5 FROM chrom_metadata ORDER BY rowid ASC")
   return [row for row in c]
 
 

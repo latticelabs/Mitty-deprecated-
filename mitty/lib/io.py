@@ -27,32 +27,49 @@ class Fasta:
                or are prototyping and don't want to wait for ever to have the entire file to load.
                See the 'splitta' utility
   """
-  def __init__(self, multi_fasta=None, multi_dir=None, persistent=True, load_now=False):
+  def __init__(self, multi_fasta=None, multi_dir=None, persistent=True):
     """
     :param multi_fasta: fill out if input file is a single file
     :param multi_dir: fill out if input is in the form of multiple files in a directory numbered chr1.fa, chr2.fa etc.
     :param persistent: if True will keep sequences in memory after loading
-    :param load_now: if True will load a multi_fasta file into memory on init. Otherwise sequences are loaded on demand
     """
     self.format = MULTI_DIR if multi_fasta is None else MULTI_FASTA
-    self._load_sequence_from_file = self.get_multi_dir if self.format == MULTI_DIR else self.get_multi_fasta
     self.multi_fasta = multi_fasta
     self.multi_dir = multi_dir
+
     self.sequences = {}  # This is a dict of dict of (seq, id, md5)
     self.persist = persistent
-    if load_now and not persistent:
-      warnings.warn("Setting persistent to `True` because we've been asked to load all sequences")
-      self.persist = True
-    if load_now:
-      if self.format == MULTI_FASTA:
-        self.get_multi_fasta(1)  # We call this just to load the sequences.
-      else:
-        for chrom in self.get_all_sequences_in_multi_dir():
-          _ = self[chrom]  # Need to load all the sequences one by one
+
+    if self.format == MULTI_DIR:
+      self.seq_index = self.load_multi_dir_index()
+      self._load_sequence_from_file = self.get_multi_dir
+    else:
+      self._load_sequence_from_file = self.get_multi_fasta
+      _ = self[1]  # Just to load the sequences
+      self.seq_index = [{'seq_id': self.sequences[n]['id'], 'seq_len': len(self.sequences[n]['seq']), 'seq_md5': self.sequences[n]['md5']}
+                        for n in range(1, len(self.sequences) + 1)]
+      if not self.persist:
+        logger.warning('Persistence set to false for fa.gz file. Ignoring')
 
   def __getitem__(self, item):
     """This allows us to use Python's index notation to get sequences from the reference"""
     return self.sequences[item] if item in self.sequences else self._load_sequence_from_file(item)
+
+  def load_multi_dir_index(self):
+    """Load useful information about the genome from the index file.
+    seqid, len and md5 sum
+    """
+    def dict_from_line(line):
+      cells = line.split('\t')
+      return {
+        'seq_id': cells[0].strip(),
+        'seq_len': cells[1].strip(),
+        'seq_md5': cells[2].strip()
+      }
+
+    with open(glob.os.path.join(self.multi_dir, 'index.csv'), 'r') as fp:
+      index = [dict_from_line(ln) for ln in fp]
+    return index
 
   def get_multi_dir(self, item):
     """We get here because we don't have the sequence in memory"""
@@ -60,36 +77,20 @@ class Fasta:
     if not glob.os.path.exists(fa_fname):
       raise IOError('{:s} does not exist'.format(fa_fname))
     seq, sid = load_single_line_unzipped_fasta(fa_fname)
-    ret_val = {'seq': seq, 'id': sid, 'md5': hashlib.md5(seq).hexdigest()}
+    ret_val = {'seq': seq, 'id': sid, 'md5': self.seq_index[item - 1]['seq_md5']}
     if self.persist:
       self.sequences[item] = ret_val
     return ret_val
-
-  def get_all_sequences_in_multi_dir(self):
-    """Do a glob search in the multi_dir directory and indicate everything fitting the pattern chrX.fa"""
-    return [glob.re.findall('.*chr(.*).fa', f_path)[0] for f_path in glob.glob(glob.os.path.join(self.multi_dir, 'chr*.fa'))]
 
   def get_multi_fasta(self, item):
     """We get here because we don't have the sequence in memory"""
     ref_seqs = load_generic_multi_fasta(self.multi_fasta)
     ret_val = {k: {'seq': v[0], 'id': v[1], 'md5': hashlib.md5(v[0]).hexdigest()} for k, v in ref_seqs.iteritems()}
-    if self.persist:
-      self.sequences = ret_val
+    self.sequences = ret_val
     return ret_val[item]
 
   def __len__(self):
-    if self.format == MULTI_DIR:
-      return len(self.get_all_sequences_in_multi_dir())
-    else:  # multi-fasta
-      if self.persist:
-        if len(self.sequences) > 0:
-          return len(self.sequences)
-        else:
-          _ = self[1]  # Just to load the sequences
-          return len(self.sequences)
-      else:  # Wasteful, have to load file and throw-away just to get the number of sequences
-        warnings.warn('You asked for len, but have persist set to False. This will cause the multi fasta file to be reloaded every time you call len')
-        return len(load_generic_multi_fasta(self.multi_fasta))
+    return len(self.seq_index)
 
   def get(self, item, default=None):
     return self.__getitem__(item) or default
@@ -105,6 +106,10 @@ class Fasta:
 
   def get_seq_md5(self, chrom):
     return self[chrom]['md5']
+
+  def get_seq_metadata(self):
+    """Return a a list of (seq_id, seq_len, seq_md5) in same order as seen in fa.gz file"""
+    return self.seq_index
 
   def __repr__(self):
     """Nice summary of what we have in the genome"""

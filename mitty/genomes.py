@@ -189,6 +189,9 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
   """
   seed_rng = np.random.RandomState(seed=master_seed)
   conn = mdb.connect(db_name=pop_db_name)
+  for n, meta in enumerate(ref.get_seq_metadata()):
+    mdb.save_chromosome_metadata(conn, n + 1, **meta)
+
   p, f = sfs_model.get_spectrum() if sfs_model is not None else (None, None)
   unique_variant_count, total_variant_count = 0, 0
   for ch in chromosomes:
@@ -207,7 +210,7 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], chromosomes=
       if progress_bar_func is not None:
         progress_bar_func('Chrom {:d} '.format(ch), float(n)/sample_size, 80)
     if progress_bar_func is not None: print('')
-    mdb.save_chromosome_metadata(conn, ch, ref[ch]['id'], len(ref[ch]['seq']), ref[ch]['md5'])
+    #mdb.save_chromosome_metadata(conn, ch, ref[ch]['id'], len(ref[ch]['seq']), ref[ch]['md5'])
   conn.close()
   return unique_variant_count, total_variant_count
 
