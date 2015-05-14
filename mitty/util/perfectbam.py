@@ -172,6 +172,46 @@ def main(bam_in_fp, bam_out_fp, db_name, window, extended=False, progress_bar_fu
   return int(total_read_count)
 
 
+def load_summary(conn):
+  """Load information in the summary table
+
+  :param conn: database connection object
+  :return:
+  """
+  conn.row_factory = sq.Row
+  summary = {row['chrom']: {k: row[k] for k in row.keys()} for row in conn.execute('SELECT * FROM summary')}
+  conn.row_factory = None
+  return summary
+
+
+def load_reads(conn, chrom=None, start_pos=None, stop_pos=None, source=True, sample=None):
+  """Load mis-aligned reads from the database based on the filters we give it
+
+  :param conn: db connection object
+  :param chrom: chromosome number [1,2...]. If None, load all chroms and ignore start_pos and stop_pos values
+  :param start_pos: If chrom is given, start taking reads from this here
+  :param stop_pos: If chrom given, stop reads here
+  :param source: If True find reads with correct position matching criteria. If False find reads with aligned pos matching criteria
+  :param sample: If given, sub-sample reads to get at most this many
+  :return: list of tuples (corr_chrom, corr_pos, align_chrom, align_pos)
+
+  SELECT * FROM reads WHERE rowid in (SELECT abs(random()) % (select max(rowid) FROM reads) FROM reads LIMIT 10);
+  """
+  select_statement = 'SELECT * FROM reads'
+  col_prefix = 'correct_' if source else 'aligned_'
+  where_clause = []
+  if chrom is not None:
+    where_clause += [col_prefix + 'chrom = {:d}'.format(chrom)]
+    if start_pos is not None:
+      where_clause += [col_prefix + 'pos >= {:d} '.format(start_pos)]
+    if stop_pos is not None:
+      where_clause += [col_prefix + 'pos <= {:d} '.format(stop_pos)]
+  if sample is not None:
+    where_clause += ['rowid in (SELECT abs(random()) % (select MAX(rowid) FROM reads) FROM reads LIMIT {:d})'.format(sample)]
+  query = select_statement + (' WHERE ' if where_clause else '') + ' AND '.join(where_clause)
+  return [r for r in conn.execute(query)]
+
+
 def cli():
   """Command line script entry point."""
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
