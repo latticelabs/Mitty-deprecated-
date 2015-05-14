@@ -124,7 +124,7 @@ def main(bam_in_fp, bam_out_fp, db_name, window, extended=False, progress_bar_fu
       else:
         _, chrom, cpy, _, _, _, ro, pos, cigar = read.qname.split('|')
     else:
-      _, chrom, cpy, ro, pos, cigar = read.qname.split('|')
+      _, chrom, cpy, ro, pos, cigar = read.qname.split('|')[:6]  # For Wan-Ping :)
     ro, chrom, pos = int(ro), int(chrom), int(pos)
     if not extended:
       cigar = old_style_cigar(cigar)
