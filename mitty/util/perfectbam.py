@@ -2,11 +2,12 @@
 __cmd__ = """Commandline::
 
   Usage:
-    perfectbam <inbam> [<out_prefix>] [--window=WN] [-x] [-v] [-p]
+    perfectbam <inbam> <outbam> <dbname> [--window=WN] [-x] [-v] [-p]
 
   Options:
     <inbam>        Input bam file name of reads
-    <out_prefix>   Written files will have this prefix. If absent, the prefix will be the same as the bam file
+    <outbam>       Perfect BAM will be written to this file
+    <dbname>       Name of database file to store results in
     --window=WN    Size of tolerance window [default: 0]
     -x             Use extended CIGAR ('X's and '='s) rather than traditional CIGAR (just 'M's)
     -v             Dump detailed logger messages
@@ -14,7 +15,7 @@ __cmd__ = """Commandline::
 """
 __param__ = """Given a bam file containing simulated reads aligned by a tool:
   1. Produce a new bam that re-aligns all reads so that their alignment is perfect
-  2. Produce a csv file containing data about the misaligned and unmapped reads with the following columns::
+  2. Produce a database file containing data about the misaligned and unmapped reads with the following columns::
        qname              -  qname of the read
        error_type         -  type of error 3 bit number  bit 0=chrom, 1=pos, 2=cigar
        correct_chrom      -  correct chromosome number of read
@@ -25,12 +26,11 @@ __param__ = """Given a bam file containing simulated reads aligned by a tool:
        aligned_cigar      -  actual aligned cigar
        mapping_qual       -  mapping quality
        mate_is_unmapped   -  is mate unmapped
-       seq                -  actual sequence string
-  3. Produce a .json file with various useful summary statistics"""
+       seq                -  actual sequence string"""
 __doc__ = __cmd__ + __param__
 
 import os
-import json
+import sqlite3 as sq
 import time
 
 import pysam
@@ -45,40 +45,74 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def csv_header():
-  header = [
-    'qname',
-    'error_type',
-    'correct_chrom',
-    'correct_pos',
-    'correct_cigar',
-    'aligned_chrom',
-    'aligned_pos',
-    'aligned_cigar',
-    'mapping_qual',
-    'mate_is_unmapped',
-    'seq',
-  ]
-  return header
+def create_db(conn):
+  """Create tables for the mis-aligned reads database
+
+  :param conn: database connection
+  """
+  c = conn.cursor()
+  c.execute('CREATE TABLE reads (qname TEXT, error_type INT, '
+            'correct_chrom INT, correct_pos INT, correct_cigar TEXT, '
+            'aligned_chrom INT, aligned_pos INT, aligned_cigar TEXT,'
+            'mapping_qual INT, mate_is_unmapped BOOL, seq TEXT)')
+  c.execute('CREATE TABLE summary (chrom INT, total_reads INT, incorrect_reads INT, unmapped_reads INT, seq_len INT, seq_id TEXT)')
+  conn.commit()
 
 
-def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window, extended=False, progress_bar_func=None):
+def write_summary_to_db(conn, total_reads_cntr, incorrectly_aligned_reads_cntr, unmapped_reads_cntr, bam_seq_header):
+  """Write the alignment analysis summary for the BAM file into the database
+
+  :param conn: database connection
+  :param total_reads_cntr: Counter by chromosome
+  :param incorrectly_aligned_reads_cntr: Counter by chromosome
+  :param unmapped_reads_cntr: Counter by chromosome
+  :param bam_seq_header: bam_in_fp.header['SQ']
+  :return:
+  """
+  insert_clause = "INSERT INTO summary VALUES (?, ?, ?, ?, ?, ?)"
+  to_insert = [(n + 1, total_reads_cntr[n + 1], incorrectly_aligned_reads_cntr[n + 1], unmapped_reads_cntr[n + 1], seq['LN'], seq['SN']) for n, seq in enumerate(bam_seq_header)]
+  conn.executemany(insert_clause, to_insert)
+
+
+def write_reads_to_db(conn, data_to_save):
+  """Write mis-aligned/unmapped read data to the database
+
+  :param conn: db connection
+  :param data_to_save: [qname, error_type, chrom, pos, cigar, aligned_chrom, aligned_pos, aligned_cigar,
+                        map_quality, mate_is_unmapped, sequence]
+  :return:
+  """
+  insert_clause = "INSERT INTO reads VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  conn.execute(insert_clause, data_to_save)
+
+
+def commit_and_create_db_indexes(conn):
+  """Need to commit the INSERTs and create search indexes for faster querying
+
+  :param conn: db connection
+  """
+  conn.commit()
+  conn.execute('CREATE INDEX idx_f ON reads (correct_chrom, correct_pos)')
+  conn.execute('CREATE INDEX idx_r ON reads (aligned_chrom, aligned_pos)')
+
+
+def main(bam_in_fp, bam_out_fp, db_name, window, extended=False, progress_bar_func=None):
   """Main processing function that goes through the bam file, analyzing read alignment and writing out
 
   :param bam_in_fp:  Pointer to original BAM
   :param bam_out_fp: Pointer to perfect BAM being created
-  :param csv_fp:     Pointer to .csv file
-  :param json_fp:    Pointer to summary .json file
+  :param db_name:    database name
   :param window:     Tolerance window for deciding if read is correctly aligned
   :param extended:   If True write out new style CIGARs (With '=' and 'X')
   :param progress_bar_func: Our famous progress bar, if we want it
   :return: number of reads processed
   """
-  csv_fp.write('\t'.join(csv_header()) + '\n')
+  conn = sq.connect(db_name)
+  create_db(conn)
 
   total_read_count = float(bam_in_fp.mapped + bam_in_fp.unmapped)
   f0 = 0
-  total_reads_cntr, incorrectly_aligned_reads_cntr = Counter(), Counter()
+  total_reads_cntr, incorrectly_aligned_reads_cntr, unmapped_reads_cntr = Counter(), Counter(), Counter()
 
   if progress_bar_func is not None: progress_bar_func('Processing BAM ', 0, 80)
 
@@ -98,17 +132,24 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window, extended=False, progres
     total_reads_cntr[chrom] += 1
 
     error_type = 0x0
-    if read.reference_id != chrom - 1:
-      error_type |= 0x1
-    if not (-window <= read.pos - pos <= window):
-      error_type |= 0x2
-    if read.cigarstring != cigar:
-      error_type |= 0x4
+    if read.is_unmapped:
+      error_type = 0x8
+    else:
+      if read.reference_id != chrom - 1:
+        error_type |= 0x1
+      if not (-window <= read.pos - pos <= window):
+        error_type |= 0x2
+      if read.cigarstring != cigar:
+        error_type |= 0x4
     if error_type != 0:
-      incorrectly_aligned_reads_cntr[chrom] += 1
-      csv_fp.write(', '.join(map(str, [read.qname, error_type, chrom, pos, cigar,
-                                       read.reference_id + 1, read.pos, read.cigarstring,
-                                       read.mapq, read.mate_is_unmapped, read.query_sequence])) + '\n')
+      if error_type == 0x8:  # Unmapped read
+        unmapped_reads_cntr[chrom] += 1
+      else:
+        incorrectly_aligned_reads_cntr[chrom] += 1
+      write_reads_to_db(conn,
+                        [read.qname, error_type, chrom, pos, cigar,
+                         read.reference_id + 1, read.pos, read.cigarstring,
+                         read.mapq, read.mate_is_unmapped, read.query_sequence])
 
     # Now write out the perfect alignment
     read.is_reverse = 1 - ro
@@ -126,15 +167,13 @@ def main(bam_in_fp, bam_out_fp, csv_fp, json_fp, window, extended=False, progres
         f0 = f
   if progress_bar_func is not None: print('\n')
 
-  json.dump({'sequence_header': bam_in_fp.header['SQ'],
-             'read_counts': {str(k): v for k,v in total_reads_cntr.iteritems()},
-             'incorrectly_aligned_read_counts': {str(k): v for k, v in incorrectly_aligned_reads_cntr.iteritems()}},
-            json_fp, indent=2)
-
+  write_summary_to_db(conn, total_reads_cntr, incorrectly_aligned_reads_cntr, unmapped_reads_cntr, bam_in_fp.header['SQ'])
+  commit_and_create_db_indexes(conn)
   return int(total_read_count)
 
 
 def cli():
+  """Command line script entry point."""
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__cmd__, ['-h'])
   else:
@@ -143,21 +182,19 @@ def cli():
   level = logging.DEBUG if args['-v'] else logging.WARNING
   logging.basicConfig(level=level)
 
-  fname_prefix = args['<out_prefix>'] or os.path.splitext(args['<inbam>'])[0]
-  csv_fname = fname_prefix + '_misaligned.csv'
-  summary_fname = fname_prefix + '_summary.json'
-  perfect_bam_fname = fname_prefix + '_perfect.bam'
-
   with pysam.AlignmentFile(args['<inbam>'], 'rb') as bam_in_fp, \
-      pysam.AlignmentFile(perfect_bam_fname, 'wb', template=bam_in_fp) as bam_out_fp, \
-      open(csv_fname, 'w') as csv_out_fp, open(summary_fname, 'w') as json_out_fp:
+      pysam.AlignmentFile(args['<outbam>'], 'wb', template=bam_in_fp) as bam_out_fp:
+    try:
+      os.remove(args['<dbname>'])
+    except OSError:
+      pass
     t0 = time.time()
-    read_count = main(bam_in_fp=bam_in_fp, bam_out_fp=bam_out_fp, csv_fp=csv_out_fp, json_fp=json_out_fp,
+    read_count = main(bam_in_fp=bam_in_fp, bam_out_fp=bam_out_fp, db_name=args['<dbname>'],
                       window=int(args['--window']), extended=bool(args['-x']), progress_bar_func=progress_bar if args['-p'] else None)
     t1 = time.time()
     logger.debug('Analyzed {:d} reads in BAM in {:2.2f}s'.format(read_count, t1 - t0))
   t0 = time.time()
-  mio.sort_and_index_bam(perfect_bam_fname)
+  mio.sort_and_index_bam(args['<outbam>'])
   t1 = time.time()
   logger.debug('Sort and indexed perfect BAM in {:2.2f}s'.format(t1 - t0))
 
