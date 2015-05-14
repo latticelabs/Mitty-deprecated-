@@ -123,14 +123,19 @@ def main(bam_in_fp, bam_out_fp, db_name, window, extended=False, progress_bar_fu
 
   for n, read in enumerate(bam_in_fp):
     # qname = '{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:s}'
-    if read.is_paired:
-      if read.is_read1:
-        _, chrom, cpy, ro, pos, cigar, _, _, _ = read.qname.split('|')
+    try:
+      if read.is_paired:
+        if read.is_read1:
+          _, chrom, cpy, ro, pos, cigar, _, _, _ = read.qname.split('|')
+        else:
+          _, chrom, cpy, _, _, _, ro, pos, cigar = read.qname.split('|')
       else:
-        _, chrom, cpy, _, _, _, ro, pos, cigar = read.qname.split('|')
-    else:
-      _, chrom, cpy, ro, pos, cigar = read.qname.split('|')[:6]  # For Wan-Ping :)
-    ro, chrom, pos = int(ro), int(chrom), int(pos)
+        _, chrom, cpy, ro, pos, cigar = read.qname.split('|')[:6]  # For Wan-Ping :)
+      ro, chrom, pos = int(ro), int(chrom), int(pos)
+    except ValueError:
+      logger.debug('Error processing qname: n={:d}, qname={:s}, chrom={:d}, pos={:d}'.format(n, read.qname, read.reference_id + 1, read.pos))
+      continue
+
     if not extended:
       cigar = old_style_cigar(cigar)
 
