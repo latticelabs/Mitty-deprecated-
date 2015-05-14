@@ -45,6 +45,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def connect_to_db(db_name):
+  """Convenience function so we don't need to import sqlite in other modules just for this"""
+  return sq.connect(db_name)
+
+
 def create_db(conn):
   """Create tables for the mis-aligned reads database
 
