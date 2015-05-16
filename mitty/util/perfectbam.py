@@ -47,7 +47,9 @@ logger = logging.getLogger(__name__)
 
 def connect_to_db(db_name):
   """Convenience function so we don't need to import sqlite in other modules just for this"""
-  return sq.connect(db_name)
+  conn = sq.connect(db_name)
+  conn.row_factory = sq.Row
+  return conn
 
 
 def create_db(conn):
@@ -188,10 +190,7 @@ def load_summary(conn):
   :param conn: database connection object
   :return:
   """
-  conn.row_factory = sq.Row
-  summary = {row['chrom']: {k: row[k] for k in row.keys()} for row in conn.execute('SELECT * FROM summary')}
-  conn.row_factory = None
-  return summary
+  return [{k: row[k] for k in row.keys()} for row in conn.execute('SELECT * FROM summary ORDER BY chrom')]
 
 
 def load_reads(conn, chrom=None, start_pos=None, stop_pos=None, source=True, sample=None):
