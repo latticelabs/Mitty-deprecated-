@@ -73,10 +73,10 @@ def score_entire_genome(ref, k_mer_table, d=100, progress_bar_func=None):
   :return: A list of numpy arrays
   """
   k = len(k_mer_table.keys()[0])
-  scores = []
+  scores = {}
   for n, seq in enumerate(ref):
     if progress_bar_func: progress_bar_func('Scoring ', (n + 1) / float(len(ref)), 40)
-    scores.append(mutil.score_long_sequence(seq['seq'], d, k, k_mer_table))
+    scores['chrom_{:d}'.format(n + 1)] = mutil.score_long_sequence(seq['seq'], d, k, k_mer_table)
   if progress_bar_func:
     progress_bar_func('Scoring ', 1.0, 40)
     print('')
@@ -123,7 +123,8 @@ def score(ref, k_f_name, s_f_name, d, progress_bar_func=None):
   logger.debug('{:d}-mer coverage: {:d}/{:d}'.format(k, len(k_mer_count_table.keys()), 4 ** k))
   t0 = time.time()
   scores = score_entire_genome(ref, k_mer_count_table, d=d, progress_bar_func=progress_bar_func)
-  np.savez_compressed(s_f_name, *([[d]] + scores))
+  scores['step'] = [d]
+  np.savez_compressed(s_f_name, **scores)
   t1 = time.time()
   logger.debug('Scoring: {:f}'.format(t1 - t0))
 
