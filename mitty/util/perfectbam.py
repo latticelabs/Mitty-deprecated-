@@ -193,11 +193,11 @@ def load_summary(conn):
   return [{k: row[k] for k in row.keys()} for row in conn.execute('SELECT * FROM summary ORDER BY chrom')]
 
 
-def load_reads(conn, chrom=None, start_pos=None, stop_pos=None, source=True, sample=None):
+def load_reads(conn, chrom=-1, start_pos=None, stop_pos=None, source=True, sample=None):
   """Load mis-aligned reads from the database based on the filters we give it
 
   :param conn: db connection object
-  :param chrom: chromosome number [1,2...]. If None, load all chroms and ignore start_pos and stop_pos values
+  :param chrom: chromosome number [1,2...]. If -1, load all chroms and ignore start_pos and stop_pos values
   :param start_pos: If chrom is given, start taking reads from this here
   :param stop_pos: If chrom given, stop reads here
   :param source: If True find reads with correct position matching criteria. If False find reads with aligned pos matching criteria
@@ -209,7 +209,7 @@ def load_reads(conn, chrom=None, start_pos=None, stop_pos=None, source=True, sam
   select_statement = 'SELECT * FROM reads'
   col_prefix = 'correct_' if source else 'aligned_'
   where_clause = []
-  if chrom is not None:
+  if chrom > 0:
     where_clause += [col_prefix + 'chrom = {:d}'.format(chrom)]
     if start_pos is not None:
       where_clause += [col_prefix + 'pos >= {:d} '.format(start_pos)]
