@@ -388,10 +388,14 @@ def cli():
   if args['circle']:
     #data = Data(conn, map_score=mappability_data, samples=int(args['--samples']))
     data = DataView({'1': conn}, mappability={'1': mappability_data}, samples=int(args['--samples']))
+    #plt.xkcd()
     cp = CircularPlot(data, interactive=args['-i'])
 
   if not args['-i']:
     plt.savefig(plot_fname)
+    #import bokeh.mpl
+    #bokeh.mpl.to_bokeh(fig=cp.fig, name='circular.html', xkcd=True)
+
 
 
 def switch_to_interactive_backend():
@@ -403,6 +407,7 @@ def switch_to_interactive_backend():
   else:
     backend_to_use = orig_backend
   plt.switch_backend(backend_to_use)
+  #plt.switch_backend('WebAgg')
 
 
 class InteractivePlot:
