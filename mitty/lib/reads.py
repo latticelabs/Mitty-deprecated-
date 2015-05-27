@@ -9,7 +9,9 @@ def expand_sequence(ref_seq, ml, chrom, copy):
 
   :param ref_seq:    reference sequence
   :param ml:     master list of variants
-  :param chrom:  list of variants, referring to master list
+  :param chrom:  [(no, het) ...] list of variants pointing to master list
+                 no -> index on ml,
+                 het -> 0 = copy 0, 1 = copy 1, 2 = homozygous
   :param copy:   0/1 which copy of the chromosome
   :return alt_seq, variant_waypoint: consensus sequence and array used by roll_cigars to determine POS and CIGAR strings for reads
 
@@ -24,27 +26,28 @@ def expand_sequence(ref_seq, ml, chrom, copy):
   variant_waypoint = [(-1, -1, 0)]  # The start waypoint, guaranteed to be to the left and out of range of any base and not an insertion or deletion
   pos, stop, ref, alt = ml.variants['pos'], ml.variants['stop'], ml.variants['ref'], ml.variants['alt']
   c_iter = chrom.__iter__()
-  c = next(c_iter, None)
-  while c:
-    if pos_ref < pos[c[0]]:
-      alt_fragments += [ref_seq[pos_ref:pos[c[0]]]]
-      pos_alt += pos[c[0]] - pos_ref
-      pos_ref = pos[c[0]]
+  variant = next(c_iter, None)
+  while variant:
+    if pos_ref < pos[variant[0]]:
+      alt_fragments += [ref_seq[pos_ref:pos[variant[0]]]]
+      pos_alt += pos[variant[0]] - pos_ref
+      pos_ref = pos[variant[0]]
     else:
-      if c[1] == 2 or c[1] == copy:  # The variant applies to this chromosome copy
-        alt_fragments += [alt[c[0]]]
-        dl = len(alt[c[0]]) - len(ref[c[0]])
-        if dl == 0:
-          variant_waypoint += [(pos_ref, pos_alt, dl)]  # For SNPs the waypoints don't move, so ref/alt stay same
-        else:
-          variant_waypoint += [(pos_ref + len(ref[c[0]]), pos_alt + 1, dl)]
-          # We shift the waypoint position to be the first non-match base
-        pos_alt += len(alt[c[0]])
-      else:  # Skip this variant
-        alt_fragments += [ref[c[0]]]
-        pos_alt += len(ref[c[0]])
-      pos_ref = stop[c[0]]
-      c = next(c_iter, None)
+      if pos_ref == pos[variant[0]]:
+        if variant[1] == 2 or variant[1] == copy:  # The variant applies to this chromosome copy
+          alt_fragments += [alt[variant[0]]]
+          dl = len(alt[variant[0]]) - len(ref[variant[0]])
+          if dl == 0:
+            variant_waypoint += [(pos_ref, pos_alt, dl)]  # For SNPs the waypoints don't move, so ref/alt stay same
+          else:
+            variant_waypoint += [(pos_ref + len(ref[variant[0]]), pos_alt + 1, dl)]
+            # We shift the waypoint position to be the first non-match base
+          pos_alt += len(alt[variant[0]])
+        else:  # Skip this variant
+          alt_fragments += [ref[variant[0]]]
+          pos_alt += len(ref[variant[0]])
+        pos_ref = stop[variant[0]]
+      variant = next(c_iter, None)
   alt_fragments += [ref_seq[pos_ref:]]
 
   final_delta = variant_waypoint[-1][0] - variant_waypoint[-1][1]

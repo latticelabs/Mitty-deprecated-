@@ -119,6 +119,27 @@ def expand_seq_test3():
   assert_sequence_equal(beacons[1:-1].tolist(), [(4, 2, -2), (5, 3, 0), (8, 6, 2)])
 
 
+def expand_seq_test4():
+  """Expand sequence: different variants at same POS"""
+  #          012345
+  ref_seq = 'AAAGGG'
+
+  pos = [2, 2]
+  stop = [3, 3]
+  ref = ['A', 'A']
+  alt = ['ATT', 'C']
+  p = [0.1, 0.1]
+  ml = vr.VariantList(pos, stop, ref, alt, p)
+  chrom = [(0, 0), (1, 1)]
+  #        012  345
+  #ref     AAA  GGG
+  m_alt = 'AAATTGGG'  # For copy 0
+  #        01234567
+  alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  assert alt_seq == m_alt, alt_seq
+  assert_sequence_equal(beacons[1:-1].tolist(), [(3, 3, 2)])
+
+
 def cigar_test1():
   """Rolling cigars: No variants"""
   #          012345678901234
