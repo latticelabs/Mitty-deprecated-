@@ -312,6 +312,47 @@ def cigar_test6():
   assert cigars[5] == '1X2=2D1=1X2=1S', cigars[5]
 
 
+def cigar_test7():
+  """Rolling cigars: different variants at same POS"""
+  #          012345
+  ref_seq = 'AAAGGG'
+
+  pos = [2, 2]
+  stop = [3, 3]
+  ref = ['A', 'A']
+  alt = ['ATT', 'C']
+  p = [0.1, 0.1]
+  ml = vr.VariantList(pos, stop, ref, alt, p)
+  chrom = [(0, 0), (1, 1)]
+  #        012  345
+  #ref     AAA  GGG
+  m_alt = 'AAATTGGG'  # For copy 0
+  #        01234567
+  alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  read_list = np.rec.fromrecords([(0, 3), (1, 3), (2, 3), (3, 3), (4, 3)],
+                                 names=['start_a', 'read_len'])
+  pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
+  assert cigars[0] == '3=', cigars[0]
+  assert cigars[1] == '2=1S', cigars[1]
+  assert cigars[2] == '1=2S', cigars[2]
+  assert cigars[3] == '2S1=', cigars[3]
+  assert cigars[4] == '1S2=', cigars[4]
+
+  #        012345
+  #ref     AAAGGG
+  m_alt = 'AAACGG'  # For copy 1
+  #        012345
+
+  alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 1)
+  read_list = np.rec.fromrecords([(0, 3), (1, 3), (2, 3), (3, 3)],
+                                 names=['start_a', 'read_len'])
+  pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
+  assert cigars[0] == '3=', cigars[0]
+  assert cigars[1] == '3=', cigars[1]
+  assert cigars[2] == '3=', cigars[2]
+  assert cigars[3] == '3=', cigars[3]
+
+
 def old_style_cigar_test():
   """Converting extended cigars to old style cigars"""
   assert reads.old_style_cigar('100=') == '100M'
