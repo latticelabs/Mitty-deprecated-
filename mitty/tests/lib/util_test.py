@@ -19,14 +19,16 @@ def place_poisson_test():
   assert_array_equal(correct_locs, computed_locs)
 
 
+class MockRng:
+  def __init__(self, r):
+    self.r = r
+
+  def rand(self, n):
+    return numpy.array(self.r[:n], dtype=numpy.double)
+
+
 def base_subs_test():
   """Base substitution."""
-  class MockRng:
-    def __init__(self, r):
-      self.r = r
-
-    def rand(self, n):
-      return self.r[:n]
 
   seq = 'ACGT'
   sub_pts = [0, 1, 2, 3]
@@ -57,13 +59,6 @@ def add_p_end_to_t_mat_test():
 
 def sequence_gen_test():
   """Markov chain sequence generator, normal termination."""
-  class MockRng:
-    def __init__(self, r):
-      self.rand_iter = (n for n in r)
-
-    def rand(self):
-      return self.rand_iter.next()
-
   seq = 'A'
   ins_pts = [0]
   max_len = 10
@@ -82,13 +77,6 @@ def sequence_gen_test():
 
 def sequence_gen_test2():
   """Markov chain sequence generator, terminate when too long."""
-  class MockRng:
-    def __init__(self, r):
-      self.rand_iter = (n for n in r)
-
-    def rand(self):
-      return self.rand_iter.next()
-
   seq = 'A'
   ins_pts = [0]
   max_len = 7

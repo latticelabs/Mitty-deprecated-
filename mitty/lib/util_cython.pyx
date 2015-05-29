@@ -1,6 +1,8 @@
 import string
 
+import cython
 import numpy as np
+cimport numpy as np
 
 from mitty.lib import SEED_MAX
 
@@ -83,8 +85,10 @@ def add_p_end_to_t_mat(t_mat, p_end):
   return [[p_end_1 * (t_mat[i][j]/sum(t_mat[i])) for j in range(4)] + [p_end] for i in range(4)]
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef markov_chain_sequence_gen(
-    char first_letter, float ct_mat[4][5], unsigned char *seq, unsigned long int *l, unsigned long int max_len, rng):
+    char first_letter, double ct_mat[4][5], unsigned char *seq, unsigned long int *l, unsigned long int max_len, rng):
   """sequence_gen(float t_mat[4][5], char *alphabet[4])
   :param (char) first_letter: the first letter of the sequence
   :param (float) ct_mat: 4x5 cumulative transition probability matrix (ACGTx)
@@ -108,7 +112,9 @@ cdef markov_chain_sequence_gen(
   cdef:
     unsigned char last_letter = 0, n
     const char *alphabet = "ACGT"
-    float r
+    np.ndarray[double, ndim=1, mode="c"] rnd = rng.rand(max_len)
+    Py_ssize_t rnd_idx = 0
+    double r
     bint keep_running = 1
 
   for n in range(4):
@@ -116,12 +122,12 @@ cdef markov_chain_sequence_gen(
       last_letter = n
       break
 
-  rg = rng.rand
   seq[0] = first_letter
   l[0] = 1
 
   while keep_running:
-    r = rg()  # Slowest part
+    r = rnd[rnd_idx]
+    rnd_idx += 1
     for n in range(5):
       if r < ct_mat[last_letter][n]:
         break
@@ -147,7 +153,7 @@ def markov_sequences(bytes seq, ins_pts, max_len, t_mat, rng):
   pre_alloc_str = 'N' * max_len  # Pre-allocated string
   cdef:
     unsigned char *s = seq
-    float ct_mat[4][5]
+    double ct_mat[4][5]
     unsigned long int l
     unsigned char *pre_string = pre_alloc_str
 
