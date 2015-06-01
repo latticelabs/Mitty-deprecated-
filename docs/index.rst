@@ -16,8 +16,7 @@ Mitty documentation
     additional_utils
     theory_and_algorithms
     models
-..    developer
-..    ramblings
+    ramblings
 
 ..    files
 ..    components
