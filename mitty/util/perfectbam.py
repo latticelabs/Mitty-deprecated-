@@ -56,9 +56,12 @@ def create_db(conn):
   """Create tables for the mis-aligned reads database
 
   :param conn: database connection
+
+  read_serial = read_serial * 10 + 0 or 1 (for mate1 or mate2 of read) for paired reads
+  read_serial = read_serial for un-paired reads
   """
   c = conn.cursor()
-  c.execute('CREATE TABLE reads (qname TEXT, error_type INT, '
+  c.execute('CREATE TABLE reads (read_serial INT, qname TEXT, error_type INT, '
             'correct_chrom INT, correct_pos INT, correct_cigar TEXT, '
             'aligned_chrom INT, aligned_pos INT, aligned_cigar TEXT,'
             'mapping_qual INT, mate_is_unmapped BOOL, seq TEXT)')
@@ -89,7 +92,7 @@ def write_reads_to_db(conn, data_to_save):
                         map_quality, mate_is_unmapped, sequence]
   :return:
   """
-  insert_clause = "INSERT INTO reads VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  insert_clause = "INSERT INTO reads VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
   conn.execute(insert_clause, data_to_save)
 
 
@@ -99,6 +102,7 @@ def commit_and_create_db_indexes(conn):
   :param conn: db connection
   """
   conn.commit()
+  conn.execute('CREATE INDEX idx_s ON reads (read_serial)')
   conn.execute('CREATE INDEX idx_f ON reads (correct_chrom, correct_pos)')
   conn.execute('CREATE INDEX idx_r ON reads (aligned_chrom, aligned_pos)')
 
@@ -128,11 +132,13 @@ def main(bam_in_fp, bam_out_fp, db_name, window, extended=False, progress_bar_fu
     try:
       if read.is_paired:
         if read.is_read1:
-          _, chrom, cpy, ro, pos, cigar, _, _, _ = read.qname.split('|')
+          rs, chrom, cpy, ro, pos, cigar, _, _, _ = read.qname.split('|')
         else:
-          _, chrom, cpy, _, _, _, ro, pos, cigar = read.qname.split('|')
+          rs, chrom, cpy, _, _, _, ro, pos, cigar = read.qname.split('|')
+        read_serial = int(rs) * 10 + (not read.is_read1)
       else:
-        _, chrom, cpy, ro, pos, cigar = read.qname.split('|')[:6]  # For Wan-Ping :)
+        rs, chrom, cpy, ro, pos, cigar = read.qname.split('|')[:6]  # For Wan-Ping :)
+        read_serial = int(rs)
       ro, chrom, pos = int(ro), int(chrom), int(pos)
     except ValueError:
       logger.debug('Error processing qname: n={:d}, qname={:s}, chrom={:d}, pos={:d}'.format(n, read.qname, read.reference_id + 1, read.pos))
@@ -159,7 +165,7 @@ def main(bam_in_fp, bam_out_fp, db_name, window, extended=False, progress_bar_fu
       else:
         incorrectly_aligned_reads_cntr[chrom] += 1
       write_reads_to_db(conn,
-                        [read.qname, error_type, chrom, pos, cigar,
+                        [read_serial, read.qname, error_type, chrom, pos, cigar,
                          read.reference_id + 1, read.pos, read.cigarstring,
                          read.mapq, read.mate_is_unmapped, read.query_sequence])
 
