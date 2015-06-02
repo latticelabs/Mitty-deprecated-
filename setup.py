@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='mitty',
-    version='1.1.1.dev',
+    version='1.1.2.dev',
     description='Simulator for genomic data',
     author='Seven Bridges Genomics',
     author_email='kaushik.ghose@sbgenomics.com',
@@ -14,6 +14,7 @@ setup(
       'mitty.plugins.sfs': ['double_exp = mitty.plugins.site_frequency.double_exp'],
       'mitty.plugins.variants': ['snp = mitty.plugins.variants.snp_plugin',
                                  'delete = mitty.plugins.variants.delete_plugin',
+                                 'uniformdel = mitty.plugins.variants.uniform_deletions',
                                  #'bounded_delete = mitty.plugins.variants.bounded_len_delete_plugin',
                                  'insert = mitty.plugins.variants.insert_plugin',
                                  #'inversion = mitty.plugins.variants.inversion_plugin',
@@ -29,9 +30,10 @@ setup(
                           'plot_align = mitty.util.plot_align:cli [mplot]',
                           'plot_gc_bias = mitty.util.plot_gc_bias:cli [mplot]',
                           'perfectbam = mitty.util.perfectbam:cli',
+                          'mismat = mitty.util.mismat:cli',
                           'splitta = mitty.util.splitta:cli',
-                          'checkbam = mitty.util.checkbam:cli',
-                          'kmers = mitty.util.kmers:cli']
+                          'kmers = mitty.util.kmers:cli',
+                          'pybwa = mitty.util.pybwa:cli']
     },
     install_requires=[
       'cython',
