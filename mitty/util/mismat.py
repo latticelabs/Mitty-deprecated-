@@ -53,12 +53,19 @@ def print_benchmark_mat(bm_mat):
   for c in range(db_count):
     print(str(c) + ' = ' + bm_mat['metadata']['dbs']['db' + str(c)])
   if bm_mat['metadata']['chrom']: print('chrom = ' + str(bm_mat['metadata']['chrom']))
-  print('Key: diff (row - col) / intersection (row ^ col)')
 
-  print('\t' + ''.join(['\t' * 2 * c + '|' + str(c) for c in range(db_count)]))
+  print('Diff Mat')
+  print(''.join(['\t' * 2 + str(c) for c in range(db_count)]))
   print('-' * 8 + '-' * 16 * db_count)
   for r in range(db_count):
-    print(str(r) + '\t' + ''.join(['\t' * 2 * c + '|' + str(bm_mat.get((r, c, 'd'), '-')) + '/' + str(bm_mat.get((r, c, 'i'), '-')) for c in range(db_count)]))
+    print(str(r) + ''.join(['\t' * 2 + str(bm_mat.get((r, c, 'd'), '-')) for c in range(db_count)]))
+  print('')
+
+  print('Intersect Mat')
+  print(''.join(['\t' * 2 + str(c) for c in range(db_count)]))
+  print('-' * 8 + '-' * 16 * db_count)
+  for r in range(db_count):
+    print(str(r) + ''.join(['\t' * 2 + str(bm_mat.get((r, c, 'i'), '-')) for c in range(db_count)]))
 
 
 if __name__ == '__main__':
