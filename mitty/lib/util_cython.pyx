@@ -230,36 +230,3 @@ def score_sequences_by_k_mer_count(sequence_list, k_mer_count_table):
   if len(k_mer_count_table) == 0: return []
   k = len(k_mer_count_table.keys()[0])
   return [sequence_k_mer_score(seq, k, k_mer_count_table) for seq in sequence_list]
-
-
-# def parse_sequence(bytes seq, int k=10, kmers={}):
-#   """Go through the sequence filling out the k-mer dictionary
-#
-#   :param seq:   the sequence
-#   :param k:     the k-mer length
-#   :param kmers: the kmer dictionary
-#   :return: (changes kmers in place)
-#   """
-#   cdef:
-#     cmap[cstring, int] map_mer
-#     char* c = seq
-#     #cstring c = seq
-#     int l = len(seq), n
-#
-#   for _k, v in kmers.iteritems():
-#     map_mer[_k] = v
-#
-#   for n in xrange(l):
-#     if c[n] == 'N': continue
-#     if map_mer.find(seq[n:n + k]) == map_mer.end():
-#       map_mer[seq[n:n + k]] = 1
-#     else:
-#       map_mer[seq[n:n + k]] += 1
-#
-#   #print(map_mer.size())
-#
-#
-#   itr = map_mer.begin()
-#   while itr != map_mer.end():
-#     kmers[deref(itr).first] = deref(itr).second
-#     inc(itr)
