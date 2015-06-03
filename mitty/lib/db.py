@@ -165,15 +165,24 @@ def load_chromosome_metadata(conn, chrom):
 
 
 def chromosomes_in_db(conn):
-  # c = conn.execute("SELECT name FROM sqlite_master WHERE TYPE='table' AND name LIKE 'master_chrom_%'")
-  # return [int(row[0].replace('master_chrom_','')) for row in c]
+  """Total number of chromosomes - same as in original genome"""
   c = conn.execute("SELECT chrom, seq_id, seq_len, seq_md5 FROM chrom_metadata ORDER BY rowid ASC")
   return [row for row in c]
 
 
+def populated_chromosomes_in_db(conn):
+  """Chromosomes with at least one variant in the master list."""
+  c = conn.execute("SELECT chrom, seq_id, seq_len, seq_md5 FROM chrom_metadata ORDER BY rowid ASC")
+  return [row for row in c if variants_in_master_list(conn, row[0])]
+
+
 def variants_in_master_list(conn, chrom):
-  c = conn.execute("SELECT COUNT(rowid) FROM master_chrom_{:d}".format(chrom))
-  return c.next()[0]
+  count = 0
+  c = conn.execute("SELECT name FROM sqlite_master WHERE TYPE='table' AND name='master_chrom_{:d}'".format(chrom))
+  if len(c.fetchall()) > 0:
+    c = conn.execute("SELECT COUNT(rowid) FROM master_chrom_{:d}".format(chrom))
+    count = c.next()[0]
+  return count
 
 
 def samples_in_db(conn):

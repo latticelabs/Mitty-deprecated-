@@ -358,10 +358,11 @@ def db_summary(cmd_args):
   pop_db_name = cmd_args['<dbfile>']
   conn = mdb.connect(db_name=pop_db_name)
   chrom_list = mdb.chromosomes_in_db(conn)
+  populated_chrom_list = mdb.populated_chromosomes_in_db(conn)
   n_s = mdb.samples_in_db(conn)
-  variant_stats = np.empty((len(chrom_list), 3), dtype=float)
+  variant_stats = np.empty((len(populated_chrom_list), 3), dtype=float)
   sample_max = 100
-  for i, c in enumerate(chrom_list):
+  for i, c in enumerate(populated_chrom_list):
     if n_s < sample_max:  # Take every sample
       ss = range(n_s)
     else:
@@ -373,15 +374,15 @@ def db_summary(cmd_args):
     variant_stats[i, :] = (s_len.mean(), s_len.std(), 1e6 * s_len.mean() / float(seq_len))
 
   print('{:s}'.format(pop_db_name))
-  print('\t{:d} chromosomes'.format(len(chrom_list)))
+  print('\tVariants in {:d} chromosomes (Genome has {:d})'.format(len(populated_chrom_list), len(chrom_list)))
   print('\t{:d} samples'.format(n_s))
   print('Unique variants in population')
   print('\tChrom\tVariants')
-  for c in chrom_list:
+  for c in populated_chrom_list:
     print('\t{:d}\t{:d}'.format(c[0], mdb.variants_in_master_list(conn, c[0])))
   print('Variants in samples')
   print('\tChrom\tAvg variants\tStd variants\tVariants/megabase')
-  for i, c in enumerate(chrom_list):
+  for i, c in enumerate(populated_chrom_list):
     print('\t{:d}\t{:<9.2f}\t{:<9.2f}\t{:.1f}'.format(c[0], variant_stats[i, 0], variant_stats[i, 1], variant_stats[i, 2]))
 
 
