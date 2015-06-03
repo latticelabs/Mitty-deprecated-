@@ -6,7 +6,7 @@
   samtools index Out/reads.bam
 
 Usage:
-  pybwa <ref> <fastq> <bam> [-t=T] [-p]
+  pybwa <ref> <fastq> <bam> [-S] [-P] [-t=T] [-p] [-v...]
 
 Options:
   <ref>     fasta.gz reference
@@ -14,6 +14,10 @@ Options:
   <bam>     BAM file to write to
   -t=T      Number of threads [default: 8]
   -p        interleaved paired end file?
+  -S        skip mate rescue
+  -P        skip pairing
+  -v        Verbose: print commands and messages from commands. Otherwise, suppress ALL output incl. stderr
+            The more -v s the more verbose
 """
 import subprocess
 import tempfile
@@ -30,16 +34,19 @@ def cli():
     args = docopt.docopt(__doc__)
   _, sam_file = tempfile.mkstemp('.sam')
   _, temp_bam_file = tempfile.mkstemp('.bam')
+  verb = args['-v']
 
   commands = [
-    'bwa mem -t {:d} {:s} {:s} {:s} > {:s}'.format(int(args['-t']), '-p' if args['-p'] else '', args['<ref>'], args['<fastq>'], sam_file),
+    'bwa mem -t {t} {p} {S} {P} {ref} {fastq} > {sam}'.
+      format(t=int(args['-t']), p='-p' if args['-p'] else '', S='-S' if args['-S'] else '', P='-P' if args['-P'] else '',
+             ref=args['<ref>'], fastq=args['<fastq>'], sam=sam_file),
     'samtools view -Sb {:s} > {:s}'.format(sam_file, temp_bam_file),
     'samtools sort {:s} {:s}'.format(temp_bam_file, os.path.splitext(args['<bam>'])[0]),
     'samtools index {:s}'.format(args['<bam>']),
   ]
   for cmd in commands:
-    print(cmd)
-    if subprocess.call(cmd, shell=True):
+    if verb: print(cmd)
+    if subprocess.call(cmd + (' 2>/dev/null' if verb < 2 else ''), shell=True):
       print('Some error, quitting')
       break
 
