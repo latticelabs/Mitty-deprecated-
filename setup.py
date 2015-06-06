@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='mitty',
-    version='1.1.2.dev',
+    version='1.2.0.dev',
     description='Simulator for genomic data',
     author='Seven Bridges Genomics',
     author_email='kaushik.ghose@sbgenomics.com',
@@ -20,6 +20,7 @@ setup(
                                  #'inversion = mitty.plugins.variants.inversion_plugin',
                                  #'low_entropy_insert = mitty.plugins.variants.low_entropy_insert_plugin'
                                  ],
+      'mitty.plugins.population': ['standard = mitty.plugins.population.standard'],
       'mitty.plugins.reads': ['simple_sequential = mitty.plugins.reads.simple_sequential_plugin',
                               'simple_illumina = mitty.plugins.reads.simple_illumina_plugin'],
       # Register example tool wrapper

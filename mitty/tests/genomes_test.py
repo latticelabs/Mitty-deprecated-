@@ -11,6 +11,7 @@ import mitty.lib.db as mdb
 import mitty.genomes as genomes
 import mitty.plugins.variants.snp_plugin as snp
 import mitty.plugins.site_frequency.double_exp as double_exp
+import mitty.plugins.population.standard as standard
 from mitty.tests import *  # To get definitions from the setup script
 
 
@@ -26,8 +27,10 @@ def run_simulations_test():
   chromosomes = [1, 2]
   sample_size = 20
   master_seed = 2
+  pop_model = standard.Model(sample_size=sample_size)
 
-  genomes.run_simulations(pop_db_name, ref, sfs_model, variant_models, chromosomes, sample_size, master_seed)
+  genomes.run_simulations(pop_db_name, ref=ref, sfs_model=sfs_model, variant_models=variant_models,
+                          population_model=pop_model, chromosomes=chromosomes, master_seed=master_seed)
 
   # The parts are tested separately, we just want a superficial test to see if we wrote the correct number of things
   conn = mdb.connect(temp_name)

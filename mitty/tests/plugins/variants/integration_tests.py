@@ -22,17 +22,18 @@ def check_plugin_integration(args):
   if not hasattr(model, '_example_params'):
     #http://stackoverflow.com/questions/1120148/disabling-python-nosetests
     raise SkipTest('{:s} has no _example_params method. Can not test automatically'.format(name))
-  params = [{name: model._example_params}]
+  var_model_params = [{name: model._example_params}]
 
   temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
   os.close(temp_fp)
   pop_db_name = temp_name
   sfs_model = double_exp.Model()
-  variant_models = genomes.load_variant_models(ref, params)
+  variant_models = genomes.load_variant_models(ref, var_model_params)
+  pop_model = genomes.load_population_model(None, {'sample_size': 2})
   chromosomes = [1]
-  sample_size = 2
   master_seed = 2
-  genomes.run_simulations(pop_db_name, ref, sfs_model, variant_models, chromosomes, sample_size, master_seed)
+  genomes.run_simulations(pop_db_name, ref=ref, sfs_model=sfs_model, variant_models=variant_models,
+                          population_model=pop_model, chromosomes=chromosomes, master_seed=master_seed)
 
   # If we get here, the simulation ran. We just want a superficial test to round things out
   conn = mdb.connect(temp_name)
