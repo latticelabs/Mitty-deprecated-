@@ -9,8 +9,8 @@ Commandline::
     genomes inspect <dbfile>
     genomes inspect sfs <chrom> <dbfile>
     genomes write ((vcf|vcfs)|master) <dbfile> <out_prefix> [<serial>]... [-v|-V]
-    genomes explain (parameters|(variantmodel|populationmodel) (all|<model_name>))
-    genomes list (variantmodels|populationmodels)
+    genomes explain (parameters|(variant-model|spectrum-model|population-model) (all|<model_name>))
+    genomes list (variant-model|spectrum-model|population-model)
 
   Options:
     generate                Create a database of genomes by running the models specified
@@ -293,49 +293,41 @@ def write_samples_vcf(conn, samples, out_prefix):
 def explain(cmd_args):
   if cmd_args['parameters']:
     print(__param__)
-  elif cmd_args['variantmodel']:
+  else:
+    kind = ['variant-model', 'spectrum-model', 'population-model']
+    idx = [cmd_args[k] for k in kind].index(True)
     if cmd_args['all']:
-      explain_all_variant_models()
+      explain_all_models(kind=kind[idx])
     else:
-      explain_variant_model(cmd_args['<model_name>'])
-  elif cmd_args['populationmodel']:
-    if cmd_args['all']:
-      explain_all_population_models()
-    else:
-      explain_population_model(cmd_args['<model_name>'])
+      explain_model(name=cmd_args['<model_name>'], kind=kind[idx])
 
 
-def explain_all_variant_models():
-  for name, mod_name in mitty.lib.discover_all_variant_plugins():
-    explain_variant_model(name)
+def explain_all_models(kind):
+  discoverer = {
+    'variant-model': mitty.lib.discover_all_variant_plugins,
+    'spectrum-model': mitty.lib.discover_all_sfs_plugins,
+    'population-model': mitty.lib.discover_all_pop_plugins
+  }
+  for name, mod_name in discoverer[kind]():
+    explain_model(name, kind)
 
 
-def explain_variant_model(name):
+def explain_model(name, kind):
+  """Load the given model of given kind and print description, parameter example and defaults
+
+  :param name: name of model
+  :param kind: 'variant', 'sfs' or 'pop'
+  """
+  loader = {
+    'variant-model': mitty.lib.load_variant_plugin,
+    'spectrum-model': mitty.lib.load_sfs_plugin,
+    'population-model': mitty.lib.load_pop_model_plugin
+  }
   try:
-    mod = mitty.lib.load_variant_plugin(name)
+    mod = loader[kind](name)
   except ImportError as e:
     print('{0}: {1}'.format(name, e))
-    print('Problem with loading model')
-    return
-  try:
-    print('\n---- ' + name + ' (' + mod.__name__ + ') ----')
-    print(mod._description)
-    print(mitty.lib.model_init_signature_string(mod.Model.__init__))
-  except AttributeError:
-    print('No help for model "{:s}" available'.format(name))
-
-
-def explain_all_population_models():
-  for name, mod_name in mitty.lib.discover_all_sfs_plugins():
-    explain_population_model(name)
-
-
-def explain_population_model(name):
-  try:
-    mod = mitty.lib.load_sfs_plugin(name)
-  except ImportError as e:
-    print('{0}: {1}'.format(name, e))
-    print('Problem with loading population model')
+    print('Problem with loading {} model'.format(kind))
     return
   try:
     print('\n---- ' + name + ' (' + mod.__name__ + ') ----')
@@ -346,21 +338,19 @@ def explain_population_model(name):
 
 
 def print_list(cmd_args):
-  if cmd_args['variantmodels']:
-    print_variant_model_list()
-  elif cmd_args['populationmodels']:
-    print_population_model_list()
+  kind = ['variant-model', 'spectrum-model', 'population-model']
+  idx = [cmd_args[k] for k in kind].index(True)
+  print_model_list(kind[idx])
 
 
-def print_variant_model_list():
-  print('\nAvailable variant models\n----------------')
-  for name, mod_name in mitty.lib.discover_all_variant_plugins():
-    print('- {:s} ({:s})\n'.format(name, mod_name))
-
-
-def print_population_model_list():
-  print('\nAvailable population models\n----------------')
-  for name, mod_name in mitty.lib.discover_all_sfs_plugins():
+def print_model_list(kind):
+  discoverer = {
+    'variant-model': mitty.lib.discover_all_variant_plugins,
+    'spectrum-model': mitty.lib.discover_all_sfs_plugins,
+    'population-model': mitty.lib.discover_all_pop_plugins
+  }
+  print('\nAvailable {} models\n----------------'.format(kind))
+  for name, mod_name in discoverer[kind]():
     print('- {:s} ({:s})\n'.format(name, mod_name))
 
 

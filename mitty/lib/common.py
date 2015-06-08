@@ -31,17 +31,23 @@ def get_seeds(master_seed=1, size=1):
 
 
 def discover_all_sfs_plugins():
-  return sorted([(v.name, v.module_name) for v in pkg_resources.iter_entry_points(SFS_PLUGIN_ENTRY_POINT)],
-                cmp=lambda x, y: cmp(x[0], y[0]))
+  return _discover_all_plugins(SFS_PLUGIN_ENTRY_POINT)
 
 
 def discover_all_variant_plugins():
-  return sorted([(v.name, v.module_name) for v in pkg_resources.iter_entry_points(VARIANT_PLUGIN_ENTRY_POINT)],
-                cmp=lambda x, y: cmp(x[0], y[0]))
+  return _discover_all_plugins(VARIANT_PLUGIN_ENTRY_POINT)
+
+
+def discover_all_pop_plugins():
+  return _discover_all_plugins(POP_PLUGIN_ENTRY_POINT)
 
 
 def discover_all_reads_plugins():
-  return sorted([(v.name, v.module_name) for v in pkg_resources.iter_entry_points(READS_PLUGIN_ENTRY_POINT)],
+  return _discover_all_plugins(READS_PLUGIN_ENTRY_POINT)
+
+
+def _discover_all_plugins(plugin_entry_point):
+  return sorted([(v.name, v.module_name) for v in pkg_resources.iter_entry_points(plugin_entry_point)],
                 cmp=lambda x, y: cmp(x[0], y[0]))
 
 
