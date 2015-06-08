@@ -1,9 +1,22 @@
-"""Standard population model that picks variants randomly from the master list to generate chromosomes"""
+"""Standard population model that picks variants randomly from the master list based on probability value"""
 import numpy as np
 
 
+__example_param_text = """
+{
+  "standard": {
+    "sample_size": 10
+  }
+}
+"""
+
+_description = __doc__ + '\nExample parameters:\n' + __example_param_text
+
+_example_params = eval(__example_param_text)
+
+
 class Model:
-  def __init__(self, sample_size):
+  def __init__(self, sample_size=10):
     """Standard population model that picks variants randomly from the master list to generate chromosomes
 
     :param sample_size: number of samples we should be returning
