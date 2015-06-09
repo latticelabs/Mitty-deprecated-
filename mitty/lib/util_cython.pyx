@@ -1,4 +1,5 @@
 import string
+from itertools import izip
 
 import cython
 import numpy as np
@@ -129,7 +130,7 @@ cdef markov_chain_sequence_gen(
     r = rnd[rnd_idx]
     rnd_idx += 1
     for n in range(5):
-      if r < ct_mat[last_letter][n]:
+      if r <= ct_mat[last_letter][n]:
         break
     if n == 4:
       if l[0] > 2: keep_running = 0 # We can stop if we have a length 2 sequence
@@ -145,12 +146,22 @@ def markov_sequences(bytes seq, ins_pts, max_len, t_mat, rng):
   """markov_sequences(seq, ins_pts, max_len, t_mat, rng)
   Return us insertions at the requested positions.
   :param (str) seq: the reference sequence. Needed for first letters of insertions
-  :param (iterable) ins_pts: iterable of insertion points
+  :param ins_pts: list/array of insertion points
+  :param max_len: either a scalar or list/array (same length as ins_pts) that
   :param (4x5 list) t_mat: transition matrix, including prob of termination
   :param rng: numpy random number generator object that has rand
   :returns a list of insertion sequences
   """
-  pre_alloc_str = 'N' * max_len  # Pre-allocated string
+  if type(max_len) is int:
+    max_max_len = max_len
+    max_lens = [max_len] * len(ins_pts)
+  else:
+    max_lens = max_len
+    assert len(max_len) == len(ins_pts), 'Lengths of insertion points and max lengths must be equal'
+    max_max_len = max(max_len) if len(max_len) else 1
+
+  pre_alloc_str = 'N' * max_max_len  # Pre-allocated string
+
   cdef:
     unsigned char *s = seq
     double ct_mat[4][5]
@@ -164,7 +175,7 @@ def markov_sequences(bytes seq, ins_pts, max_len, t_mat, rng):
       ct_mat[i][j] = ct_mat[i][j-1] + t_mat[i][j]
 
   insertions, lengths = [], []
-  for ip in ins_pts:
+  for ip, max_len in izip(ins_pts, max_lens):
     markov_chain_sequence_gen(s[ip], ct_mat, pre_string, &l, max_len, rng)
     insertions += [pre_string[:l]]
     lengths += [l]
