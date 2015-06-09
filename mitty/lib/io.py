@@ -33,6 +33,7 @@ class Fasta:
     :param multi_dir: fill out if input is in the form of multiple files in a directory numbered chr1.fa, chr2.fa etc.
     :param persistent: if True will keep sequences in memory after loading
     """
+    assert not (multi_fasta is None and multi_dir is None), 'Need to specify either directory or file for reference. Check parameter file.'
     self.format = MULTI_DIR if multi_fasta is None else MULTI_FASTA
     self.multi_fasta = multi_fasta
     self.multi_dir = multi_dir
