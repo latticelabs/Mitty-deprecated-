@@ -38,7 +38,7 @@ setup(
     },
     install_requires=[
       'cython',
-      'setuptools>=0.7',
+      'setuptools>=11.0.0',
       'numpy>=1.9.0',
       'docopt>=0.6.2',
       'pysam>=0.8.1'
