@@ -37,6 +37,6 @@ class Model:
     gen = 0
     for n in range(self.sample_size):
       r = rng.rand(ml.variants.shape[0], 2)
-      yield gen, n, ml.zip_up_chromosome(*[(r[:, 0] < ml.variants['p']).nonzero()[0], (r[:, 1] < ml.variants['p']).nonzero()[0]]), float(n) / self.sample_size
+      yield gen, n, ml.zip_up_chromosome(*[(r[:, 0] < ml.variants['p']).nonzero()[0], (r[:, 1] < ml.variants['p']).nonzero()[0]]), float(n + 1) / self.sample_size
     # In more complex population models, for example simulating sexual reproduction, we would probably return an iterator
     # class that kept state representing parents etc., having worked out the population tree
