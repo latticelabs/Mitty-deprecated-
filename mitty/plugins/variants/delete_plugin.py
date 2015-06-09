@@ -16,8 +16,8 @@ __example_param_text__ = """
 {
   "p": 0.01,           # probability that the deletion will happen at any given base
   "p_end": 0.1,        # probability governing length of deletion
-  "del_len_min": 10,   # Lower bound on deletion lengths
-  "del_len_max": 1000  # upper bound on deletion lengths
+  "min_len": 10,   # Lower bound on deletion lengths
+  "max_len": 1000  # upper bound on deletion lengths
 }
 """
 
@@ -29,13 +29,13 @@ _example_params = eval(__example_param_text__)
 
 
 class Model:
-  def __init__(self, p=0.01, p_end=0.1, del_len_min=10, del_len_max=1000, **kwargs):
+  def __init__(self, p=0.01, p_end=0.1, min_len=10, max_len=1000, **kwargs):
     assert 0 <= p <= 1.0, "Probability out of range"
     assert 0 <= p_end <= 1.0, "Probability out of range"
-    assert 0 < del_len_min < del_len_max, "Check your del_len_min and del_len_max definitions"
-    self.p, self.p_end, self.del_len_min, self.del_len_max = p, p_end, del_len_min, del_len_max
+    assert 0 < min_len < max_len, "Check your min_len and max_len definitions"
+    self.p, self.p_end, self.del_len_min, self.del_len_max = p, p_end, min_len, max_len
 
-  def get_variants(self, ref, chrom, p, f, seed=1):
+  def get_variants(self, ref, p=None, f=None, seed=1, **kwargs):
     """This function is called by the simulator to obtain variants.
 
     :param ref: reference sequence as a string
@@ -76,7 +76,7 @@ def test0():
   """Edge case - no variants generated"""
   ref_seq = 'ACTGACTGACTGACTGACTGACTGACTGACTGACTG'
   m = Model(p=0.00001)
-  pos, stop, ref, alt, p = m.get_variants(ref_seq, 1, np.array([0.2]), np.array([1.0]), seed=10)
+  pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=10)
   assert len(pos) == 0  # This should just run and not crash
 
 
@@ -84,7 +84,7 @@ def test():
   """Basic test"""
   ref_seq = 'ACTGACTGACTGACTGACTGACTGACTGACTGACTG'
   m = Model(p=0.1)
-  pos, stop, ref, alt, p = m.get_variants(ref_seq, 1, np.array([0.2]), np.array([1.0]), seed=10)
+  pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=10)
   for p, r in zip(pos, alt):
     assert r == ref_seq[p]
 
