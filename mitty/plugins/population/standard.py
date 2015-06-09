@@ -25,13 +25,13 @@ class Model:
     # In more complex population models, for example simulating sexual reproduction, we would have more parameters
     # setting up things like generations to do, size of generations, number of children etc. etc.
 
-  def samples(self, chrom_no, ml, rng_seed):
+  def samples(self, chrom_no=None, ml=None, rng_seed=1):
     """This returns an iterator
 
-    :param chrom_no:  number of the chromosome being considered [1,2,3 ...]
+    :param chrom_no:  number of the chromosome being considered [1,2,3 ...]  (ignored here)
     :param ml:        VariantList. master list of variants as created by genomes program
     :param rng_seed:  seed for random number generators
-    :return: idx: A list of indexes into the variants indicating which have been chosen
+    :return: A generator returning (generation no, serial_no, chromosome, % samples done) for each sample in population
     """
     rng = np.random.RandomState(rng_seed)
     gen = 0

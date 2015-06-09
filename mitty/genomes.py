@@ -46,10 +46,14 @@ __param__ = """Parameter file example::
     "rng": {
       "master_seed": 1
     },
-    "sample_size": 1,      # How many samples to generate
+    "population_model": {
+      "standard": {            # Name of sample chooser (population) model.
+        "sample_size": 1,      # population model parameters
+      }
+    },
     "site_model": {
         "double_exp": {    # Name of model that handles the site frequency spectrum
-          "k1": 0.1,       # Population model parameters
+          "k1": 0.1,       # spectrum model parameters
           "k2": 2.0,
           "p0": 0.001,
           "p1": 0.2,
@@ -203,7 +207,7 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], population_m
     if sfs_model is not None: ml.balance_probabilities(*sfs_model.get_spectrum())
     mdb.save_master_list(conn, ch, ml)
     unique_variant_count += len(ml)
-    for gen, n, this_sample, frac_done in population_model.samples(ch, ml, seed_rng.randint(mutil.SEED_MAX)):
+    for gen, n, this_sample, frac_done in population_model.samples(chrom_no=ch, ml=ml, rng_seed=seed_rng.randint(mutil.SEED_MAX)):
       #this_sample = ml.generate_chromosome(rng)
       mdb.save_sample(conn, gen, n, ch, this_sample)
       total_variant_count += len(this_sample)
