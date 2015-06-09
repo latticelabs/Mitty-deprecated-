@@ -198,7 +198,7 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], population_m
   for ch in chromosomes:
     ml = vr.VariantList()
     for m in variant_models:
-      ml.add(*m.get_variants(ref[ch]['seq'], ch, p, f, seed=seed_rng.randint(mutil.SEED_MAX)))
+      ml.add(*m.get_variants(ref=ref[ch]['seq'], chrom=ch, p=p, f=f, seed=seed_rng.randint(mutil.SEED_MAX)))
     ml.sort()
     if sfs_model is not None: ml.balance_probabilities(*sfs_model.get_spectrum())
     mdb.save_master_list(conn, ch, ml)
