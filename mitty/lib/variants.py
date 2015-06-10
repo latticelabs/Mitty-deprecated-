@@ -92,6 +92,9 @@ class VariantList:
 
   def __repr__(self):
     """Fun ASCII histogram!"""
+    if self.variants.shape[0] == 0:
+      return '<empty>'
+
     if self.site_freq_spectrum is not None:
       sfs_p, sfs = self.site_freq_spectrum
       ideal_cnt = [f * self.variants.shape[0] for f in sfs]
