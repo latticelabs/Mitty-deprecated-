@@ -15,7 +15,19 @@ __cmd__ = """Commandline::
 """
 __param__ = """Given a bam file containing simulated reads aligned by a tool:
   1. Produce a new bam that re-aligns all reads so that their alignment is perfect
-  2. Produce a database file containing data about the misaligned and unmapped reads with the following columns::
+  2. Produce a database file containing data about the misaligned and unmapped reads with the following tables::
+
+  summary::
+
+      chrom           - chromosome number
+      total_reads     - total reads on this chrom
+      incorrect_reads - total incorrect reads on this chrom
+      unmapped_reads  - unmapped reads
+      seq_len         - len of this sequence
+      seq_id          - full seq name as found in BAM header
+
+  reads::
+
        qname              -  qname of the read
        error_type         -  type of error 3 bit number  bit 0=chrom, 1=pos, 2=cigar
        correct_chrom      -  correct chromosome number of read
@@ -26,7 +38,16 @@ __param__ = """Given a bam file containing simulated reads aligned by a tool:
        aligned_cigar      -  actual aligned cigar
        mapping_qual       -  mapping quality
        mate_is_unmapped   -  is mate unmapped
-       seq                -  actual sequence string"""
+       seq                -  actual sequence string
+
+  all_reads::
+
+       chrom              -  original chromosome of read
+       pos                -  original position of read
+       code               -  same as error_type
+
+  (This table can probably be compressed down by breaking up by chromosome)
+  """
 __doc__ = __cmd__ + __param__
 
 import os
@@ -66,6 +87,7 @@ def create_db(conn):
             'aligned_chrom INT, aligned_pos INT, aligned_cigar TEXT,'
             'mapping_qual INT, mate_is_unmapped BOOL, seq TEXT)')
   c.execute('CREATE TABLE summary (chrom INT, total_reads INT, incorrect_reads INT, unmapped_reads INT, seq_len INT, seq_id TEXT)')
+  c.execute('CREATE TABLE all_reads (chrom INT, pos INT, code INT)')
   conn.commit()
 
 
@@ -84,16 +106,27 @@ def write_summary_to_db(conn, total_reads_cntr, incorrectly_aligned_reads_cntr, 
   conn.executemany(insert_clause, to_insert)
 
 
-def write_reads_to_db(conn, data_to_save):
+def write_read_to_misaligned_read_table(conn, data_to_save):
   """Write mis-aligned/unmapped read data to the database
 
   :param conn: db connection
   :param data_to_save: [qname, error_type, chrom, pos, cigar, aligned_chrom, aligned_pos, aligned_cigar,
                         map_quality, mate_is_unmapped, sequence]
-  :return:
   """
   insert_clause = "INSERT INTO reads VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
   conn.execute(insert_clause, data_to_save)
+
+
+def write_read_to_all_reads_table(conn, chrom, pos, code):
+  """Write mis-aligned/unmapped read data to the database
+
+  :param conn: db connection
+  :param chrom:  correct chromosome of read
+  :param pos: correct pos of read
+  :param code: error code (same as error_type)
+  """
+  insert_clause = "INSERT INTO all_reads VALUES (?, ?, ?)"
+  conn.execute(insert_clause, [chrom, pos, code])
 
 
 def commit_and_create_db_indexes(conn):
@@ -105,6 +138,7 @@ def commit_and_create_db_indexes(conn):
   conn.execute('CREATE INDEX idx_s ON reads (read_serial)')
   conn.execute('CREATE INDEX idx_f ON reads (correct_chrom, correct_pos)')
   conn.execute('CREATE INDEX idx_r ON reads (aligned_chrom, aligned_pos)')
+  conn.execute('CREATE INDEX idx_ar ON all_reads (chrom, pos, code)')
 
 
 def main(bam_in_fp, bam_out_fp, db_name, window, extended=False, progress_bar_func=None):
@@ -164,10 +198,12 @@ def main(bam_in_fp, bam_out_fp, db_name, window, extended=False, progress_bar_fu
         unmapped_reads_cntr[chrom] += 1
       else:
         incorrectly_aligned_reads_cntr[chrom] += 1
-      write_reads_to_db(conn,
-                        [read_serial, read.qname, error_type, chrom, pos, cigar,
-                         read.reference_id + 1, read.pos, read.cigarstring,
-                         read.mapq, read.mate_is_unmapped, read.query_sequence])
+      write_read_to_misaligned_read_table(
+        conn, [read_serial, read.qname, error_type, chrom, pos, cigar,
+               read.reference_id + 1, read.pos, read.cigarstring,
+               read.mapq, read.mate_is_unmapped, read.query_sequence])
+
+    write_read_to_all_reads_table(conn, chrom, pos, error_type)
 
     # Now write out the perfect alignment
     read.is_reverse = 1 - ro
