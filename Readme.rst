@@ -80,19 +80,33 @@ On Linux, you may first need to pull some dependencies (as needed) such as ::
 
     sudo apt-get install python-pip git python-numpy python-dev cython zlib1g-dev
 
-For the dev team, you will want the `develop` branch of Mitty ::
-    
-    pip install git+https://gitlab.sbgenomics.com:9443/graphgenome/mitty.git@develop#egg=mitty
+You will also need setuptools 11.0.0 or more recent ::
 
-On mac os x this will pull all packages as needed, including numpy. 
+    pip install -U setuptools
 
-The SBG dev pi server contains wheels for most of the packages. You can use the devpi server (cuts down on compilation
-time in many cases) by adding the following lines to your ~/.pip/pip.conf file (you may need to create the file first):
+The SBG dev pi server contains wheels for most of the packages, including the latest builds of Mitty. You can use the
+devpi server (cuts down on compilation time in many cases) by adding the following lines to your ~/.pip/pip.conf file
+(you may need to create the file first):
 
 ::
 
     [global]
     extra-index-url = https://pip.sbgenomics.com/packages
+
+To get the stable release version of Mitty try ::
+
+    pip install -U mitty
+
+For the dev team, you will want the `develop` branch of Mitty ::
+
+    pip install -U mitty --pre
+
+To get the code directly from gitlab (e.g. because you want a specific commit) use something like
+    
+    pip install git+https://gitlab.sbgenomics.com:9443/graphgenome/mitty.git@develop#egg=mitty
+
+On mac os x this will pull all packages as needed, including numpy. 
+
 
 Installing optional dependencies
 ................................
@@ -107,7 +121,7 @@ Run the tests
 ::
 
     pip install nose  # If needed
-    nosetests mitty.tests -v
+    nosetests mitty -v
 
 
 Developing

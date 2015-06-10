@@ -32,6 +32,8 @@ __param__ = """Parameter file example::
       "reference_file": "/Users/kghose/Data/hg38/hg38.fa.gz",  # Use this if reference is a single multi-fasta file
       "dbfile": "Out/test.db"  # Genomes database file. Leave out if taking reads from a reference, or from VCF file
       "input_vcf": "Out/test.vcf",  # Use this if using a VCF file. Leave out if taking reads from a reference, or from VCF file
+                                    # The vcf file is converted to a Mitty genome database that is stored alognside the
+                                    # fastq files
       "output_prefix": "Out/reads", # Output file name prefix
                                     # the reads will be called reads.fq and reads_c.fq if we call for corrupted reads too
       "interleaved": true     # Set to false if you need separate files for each mate of a pair
@@ -207,12 +209,24 @@ def executor(cmd_args):
   base_dir = os.path.dirname(cmd_args['<pfile>'])     # Other files will be with respect to this
   params = json.load(open(cmd_args['<pfile>'], 'r'))
 
+  fname_prefix = mitty.lib.rpath(base_dir, params['files']['output_prefix'])
+  if not os.path.exists(os.path.dirname(fname_prefix)):
+    os.makedirs(os.path.dirname(fname_prefix))
+
   null_reads = True
   if 'dbfile' in params['files']:
     pop_db_name = mitty.lib.rpath(base_dir, params['files']['dbfile'])
     conn = mdb.connect(db_name=pop_db_name)
-  elif 'input_vcf' in params:
-    raise(NotImplementedError, 'Reading from VCF not implemented yet')
+  elif 'input_vcf' in params['files']:
+    # In order to keep things modular we convert the VCF to a genome db file and then proceed
+    import mitty.lib.vcf2db as vcf2db
+    vcf_fname = mitty.lib.rpath(base_dir, params['files']['input_vcf'])
+    pop_db_name = fname_prefix + '_genome.db'
+    if os.path.exists(pop_db_name):
+      os.remove(pop_db_name)
+    vcf2db.vcf_to_db(vcf_fname=vcf_fname, db_fname=pop_db_name)
+    conn = mdb.connect(db_name=pop_db_name)
+    logger.debug('Converted VCF file ({:s}) to Mitty database file ({:s})'.format(vcf_fname, pop_db_name))
   else:
     conn = None
     logger.debug('Taking reads from reference')
@@ -243,11 +257,6 @@ def executor(cmd_args):
   variants_only = params.get('variants_only', None)
   variant_window = int(params.get('variant_window', 200)) if variants_only else None
 
-  t0 = time.time()
-  fname_prefix = mitty.lib.rpath(base_dir, params['files']['output_prefix'])
-  if not os.path.exists(os.path.dirname(fname_prefix)):
-    os.makedirs(os.path.dirname(fname_prefix))
-
   if params['files'].get('interleaved', True):
     fastq_fp = [open(fname_prefix + '.fq', 'w')] * 2
     fastq_c_fp = [open(fname_prefix + '_c.fq', 'w')] * 2 if corrupt else [None, None]
@@ -255,6 +264,7 @@ def executor(cmd_args):
     fastq_fp = [open(fname_prefix + '_1.fq', 'w'), open(fname_prefix + '_2.fq', 'w')]
     fastq_c_fp = [open(fname_prefix + '_c_1.fq', 'w'), open(fname_prefix + '_c_2.fq', 'w')] if corrupt else [None, None]
 
+  t0 = time.time()
   read_count = generate_reads_loop(ref=ref, conn=conn, gen=gen, serial=serial, chromosomes=chromosomes,
                                    read_model=read_model, variants_only=variants_only, variant_window=variant_window,
                                    fastq_fp=fastq_fp, fastq_c_fp=fastq_c_fp,
