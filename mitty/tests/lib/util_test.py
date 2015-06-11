@@ -82,9 +82,9 @@ def sequence_gen_test():
            [0.1, 0.1, 0.1, 0.1, 0.6],
            [0.2, 0.1, 0.2, 0.1, 0.4],
            [0.1, 0.2, 0.2, 0.1, 0.4]]
-  rng = MockRng([0.5, .72, .0001, .3, .147, .092, .186, .345, .397, 1.0])
-  #   0.5, .72,        .0001,  .3,  .147, .092, .186, .345, .397, 1.0
-  # A->G -> x(ignored)-> A->   C->   C->    A->   A->   C->   T->  (end)
+  rng = MockRng([0.81, .6, .0001, .3, .147, .092, .186, .345, .397, 1.0])
+  #   0.81,       .6,  .0001,  .3,  .147, .092, .186, .345, .397, 1.0
+  # A->x(ignored)-> G -> A->   C->   C->    A->   A->   C->   T->  (end)
   seq_l, l = mitty.lib.util.markov_sequences(seq, ins_pts, max_len, t_mat, rng)
   assert seq_l[0] == 'AGACCAACT', seq_l[0]
   assert l[0] == 9
@@ -100,9 +100,9 @@ def sequence_gen_test2():
            [0.1, 0.1, 0.1, 0.1, 0.6],
            [0.2, 0.1, 0.2, 0.1, 0.4],
            [0.1, 0.2, 0.2, 0.1, 0.4]]
-  rng = MockRng([0.5, .72, .0001, .3, .147, .092, .186, .345, .397, 0.55])
-  #   0.5, .72,        .0001,  .3,  .147, .092, .186, .345, .397,  0.55
-  # A->G -> x(ignored)-> A->   C->   C->    A->   A->  (force end)
+  rng = MockRng([.9, 0.59, .0001, .3, .147, .092, .186, .345, .397, 0.55])
+  #     0.9,        .59, .0001,  .3,  .147, .092, .186, .345, .397,  0.55
+  # A-> x(ignored)-> G -> A->   C->   C->    A->   A->  (force end)
   seq_l, l = mitty.lib.util.markov_sequences(seq, ins_pts, max_len, t_mat, rng)
   assert seq_l[0] == 'AGACCAA', seq_l[0]
   assert l[0] == 7

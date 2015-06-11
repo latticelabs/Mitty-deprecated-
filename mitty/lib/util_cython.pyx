@@ -133,7 +133,7 @@ cdef markov_chain_sequence_gen(
       if r <= ct_mat[last_letter][n]:
         break
     if n == 4:
-      if l[0] > 2: keep_running = 0 # We can stop if we have a length 2 sequence
+      if l[0] > 1: keep_running = 0 # We can stop if we have a length 2 sequence
     else:
       seq[l[0]] = alphabet[n]
       last_letter = n
