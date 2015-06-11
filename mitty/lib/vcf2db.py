@@ -13,7 +13,7 @@ def parse_header(fp):
   :param fp - file pointer
   :returns dict of chromosome names we can expect in col1 with values = to chromosome number
   """
-  contig_re = re.compile(r"##contig=<ID=(?P<id>[^,]+),.*length=(?P<length>-?\d+),.*md5=(?P<md5>[^,]+).*>")
+  contig_re = re.compile(r"##contig=<(.*)>")
   header = {}
   seq_serial = 0
   seq_metadata = []
@@ -21,9 +21,15 @@ def parse_header(fp):
     if line[:2] != '##':
       break
     if line[:8] == '##contig':
-      ma = contig_re.match(line).groupdict()
-      header[ma.get('id','None')] = seq_serial
-      seq_metadata.append({'seq_id': ma.get('id','None'), 'seq_len': int(ma.get('length', '0')), 'seq_md5': ma.get('md5', '0')})
+      ma = contig_re.findall(line)[0].split(',')
+      seq_id, seq_len, seq_md5 = 'None', 0, '0'
+      for m in ma:
+        val = m.split('=')
+        if val[0] == 'ID': seq_id = val[1]
+        elif val[0] == 'length': seq_len = int(val[1])
+        elif val[0] == 'md5': seq_md5 = val[1]
+      header[seq_id] = seq_serial
+      seq_metadata.append({'seq_id': seq_id, 'seq_len': seq_len, 'seq_md5': seq_md5})
       seq_serial += 1
   return header, seq_metadata
 
