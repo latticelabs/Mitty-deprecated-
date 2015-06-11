@@ -33,6 +33,7 @@ class Model:
     assert 0 <= p <= 1.0, "Probability out of range"
     assert 0 <= p_end <= 1.0, "Probability out of range"
     assert 0 < min_len < max_len, "Check your min_len and max_len definitions"
+    p_end = max(p_end, 1e-8)  # numpy.random.geometric(p=.0, size=10) = WTF
     self.p, self.p_end, self.del_len_min, self.del_len_max = p, p_end, min_len, max_len
 
   def get_variants(self, ref, p=None, f=None, seed=1, **kwargs):
