@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 __example_param_text__ = """
 {
   "p": 0.01,           # probability that the deletion will happen at any given base
-  "del_len_min": 10,   # Lower bound on deletion lengths
-  "del_len_max": 1000  # upper bound on deletion lengths
+  "min_len": 10,   # Lower bound on deletion lengths
+  "max_len": 1000  # upper bound on deletion lengths
 }
 """
 
