@@ -41,9 +41,10 @@ def parse_vcf(fname):
     header, seq_metadata = parse_header(fp)
     master_lists = [vr.VariantList() for _ in header.keys()]
     data = [[[], [], [], [], []] for _ in header.keys()]  # pos_a, stop_a, ref_a, alt_a, gt
-    zygosity = {'0|1': 1, '1|0': 0, '1|1': 2}
+    zygosity = {'0|1': 1, '1|0': 0, '1|1': 2, '0/1': 1, '1/0': 0, '1/1': 2}
     for line in fp:
       cells = line.split()  # CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	s3
+      if cells[9] not in zygosity: continue
       this_d = data[header[cells[0]]]
       this_d[0].append(int(cells[1]) - 1)  #  VCF files are 1 indexed, we are, internally, 0 indexed
       this_d[1].append(int(cells[1]) + len(cells[3]) - 1)
