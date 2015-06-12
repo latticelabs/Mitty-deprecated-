@@ -73,3 +73,24 @@ def self_test_all_found_plugins():
         test_wrapper.description = name + ' (variant plugin) self test(s): ' + (test[1].func_doc or test[1].__name__)
         # We can't ensure that a dev will provide us with a function doc, so we use the name if can't find a doc string
         yield test_wrapper, test
+
+
+def sanity_check_all_found_plugins_test():
+  """Sanity check on automatically found mutation plugin"""
+  for name, module in mitty.lib.discover_all_variant_plugins():
+    variant_sanity_check.description = name + ' (variant plugin) sanity check'
+    yield variant_sanity_check, mitty.lib.load_variant_plugin(name).Model()
+
+
+def variant_sanity_check(m):
+  """Convenience function. Given an initialized model try and do a sanity check test with it."""
+  ref_seq = 'ACTG' * 1000
+  pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=10)
+  if len(pos) == 0:
+    raise SkipTest('The defaults do not yield any variants to test')
+
+  for p, s, r, a in zip(pos, stop, ref, alt):
+    assert r[0] == ref_seq[p]
+    if len(r) != len(a):
+      assert a[0] == ref_seq[p]
+    assert s == p + len(r)
