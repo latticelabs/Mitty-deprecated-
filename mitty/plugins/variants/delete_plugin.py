@@ -67,7 +67,7 @@ class Model:
       # http://stackoverflow.com/questions/8081545/convert-list-of-tuples-to-multiple-lists-in-python
       idx, refs, alts = map(list, itertools.izip(*((n, ref[del_loc:del_loc + del_len + 1], ref[del_loc]) for n, (del_loc, del_len) in enumerate(np.nditer([del_locs, del_lens])) if ref[del_loc + del_len - 1] != 'N')))
       # This gets rid of any deletions that stretch into the 'N' regions of a sequence
-      del_locs, del_ends, p = del_locs[idx], del_locs[idx] + del_lens[idx], 1.0 - del_lens[idx] / float(del_lens[idx].max())
+      del_locs, del_ends, p = del_locs[idx], del_locs[idx] + del_lens[idx] + 1, 1.0 - del_lens[idx] / float(del_lens[idx].max())
     else:
       del_ends, refs, alts, p = [], [], [], []
     return del_locs, del_ends, refs, alts, p
@@ -79,15 +79,6 @@ def test0():
   m = Model(p=0.00001)
   pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=10)
   assert len(pos) == 0  # This should just run and not crash
-
-
-def test():
-  """Basic test"""
-  ref_seq = 'ACTGACTGACTGACTGACTGACTGACTGACTGACTG'
-  m = Model(p=0.1)
-  pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=10)
-  for p, r in zip(pos, alt):
-    assert r == ref_seq[p]
 
 
 if __name__ == "__main__":

@@ -25,7 +25,7 @@ _example_params = eval(__example_param_text__)
 
 
 class Model:
-  def __init__(self, p=0.01, min_len=10, max_len=1000, ref=None):
+  def __init__(self, p=0.01, min_len=1, max_len=1000, ref=None):
     assert 0 <= p <= 1.0, "Probability out of range"
     assert 0 < min_len < max_len, "Check your min_len and max_len definitions"
     self.p, self.del_len_min, self.del_len_max = p, min_len, max_len
@@ -60,7 +60,7 @@ class Model:
       # http://stackoverflow.com/questions/8081545/convert-list-of-tuples-to-multiple-lists-in-python
       idx, refs, alts = map(list, itertools.izip(*((n, ref[del_loc:del_loc + del_len + 1], ref[del_loc]) for n, (del_loc, del_len) in enumerate(np.nditer([del_locs, del_lens])) if ref[del_loc + del_len - 1] != 'N')))
       # This gets rid of any deletions that stretch into the 'N' regions of a sequence
-      del_locs, del_ends, p = del_locs[idx], del_locs[idx] + del_lens[idx], 1.0 - del_lens[idx] / float(del_lens[idx].max())
+      del_locs, del_ends, p = del_locs[idx], del_locs[idx] + del_lens[idx] + 1, 1.0 - del_lens[idx] / float(del_lens[idx].max())
     else:
       del_ends, refs, alts, p = [], [], [], []
     return del_locs, del_ends, refs, alts, p
