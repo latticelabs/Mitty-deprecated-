@@ -1,6 +1,4 @@
-import tempfile
-import os
-from nose.tools import assert_list_equal, assert_dict_equal, assert_sequence_equal
+from nose.tools import assert_sequence_equal
 from nose.tools import assert_raises
 from numpy.testing import assert_array_equal
 
@@ -17,10 +15,7 @@ def master_list_roundtrip_test():
   p = [0.1, 0.5, 0.9]
   ml = vr.VariantList(pos, stop, ref, alt, p)
 
-  temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
-  os.close(temp_fp)
-  conn = mdb.connect(temp_name)
-
+  conn = mdb.connect(':memory:')
   assert_raises(AssertionError, mdb.save_master_list, conn, 1, ml)  # We gotta sort this first
 
   ml.sort()
@@ -33,10 +28,7 @@ def master_list_roundtrip_test():
 def sample_roundtrip_test():
   """Sample round-trip (save and load from database)"""
   chrom = [(1, 0), (2, 1), (3, 2), (1073741823, 2)]
-
-  temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
-  os.close(temp_fp)
-  conn = mdb.connect(temp_name)
+  conn = mdb.connect(':memory:')
 
   cid = mdb.save_sample(conn, 0, 0, 1, chrom)
   assert cid == 1
@@ -44,14 +36,10 @@ def sample_roundtrip_test():
   c2 = mdb.load_sample(conn, 0, 0, 1)
   assert_sequence_equal(chrom, c2)
 
-  os.remove(temp_name)
-
 
 def chrom_metadata_roundtrip_test():
   """Chromosome metadata round-trip"""
-  temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
-  os.close(temp_fp)
-  conn = mdb.connect(temp_name)
+  conn = mdb.connect(':memory:')
 
   seq_id1 = 'Old McDonald had a farm'
   seq1 = 'Eeya Eeya O. And on this farm he had a goat, Eeya Eeya O'

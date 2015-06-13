@@ -63,8 +63,7 @@ def vcf_contextmanager_test():
     with mio.vcf_for_writing(tn, ['a', 'b']) as fp:
       fp.write('a')
 
-  temp_fp, temp_name = tempfile.mkstemp(suffix='.vcf.gz')
-  os.close(temp_fp)
+  _, temp_name = tempfile.mkstemp(suffix='.vcf.gz')
 
   assert_raises(NotImplementedError, do_this, temp_name)
 
@@ -90,3 +89,5 @@ def vcf_contextmanager_test():
   assert v[2].ref == 'GAAAA'
   assert v[2].alt == 'G'
   assert v[2].gt == '1|1'
+
+  os.remove(temp_name)

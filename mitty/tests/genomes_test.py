@@ -17,8 +17,7 @@ from mitty.tests import *  # To get definitions from the setup script
 
 def run_simulations_test():
   """Core simulation loop"""
-  temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
-  os.close(temp_fp)
+  _, temp_name = tempfile.mkstemp(suffix='.sqlite3')
 
   pop_db_name = temp_name
   ref = mio.Fasta(multi_dir=example_data_dir)
@@ -48,13 +47,17 @@ def run_simulations_test():
   ml = mdb.load_sample(conn, 0, 0, 3)  # Should be no such table
   assert len(ml) == 0
 
+  os.remove(temp_name)
+
 
 def integration_test():
   """'genomes' command line program"""
+  _, param_file = tempfile.mkstemp(suffix='.json')
+  _, db_file = tempfile.mkstemp(suffix='.db')
   test_params = {
     "files": {
       "reference_dir": example_data_dir,
-      "dbfile": "test.db"
+      "dbfile": db_file
     },
     "rng": {
       "master_seed": 1
@@ -79,12 +82,14 @@ def integration_test():
     ]
   }
 
-  tdir = tempfile.gettempdir()
-  pfile = os.path.join(tdir, 'pfile.json')
-  json.dump(test_params, open(pfile, 'w'))
+  json.dump(test_params, open(param_file, 'w'))
+  genomes.generate({'<pfile>': param_file, '-p': False})
 
-  genomes.generate({'<pfile>': pfile, '-p': False})
-
-  conn = mdb.connect(os.path.join(tdir, 'test.db'))
+  conn = mdb.connect(db_file)
   ml = mdb.load_master_list(conn, 1)
+  conn.close()
+
+  os.remove(param_file)
+  os.remove(db_file)
+
   assert len(ml) > 0
