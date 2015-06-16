@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
-
+__version__ = eval(open('mitty/version.py').read().split('=')[1])
 setup(
     name='mitty',
-    version='1.3.4.dev',
+    version=__version__,
     description='Simulator for genomic data',
     author='Seven Bridges Genomics',
     author_email='kaushik.ghose@sbgenomics.com',

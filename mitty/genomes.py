@@ -1,5 +1,7 @@
 #!python
-__cmd__ = """Generate simulated genomes from a simulation parameter file.
+from mitty.version import __version__
+
+__cmd__ = """genomes ({:s}): Generate simulated genomes from a simulation parameter file.
 
 Commandline::
 
@@ -32,7 +34,7 @@ Commandline::
     list                    List the models
     -v                      Dump log messages
     -V                      Dump detailed log messages
-    -p                      Show progress bar"""
+    -p                      Show progress bar""".format(__version__)
 
 __param__ = """Parameter file example::
 

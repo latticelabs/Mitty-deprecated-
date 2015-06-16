@@ -1,5 +1,7 @@
 #!python
-__cmd__ = """This program generates reads from a genome (either a reference genome or a sample genome).
+from mitty.version import __version__
+
+__cmd__ = """reads ({:s}): Generate reads from a genome (either a reference genome or a sample genome).
 The read characteristics are governed by the chosen read plugin.
 
 Commandline::
@@ -20,7 +22,7 @@ Commandline::
     -p              Show progress bar
     -v              Dump detailed logger messages
     -V              Dump very detailed logger messages
-"""
+""".format(__version__)
 
 __param__ = """Parameter file example::
 
