@@ -147,8 +147,7 @@ def load_generic_multi_fasta(fa_fname):
   ref_seq = {}
   chr_no = 1
   with gzip.open(fa_fname, 'r') if fa_fname.endswith('gz') else open(fa_fname, 'r') as fp:
-    l = fp.read()
-  seq_strings = l.split('>')
+    seq_strings = fp.read().split('>')
   for seq_string in seq_strings:
     if seq_string == '':
       continue
