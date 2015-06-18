@@ -28,7 +28,7 @@ def split_multi_fasta_gz(fa_fname, dir_out):
   def write_it_out(d_out, ch, sid, seq):
     logger.debug('Writing out {:s}'.format(sid))
     with open(os.path.join(d_out, 'chr{:d}.fa'.format(ch)), 'w') as fp_out:
-      fp_out.write(sid + '\n')
+      fp_out.write('>' + sid + '\n')
       s = ''.join(seq)
       fp_out.write(s)
     with open(os.path.join(d_out, 'index.csv'), 'a') as fp_out:
