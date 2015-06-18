@@ -155,6 +155,7 @@ class CategorizedReads:
     """
     if fname is not None:
       self.sequences = self.load_from_file(fname)
+      self.copies = len(self.sequences[0][2])
       self.finalized = True
     else:
       assert len(seq_names) > 0
@@ -165,6 +166,7 @@ class CategorizedReads:
       if len(byte_size) == 0: raise ArithmeticError("Can't find an integer `array` type 4 bytes wide")
       dtype = dtypes[byte_size[0]]
       self.sequences = [[seq, l, [[array.array(dtype), array.array(dtype), array.array('B')] for _ in xrange(copies)]] for seq, l in zip(seq_names, seq_lengths)]
+      self.copies = copies
       self.finalized = False
 
   def append(self, chrom, cpy, pos, read_len, code):
@@ -196,12 +198,12 @@ class CategorizedReads:
         array_name = 'chrom_{:d}_copy_{:d}'.format(chr_no + 1, cpy)
         arrays_to_save[array_name + '_pos'] = np.frombuffer(d[0], dtype='uint32')
         arrays_to_save[array_name + '_stop'] = np.frombuffer(d[1], dtype='uint32')
-        arrays_to_save[array_name + '_code'] = np.frombuffer(d[2], dtype='B')
+        arrays_to_save[array_name + '_cat'] = np.frombuffer(d[2], dtype='B')
         srt_idx = np.argsort(arrays_to_save[array_name + '_pos'])
         #from IPython import embed; embed()
         arrays_to_save[array_name + '_pos'] = arrays_to_save[array_name + '_pos'][srt_idx]
         arrays_to_save[array_name + '_stop'] = arrays_to_save[array_name + '_stop'][srt_idx]
-        arrays_to_save[array_name + '_code'] = arrays_to_save[array_name + '_code'][srt_idx]
+        arrays_to_save[array_name + '_cat'] = arrays_to_save[array_name + '_cat'][srt_idx]
 
     np.savez_compressed(fname, **arrays_to_save)
     self.finalized = True
@@ -216,7 +218,7 @@ class CategorizedReads:
           [
             [fp['chrom_{:d}_copy_{:d}_pos'.format(ch + 1, cpy)],
              fp['chrom_{:d}_copy_{:d}_stop'.format(ch + 1, cpy)],
-             fp['chrom_{:d}_copy_{:d}_code'.format(ch + 1, cpy)]] for cpy in range(fp['copies'])
+             fp['chrom_{:d}_copy_{:d}_cat'.format(ch + 1, cpy)]] for cpy in range(fp['copies'])
           ]
         ]
         for ch, (seq_name, seq_len) in enumerate(zip(seq_names, seq_lengths))
@@ -224,14 +226,25 @@ class CategorizedReads:
     return sequences
 
   def get_data(self, chrom, cpy):
-    assert 0 < chrom < len(self.sequences), 'Enter a valid chromosome number'
+    assert 0 < chrom <= len(self.sequences), 'Enter a valid chromosome number'
     s = self.sequences[chrom - 1][2][cpy]
-    return {'pos': s[0], 'stop': s[1], 'code': s[2]}
+    return {'pos': s[0], 'stop': s[1], 'cat': s[2]}
+
+  def __len__(self):
+    return len(self.sequences)
+
+  def chromosomes(self):
+    return range(1, len(self) + 1)
 
   def __repr__(self):
     """Print out some useful information about ourselves"""
     rep_str = 'Read alignment analysis\n'
     rep_str += '{:d} chromosomes, {:d} copies each\n'.format(len(self.sequences), len(self.sequences[0][2]))
+    for n in self.chromosomes():
+      rep_str += 'Chrom {:d}: '.format(n)
+      for c in range(self.copies):
+         rep_str += 'copy {:d}: {:d} reads, '.format(c, self.get_data(n, c)['cat'].shape[0])
+      rep_str += '\n'
     # TODO add more data
     return rep_str
 
