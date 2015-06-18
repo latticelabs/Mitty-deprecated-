@@ -89,7 +89,7 @@ def load_master_list(conn, chrom):
   try:
     rows = [c for c in conn.execute("SELECT * FROM master_chrom_{:d}".format(chrom))]
     dtype = [('pos', 'i4'), ('stop', 'i4'), ('ref', 'object'), ('alt', 'object'), ('p', 'f2')]
-    ml.variants = numpy.core.records.fromrecords(rows, dtype=dtype)
+    ml.variants = numpy.array(rows, dtype=dtype)
   except sq.OperationalError:
     pass  # TODO: log some kind of warning? Or assume we just don' have any variants for that chromosome?
   ml.sorted = True  # We assume that this had been sorted etc. before saving
