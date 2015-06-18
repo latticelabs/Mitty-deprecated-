@@ -147,18 +147,19 @@ def load_generic_multi_fasta(fa_fname):
   ref_seq = {}
   chr_no = 1
   with gzip.open(fa_fname, 'r') if fa_fname.endswith('gz') else open(fa_fname, 'r') as fp:
-    for seq_string in fp.read().split('>'):
-      if seq_string == '':
-        continue
-      idx = seq_string.find('\n')
-      if idx == -1:
-        raise RuntimeError('Something wrong with the fasta file {:s}'.format(fa_fname))
-      if idx == 0:
-        continue  # Empty line, ignore
-      seq_id = seq_string[:idx]
-      seq = seq_string[idx:].replace('\n', '').upper()
-      ref_seq[chr_no] = (seq, seq_id)
-      chr_no += 1
+    seq_strings = fp.read().split('>')
+  for n in range(len(seq_strings)):
+    seq_string = seq_strings[n]
+    if seq_string == '':
+      continue
+    idx = seq_string.find('\n')
+    if idx == -1:
+      raise RuntimeError('Something wrong with the fasta file {:s}'.format(fa_fname))
+    if idx == 0:
+      continue  # Empty line, ignore
+    ref_seq[chr_no] = (seq_string[idx:].replace('\n', '').upper(), seq_string[:idx])
+    chr_no += 1
+    seq_strings[n] = None
   return ref_seq
 
 
