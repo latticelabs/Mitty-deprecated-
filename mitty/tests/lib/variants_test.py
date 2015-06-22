@@ -1,5 +1,9 @@
 import mitty.lib.variants as vr
+
 from nose.tools import assert_sequence_equal
+from nose.tools import assert_raises
+
+import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 
@@ -153,3 +157,45 @@ def zip_test():
   assert_sequence_equal(chrom, [(0, 2), (2, 2)])
 
 
+def master_list_roundtrip_test():
+  """Master list round trip"""
+  pos = [1, 10, 20]
+  stop = [2, 11, 21]
+  ref = ['A', 'C', 'T']
+  alt = ['AA', 'CAT', 'G']
+  p = [0.1, 0.5, 0.9]
+  ml = vr.VariantList(pos, stop, ref, alt, p)
+
+  pl = vr.Population()
+  assert_raises(AssertionError, pl.set_master_list, 1, ml)  # We gotta sort this first
+
+  ml.sort()
+  pl.set_master_list(1, ml)
+
+  ml2 = pl.get_master_list(1)
+  assert_array_equal(ml.variants, ml2.variants)
+
+  pl = vr.Population(master_list={1: ml})
+  assert_array_equal(ml.variants, pl.get_master_list(1).variants)
+
+
+def sample_roundtrip_test():
+  """Sample round-trip (save and load)"""
+  chrom = np.array([(1, 0), (2, 1), (3, 2), (1073741823, 2)], dtype=[('index', 'i4'), ('gt', 'B')])
+  pl = vr.Population()
+  pl.add_sample(chrom=1, sample_name='my_sample', indexes=chrom)
+  c2 = pl.get_sample(chrom=1, sample_name='my_sample')
+  assert_array_equal(chrom, c2)
+
+
+def chrom_metadata_roundtrip_test():
+  """Chromosome metadata round-trip"""
+  chrom_metadata = [
+    {'seq_id': 'Old McDonald had a farm', 'seq_len': 100, 'seq_md5': 23},
+    {'seq_id': 'Five little monkeys jumping on the bed', 'seq_len': 200, 'seq_md5': 99},
+  ]
+
+  pl = vr.Population()
+  pl.set_chromosome_metadata(chrom_metadata)
+
+  assert chrom_metadata == pl.get_chromosome_metadata()

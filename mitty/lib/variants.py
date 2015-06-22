@@ -3,20 +3,22 @@ import h5py
 
 
 class Population:
-  """This class abstracts the storage and retrieval of the master list and samples of a population"""
-  def __init__(self, fname=None, master_list=None, samples=None):
+  """This class abstracts the storage and retrieval of the master list and samples of a population
+
+  All data can be accessed by descriptively named functions.
+  Chromosome metadata (seq id, seq len and seq md5) is stored
+  If we set metadata all chromosomes will appear
+  """
+  def __init__(self, fname=None, master_list=None):
     """Load a population from file, or create a new file. Over write or store the passed master list and/or samples
 
     :param fname:       name of the file to store/load data from
     :param master_list: {chrom: new master lists (overwrites existing one if any) ...}
-    :param samples:     {chrom: {sample name: np.array([(chrom, gt)] ...} ...}
 
     The behavior is as follows:
     1. If fname is None, create a HDf5 file in memory
     2. If fname exists, open the file and load the master list
     3. If a master list is given, overwrite the existing master list if any and erase the samples
-    4. If samples are given append them to the existing samples, if any, overwriting any with common names
-       The samples are assumed to be sorted and correct and belonging to the master list. No checks are done.
     """
     if fname is None:
       self.fp = h5py.File(name='in_memory', driver='core')  # Create it in memory
@@ -27,9 +29,28 @@ class Population:
       for chrom, ml in master_list.iteritems():
         self.set_master_list(chrom, ml)
 
-    if samples is not None:
-      for chrom, s in samples.iteritems():
-        self.add_samples(chrom, s)
+  def set_chromosome_metadata(self, meta_data_list):
+    """Save chromosome sequence metadata
+
+    :param meta_data_list: [{seq_id, seq_len, seq_md5} ...] in same order as seen in fa.gz file
+                           same format as returned by Fasta.get_seq_metadata
+    """
+    for n, meta in enumerate(meta_data_list):
+      chrom = n + 1  # By convention we number chromosomes 1, 2, 3 ... in the same order as in the fa.gz file
+      chrom_key = self.get_chrom_key(chrom)
+      chrom_grp = self.fp[chrom_key] if chrom_key in self.fp else self.fp.create_group(chrom_key)
+      for k, v in meta.iteritems():
+        chrom_grp.attrs[k] = v
+
+  def get_chromosome_list(self):
+    return [int(ch[6:]) for ch in self.fp.keys() if ch.startswith('chrom_')]
+
+  def get_chromosome_metadata(self):
+    """Get chromosome metadata
+
+    :returns [{seq_id, seq_len, seq_md5} ...] same format as returned by Fasta.get_seq_metadata
+    """
+    return [dict(self.fp[self.get_chrom_key(n)].attrs) for n in self.get_chromosome_list()]
 
   @staticmethod
   def get_chrom_key(chrom):
@@ -40,30 +61,39 @@ class Population:
     return '/chrom_{:d}/master_list'.format(chrom)
 
   @staticmethod
-  def get_sample_key(chrom, sample_name):
-    return '/chrom_{:d}/samples/{:s}'.format(chrom, sample_name)
+  def get_sample_key(chrom):
+    return '/chrom_{:d}/samples/'.format(chrom)
 
   def set_master_list(self, chrom, master_list):
     """Replace any existing master list with this one. Erase any existing samples
 
     :param master_list:
     """
-    chrom_key = self.get_chrom_key(chrom)
-    if chrom_key in self.fp:
-      del self.fp[chrom_key]
+    assert master_list.sorted, 'Master list has not been sorted. Please check your program'
+    assert len(master_list) <= 1073741823, 'Master list has more than 2^30-1 variants.'  # I want whoever gets here to mail me: kaushik.ghose@sbgenomics.com
 
+    key = self.get_ml_key(chrom)
+    if key in self.fp:
+      del self.fp[key]
+    sample_key = self.get_sample_key(chrom)
+    if sample_key in self.fp:
+      del self.fp[sample_key]
     dt = h5py.special_dtype(vlen=bytes)
     self.fp.create_dataset(self.get_ml_key(chrom), shape=master_list.variants.shape,
                            dtype=[('pos', 'i4'), ('stop', 'i4'), ('ref', dt), ('alt', dt), ('p', 'f2')],
                            data=master_list.variants, chunks=True, compression='gzip')
 
-  def add_samples(self, chrom, samples):
-    """Add samples. Overwrite any existing samples whose names match. No check is done to ensure list is sorted
+  def add_sample(self, chrom, sample_name, indexes):
+    """Add sample. Overwrite if name matches existing sample. No check is done to ensure list is sorted
 
-    :param samples:  {sample name: np.array([(chrom, gt)] ...}
+    :param chrom:  chrom number [1, 2, 3, ...]
+    :param sample_name:
+    :param indexes: [(chrom, gt) ...]
     """
-    for k, v in samples:
-      self.fp.create_dataset(name=self.get_sample_key(chrom, k), shape=v.shape, dtype=v.dtype, data=v, chunks=True, compression='gzip')
+    key = self.get_sample_key(chrom) + '/' + sample_name
+    if key in self.fp:
+      del self.fp[key]
+    self.fp.create_dataset(name=key, shape=indexes.shape, dtype=indexes.dtype, data=indexes, chunks=True, compression='gzip')
 
   def get_master_list(self, chrom):
     """This function loads the whole data set into memory. We have no need for chunked access right now"""
@@ -74,7 +104,8 @@ class Population:
 
   def get_sample(self, chrom, sample_name):
     """This function loads the whole data set into memory. We have no need for chunked access right now"""
-    return self.fp[self.get_sample_key(chrom, sample_name)][:] if self.get_sample_key(chrom, sample_name) in self.fp else None
+    sample_key = self.get_sample_key(chrom) + '/' + sample_name
+    return self.fp[sample_key][:] if sample_key in self.fp else None
 
 
 class VariantList:
