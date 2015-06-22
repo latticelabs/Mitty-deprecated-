@@ -109,7 +109,7 @@ class Fasta:
     return self[chrom]['md5']
 
   def get_seq_metadata(self):
-    """Return a a list of (seq_id, seq_len, seq_md5) in same order as seen in fa.gz file"""
+    """Return a a list of {seq_id, seq_len, seq_md5} in same order as seen in fa.gz file"""
     return self.seq_index
 
   def __repr__(self):
