@@ -1,4 +1,80 @@
 import numpy as np
+import h5py
+
+
+class Population:
+  """This class abstracts the storage and retrieval of the master list and samples of a population"""
+  def __init__(self, fname=None, master_list=None, samples=None):
+    """Load a population from file, or create a new file. Over write or store the passed master list and/or samples
+
+    :param fname:       name of the file to store/load data from
+    :param master_list: {chrom: new master lists (overwrites existing one if any) ...}
+    :param samples:     {chrom: {sample name: np.array([(chrom, gt)] ...} ...}
+
+    The behavior is as follows:
+    1. If fname is None, create a HDf5 file in memory
+    2. If fname exists, open the file and load the master list
+    3. If a master list is given, overwrite the existing master list if any and erase the samples
+    4. If samples are given append them to the existing samples, if any, overwriting any with common names
+       The samples are assumed to be sorted and correct and belonging to the master list. No checks are done.
+    """
+    if fname is None:
+      self.fp = h5py.File(name='in_memory', driver='core')  # Create it in memory
+    else:
+      self.fp = h5py.File(name=fname)
+
+    if master_list is not None:
+      for chrom, ml in master_list.iteritems():
+        self.set_master_list(chrom, ml)
+
+    if samples is not None:
+      for chrom, s in samples.iteritems():
+        self.add_samples(chrom, s)
+
+  @staticmethod
+  def get_chrom_key(chrom):
+    return '/chrom_{:d}'.format(chrom)
+
+  @staticmethod
+  def get_ml_key(chrom):
+    return '/chrom_{:d}/master_list'.format(chrom)
+
+  @staticmethod
+  def get_sample_key(chrom, sample_name):
+    return '/chrom_{:d}/samples/{:s}'.format(chrom, sample_name)
+
+  def set_master_list(self, chrom, master_list):
+    """Replace any existing master list with this one. Erase any existing samples
+
+    :param master_list:
+    """
+    chrom_key = self.get_chrom_key(chrom)
+    if chrom_key in self.fp:
+      del self.fp[chrom_key]
+
+    dt = h5py.special_dtype(vlen=bytes)
+    self.fp.create_dataset(self.get_ml_key(chrom), shape=master_list.variants.shape,
+                           dtype=[('pos', 'i4'), ('stop', 'i4'), ('ref', dt), ('alt', dt), ('p', 'f2')],
+                           data=master_list.variants, chunks=True, compression='gzip')
+
+  def add_samples(self, chrom, samples):
+    """Add samples. Overwrite any existing samples whose names match. No check is done to ensure list is sorted
+
+    :param samples:  {sample name: np.array([(chrom, gt)] ...}
+    """
+    for k, v in samples:
+      self.fp.create_dataset(name=self.get_sample_key(chrom, k), shape=v.shape, dtype=v.dtype, data=v, chunks=True, compression='gzip')
+
+  def get_master_list(self, chrom):
+    """This function loads the whole data set into memory. We have no need for chunked access right now"""
+    ml = VariantList()
+    if self.get_ml_key(chrom) in self.fp:
+      ml.variants = self.fp[self.get_ml_key(chrom)][:]
+    return ml
+
+  def get_sample(self, chrom, sample_name):
+    """This function loads the whole data set into memory. We have no need for chunked access right now"""
+    return self.fp[self.get_sample_key(chrom, sample_name)][:] if self.get_sample_key(chrom, sample_name) in self.fp else None
 
 
 class VariantList:
