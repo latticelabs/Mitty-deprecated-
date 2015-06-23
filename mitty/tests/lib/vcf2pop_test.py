@@ -9,7 +9,7 @@ from numpy.testing import assert_array_equal
 import os
 import tempfile
 
-seq_meta_data = [
+genome_metadata = [
   {'seq_id': 'NC_010127.1', 'seq_len': 422616, 'seq_md5': 'fe4be2f3bc5a7754085ceaa39a5c0414'},
   {'seq_id': 'NC_010128.1', 'seq_len': 457013, 'seq_md5': '99880025dcbcba5dbf72f437092903c3'},
   {'seq_id': 'NC_010129.1', 'seq_len': 481791, 'seq_md5': 'a3a5142f08b313f645cd5e972f5f3397'},
@@ -32,8 +32,9 @@ def round_trip_test():
   master_lists = {n + 1: vr.VariantList(vd['pos'], vd['stop'], vd['ref'], vd['alt'], vd['p']) for n, vd in enumerate(variant_data)}
   for k, v in master_lists.iteritems(): v.sort()
 
-  pop = vr.Population(master_lists=master_lists)
-  pop.set_genome_metadata(seq_meta_data)
+  pop = vr.Population(genome_metadata=genome_metadata)
+  for k, v in master_lists.iteritems():
+    pop.set_master_list(chrom=k, master_list=v)
 
   for n in [0, 1]:
     pop.add_sample_chromosome(n + 1, 'brown_fox', np.array(genotype_data[n], dtype=[('index', 'i4'), ('gt', 'i1')]))
@@ -51,7 +52,5 @@ def round_trip_test():
       assert v1[1] == v2[1]  # Genotypes match
       for k in ['pos', 'stop', 'ref', 'alt']:
         assert pop2.get_master_list(n + 1).variants[v1[0]][k] == master_lists[n + 1].variants[v2[0]][k]  # Variant data match
-
-
 
   os.remove(temp_name)

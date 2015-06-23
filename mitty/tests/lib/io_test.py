@@ -113,9 +113,10 @@ def write_single_sample_to_vcf_test():
   ml.sort()
   chrom = np.array([(0, 0), (2, 1), (3, 2)], dtype=[('index', 'i4'), ('gt', 'i1')])
 
-  pop = vr.Population(master_lists={1: ml})
+  genome_metadata = [{'seq_id': 'chr1', 'seq_len': 10, 'seq_md5': '10'}]
+  pop = vr.Population(genome_metadata=genome_metadata)
+  pop.set_master_list(chrom=1, master_list=ml)
   pop.add_sample_chromosome(chrom=1, sample_name='brown_fox', indexes=chrom)
-  pop.set_genome_metadata([{'seq_id': 'chrom1', 'seq_len': 10, 'seq_md5': '12'}])
 
   _, temp_name = tempfile.mkstemp(suffix='.vcf.gz')
   mio.write_single_sample_to_vcf(pop, temp_name, sample_name='brown_fox')

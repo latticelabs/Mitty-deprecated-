@@ -159,6 +159,8 @@ def zip_test():
 
 def master_list_roundtrip_test():
   """Master list round trip"""
+  genome_metadata = [{'seq_id': 'chr1', 'seq_len': 10, 'seq_md5': '10'}]
+
   pos = [1, 10, 20]
   stop = [2, 11, 21]
   ref = ['A', 'C', 'T']
@@ -166,7 +168,7 @@ def master_list_roundtrip_test():
   p = [0.1, 0.5, 0.9]
   ml = vr.VariantList(pos, stop, ref, alt, p)
 
-  pl = vr.Population()
+  pl = vr.Population(genome_metadata=genome_metadata)
   assert_raises(AssertionError, pl.set_master_list, 1, ml)  # We gotta sort this first
 
   ml.sort()
@@ -175,14 +177,16 @@ def master_list_roundtrip_test():
   ml2 = pl.get_master_list(1)
   assert_array_equal(ml.variants, ml2.variants)
 
-  pl = vr.Population(master_lists={1: ml})
+  pl = vr.Population(genome_metadata=genome_metadata)
+  pl.set_master_list(1, ml)
   assert_array_equal(ml.variants, pl.get_master_list(1).variants)
 
 
 def sample_roundtrip_test():
   """Sample round-trip (save and load)"""
+  genome_metadata = [{'seq_id': 'chr1', 'seq_len': 10, 'seq_md5': '10'}]
   chrom = np.array([(1, 0), (2, 1), (3, 2), (1073741823, 2)], dtype=[('index', 'i4'), ('gt', 'i1')])
-  pl = vr.Population()
+  pl = vr.Population(genome_metadata=genome_metadata)
   pl.add_sample_chromosome(chrom=1, sample_name='my_sample', indexes=chrom)
   c2 = pl.get_sample_chromosome(chrom=1, sample_name='my_sample')
   assert_array_equal(chrom, c2)
@@ -190,12 +194,10 @@ def sample_roundtrip_test():
 
 def chrom_metadata_roundtrip_test():
   """Chromosome metadata round-trip"""
-  chrom_metadata = [
+  genome_metadata = [
     {'seq_id': 'Old McDonald had a farm', 'seq_len': 100, 'seq_md5': '23'},
     {'seq_id': 'Five little monkeys jumping on the bed', 'seq_len': 200, 'seq_md5': '99'},
   ]
 
-  pl = vr.Population()
-  pl.set_genome_metadata(chrom_metadata)
-
-  assert_sequence_equal(chrom_metadata, pl.get_genome_metadata())
+  pl = vr.Population(genome_metadata=genome_metadata)
+  assert_sequence_equal(genome_metadata, pl.get_genome_metadata())

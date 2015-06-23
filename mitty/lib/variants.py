@@ -5,15 +5,21 @@ import h5py
 class Population:
   """This class abstracts the storage and retrieval of the master list and samples of a population
 
-  All data can be accessed by descriptively named functions.
-  Chromosome metadata (seq id, seq len and seq md5) is stored
-  If we set metadata all chromosomes will appear
+  genome_metadata = [
+    {'seq_id': 'chr1', 'seq_len': 100, 'seq_md5': 'deadbeef'},
+    {'seq_id': 'chr2', 'seq_len': 200, 'seq_md5': '1337'},
+  ]
+  pop = Population(genome_metadata)
+  pop.
+
+
   """
-  def __init__(self, fname=None, master_lists=None):
+  def __init__(self, fname=None, genome_metadata=None):
     """Load a population from file, or create a new file. Over write or store the passed master list and/or samples
 
-    :param fname:       name of the file to store/load data from. If None an in-memory file is created
-    :param master_lists: {chrom: new master lists (overwrites existing one if any) ...}
+    :param fname: name of the file to store/load data from. If None an in-memory file is created
+    :param genome_metadata: [{seq_id, seq_len, seq_md5} ...] in same order as seen in fa.gz file
+                             same format as returned by Fasta.get_seq_metadata
 
     The behavior is as follows:
     1. If fname is None, create a HDf5 file in memory
@@ -24,18 +30,30 @@ class Population:
       self.fp = h5py.File(name=hex(id(self)), driver='core', backing_store=False)  # Create it in memory
     else:
       self.fp = h5py.File(name=fname)
+    if len(self.get_genome_metadata()) == 0:
+      if genome_metadata is None:
+        raise RuntimeError('Creating a new Population object requires genome metadata')
+      self.set_genome_metadata(genome_metadata)
 
-    if master_lists is not None:
-      for chrom, ml in master_lists.iteritems():
-        self.set_master_list(chrom, ml)
+  @staticmethod
+  def get_chrom_key(chrom):
+    return '/chrom_{:d}'.format(chrom)
 
-  def set_genome_metadata(self, meta_data_list):
+  @staticmethod
+  def get_ml_key(chrom):
+    return '/chrom_{:d}/master_list'.format(chrom)
+
+  @staticmethod
+  def get_sample_key(chrom):
+    return '/chrom_{:d}/samples/'.format(chrom)
+
+  def set_genome_metadata(self, genome_metadata):
     """Save chromosome sequence metadata
 
-    :param meta_data_list: [{seq_id, seq_len, seq_md5} ...] in same order as seen in fa.gz file
+    :param genome_metadata: [{seq_id, seq_len, seq_md5} ...] in same order as seen in fa.gz file
                            same format as returned by Fasta.get_seq_metadata
     """
-    for n, meta in enumerate(meta_data_list):
+    for n, meta in enumerate(genome_metadata):
       chrom = n + 1  # By convention we number chromosomes 1, 2, 3 ... in the same order as in the fa.gz file
       chrom_key = self.get_chrom_key(chrom)
       chrom_grp = self.fp[chrom_key] if chrom_key in self.fp else self.fp.create_group(chrom_key)
@@ -54,18 +72,6 @@ class Population:
 
   def get_chromosome_list(self):
     return [int(ch[6:]) for ch in self.fp.keys() if ch.startswith('chrom_')]
-
-  @staticmethod
-  def get_chrom_key(chrom):
-    return '/chrom_{:d}'.format(chrom)
-
-  @staticmethod
-  def get_ml_key(chrom):
-    return '/chrom_{:d}/master_list'.format(chrom)
-
-  @staticmethod
-  def get_sample_key(chrom):
-    return '/chrom_{:d}/samples/'.format(chrom)
 
   def set_master_list(self, chrom, master_list):
     """Replace any existing master list with this one. Erase any existing samples
