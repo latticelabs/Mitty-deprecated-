@@ -1,5 +1,5 @@
 import mitty.lib.vcf2db as vcf2db
-import mitty.lib.db as mdb
+import mitty.lib.io as mio
 import mitty.lib.variants as vr
 import mitty.genomes as genomes
 
@@ -26,20 +26,19 @@ genotype_data = [
 
 def round_trip_test():
   """vcf <-> mitty database round trip"""
-  master_lists = [vr.VariantList(vd['pos'], vd['stop'], vd['ref'], vd['alt'], vd['p']) for vd in variant_data]
+  master_lists = {n + 1: vr.VariantList(vd['pos'], vd['stop'], vd['ref'], vd['alt'], vd['p']) for n, vd in enumerate(variant_data)}
 
-  conn1 = mdb.connect(db_name=':memory:')
-  for n, meta in enumerate(seq_meta_data):
-    mdb.save_chromosome_metadata(conn1, n + 1, **meta)
+  pop = vr.Population(master_list=master_lists)
+  pop.set_genome_metadata(seq_meta_data)
 
-  for n, ml in enumerate(master_lists):
-    ml.sort()
-    mdb.save_master_list(conn1, n + 1, ml)
+  _, temp_name = tempfile.mkstemp(suffix='.vcf.gz')
+  mio.write_single_sample_to_vcf(pop, temp_name, sample_name='brown_fox')
 
-  for n, gt in enumerate(genotype_data):
-    mdb.save_sample(conn1, 0, 0, n + 1, gt)
 
   temp_vcf_prefix = os.path.join(tempfile.gettempdir(), 'test')
+
+
+
   genomes.write_sample_vcfs(conn1, [0], temp_vcf_prefix)
 
   _, temp_db_file = tempfile.mkstemp(suffix='db')

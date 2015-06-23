@@ -29,7 +29,7 @@ class Population:
       for chrom, ml in master_list.iteritems():
         self.set_master_list(chrom, ml)
 
-  def set_chromosome_metadata(self, meta_data_list):
+  def set_genome_metadata(self, meta_data_list):
     """Save chromosome sequence metadata
 
     :param meta_data_list: [{seq_id, seq_len, seq_md5} ...] in same order as seen in fa.gz file
@@ -42,15 +42,18 @@ class Population:
       for k, v in meta.iteritems():
         chrom_grp.attrs[k] = v
 
-  def get_chromosome_list(self):
-    return [int(ch[6:]) for ch in self.fp.keys() if ch.startswith('chrom_')]
-
-  def get_chromosome_metadata(self):
+  def get_genome_metadata(self):
     """Get chromosome metadata
 
     :returns [{seq_id, seq_len, seq_md5} ...] same format as returned by Fasta.get_seq_metadata
     """
     return [dict(self.fp[self.get_chrom_key(n)].attrs) for n in self.get_chromosome_list()]
+
+  def get_chromosome_metadata(self, chrom):
+    return dict(self.fp[self.get_chrom_key(chrom)].attrs)
+
+  def get_chromosome_list(self):
+    return [int(ch[6:]) for ch in self.fp.keys() if ch.startswith('chrom_')]
 
   @staticmethod
   def get_chrom_key(chrom):
@@ -93,7 +96,7 @@ class Population:
     key = self.get_sample_key(chrom) + '/' + sample_name
     if key in self.fp:
       del self.fp[key]
-    self.fp.create_dataset(name=key, shape=indexes.shape, dtype=indexes.dtype, data=indexes, chunks=True, compression='gzip')
+    self.fp.create_dataset(name=key, shape=indexes.shape, dtype=[('index', 'i4'), ('gt', 'i1')], data=indexes, chunks=True, compression='gzip')
 
   def get_master_list(self, chrom):
     """This function loads the whole data set into memory. We have no need for chunked access right now"""
@@ -102,10 +105,10 @@ class Population:
       ml.variants = self.fp[self.get_ml_key(chrom)][:]
     return ml
 
-  def get_sample(self, chrom, sample_name):
+  def get_sample_chromosome(self, chrom, sample_name):
     """This function loads the whole data set into memory. We have no need for chunked access right now"""
     sample_key = self.get_sample_key(chrom) + '/' + sample_name
-    return self.fp[sample_key][:] if sample_key in self.fp else None
+    return self.fp[sample_key][:] if sample_key in self.fp else np.array([], dtype=[('index', 'i4'), ('gt', 'i1')])
 
 
 class VariantList:

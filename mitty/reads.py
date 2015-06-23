@@ -221,7 +221,7 @@ def executor(cmd_args):
     conn = mdb.connect(db_name=pop_db_name)
   elif 'input_vcf' in params['files']:
     # In order to keep things modular we convert the VCF to a genome db file and then proceed
-    import mitty.lib.vcf2db as vcf2db
+    import mitty.lib.vcf2pop as vcf2pop
     vcf_fname = mitty.lib.rpath(base_dir, params['files']['input_vcf'])
     pop_db_name = fname_prefix + '_genome.db'
     if os.path.exists(pop_db_name):

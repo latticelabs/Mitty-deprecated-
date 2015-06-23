@@ -16,10 +16,7 @@ Commandline::
     --fig=FIG        Name of output figure file [default: align_fig.png]
     --samples=S      Samples to show [default: 1000]
 """
-import os
 import docopt
-import json
-import sqlite3 as sq
 
 import matplotlib
 orig_backend = matplotlib.get_backend()
@@ -31,10 +28,40 @@ import matplotlib.patches as patches
 from matplotlib.colors import LogNorm
 import numpy as np
 
-import mitty.util.perfectbam as pbam
+import mitty.benchmarking.perfectbam as pbam
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+def mis_mat_cell(conn, chrom1, pos11, pos12, chrom2, pos21, pos22):
+  """Get us the number of reads that should have aligned to chrom1 between pos11 and pos12 but ended up aligned to
+  chrom2 pos21, pos22
+
+  :param conn:    connection to mis-aligned reads database as produced by perfectbam
+  :param chrom1:  correct chrom
+  :param pos11:   correct pos lower bound
+  :param pos12:   correct pos upper bound
+  :param chrom2:  aligned chrom
+  :param pos21:   aligned pos lower bound
+  :param pos22:   aligned pos upper bound
+  :return: integer corresponding to read count
+  """
+  query = 'SELECT COUNT(*) FROM reads WHERE correct_chrom=? AND ? <= correct_pos AND ? < correct_pos AND aligned_chrom=? AND ? <= aligned_pos AND aligned_pos < ?'
+  return conn.execute(query, (chrom1, pos11, pos12, chrom2, pos21, pos22)).next()[0]
+
+
+def compute_mis_mat(conn, chrom_lens, bp_per_bin, reverse=False):
+  """Get us a matrix binning the number of reads going to and fro
+
+  :param conn:        connection to mis-aligned reads database as produced by perfectbam
+  :param chrom_lens:  list of chromosome lengths in order of chromosome number
+  :param bp_per_bin:  base-pairs per bin -> used to determine how many bins
+  :param reverse:     map aligned->correct instead of correct->aligned
+  :return: a numpy matrix
+  """
+
+
 
 
 # class Data:

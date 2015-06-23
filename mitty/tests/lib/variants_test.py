@@ -181,21 +181,21 @@ def master_list_roundtrip_test():
 
 def sample_roundtrip_test():
   """Sample round-trip (save and load)"""
-  chrom = np.array([(1, 0), (2, 1), (3, 2), (1073741823, 2)], dtype=[('index', 'i4'), ('gt', 'B')])
+  chrom = np.array([(1, 0), (2, 1), (3, 2), (1073741823, 2)], dtype=[('index', 'i4'), ('gt', 'i1')])
   pl = vr.Population()
   pl.add_sample(chrom=1, sample_name='my_sample', indexes=chrom)
-  c2 = pl.get_sample(chrom=1, sample_name='my_sample')
+  c2 = pl.get_sample_chromosome(chrom=1, sample_name='my_sample')
   assert_array_equal(chrom, c2)
 
 
 def chrom_metadata_roundtrip_test():
   """Chromosome metadata round-trip"""
   chrom_metadata = [
-    {'seq_id': 'Old McDonald had a farm', 'seq_len': 100, 'seq_md5': 23},
-    {'seq_id': 'Five little monkeys jumping on the bed', 'seq_len': 200, 'seq_md5': 99},
+    {'seq_id': 'Old McDonald had a farm', 'seq_len': 100, 'seq_md5': '23'},
+    {'seq_id': 'Five little monkeys jumping on the bed', 'seq_len': 200, 'seq_md5': '99'},
   ]
 
   pl = vr.Population()
-  pl.set_chromosome_metadata(chrom_metadata)
+  pl.set_genome_metadata(chrom_metadata)
 
-  assert chrom_metadata == pl.get_chromosome_metadata()
+  assert chrom_metadata == pl.get_genome_metadata()

@@ -61,9 +61,13 @@ def parse_vcf(fname):
   return master_lists, chroms, seq_metadata
 
 
-def vcf_to_db(vcf_fname, db_fname):
-  """This assumes a single sample VCF with only a GT field"""
+def vcf_to_pop(vcf_fname, pop_fname):
+  """Read a VCF file and store it as a Population structure
+  This assumes a single sample VCF with only a GT field"""
   mls, chroms, seq_metadata = parse_vcf(vcf_fname)
+  pop = vr.Population()
+
+
   conn = mdb.connect(db_name=db_fname)
 
   for n, meta in enumerate(seq_metadata):
