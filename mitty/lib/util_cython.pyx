@@ -29,7 +29,7 @@ def place_poisson_seq(rng, float p, unsigned long start_x, unsigned long end_x, 
     unsigned long idx
 
   these_locs = rng.geometric(p=p, size=est_block_size).cumsum()
-  return np.array([idx for idx in these_locs[np.searchsorted(these_locs, start_x):np.searchsorted(these_locs, end_x)] if s[idx] != 'N'], dtype='i4')
+  return np.array([idx for idx in these_locs[np.searchsorted(these_locs, start_x):np.searchsorted(these_locs, end_x)] if s[idx] in ['A', 'C', 'T', 'G']], dtype='i4')
 
 
 cdef unsigned char sub_base(unsigned char orig_base, unsigned char sub_mat[85][3], float ct_mat[85][3], float r):
