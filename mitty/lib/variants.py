@@ -296,4 +296,4 @@ def merge_homozygous(pos, z0, z1):
     chrom += [(z1[n1], 1)]
     n1 += 1
 
-  return chrom
+  return np.array(chrom, dtype=[('index', 'i4'), ('gt', 'i1')])

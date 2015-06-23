@@ -7,6 +7,11 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 
+def assert_index_array_equal(x, y):
+  dt = [('index', 'i4'), ('gt', 'i1')]
+  assert_array_equal(np.array(x, dtype=dt), np.array(y, dtype=dt))
+
+
 def initialize_test():
   """Initialize variant list"""
   pos = [1, 10, 20]
@@ -118,7 +123,7 @@ def merge_test():
   z0 = [0, 2, 3]
   z1 = [1, 2, 3]
   chrom = vr.merge_homozygous(pos, z0, z1)
-  assert_array_equal(chrom, [(0, 0), (1, 1), (2, 2), (3, 2)])
+  assert_index_array_equal(chrom, [(0, 0), (1, 1), (2, 2), (3, 2)])
 
 
 def merge_test1():
@@ -127,13 +132,13 @@ def merge_test1():
   z0 = [2, 4]
   z1 = [3]
   chrom = vr.merge_homozygous(pos, z0, z1)
-  assert_array_equal(chrom, [(2, 0), (3, 1), (4, 0)])
+  assert_index_array_equal(chrom, [(2, 0), (3, 1), (4, 0)])
 
   pos = [1, 2, 3, 4, 5]
   z0 = [0, 1]
   z1 = [2, 3]
   chrom = vr.merge_homozygous(pos, z0, z1)
-  assert_array_equal(chrom, [(0, 0), (1, 0), (2, 1), (3, 1)])
+  assert_index_array_equal(chrom, [(0, 0), (1, 0), (2, 1), (3, 1)])
 
 
 def merge_test2():
@@ -142,7 +147,7 @@ def merge_test2():
   z0 = [1, 2, 4]
   z1 = [0, 3]
   chrom = vr.merge_homozygous(pos, z0, z1)
-  assert_array_equal(chrom, [(0, 1), (1, 0), (2, 0), (3, 1), (4, 0)])
+  assert_index_array_equal(chrom, [(0, 1), (1, 0), (2, 0), (3, 1), (4, 0)])
 
 
 def zip_test():
@@ -154,7 +159,7 @@ def zip_test():
   p = [0.1, 0.5, 0.9]
   l = vr.VariantList(pos, stop, ref, alt, p)
   chrom = l.zip_up_chromosome([0, 1, 2], [0, 1, 2])
-  assert_sequence_equal(chrom, [(0, 2), (2, 2)])
+  assert_index_array_equal(chrom, [(0, 2), (2, 2)])
 
 
 def master_list_roundtrip_test():
