@@ -113,8 +113,8 @@ def write_single_sample_to_vcf_test():
   ml.sort()
   chrom = np.array([(0, 0), (2, 1), (3, 2)], dtype=[('index', 'i4'), ('gt', 'i1')])
 
-  pop = vr.Population(master_list={1: ml})
-  pop.add_sample(chrom=1, sample_name='brown_fox', indexes=chrom)
+  pop = vr.Population(master_lists={1: ml})
+  pop.add_sample_chromosome(chrom=1, sample_name='brown_fox', indexes=chrom)
   pop.set_genome_metadata([{'seq_id': 'chrom1', 'seq_len': 10, 'seq_md5': '12'}])
 
   _, temp_name = tempfile.mkstemp(suffix='.vcf.gz')

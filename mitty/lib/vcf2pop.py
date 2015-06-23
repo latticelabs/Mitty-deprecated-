@@ -3,7 +3,8 @@ rest of the system and to save the VCF as a genome db. It is used by `reads` to 
 import gzip
 import re
 
-import mitty.lib.db as mdb
+import numpy as np
+
 import mitty.lib.variants as vr
 
 
@@ -61,18 +62,13 @@ def parse_vcf(fname):
   return master_lists, chroms, seq_metadata
 
 
-def vcf_to_pop(vcf_fname, pop_fname):
+def vcf_to_pop(vcf_fname, pop_fname=None, sample_name='s1'):
   """Read a VCF file and store it as a Population structure
   This assumes a single sample VCF with only a GT field"""
   mls, chroms, seq_metadata = parse_vcf(vcf_fname)
-  pop = vr.Population()
-
-
-  conn = mdb.connect(db_name=db_fname)
-
-  for n, meta in enumerate(seq_metadata):
-    mdb.save_chromosome_metadata(conn, n + 1, **meta)
-    if len(mls[n]):
-      mdb.save_master_list(conn, n + 1, mls[n])
-      if len(chroms[n]):
-        mdb.save_sample(conn, 0, 0, n + 1, chroms[n])
+  pop = vr.Population(fname=pop_fname)
+  pop.set_genome_metadata(seq_metadata)
+  for n, ml in enumerate(mls):
+    pop.set_master_list(n + 1, ml)
+    pop.add_sample_chromosome(n + 1, sample_name, np.array(chroms[n], dtype=[('index', 'i4'), ('gt', 'i1')]))
+  return pop

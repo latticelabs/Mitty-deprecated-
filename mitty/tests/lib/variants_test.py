@@ -175,7 +175,7 @@ def master_list_roundtrip_test():
   ml2 = pl.get_master_list(1)
   assert_array_equal(ml.variants, ml2.variants)
 
-  pl = vr.Population(master_list={1: ml})
+  pl = vr.Population(master_lists={1: ml})
   assert_array_equal(ml.variants, pl.get_master_list(1).variants)
 
 
@@ -183,7 +183,7 @@ def sample_roundtrip_test():
   """Sample round-trip (save and load)"""
   chrom = np.array([(1, 0), (2, 1), (3, 2), (1073741823, 2)], dtype=[('index', 'i4'), ('gt', 'i1')])
   pl = vr.Population()
-  pl.add_sample(chrom=1, sample_name='my_sample', indexes=chrom)
+  pl.add_sample_chromosome(chrom=1, sample_name='my_sample', indexes=chrom)
   c2 = pl.get_sample_chromosome(chrom=1, sample_name='my_sample')
   assert_array_equal(chrom, c2)
 
@@ -198,4 +198,4 @@ def chrom_metadata_roundtrip_test():
   pl = vr.Population()
   pl.set_genome_metadata(chrom_metadata)
 
-  assert chrom_metadata == pl.get_genome_metadata()
+  assert_sequence_equal(chrom_metadata, pl.get_genome_metadata())

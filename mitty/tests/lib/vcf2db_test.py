@@ -1,7 +1,10 @@
-import mitty.lib.vcf2db as vcf2db
+import numpy as np
+
+import mitty.lib.vcf2pop as vcf2pop
 import mitty.lib.io as mio
 import mitty.lib.variants as vr
-import mitty.genomes as genomes
+
+from numpy.testing import assert_array_equal
 
 import os
 import tempfile
@@ -27,33 +30,28 @@ genotype_data = [
 def round_trip_test():
   """vcf <-> mitty database round trip"""
   master_lists = {n + 1: vr.VariantList(vd['pos'], vd['stop'], vd['ref'], vd['alt'], vd['p']) for n, vd in enumerate(variant_data)}
+  for k, v in master_lists.iteritems(): v.sort()
 
-  pop = vr.Population(master_list=master_lists)
+  pop = vr.Population(master_lists=master_lists)
   pop.set_genome_metadata(seq_meta_data)
 
+  for n in [0, 1]:
+    pop.add_sample_chromosome(n + 1, 'brown_fox', np.array(genotype_data[n], dtype=[('index', 'i4'), ('gt', 'i1')]))
+
   _, temp_name = tempfile.mkstemp(suffix='.vcf.gz')
-  mio.write_single_sample_to_vcf(pop, temp_name, sample_name='brown_fox')
+  mio.write_single_sample_to_vcf(pop, out_fname=temp_name, sample_name='brown_fox')
 
+  pop2 = vcf2pop.vcf_to_pop(temp_name, sample_name='brown_fox')
 
-  temp_vcf_prefix = os.path.join(tempfile.gettempdir(), 'test')
-
-
-
-  genomes.write_sample_vcfs(conn1, [0], temp_vcf_prefix)
-
-  _, temp_db_file = tempfile.mkstemp(suffix='db')
-
-  vcf2db.vcf_to_db(temp_vcf_prefix + '_s0.vcf', temp_db_file)
-  conn2 = mdb.connect(db_name=temp_db_file)
-
-  loaded_mls = [mdb.load_master_list(conn2, n) for n in [1, 2]]
-  loaded_chroms = [mdb.load_sample(conn2, 0, 0, n) for n in [1, 2]]
+  # for k, v in master_lists.iteritems():
+  #   assert_array_equal(pop.get_sample_chromosome(k, 'brown_fox'), pop2.get_sample_chromosome(k, 'brown_fox'))
 
   for n in [0, 1]:  # Chromosomes
-    for v1, v2 in zip(loaded_chroms[n], genotype_data[n]):
+    for v1, v2 in zip(pop2.get_sample_chromosome(n + 1, 'brown_fox'), genotype_data[n]):
       assert v1[1] == v2[1]  # Genotypes match
       for k in ['pos', 'stop', 'ref', 'alt']:
-        assert loaded_mls[n].variants[v1[0]][k] == master_lists[n].variants[v2[0]][k]  # Variant data match
+        assert pop2.get_master_list(n + 1).variants[v1[0]][k] == master_lists[n + 1].variants[v2[0]][k]  # Variant data match
 
-  os.remove(temp_vcf_prefix + '_s0.vcf')
-  os.remove(temp_db_file)
+
+
+  os.remove(temp_name)

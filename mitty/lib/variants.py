@@ -9,11 +9,11 @@ class Population:
   Chromosome metadata (seq id, seq len and seq md5) is stored
   If we set metadata all chromosomes will appear
   """
-  def __init__(self, fname=None, master_list=None):
+  def __init__(self, fname=None, master_lists=None):
     """Load a population from file, or create a new file. Over write or store the passed master list and/or samples
 
-    :param fname:       name of the file to store/load data from
-    :param master_list: {chrom: new master lists (overwrites existing one if any) ...}
+    :param fname:       name of the file to store/load data from. If None an in-memory file is created
+    :param master_lists: {chrom: new master lists (overwrites existing one if any) ...}
 
     The behavior is as follows:
     1. If fname is None, create a HDf5 file in memory
@@ -21,12 +21,12 @@ class Population:
     3. If a master list is given, overwrite the existing master list if any and erase the samples
     """
     if fname is None:
-      self.fp = h5py.File(name='in_memory', driver='core')  # Create it in memory
+      self.fp = h5py.File(name=hex(id(self)), driver='core', backing_store=False)  # Create it in memory
     else:
       self.fp = h5py.File(name=fname)
 
-    if master_list is not None:
-      for chrom, ml in master_list.iteritems():
+    if master_lists is not None:
+      for chrom, ml in master_lists.iteritems():
         self.set_master_list(chrom, ml)
 
   def set_genome_metadata(self, meta_data_list):
@@ -86,7 +86,7 @@ class Population:
                            dtype=[('pos', 'i4'), ('stop', 'i4'), ('ref', dt), ('alt', dt), ('p', 'f2')],
                            data=master_list.variants, chunks=True, compression='gzip')
 
-  def add_sample(self, chrom, sample_name, indexes):
+  def add_sample_chromosome(self, chrom, sample_name, indexes):
     """Add sample. Overwrite if name matches existing sample. No check is done to ensure list is sorted
 
     :param chrom:  chrom number [1, 2, 3, ...]
