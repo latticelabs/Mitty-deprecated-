@@ -173,6 +173,8 @@ def master_list_roundtrip_test():
   p = [0.1, 0.5, 0.9]
   ml = vr.VariantList(pos, stop, ref, alt, p)
 
+  assert_raises(RuntimeError, vr.Population)  # We should complain about not having metadata since this is a new file
+
   pl = vr.Population(genome_metadata=genome_metadata)
   assert_raises(AssertionError, pl.set_master_list, 1, ml)  # We gotta sort this first
 
@@ -185,6 +187,9 @@ def master_list_roundtrip_test():
   pl = vr.Population(genome_metadata=genome_metadata)
   pl.set_master_list(1, ml)
   assert_array_equal(ml.variants, pl.get_master_list(1).variants)
+
+  from mitty.version import __version__
+  assert pl.get_version() == __version__
 
 
 def sample_roundtrip_test():

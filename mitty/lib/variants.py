@@ -1,6 +1,8 @@
 import numpy as np
 import h5py
 
+from mitty.version import __version__
+
 
 class Population:
   """This class abstracts the storage and retrieval of the master list and samples of a population
@@ -30,10 +32,11 @@ class Population:
       self.fp = h5py.File(name=hex(id(self)), driver='core', backing_store=False)  # Create it in memory
     else:
       self.fp = h5py.File(name=fname)
-    if len(self.get_genome_metadata()) == 0:
+    if len(self.get_genome_metadata()) == 0:  # This is an indication that we are creating a new file
       if genome_metadata is None:
         raise RuntimeError('Creating a new Population object requires genome metadata')
       self.set_genome_metadata(genome_metadata)
+      self.fp.attrs['Mitty version'] = __version__
 
   @staticmethod
   def get_chrom_key(chrom):
@@ -115,6 +118,9 @@ class Population:
     """This function loads the whole data set into memory. We have no need for chunked access right now"""
     sample_key = self.get_sample_key(chrom) + '/' + sample_name
     return self.fp[sample_key][:] if sample_key in self.fp else np.array([], dtype=[('index', 'i4'), ('gt', 'i1')])
+
+  def get_version(self):
+    return self.fp.attrs['Mitty version']
 
 
 def l2ca(l):
