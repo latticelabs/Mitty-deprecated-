@@ -28,9 +28,9 @@ setup(
       # Command line scripts
       'console_scripts': ['genomes = mitty.genomes:cli',
                           'reads = mitty.reads:cli',
-                          'plot_align = mitty.util.plot_align:cli [mplot]',
-                          'plot_gc_bias = mitty.util.plot_gc_bias:cli [mplot]',
-                          'perfectbam = mitty.util.perfectbam:cli',
+                          'plot_align = mitty.util.plot_align:cli [plot]',
+                          'plot_gc_bias = mitty.util.plot_gc_bias:cli [plot]',
+                          'perfectbam = mitty.benchmarking.perfectbam:cli',
                           'mismat = mitty.util.mismat:cli',
                           'splitta = mitty.util.splitta:cli',
                           'kmers = mitty.util.kmers:cli',
@@ -41,9 +41,10 @@ setup(
       'setuptools>=11.0.0',
       'numpy>=1.9.0',
       'docopt>=0.6.2',
-      'pysam>=0.8.1'
+      'pysam>=0.8.1',
+      'h5py>=2.5.0'
     ],
     extras_require = {
-      'mplot': ['matplotlib>=1.3.0']
+      'plot': ['matplotlib>=1.3.0']
     }
 )

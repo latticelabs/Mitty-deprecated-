@@ -195,9 +195,11 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], population_m
   :param progress_bar_func: if a proper progress bar function is passed, this will show a progress bar as we complete
   """
   seed_rng = np.random.RandomState(seed=master_seed)
-  conn = mdb.connect(db_name=pop_db_name)
-  for n, meta in enumerate(ref.get_seq_metadata()):
-    mdb.save_chromosome_metadata(conn, n + 1, **meta)
+  pop = vr.Population(fname=pop_db_name, genome_metadata=ref.get_seq_metadata())
+
+  # conn = mdb.connect(db_name=pop_db_name)
+  # for n, meta in enumerate(ref.get_seq_metadata()):
+  #   mdb.save_chromosome_metadata(conn, n + 1, **meta)
 
   p, f = sfs_model.get_spectrum() if sfs_model is not None else (None, None)
   unique_variant_count, total_variant_count = 0, 0
@@ -207,17 +209,19 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], population_m
       ml.add(*m.get_variants(ref=ref[ch]['seq'], chrom=ch, p=p, f=f, seed=seed_rng.randint(mutil.SEED_MAX)))
     ml.sort()
     if sfs_model is not None: ml.balance_probabilities(*sfs_model.get_spectrum())
-    mdb.save_master_list(conn, ch, ml)
+    pop.set_master_list(chrom=ch, master_list=ml)
+    #mdb.save_master_list(conn, ch, ml)
     unique_variant_count += len(ml)
     for gen, n, this_sample, frac_done in population_model.samples(chrom_no=ch, ml=ml, rng_seed=seed_rng.randint(mutil.SEED_MAX)):
       #this_sample = ml.generate_chromosome(rng)
-      mdb.save_sample(conn, gen, n, ch, this_sample)
+      #mdb.save_sample(conn, gen, n, ch, this_sample)
+      pop.add_sample_chromosome(chrom=ch, sample_name='g{:d}_s{:d}'.format(gen, n), indexes=this_sample)
       total_variant_count += len(this_sample)
       if progress_bar_func is not None:
         progress_bar_func('Chrom {:d} '.format(ch), frac_done, 80)
     if progress_bar_func is not None: print('')
     #mdb.save_chromosome_metadata(conn, ch, ref[ch]['id'], len(ref[ch]['seq']), ref[ch]['md5'])
-  conn.close()
+  #conn.close()
   return unique_variant_count, total_variant_count
 
 

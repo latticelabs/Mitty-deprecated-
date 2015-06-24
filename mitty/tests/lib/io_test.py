@@ -1,10 +1,12 @@
 import tempfile
 import gzip
 
+import numpy as np
+from nose.tools import assert_raises
+
 import mitty.lib.io as mio
 import mitty.lib.variants as vr
 from mitty.tests import *  # To get definitions from the setup script
-from nose.tools import assert_raises
 
 
 def unzipped_multi_fasta_test():
@@ -83,6 +85,41 @@ def vcf_contextmanager_test():
 
   with mio.vcf_for_writing(temp_name, ['a']) as fp:
     mio.write_chromosomes_to_vcf(fp, seq_id='chr2', chrom_list=[chrom], master_list=ml)
+
+  v = simple_vcf_reader(temp_name)
+
+  assert v[0].pos == 2
+  assert v[0].ref == 'A'
+  assert v[0].alt == 'AA'
+  assert v[0].gt == '1|0'
+
+  assert v[2].pos == 31
+  assert v[2].ref == 'GAAAA'
+  assert v[2].alt == 'G'
+  assert v[2].gt == '1|1'
+
+  os.remove(temp_name)
+
+
+def write_single_sample_to_vcf_test():
+  """pop, out_prefix, sample_name=None"""
+  pos = [1, 10, 20, 30]
+  stop = [2, 11, 21, 35]
+  ref = ['A', 'C', 'T', 'GAAAA']
+  alt = ['AA', 'CAT', 'G', 'G']
+  p = [0.1, 0.5, 0.9, 0.2]
+
+  ml = vr.VariantList(pos, stop, ref, alt, p)
+  ml.sort()
+  chrom = np.array([(0, 0), (2, 1), (3, 2)], dtype=[('index', 'i4'), ('gt', 'i1')])
+
+  genome_metadata = [{'seq_id': 'chr1', 'seq_len': 10, 'seq_md5': '10'}]
+  pop = vr.Population(genome_metadata=genome_metadata)
+  pop.set_master_list(chrom=1, master_list=ml)
+  pop.add_sample_chromosome(chrom=1, sample_name='brown_fox', indexes=chrom)
+
+  _, temp_name = tempfile.mkstemp(suffix='.vcf.gz')
+  mio.write_single_sample_to_vcf(pop, temp_name, sample_name='brown_fox')
 
   v = simple_vcf_reader(temp_name)
 

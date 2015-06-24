@@ -6,7 +6,7 @@ from inspect import getmembers, isfunction
 from nose.plugins.skip import SkipTest
 from nose.tools import nottest
 
-import mitty.lib.db as mdb
+import mitty.lib.variants as vr
 import mitty.lib.io as mio
 import mitty.genomes as genomes
 from mitty.plugins.site_frequency import double_exp
@@ -36,9 +36,9 @@ def check_plugin_integration(args):
                           population_model=pop_model, chromosomes=chromosomes, master_seed=master_seed)
 
   # If we get here, the simulation ran. We just want a superficial test to round things out
-  conn = mdb.connect(temp_name)
-  ml = mdb.load_master_list(conn, 1)
-  assert ml is not None
+  pop = vr.Population(fname=pop_db_name)
+  ml = pop.get_master_list(chrom=1)
+  assert ml.variants.shape[0] > 0
 
 
 #http://stackoverflow.com/questions/19071601/how-do-i-run-multiple-python-test-cases-in-a-loop

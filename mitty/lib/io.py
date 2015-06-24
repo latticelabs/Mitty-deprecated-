@@ -109,7 +109,7 @@ class Fasta:
     return self[chrom]['md5']
 
   def get_seq_metadata(self):
-    """Return a a list of (seq_id, seq_len, seq_md5) in same order as seen in fa.gz file"""
+    """Return a a list of {seq_id, seq_len, seq_md5} in same order as seen in fa.gz file"""
     return self.seq_index
 
   def __repr__(self):
@@ -178,6 +178,11 @@ def vcf_for_writing(vcf_gz_name, sample_names, contig_info=[]):
   with vcf_for_writing('test.vcf', ['a','b']) as fp:
     write_chromosomes_to_vcf(fp, chrom=1, chrom_list=[chrom_a, chrom_b], master_list=l)
   """
+  def sanitize_contig(con_i):
+    """For seq_id, remove anything after the first space."""
+    con_i['seq_id'] = con_i['seq_id'].split(' ')[0]
+    return con_i
+
   if len(sample_names) > 1:
     raise NotImplementedError('Multiple sample VCF file saving is not supported in this version.')
 
@@ -187,7 +192,7 @@ def vcf_for_writing(vcf_gz_name, sample_names, contig_info=[]):
     vcf_gz_name = vcf_name + '.gz'
 
   header = "##fileformat=VCFv4.1\n"
-  header += ''.join(['##contig=<ID={:s},length={:d},md5={:s}>\n'.format(ci[0].split(' ')[0], ci[1], ci[2]) for ci in contig_info])
+  header += ''.join(['##contig=<ID={seq_id:s},length={seq_len:d},md5={seq_md5:s}>\n'.format(**sanitize_contig(ci)) for ci in contig_info])
   # When we write the contig id, we need to remove everything after the first space
   if len(sample_names):
     header += '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'  # We'll be writing samples
@@ -202,6 +207,22 @@ def vcf_for_writing(vcf_gz_name, sample_names, contig_info=[]):
     yield fp  # This where the writing happens
 
   compress_and_index_vcf(str(vcf_name), str(vcf_gz_name))
+
+
+def write_single_sample_to_vcf(pop, out_fname, sample_name=None):
+  """Given a population structure, save the given sample to a VCF file.
+
+  :param pop: a Population object
+  :param out_prefix: prefix for vcf file
+  :param sample_name: sample name in Population object. If None, write out the master list as a sample less file
+  """
+  contig_info = pop.get_genome_metadata()
+  with vcf_for_writing(out_fname, [sample_name] if sample_name else [], contig_info) as fp:
+    for ch in pop.get_chromosome_list():
+      ml = pop.get_master_list(ch)
+      write_chromosomes_to_vcf(fp, seq_id=pop.get_chromosome_metadata(ch)['seq_id'],
+                               chrom_list=[pop.get_sample_chromosome(ch, sample_name)] if sample_name else [],
+                               master_list=ml)
 
 
 def compress_and_index_vcf(in_vcf_name, out_vcf_name):
