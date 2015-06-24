@@ -43,11 +43,7 @@ __param__ = """Parameter file example::
                               # If the reads are actually not paired and you set interleaved to false you will get two
                               # files _1 and _2 and all the data will be in _1 only
     },
-    "sample" : {
-      "gen": 0,      # Use gen and serial for database
-      "serial": 1,
-      "name": "HN23456" # Use name for VCF file
-    }
+    "sample_name": "g0_s0",   # Name of sample
     "rng": {
       "master_seed": 1
     },
@@ -84,7 +80,7 @@ import docopt
 import mitty.lib
 import mitty.lib.reads as lib_reads
 import mitty.lib.io as mio
-import mitty.lib.db as mdb
+#import mitty.lib.db as mdb
 import mitty.lib.variants as vr
 
 import logging
@@ -145,7 +141,7 @@ def explain_all_read_models():
     explain_read_model(name)
 
 
-def generate_reads_loop(ref, conn=None, gen=None, serial=None, chromosomes=[], read_model=None,
+def generate_reads_loop(ref, pop=None, sample_name=None, chromosomes=[], read_model=None,
                         variants_only=False, variant_window=None,
                         fastq_fp=[], fastq_c_fp=[],
                         actual_coverage_per_block=1.0, blocks_to_do=1,
@@ -154,9 +150,8 @@ def generate_reads_loop(ref, conn=None, gen=None, serial=None, chromosomes=[], r
   """
 
   :param ref: reference sequence object
-  :param conn: genome database connection. Leave None for null reads
-  :param gen:    generation
-  :param serial: serial number (leave both out for null reads)
+  :param pop: Population object. Leave None for null reads
+  :param sample_name: sample in pop to take reads from
   :param chromosomes: list of chromosomes to take reads from
   :param read_model: read model object
   :param variants_only: True if reads should be taken from regions neighboring variants only
@@ -178,9 +173,9 @@ def generate_reads_loop(ref, conn=None, gen=None, serial=None, chromosomes=[], r
 
   if progress_bar_func: progress_bar_func('Generating reads ', f=float(blocks_done) / total_blocks, cols=80)
   for ch in chromosomes:
-    if conn is not None:
-      ml = mdb.load_master_list(conn, ch)
-      chrom = mdb.load_sample(conn, gen, serial, ch)
+    if pop is not None:
+      ml = pop.get_master_list(chrom=ch)
+      chrom = pop.get_sample_chromosome(chrom=ch, sample_name=sample_name)
     else:
       ml, chrom = vr.VariantList(), []  # Need a dummy variant list for nulls
     for cpy in [0, 1]:
@@ -215,10 +210,14 @@ def executor(cmd_args):
   if not os.path.exists(os.path.dirname(fname_prefix)):
     os.makedirs(os.path.dirname(fname_prefix))
 
-  null_reads = True
+  ref = mio.Fasta(multi_fasta=mitty.lib.rpath(base_dir, params['files'].get('reference_file', None)),
+                  multi_dir=mitty.lib.rpath(base_dir, params['files'].get('reference_dir', None)),
+                  persistent=True)
+
+  sample_name = params.get('sample_name', None)
   if 'dbfile' in params['files']:
     pop_db_name = mitty.lib.rpath(base_dir, params['files']['dbfile'])
-    conn = mdb.connect(db_name=pop_db_name)
+    pop = vr.Population(fname=pop_db_name, genome_metadata=ref)
   elif 'input_vcf' in params['files']:
     # In order to keep things modular we convert the VCF to a genome db file and then proceed
     import mitty.lib.vcf2pop as vcf2pop
@@ -226,22 +225,12 @@ def executor(cmd_args):
     pop_db_name = fname_prefix + '_genome.db'
     if os.path.exists(pop_db_name):
       os.remove(pop_db_name)
-    vcf2db.vcf_to_db(vcf_fname=vcf_fname, db_fname=pop_db_name)
-    conn = mdb.connect(db_name=pop_db_name)
+    pop = vcf2pop.vcf_to_pop(vcf_fname=vcf_fname, pop_fname=pop_db_name, sample_name=sample_name)
     logger.debug('Converted VCF file ({:s}) to Mitty database file ({:s})'.format(vcf_fname, pop_db_name))
   else:
-    conn = None
+    pop = None
     logger.debug('Taking reads from reference')
 
-  if conn is not None:
-    gen = params['sample']['gen']
-    serial = params['sample']['serial']
-  else:
-    gen, serial = None, None
-
-  ref = mio.Fasta(multi_fasta=mitty.lib.rpath(base_dir, params['files'].get('reference_file', None)),
-                  multi_dir=mitty.lib.rpath(base_dir, params['files'].get('reference_dir', None)),
-                  persistent=True)
   master_seed = int(params['rng']['master_seed'])
   assert 0 < master_seed < mitty.lib.SEED_MAX
 
@@ -267,7 +256,7 @@ def executor(cmd_args):
     fastq_c_fp = [open(fname_prefix + '_c_1.fq', 'w'), open(fname_prefix + '_c_2.fq', 'w')] if corrupt else [None, None]
 
   t0 = time.time()
-  read_count = generate_reads_loop(ref=ref, conn=conn, gen=gen, serial=serial, chromosomes=chromosomes,
+  read_count = generate_reads_loop(ref=ref, pop=pop, sample_name=sample_name, chromosomes=chromosomes,
                                    read_model=read_model, variants_only=variants_only, variant_window=variant_window,
                                    fastq_fp=fastq_fp, fastq_c_fp=fastq_c_fp,
                                    actual_coverage_per_block=actual_coverage_per_block, blocks_to_do=blocks_to_do,

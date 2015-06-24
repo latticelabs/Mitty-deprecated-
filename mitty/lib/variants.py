@@ -117,6 +117,12 @@ class Population:
     return self.fp[sample_key][:] if sample_key in self.fp else np.array([], dtype=[('index', 'i4'), ('gt', 'i1')])
 
 
+def l2ca(l):
+  """Convenience function that converts a Python list of tuples into an numpy structured array corresponding to a
+  chromosome index array"""
+  return np.array(l, dtype=[('index', 'i4'), ('gt', 'i1')])
+
+
 class VariantList:
   """Use a numpy recarray to store a list of variants."""
   def __init__(self, pos_a=[], stop_a=[], ref_a=[], alt_a=[], p_a=[]):
