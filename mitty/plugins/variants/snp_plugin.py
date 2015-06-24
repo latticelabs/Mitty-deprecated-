@@ -37,7 +37,7 @@ class Model:
                [0.21644706, 0.20588717, 0.24978216, 0.32788362]]
     self.p, self.t_mat = p, t_mat
 
-  def get_variants(self, ref, chrom, p, f, seed=1):
+  def get_variants(self, ref, p=None, f=None, seed=1, **kwargs):
     """This function is called by the simulator to obtain variants.
 
     :param ref: reference sequence as a string
@@ -68,7 +68,7 @@ def test():
   """Basic test"""
   ref_seq = 'ACTGACTGACTGACTGACTGACTGACTGACTGACTG'
   m = Model(p=0.1)
-  pos, stop, ref, alt, p = m.get_variants(ref_seq, 1, np.array([0.2]), np.array([1.0]), seed=10)
+  pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=10)
   for p, r in zip(pos, ref):
     assert r == ref_seq[p]
 

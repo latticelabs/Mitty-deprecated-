@@ -21,6 +21,6 @@
     "template_len_mean": 250,
     "template_len_sd": 20,
     "max_p_error": 0.1,
-    "k": 100 
+    "k": 100
   }
 }

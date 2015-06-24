@@ -1,6 +1,9 @@
 import string
+from itertools import izip
 
-import numpy
+import cython
+import numpy as np
+cimport numpy as np
 
 from mitty.lib import SEED_MAX
 
@@ -10,15 +13,15 @@ DNA_complement = string.maketrans('ATCGN', 'TAGCN')
 
 def initialize_rngs(unsigned long master_seed, int n_rngs=4):
   """Return n_rngs initialized from the master_seed"""
-  return [numpy.random.RandomState(seed=seed)
-          for seed in numpy.random.RandomState(seed=master_seed).randint(SEED_MAX, size=n_rngs)]
+  return [np.random.RandomState(seed=seed)
+          for seed in np.random.RandomState(seed=master_seed).randint(SEED_MAX, size=n_rngs)]
 
 
 def place_poisson_seq(rng, float p, unsigned long start_x, unsigned long end_x, bytes seq):
   """Given a random number generator, a probability and an end point, generate poisson distributed events. Skip bases
   that don't belong  For short end_p this may, by chance, generate fewer locations that normal"""
   if p == 0.0:
-    return numpy.array([])
+    return np.array([])
 
   cdef:
     char *s = seq
@@ -26,7 +29,7 @@ def place_poisson_seq(rng, float p, unsigned long start_x, unsigned long end_x, 
     unsigned long idx
 
   these_locs = rng.geometric(p=p, size=est_block_size).cumsum()
-  return numpy.array([idx for idx in these_locs[numpy.searchsorted(these_locs, start_x):numpy.searchsorted(these_locs, end_x)] if s[idx] != 'N'], dtype='i4')
+  return np.array([idx for idx in these_locs[np.searchsorted(these_locs, start_x):np.searchsorted(these_locs, end_x)] if s[idx] in ['A', 'C', 'T', 'G']], dtype='i4')
 
 
 cdef unsigned char sub_base(unsigned char orig_base, unsigned char sub_mat[85][3], float ct_mat[85][3], float r):
@@ -83,8 +86,10 @@ def add_p_end_to_t_mat(t_mat, p_end):
   return [[p_end_1 * (t_mat[i][j]/sum(t_mat[i])) for j in range(4)] + [p_end] for i in range(4)]
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef markov_chain_sequence_gen(
-    char first_letter, float ct_mat[4][5], unsigned char *seq, unsigned long int *l, unsigned long int max_len, rng):
+    char first_letter, double ct_mat[4][5], unsigned char *seq, unsigned long int *l, unsigned long int max_len, rng):
   """sequence_gen(float t_mat[4][5], char *alphabet[4])
   :param (char) first_letter: the first letter of the sequence
   :param (float) ct_mat: 4x5 cumulative transition probability matrix (ACGTx)
@@ -108,7 +113,9 @@ cdef markov_chain_sequence_gen(
   cdef:
     unsigned char last_letter = 0, n
     const char *alphabet = "ACGT"
-    float r
+    np.ndarray[double, ndim=1, mode="c"] rnd = rng.rand(max_len)
+    Py_ssize_t rnd_idx = 0
+    double r
     bint keep_running = 1
 
   for n in range(4):
@@ -116,17 +123,17 @@ cdef markov_chain_sequence_gen(
       last_letter = n
       break
 
-  rg = rng.rand
   seq[0] = first_letter
   l[0] = 1
 
   while keep_running:
-    r = rg()  # Slowest part
+    r = rnd[rnd_idx]
+    rnd_idx += 1
     for n in range(5):
-      if r < ct_mat[last_letter][n]:
+      if r <= ct_mat[last_letter][n]:
         break
     if n == 4:
-      if l[0] > 2: keep_running = 0 # We can stop if we have a length 2 sequence
+      if l[0] > 1: keep_running = 0 # We can stop if we have a length 2 sequence
     else:
       seq[l[0]] = alphabet[n]
       last_letter = n
@@ -139,15 +146,25 @@ def markov_sequences(bytes seq, ins_pts, max_len, t_mat, rng):
   """markov_sequences(seq, ins_pts, max_len, t_mat, rng)
   Return us insertions at the requested positions.
   :param (str) seq: the reference sequence. Needed for first letters of insertions
-  :param (iterable) ins_pts: iterable of insertion points
+  :param ins_pts: list/array of insertion points
+  :param max_len: either a scalar or list/array (same length as ins_pts) that
   :param (4x5 list) t_mat: transition matrix, including prob of termination
   :param rng: numpy random number generator object that has rand
   :returns a list of insertion sequences
   """
-  pre_alloc_str = 'N' * max_len  # Pre-allocated string
+  if type(max_len) is int:
+    max_max_len = max_len
+    max_lens = [max_len] * len(ins_pts)
+  else:
+    max_lens = max_len
+    assert len(max_len) == len(ins_pts), 'Lengths of insertion points and max lengths must be equal'
+    max_max_len = max(max_len) if len(max_len) else 1
+
+  pre_alloc_str = 'N' * max_max_len  # Pre-allocated string
+
   cdef:
     unsigned char *s = seq
-    float ct_mat[4][5]
+    double ct_mat[4][5]
     unsigned long int l
     unsigned char *pre_string = pre_alloc_str
 
@@ -158,8 +175,69 @@ def markov_sequences(bytes seq, ins_pts, max_len, t_mat, rng):
       ct_mat[i][j] = ct_mat[i][j-1] + t_mat[i][j]
 
   insertions, lengths = [], []
-  for ip in ins_pts:
+  for ip, max_len in izip(ins_pts, max_lens):
     markov_chain_sequence_gen(s[ip], ct_mat, pre_string, &l, max_len, rng)
     insertions += [pre_string[:l]]
     lengths += [l]
   return insertions, lengths
+
+
+def parse_sequence(bytes seq, int k=10, kmers={}):
+  """Go through the sequence filling out the k-mer dictionary
+
+  :param seq:   the sequence
+  :param k:     the k-mer length
+  :param kmers: the kmer dictionary
+  :return: (changes kmers in place)
+  """
+  cdef:
+    char *c = seq
+    int l = len(seq), n
+
+  for n in xrange(l - k):
+    try:
+      kmers[seq[n:n+k]] += 1
+    except KeyError:
+      kmers[seq[n:n+k]] = 1
+
+
+cdef float sequence_k_mer_score(bytes seq, int k, k_mer_count_table):
+  cdef:
+    int n, cnt
+    float score = 0
+    char *c = seq
+  for n in range(len(seq) - k):
+    score += k_mer_count_table.get(c[n:n + k], 1)
+    cnt += 1
+  return score / cnt
+
+
+def score_long_sequence(bytes seq, int step, int k, k_mer_count_table):
+  """Step through seq in step increments scoring each segment
+
+  :param seq:
+  :param step:
+  :param k:
+  :param k_mer_count_table:
+  :return:
+  """
+  cdef:
+    char *c = seq
+    int i, idx = 0
+  scores = np.empty(int(len(seq)/float(step)), dtype=np.uint32)
+  for i in range(scores.shape[0]):
+    scores[i] = k_mer_count_table.get(c[idx:idx + k], 1)
+    idx += step
+  return scores
+
+
+def score_sequences_by_k_mer_count(sequence_list, k_mer_count_table):
+  """Given a list of sequences and a k-mer count table score the sequence based on k-mer count content
+
+  :param sequence_list:      list of sequences
+  :param k_mer_count_table:  the k-mer count table dictionary. Keys = k-mers, values = counts in genome
+  :return: list of scores, same size as sequence_list
+  """
+  if len(k_mer_count_table) == 0: return []
+  k = len(k_mer_count_table.keys()[0])
+  return [sequence_k_mer_score(seq, k, k_mer_count_table) for seq in sequence_list]

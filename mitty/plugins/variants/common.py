@@ -1,13 +1,13 @@
 import numpy as np
 
 
-def scale_probability_and_validate(self_p, p, f):
+def scale_probability_and_validate(self_p, p=None, f=None):
   """Scale the per base per sample probability to a per base per population value if the site frequency spectrum is
   given. Raise all sorts of assertion errors if things go wonky.
 
   :param self_p:   the per base, per sample probability value
   :param p:        the site frequency spectrum values
-  :param f:
+  :param f:        Use None to skip scaling
   :return: p_eff  - the effective (per population) probability
   """
   if p is not None:

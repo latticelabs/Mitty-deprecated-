@@ -89,7 +89,7 @@ def load_master_list(conn, chrom):
   try:
     rows = [c for c in conn.execute("SELECT * FROM master_chrom_{:d}".format(chrom))]
     dtype = [('pos', 'i4'), ('stop', 'i4'), ('ref', 'object'), ('alt', 'object'), ('p', 'f2')]
-    ml.variants = numpy.core.records.fromrecords(rows, dtype=dtype)
+    ml.variants = numpy.array(rows, dtype=dtype)
   except sq.OperationalError:
     pass  # TODO: log some kind of warning? Or assume we just don' have any variants for that chromosome?
   ml.sorted = True  # We assume that this had been sorted etc. before saving
@@ -165,15 +165,24 @@ def load_chromosome_metadata(conn, chrom):
 
 
 def chromosomes_in_db(conn):
-  # c = conn.execute("SELECT name FROM sqlite_master WHERE TYPE='table' AND name LIKE 'master_chrom_%'")
-  # return [int(row[0].replace('master_chrom_','')) for row in c]
-  c = conn.execute("SELECT chrom, seq_id, seq_len, seq_md5 FROM chrom_metadata ORDER BY seq_id ASC")
+  """Total number of chromosomes - same as in original genome"""
+  c = conn.execute("SELECT chrom, seq_id, seq_len, seq_md5 FROM chrom_metadata ORDER BY rowid ASC")
   return [row for row in c]
 
 
+def populated_chromosomes_in_db(conn):
+  """Chromosomes with at least one variant in the master list."""
+  c = conn.execute("SELECT chrom, seq_id, seq_len, seq_md5 FROM chrom_metadata ORDER BY rowid ASC")
+  return [row for row in c if variants_in_master_list(conn, row[0])]
+
+
 def variants_in_master_list(conn, chrom):
-  c = conn.execute("SELECT COUNT(rowid) FROM master_chrom_{:d}".format(chrom))
-  return c.next()[0]
+  count = 0
+  c = conn.execute("SELECT name FROM sqlite_master WHERE TYPE='table' AND name='master_chrom_{:d}'".format(chrom))
+  if len(c.fetchall()) > 0:
+    c = conn.execute("SELECT COUNT(rowid) FROM master_chrom_{:d}".format(chrom))
+    count = c.next()[0]
+  return count
 
 
 def samples_in_db(conn):

@@ -1,0 +1,315 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>5. Stock Models &mdash; Mitty 1.1.1dev documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic|Roboto+Slab:400,700|Inconsolata:400,700&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Mitty 1.1.1dev documentation" href="index.html"/>
+        <link rel="prev" title="4. Theory and algorithms" href="theory_and_algorithms.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+          <a href="index.html" class="fa fa-home"> Mitty</a>
+        
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">1. Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="introduction.html#installation">1.1. Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="introduction.html#trivia">1.2. Trivia</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">2. Quick-start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#creating-genomes">2.1. Creating genomes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads">2.2. Taking reads</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#testing-alignment-accuracy-of-bwa-mem">2.3. Testing alignment accuracy of BWA MEM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads-just-from-regions-around-variants">2.4. Taking reads just from regions around variants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#analysing-variant-callers">2.5. Analysing variant callers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="additional_utils.html">3. Additional Utilities</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="additional_utils.html#plot-gc-bias-plot-gc-bias-of-a-bam-file">3.1. <cite>plot_gc_bias</cite>: Plot GC bias of a BAM file</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="theory_and_algorithms.html">4. Theory and algorithms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="theory_and_algorithms.html#population-simulations">4.1. Population simulations</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">5. Stock Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#variant-models">5.1. Variant models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#population-models">5.2. Population models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#read-models">5.3. Read models</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">Mitty</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>5. Stock Models</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/models.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="stock-models">
+<h1>5. Stock Models<a class="headerlink" href="#stock-models" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="variant-models">
+<h2>5.1. Variant models<a class="headerlink" href="#variant-models" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-text"><div class="highlight"><pre>$ genomes explain variantmodel all
+
+---- delete (mitty.plugins.variants.delete_plugin) ----
+
+This is the stock delete plugin. A typical parameter set resembles
+
+{
+  &quot;p&quot;: 0.01,           # probability that the deletion will happen at any given base
+  &quot;p_end&quot;: 0.1,        # probability governing length of deletion
+  &quot;del_len_min&quot;: 10,   # Lower bound on deletion lengths
+  &quot;del_len_max&quot;: 1000  # upper bound on deletion lengths
+}
+
+Model defaults: (p=0.01,  p_end=0.1,  del_len_min=10,  del_len_max=1000)
+
+---- insert (mitty.plugins.variants.insert_plugin) ----
+
+Stock insertion model that generates sequences with same base transition matrix as the human genome and creates a
+power-law distribution of insertion lengths.
+A typical parameter set resembles
+
+{
+  &quot;p&quot;: 0.0001,        # Per-base probability of having an insertion
+  &quot;t_mat&quot;: [[ 0.32654629,  0.17292732,  0.24524503,  0.25528135],  # Base transition matrix
+            [ 0.3489394,   0.25942695,  0.04942584,  0.3422078],
+            [ 0.28778188,  0.21087004,  0.25963262,  0.24171546],
+            [ 0.21644706,  0.20588717,  0.24978216,  0.32788362]],
+  &quot;p_end&quot;: 0.1,       # Probability of chain ending
+  &quot;max_len&quot;: 1000     # Maximum length of insertion
+}
+
+Model defaults: (p=0.01,  t_mat=None,  p_end=0.1,  max_len=1000)
+
+---- snp (mitty.plugins.variants.snp_plugin) ----
+
+This is the stock SNP plugin. A typical parameter set resembles
+
+{
+  &quot;p&quot;: 0.01,              # probability that the SNP will happen at any given base
+  &quot;t_mat&quot;: [[ 0.32654629,  0.17292732,  0.24524503,  0.25528135],  # Base transition matrix
+            [ 0.3489394,   0.25942695,  0.04942584,  0.3422078],   # Leading diagonal is ignored
+            [ 0.28778188,  0.21087004,  0.25963262,  0.24171546],
+            [ 0.21644706,  0.20588717,  0.24978216,  0.32788362]],
+}
+
+Model defaults: (p=0.01,  t_mat=None)
+</pre></div>
+</div>
+</div>
+<div class="section" id="population-models">
+<h2>5.2. Population models<a class="headerlink" href="#population-models" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-text"><div class="highlight"><pre>$ genomes explain populationmodel all
+
+---- double_exp (mitty.plugins.site_frequency.double_exp) ----
+This stock site frequency plugin employs a double exponential as a simple site frequency model.
+
+f = a1 * exp(-p * k1) + a2 * exp(-p * k2)   (f is normalized such that sum(f) = 1.0)
+
+Example parameters:
+
+{
+  &quot;double_exp&quot;: {
+    &quot;a1&quot;: 1.0,        # Amplitude of component 1
+    &quot;k1&quot;: 20.0,       # decay rate of component 1
+    &quot;a2&quot;: 0.1,        # Amplitude of component 2
+    &quot;k2&quot;: 5.0,        # Decay rate of component 2
+    &quot;p0&quot;: 0.001,      # Lower end of probability range
+    &quot;p1&quot;: 0.2,        # Upper end of probability range
+    &quot;bin_cnt&quot;: 30     # Number of bins for probability distribution
+  }
+}
+
+Model defaults: (a1=1.0,  k1=20.0,  a2=0.1,  k2=5.0,  p0=0.001,  p1=0.2,  bin_cnt=21)
+</pre></div>
+</div>
+</div>
+<div class="section" id="read-models">
+<h2>5.3. Read models<a class="headerlink" href="#read-models" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-text"><div class="highlight"><pre>$ reads explain model all
+/Users/kghose/Code/Mitty/mitty/lib/common.py:52: UserWarning: More than one model with that name found. Loading first one only.
+  warnings.warn(&#39;More than one model with that name found. Loading first one only.&#39;)
+This is the stock read plugin that approximates Illumina reads
+
+GC bias model based on:
+
+&quot;Summarizing and correcting the GC content bias in high-throughput sequencing&quot;, Benjamini and Speed,
+Nucleic Acids Research, 2012
+http://nar.oxfordjournals.org/content/early/2012/02/08/nar.gks001.full
+
+1. &quot;GC effect is mostly driven by the GC composition of the full fragment.&quot;
+2. &quot;the GC curve is unimodal is key to this analysis. In all data sets shown,
+the rate of GC-poor or GC-rich fragments is significantly lower than average, in many cases zero.&quot;
+
+Seven Bridges Genomics
+Current contact: kaushik.ghose@sbgenomics.com
+
+Example parameter set:
+
+{
+  &#39;read_len&#39;: 100,          # length of each read
+  &#39;template_len_mean&#39;: 250, # mean length of template
+  &#39;template_len_sd&#39;: 30,    # sd of template length
+  &#39;max_p_error&#39;: 0.01,      # Maximum error rate at tip of read
+  &#39;k&#39;: 20,                  # exponent
+  &#39;gc_bias&#39;: {              # Omit if not modeling GC bias
+    &#39;bias_center&#39;: 0.5,     # Center of uni-modal window
+    &#39;bias_height&#39;: 1.5,     # Maximum departure from mean coverage (peak of curve)
+    &#39;bias_spread&#39;: 0.3      # Width measure of curve
+  }
+}
+
+Model defaults: (read_len=100,  template_len_mean=250,  template_len_sd=50,  max_p_error=0.01,  k=20,  gc_bias=None)
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="theory_and_algorithms.html" class="btn btn-neutral" title="4. Theory and algorithms"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014,Seven Bridges Genomics
+(kaushik.ghose@sbgenomics.com).
+    </p>
+  </div>
+
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.1.1dev',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
-
+__version__ = eval(open('mitty/version.py').read().split('=')[1])
 setup(
     name='mitty',
-    version='1.1.0',
+    version=__version__,
     description='Simulator for genomic data',
     author='Seven Bridges Genomics',
     author_email='kaushik.ghose@sbgenomics.com',
@@ -14,11 +14,13 @@ setup(
       'mitty.plugins.sfs': ['double_exp = mitty.plugins.site_frequency.double_exp'],
       'mitty.plugins.variants': ['snp = mitty.plugins.variants.snp_plugin',
                                  'delete = mitty.plugins.variants.delete_plugin',
-                                 #'bounded_delete = mitty.plugins.variants.bounded_len_delete_plugin',
+                                 'uniformdel = mitty.plugins.variants.uniform_deletions',
+                                 'uniformins = mitty.plugins.variants.uniform_insertions',
                                  'insert = mitty.plugins.variants.insert_plugin',
                                  #'inversion = mitty.plugins.variants.inversion_plugin',
                                  #'low_entropy_insert = mitty.plugins.variants.low_entropy_insert_plugin'
                                  ],
+      'mitty.plugins.population': ['standard = mitty.plugins.population.standard'],
       'mitty.plugins.reads': ['simple_sequential = mitty.plugins.reads.simple_sequential_plugin',
                               'simple_illumina = mitty.plugins.reads.simple_illumina_plugin'],
       # Register example tool wrapper
@@ -26,19 +28,23 @@ setup(
       # Command line scripts
       'console_scripts': ['genomes = mitty.genomes:cli',
                           'reads = mitty.reads:cli',
-                          'plot_align = mitty.util.plot_align:cli [mplot]',
-                          'perfectbam = mitty.util.perfectbam:cli',
+                          'plot_align = mitty.util.plot_align:cli [plot]',
+                          'plot_gc_bias = mitty.util.plot_gc_bias:cli [plot]',
+                          'perfectbam = mitty.benchmarking.perfectbam:cli',
+                          'mismat = mitty.util.mismat:cli',
                           'splitta = mitty.util.splitta:cli',
-                          'checkbam = mitty.util.checkbam:cli']
+                          'kmers = mitty.util.kmers:cli',
+                          'pybwa = mitty.util.pybwa:cli']
     },
     install_requires=[
       'cython',
-      'setuptools>=0.7',
+      'setuptools>=11.0.0',
       'numpy>=1.9.0',
       'docopt>=0.6.2',
-      'pysam>=0.8.1'
+      'pysam>=0.8.1',
+      'h5py>=2.5.0'
     ],
     extras_require = {
-      'mplot': ['matplotlib>=1.4.2']
+      'plot': ['matplotlib>=1.3.0']
     }
 )

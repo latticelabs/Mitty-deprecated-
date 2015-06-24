@@ -10,20 +10,18 @@ logger = logging.getLogger(__name__)
 __example_param_text = """
 {
   "double_exp": {
-    "a1": 1.0,
-    "k1": 20.0,
-    "a2": 0.1,
-    "k2": 5.0,
-    "p0": 0.001,
-    "p1": 0.2,
-    "bin_cnt": 30
+    "a1": 1.0,        # Amplitude of component 1
+    "k1": 20.0,       # decay rate of component 1
+    "a2": 0.1,        # Amplitude of component 2
+    "k2": 5.0,        # Decay rate of component 2
+    "p0": 0.001,      # Lower end of probability range
+    "p1": 0.2,        # Upper end of probability range
+    "bin_cnt": 30     # Number of bins for probability distribution
   }
 }
 """
 
-_description = """
-This is a simple site frequency plugin. A typical parameter set resembles
-""" + __example_param_text
+_description = __doc__ + '\nExample parameters:\n' + __example_param_text
 
 _example_params = eval(__example_param_text)
 

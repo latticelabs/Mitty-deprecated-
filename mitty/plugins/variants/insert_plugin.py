@@ -42,7 +42,7 @@ class Model:
                [0.21644706, 0.20588717, 0.24978216, 0.32788362]]
     self.p, self.t_mat, self.p_end, self.max_len = p, t_mat, p_end, max_len
 
-  def get_variants(self, ref, chrom, p, f, seed=1):
+  def get_variants(self, ref, p=None, f=None, seed=1, **kwargs):
     """This function is called by the simulator to obtain variants.
 
     :param ref: reference sequence as a string
@@ -68,14 +68,22 @@ class Model:
     ins_list, len_list = mutil.markov_sequences(ref, ins_locs, self.max_len, pt_mat, ins_markov_rng)
     lengths = np.array(len_list, dtype='i4')
 
-    return ins_locs, ins_locs + 1, [ins[0] for ins in ins_list], ins_list, lengths / float(lengths.max())
+    return ins_locs, ins_locs + 1, [ins[0] for ins in ins_list], ins_list, (1.0 - lengths / float(lengths.max())) if lengths.shape[0] else []
+
+
+def test0():
+  """Edge case - no variants generated"""
+  ref_seq = 'ACTGACTGACTGACTGACTGACTGACTGACTGACTG'
+  m = Model(p=0.00001)
+  pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=10)
+  assert len(pos) == 0  # This should just run and not crash
 
 
 def test():
   """Basic test"""
   ref_seq = 'ACTGACTGACTGACTGACTGACTGACTGACTGACTG'
   m = Model(p=0.1)
-  pos, stop, ref, alt, p = m.get_variants(ref_seq, 1, np.array([0.2]), np.array([1.0]), seed=10)
+  pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=10)
   for p, r in zip(pos, alt):
     assert r[0] == ref_seq[p]
 

@@ -1,0 +1,238 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Files and conventions &mdash; Mitty 1.1.1dev documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic|Roboto+Slab:400,700|Inconsolata:400,700&subset=latin,cyrillic' rel='stylesheet' type='text/css'>
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Mitty 1.1.1dev documentation" href="index.html"/> 
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+          <a href="index.html" class="fa fa-home"> Mitty</a>
+        
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">1. Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="introduction.html#installation">1.1. Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="introduction.html#trivia">1.2. Trivia</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">2. Quick-start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#creating-genomes">2.1. Creating genomes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads">2.2. Taking reads</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#testing-alignment-accuracy-of-bwa-mem">2.3. Testing alignment accuracy of BWA MEM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads-just-from-regions-around-variants">2.4. Taking reads just from regions around variants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#analysing-variant-callers">2.5. Analysing variant callers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="additional_utils.html">3. Additional Utilities</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="additional_utils.html#plot-gc-bias-plot-gc-bias-of-a-bam-file">3.1. <cite>plot_gc_bias</cite>: Plot GC bias of a BAM file</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="theory_and_algorithms.html">4. Theory and algorithms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="theory_and_algorithms.html#population-simulations">4.1. Population simulations</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">5. Stock Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="models.html#variant-models">5.1. Variant models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#population-models">5.2. Population models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#read-models">5.3. Read models</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">Mitty</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>Files and conventions</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          <a href="_sources/files.txt" rel="nofollow"> View page source</a>
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="files-and-conventions">
+<h1>Files and conventions<a class="headerlink" href="#files-and-conventions" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="reference-genome">
+<span id="ref-genome"></span><h2>Reference genome<a class="headerlink" href="#reference-genome" title="Permalink to this headline">¶</a></h2>
+<p>Mitty expects the reference genome to be stored as a set of .fasta files under a common directory. Mitty requires each
+.fasta file to contain just two lines. The first line is the sequence id and the second line is the sequence itself.
+Mitty requires any lower case letters (sometimes used to indicate repeats) to be converted to uppercase.
+See <code class="docutils literal"><span class="pre">examples/data</span></code>. A command line script <code class="docutils literal"><span class="pre">splitta</span></code> is provided that will take a gzipped multi-fasta fasta file
+- such as <a class="reference external" href="ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz">hg38</a> from the USC ftp server - and split it into separate, appropriately named, unzipped files under a common
+directory.</p>
+</div>
+<div class="section" id="variant-genome">
+<span id="var-genome"></span><h2>Variant genome<a class="headerlink" href="#variant-genome" title="Permalink to this headline">¶</a></h2>
+<p>Variant genomes are expressed as exact VCF files. These files follow a subset of the VCF specification and are very
+strict:</p>
+<ul class="simple">
+<li>They only allow SNPs, insertions and deletions</li>
+<li>REF and ALT strings are exact</li>
+<li>The REF must contain at least one reference base.
+Violating this rule will cause off-by-one errors in special cases (see developer docs)</li>
+<li>There is only one sample per file.</li>
+<li>Their phasing information (GT, genotype column) is exact: <cite>1|0</cite> means having a variant on copy 0 of the chromosome and <cite>0|1</cite> means having a variant on copy 1 of the chromosome.</li>
+<li>There are no GT=`0|0` entries</li>
+</ul>
+</div>
+<div class="section" id="reads">
+<h2>Reads<a class="headerlink" href="#reads" title="Permalink to this headline">¶</a></h2>
+<p>Reads are produced as standard <cite>.fastq</cite> files using sanger <cite>PHRED</cite> scores. The <cite>qname</cite> filed is hijacked, however, to
+store the correct alignment answer and looks like this:</p>
+<div class="highlight-python"><div class="highlight"><pre>chrom:copy|rN|D|POS1|CIGAR1               unpaired reads
+
+chrom:copy|rN|D|POS1|CIGAR1|POS2|CIGAR2   paired reads
+</pre></div>
+</div>
+<p>This is the information that the perfect aligner uses to generate perfect alignments of the reads. The <cite>D</cite> field carries
+either a <cite>&gt;</cite> or a <cite>&lt;</cite> and indicates if the read (first read if paired) is forward or reverse complemented respectively.
+This is important for understanding how to interpret the sequence string.</p>
+<p>The CIGAR string is standard except for the case of reads taken from inside an insertion past the anchor points. Such reads should appear as
+<em>unmapped</em> when using a linear reference. The CIGAR for such reads take the form:</p>
+<div class="highlight-python"><div class="highlight"><pre>&gt;OFFSET
+</pre></div>
+</div>
+<p>Where OFFSET is the offset of the read from the start of the insertion. The POS value indicates the location of the
+insertion (The POS value in the VCF file). In this case if the VCF file uses a non-conventional way of expressing insertions:</p>
+<div class="highlight-python"><div class="highlight"><pre>REF   ALT
+.     &lt;insertion&gt;
+</pre></div>
+</div>
+<p>the location of the insertion (POS value) will be off by one.</p>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2014,Seven Bridges Genomics
+(kaushik.ghose@sbgenomics.com).
+    </p>
+  </div>
+
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.1.1dev',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

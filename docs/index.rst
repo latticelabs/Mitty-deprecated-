@@ -13,9 +13,13 @@ Mitty documentation
 
     introduction
     quickstart
+    additional_utils
+    theory_and_algorithms
+    models
+    ramblings
+
 ..    files
 ..    components
-..    developer
 
 Indices and tables
 ==================

@@ -6,7 +6,7 @@ from inspect import getmembers, isfunction
 from nose.plugins.skip import SkipTest
 from nose.tools import nottest
 
-import mitty.lib.db as mdb
+import mitty.lib.variants as vr
 import mitty.lib.io as mio
 import mitty.genomes as genomes
 from mitty.plugins.site_frequency import double_exp
@@ -22,22 +22,23 @@ def check_plugin_integration(args):
   if not hasattr(model, '_example_params'):
     #http://stackoverflow.com/questions/1120148/disabling-python-nosetests
     raise SkipTest('{:s} has no _example_params method. Can not test automatically'.format(name))
-  params = [{name: model._example_params}]
+  var_model_params = [{name: model._example_params}]
 
   temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
   os.close(temp_fp)
   pop_db_name = temp_name
   sfs_model = double_exp.Model()
-  variant_models = genomes.load_variant_models(ref, params)
+  variant_models = genomes.load_variant_models(ref, var_model_params)
+  pop_model = genomes.load_population_model(None, {'sample_size': 2})
   chromosomes = [1]
-  sample_size = 2
   master_seed = 2
-  genomes.run_simulations(pop_db_name, ref, sfs_model, variant_models, chromosomes, sample_size, master_seed)
+  genomes.run_simulations(pop_db_name, ref=ref, sfs_model=sfs_model, variant_models=variant_models,
+                          population_model=pop_model, chromosomes=chromosomes, master_seed=master_seed)
 
   # If we get here, the simulation ran. We just want a superficial test to round things out
-  conn = mdb.connect(temp_name)
-  ml = mdb.load_master_list(conn, 1)
-  assert ml is not None
+  pop = vr.Population(fname=pop_db_name)
+  ml = pop.get_master_list(chrom=1)
+  assert ml.variants.shape[0] > 0
 
 
 #http://stackoverflow.com/questions/19071601/how-do-i-run-multiple-python-test-cases-in-a-loop
@@ -72,3 +73,24 @@ def self_test_all_found_plugins():
         test_wrapper.description = name + ' (variant plugin) self test(s): ' + (test[1].func_doc or test[1].__name__)
         # We can't ensure that a dev will provide us with a function doc, so we use the name if can't find a doc string
         yield test_wrapper, test
+
+
+def sanity_check_all_found_plugins_test():
+  """Sanity check on automatically found mutation plugin"""
+  for name, module in mitty.lib.discover_all_variant_plugins():
+    variant_sanity_check.description = name + ' (variant plugin) sanity check'
+    yield variant_sanity_check, mitty.lib.load_variant_plugin(name).Model()
+
+
+def variant_sanity_check(m):
+  """Convenience function. Given an initialized model try and do a sanity check test with it."""
+  ref_seq = ref[1]['seq']
+  pos, stop, refs, alts, p = m.get_variants(ref_seq, seed=10)
+  if len(pos) == 0:
+    raise SkipTest('The defaults do not yield any variants to test')
+
+  for p, s, r, a in zip(pos, stop, refs, alts):
+    assert r[0] == ref_seq[p]
+    if len(r) != len(a):
+      assert a[0] == ref_seq[p]
+    assert s == p + len(r)

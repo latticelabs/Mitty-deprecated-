@@ -1,4 +1,126 @@
 import numpy as np
+import h5py
+
+
+class Population:
+  """This class abstracts the storage and retrieval of the master list and samples of a population
+
+  genome_metadata = [
+    {'seq_id': 'chr1', 'seq_len': 100, 'seq_md5': 'deadbeef'},
+    {'seq_id': 'chr2', 'seq_len': 200, 'seq_md5': '1337'},
+  ]
+  pop = Population(genome_metadata)
+  pop.
+
+
+  """
+  def __init__(self, fname=None, genome_metadata=None):
+    """Load a population from file, or create a new file. Over write or store the passed master list and/or samples
+
+    :param fname: name of the file to store/load data from. If None an in-memory file is created
+    :param genome_metadata: [{seq_id, seq_len, seq_md5} ...] in same order as seen in fa.gz file
+                             same format as returned by Fasta.get_seq_metadata
+
+    The behavior is as follows:
+    1. If fname is None, create a HDf5 file in memory
+    2. If fname exists, open the file and load the master list
+    3. If a master list is given, overwrite the existing master list if any and erase the samples
+    """
+    if fname is None:
+      self.fp = h5py.File(name=hex(id(self)), driver='core', backing_store=False)  # Create it in memory
+    else:
+      self.fp = h5py.File(name=fname)
+    if len(self.get_genome_metadata()) == 0:
+      if genome_metadata is None:
+        raise RuntimeError('Creating a new Population object requires genome metadata')
+      self.set_genome_metadata(genome_metadata)
+
+  @staticmethod
+  def get_chrom_key(chrom):
+    return '/chrom_{:d}'.format(chrom)
+
+  @staticmethod
+  def get_ml_key(chrom):
+    return '/chrom_{:d}/master_list'.format(chrom)
+
+  @staticmethod
+  def get_sample_key(chrom):
+    return '/chrom_{:d}/samples/'.format(chrom)
+
+  def set_genome_metadata(self, genome_metadata):
+    """Save chromosome sequence metadata
+
+    :param genome_metadata: [{seq_id, seq_len, seq_md5} ...] in same order as seen in fa.gz file
+                           same format as returned by Fasta.get_seq_metadata
+    """
+    for n, meta in enumerate(genome_metadata):
+      chrom = n + 1  # By convention we number chromosomes 1, 2, 3 ... in the same order as in the fa.gz file
+      chrom_key = self.get_chrom_key(chrom)
+      chrom_grp = self.fp[chrom_key] if chrom_key in self.fp else self.fp.create_group(chrom_key)
+      for k, v in meta.iteritems():
+        chrom_grp.attrs[k] = v
+
+  def get_genome_metadata(self):
+    """Get chromosome metadata
+
+    :returns [{seq_id, seq_len, seq_md5} ...] same format as returned by Fasta.get_seq_metadata
+    """
+    return [dict(self.fp[self.get_chrom_key(n)].attrs) for n in self.get_chromosome_list()]
+
+  def get_chromosome_metadata(self, chrom):
+    return dict(self.fp[self.get_chrom_key(chrom)].attrs)
+
+  def get_chromosome_list(self):
+    return [int(ch[6:]) for ch in self.fp.keys() if ch.startswith('chrom_')]
+
+  def set_master_list(self, chrom, master_list):
+    """Replace any existing master list with this one. Erase any existing samples
+
+    :param master_list:
+    """
+    assert master_list.sorted, 'Master list has not been sorted. Please check your program'
+    assert len(master_list) <= 1073741823, 'Master list has more than 2^30-1 variants.'  # I want whoever gets here to mail me: kaushik.ghose@sbgenomics.com
+
+    key = self.get_ml_key(chrom)
+    if key in self.fp:
+      del self.fp[key]
+    sample_key = self.get_sample_key(chrom)
+    if sample_key in self.fp:
+      del self.fp[sample_key]
+    dt = h5py.special_dtype(vlen=bytes)
+    self.fp.create_dataset(self.get_ml_key(chrom), shape=master_list.variants.shape,
+                           dtype=[('pos', 'i4'), ('stop', 'i4'), ('ref', dt), ('alt', dt), ('p', 'f2')],
+                           data=master_list.variants, chunks=True, compression='gzip')
+
+  def add_sample_chromosome(self, chrom, sample_name, indexes):
+    """Add sample. Overwrite if name matches existing sample. No check is done to ensure list is sorted
+
+    :param chrom:  chrom number [1, 2, 3, ...]
+    :param sample_name:
+    :param indexes: [(chrom, gt) ...]
+    """
+    key = self.get_sample_key(chrom) + '/' + sample_name
+    if key in self.fp:
+      del self.fp[key]
+    self.fp.create_dataset(name=key, shape=indexes.shape, dtype=[('index', 'i4'), ('gt', 'i1')], data=indexes, chunks=True, compression='gzip')
+
+  def get_master_list(self, chrom):
+    """This function loads the whole data set into memory. We have no need for chunked access right now"""
+    ml = VariantList()
+    if self.get_ml_key(chrom) in self.fp:
+      ml.variants = self.fp[self.get_ml_key(chrom)][:]
+    return ml
+
+  def get_sample_chromosome(self, chrom, sample_name):
+    """This function loads the whole data set into memory. We have no need for chunked access right now"""
+    sample_key = self.get_sample_key(chrom) + '/' + sample_name
+    return self.fp[sample_key][:] if sample_key in self.fp else np.array([], dtype=[('index', 'i4'), ('gt', 'i1')])
+
+
+def l2ca(l):
+  """Convenience function that converts a Python list of tuples into an numpy structured array corresponding to a
+  chromosome index array"""
+  return np.array(l, dtype=[('index', 'i4'), ('gt', 'i1')])
 
 
 class VariantList:
@@ -92,6 +214,9 @@ class VariantList:
 
   def __repr__(self):
     """Fun ASCII histogram!"""
+    if self.variants.shape[0] == 0:
+      return '<empty>'
+
     if self.site_freq_spectrum is not None:
       sfs_p, sfs = self.site_freq_spectrum
       ideal_cnt = [f * self.variants.shape[0] for f in sfs]
@@ -177,4 +302,4 @@ def merge_homozygous(pos, z0, z1):
     chrom += [(z1[n1], 1)]
     n1 += 1
 
-  return chrom
+  return np.array(chrom, dtype=[('index', 'i4'), ('gt', 'i1')])
