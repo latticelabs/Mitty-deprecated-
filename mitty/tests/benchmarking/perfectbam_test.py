@@ -1,7 +1,7 @@
 import pysam
 from nose.tools import assert_raises
 
-import mitty.util.perfectbam as pbam
+import mitty.benchmarking.perfectbam as pbam
 
 
 def categorized_reads_class_test():
