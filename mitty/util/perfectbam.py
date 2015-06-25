@@ -109,6 +109,7 @@ import sqlite3 as sq
 import time
 import array
 
+import h5py
 import numpy as np
 import pysam
 from collections import Counter
@@ -123,17 +124,10 @@ logger = logging.getLogger(__name__)
 
 
 class CategorizedReads:
-  """This class is a convenient interface to storing/analyzing read misalignment data.
+  """A convenient interface to storing/retrieving read misalignment data. Stores the start, end and category of each
+  read in the bam file
 
-  * In order to do our read alignment analysis we need access to the start and stop positions of each read
-
-
-  * It wraps the error codes so we don't have to mess with/keep remembering bit fields.
-  * Takes care of storing/reading the data from numpy arrays on file
-
-  An example usage of this class is:
-
-  raa = CategorizedReads(sequences=sequences, copies=copies)   #
+  cat_reads = CategorizedReads(fname='catreads.hdf5', seq_names=bam_in_fp.references, seq_lengths=bam_in_fp.lengths)
   <in a loop, probably>
     raa.append(chrom, cpy, pos, code)
   raa.write(fname)
@@ -145,29 +139,46 @@ class CategorizedReads:
   Internally, the data is stored as a set of C x c compressed numpy arrays where C is the number of chromosomes with
   c copies per chromosome.
   """
-  def __init__(self, fname=None, seq_names=[], seq_lengths=[], copies=2):
+  def __init__(self, fname=None, seq_names=[], seq_lengths=[], copies=None):
     """
 
-    :param fname:        If this is supplied an existing analysis is loaded from disk. All other params are ignored
-    :param seq_names:    List of sequence ids
-    :param seq_lengths:  Corresponding list of seq lengths
+    :param fname:        File name to save/load data. If None, create a temporary file in memory
+    :param seq_names:    List of sequence ids              # If this and the following arguments are given a new
+    :param seq_lengths:  Corresponding list of seq lengths # file is started. Otherwise an existing file is loaded
     :param copies:       How many copies per chromosome
     """
-    if fname is not None:
-      self.sequences = self.load_from_file(fname)
-      self.copies = len(self.sequences[0][2])
-      self.finalized = True
+    if fname is None:
+      self.fp = h5py.File(name=hex(id(self)), driver='core', backing_store=False)
     else:
-      assert len(seq_names) > 0
+      self.fp = h5py.File(name=fname)
+
+    if len(self.get_sequence_info()) == 0:  # We are not loading a file but creating it
+      if len(seq_names) == 0 or len(seq_lengths) == 0 or copies is None:
+        raise RuntimeError('Creating a new CategorizedReads object requires genome metadata and chrom copy count')
       assert len(seq_names) == len(seq_lengths)
-      # Since there is no way to force a python array to be a specific width, we have to figure this out for ourselves
-      dtypes = ['H', 'I', 'L']
-      byte_size = [n for n, dt in enumerate(dtypes) if array.array(dt).itemsize == 4]
-      if len(byte_size) == 0: raise ArithmeticError("Can't find an integer `array` type 4 bytes wide")
-      dtype = dtypes[byte_size[0]]
-      self.sequences = [[seq, l, [[array.array(dtype), array.array(dtype), array.array('B')] for _ in xrange(copies)]] for seq, l in zip(seq_names, seq_lengths)]
-      self.copies = copies
-      self.finalized = False
+      self.fp.attrs['sequence_names'] = seq_names
+      self.fp.attrs['sequence_lens'] = seq_lengths
+      self.fp.attrs['copies'] = copies
+      i4 = self.get_i4type()
+      self._py_arrays = [
+        [[array.array(i4), array.array(i4), array.array('B')] for _ in range(copies)]
+        for _ in range(len(seq_names))
+      ]
+    self.copies = self.fp.attrs['copies']
+
+  @staticmethod
+  def get_i4type():
+    # Since there is no way to force a python array to be a specific width, we have to figure this out for ourselves
+    dtypes = ['H', 'I', 'L']
+    byte_size = [n for n, dt in enumerate(dtypes) if array.array(dt).itemsize == 4]
+    if len(byte_size) == 0: raise ArithmeticError("Can't find an integer `array` type 4 bytes wide")
+    return dtypes[byte_size[0]]
+
+  def get_sequence_info(self):
+    """
+    :return: [(seq_id, seq_len) ...]
+    """
+    return [(n, l) for n, l in zip(self.fp.attrs.get('sequence_names', []), self.fp.attrs.get('sequence_lens', []))]
 
   def append(self, chrom, cpy, pos, read_len, code):
     """
@@ -178,60 +189,31 @@ class CategorizedReads:
     :param read_len: length of read
     :param code:     code of read
     """
-    a = self.sequences[chrom - 1][2][cpy]
-    a[0].append(pos)
-    a[1].append(pos + read_len)
-    a[2].append(code)
+    try:
+      a = self._py_arrays[chrom - 1][cpy]
+      a[0].append(pos)
+      a[1].append(pos + read_len)
+      a[2].append(code)
+    except AttributeError:
+      raise RuntimeError("Can't append data after finalizing")
 
-  def write(self, fname):
-    """Finalize and write data to numpy compressed file
-
-    :param fname:
-    """
-    arrays_to_save = {
-      'seq_names': np.array([s[0] for s in self.sequences]),
-      'seq_lengths': np.array([s[1] for s in self.sequences]),
-      'copies': len(self.sequences[0][2])
-    }
-    for chr_no, s in enumerate(self.sequences):
-      for cpy, d in enumerate(s[2]):
-        array_name = 'chrom_{:d}_copy_{:d}'.format(chr_no + 1, cpy)
-        arrays_to_save[array_name + '_pos'] = np.frombuffer(d[0], dtype='uint32')
-        arrays_to_save[array_name + '_stop'] = np.frombuffer(d[1], dtype='uint32')
-        arrays_to_save[array_name + '_cat'] = np.frombuffer(d[2], dtype='B')
-        srt_idx = np.argsort(arrays_to_save[array_name + '_pos'])
-        #from IPython import embed; embed()
-        arrays_to_save[array_name + '_pos'] = arrays_to_save[array_name + '_pos'][srt_idx]
-        arrays_to_save[array_name + '_stop'] = arrays_to_save[array_name + '_stop'][srt_idx]
-        arrays_to_save[array_name + '_cat'] = arrays_to_save[array_name + '_cat'][srt_idx]
-
-    np.savez_compressed(fname, **arrays_to_save)
-    self.finalized = True
-
-  @staticmethod
-  def load_from_file(fname):
-    with np.load(fname) as fp:
-      seq_names = fp['seq_names']
-      seq_lengths = fp['seq_lengths']
-      sequences = [
-        [seq_name, seq_len,
-          [
-            [fp['chrom_{:d}_copy_{:d}_pos'.format(ch + 1, cpy)],
-             fp['chrom_{:d}_copy_{:d}_stop'.format(ch + 1, cpy)],
-             fp['chrom_{:d}_copy_{:d}_cat'.format(ch + 1, cpy)]] for cpy in range(fp['copies'])
-          ]
-        ]
-        for ch, (seq_name, seq_len) in enumerate(zip(seq_names, seq_lengths))
-      ]
-    return sequences
+  def finalize(self):
+    """Convert py arrays to numpy structured arrays in HDF5 format. Remove _py_arrays so we can no longer append"""
+    dtype = [('pos', 'i4'), ('stop', 'i4'), ('cat', 'B')]
+    for n in range(len(self.fp.attrs['sequence_names'])):
+      for cpy in range(self.copies):
+        dset = self.fp.create_dataset(name='/chrom_{:d}/copy_{:d}'.format(n + 1, cpy), shape=(len(self._py_arrays[n][cpy][0]),), dtype=dtype, chunks=True, compression='gzip')
+        for dt in [0, 1, 2]:
+          dset[dtype[dt][0]] = self._py_arrays[n][cpy][dt]
+        dset.attrs['sequence_name'] = self.fp.attrs['sequence_names'][n]
+    del self._py_arrays
 
   def get_data(self, chrom, cpy):
-    assert 0 < chrom <= len(self.sequences), 'Enter a valid chromosome number'
-    s = self.sequences[chrom - 1][2][cpy]
-    return {'pos': s[0], 'stop': s[1], 'cat': s[2]}
+    assert 0 < chrom <= len(self.fp.attrs['sequence_names']), 'Enter a valid chromosome number'
+    return self.fp['/chrom_{:d}/copy_{:d}'.format(chrom, cpy)][:]
 
   def __len__(self):
-    return len(self.sequences)
+    return len(self.fp.attrs['sequence_names'])
 
   def chromosomes(self):
     return range(1, len(self) + 1)
@@ -239,11 +221,10 @@ class CategorizedReads:
   def __repr__(self):
     """Print out some useful information about ourselves"""
     rep_str = 'Read alignment analysis\n'
-    rep_str += '{:d} chromosomes, {:d} copies each\n'.format(len(self.sequences), len(self.sequences[0][2]))
+    rep_str += '{:d} chromosomes, {:d} copies each\n'.format(len(self), self.copies)
     for n in self.chromosomes():
-      rep_str += 'Chrom {:d}: '.format(n)
-      for c in range(self.copies):
-         rep_str += 'copy {:d}: {:d} reads, '.format(c, self.get_data(n, c)['cat'].shape[0])
+      rd_cnts = ['{:d}'.format(self.fp['/chrom_{:d}/copy_{:d}'.format(n, c)].shape[0]) for c in range(self.copies)]
+      rep_str += 'Chrom {:d} ['.format(n) + '|'.join(rd_cnts) + ']'
       rep_str += '\n'
     # TODO add more data
     return rep_str
@@ -346,7 +327,7 @@ def main(bam_in_fp, bam_out_fp=None, db_name=None, cr_fname=None, window=0, exte
 
   if progress_bar_func is not None: progress_bar_func('Processing BAM ', 0, 80)
 
-  cat_reads = CategorizedReads(seq_names=bam_in_fp.references, seq_lengths=bam_in_fp.lengths) if cr_fname else None
+  cat_reads = CategorizedReads(fname=cr_fname, seq_names=bam_in_fp.references, seq_lengths=bam_in_fp.lengths, copies=2) if cr_fname else None
 
   for n, read in enumerate(bam_in_fp):
     # qname = '{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:s}'
@@ -374,16 +355,16 @@ def main(bam_in_fp, bam_out_fp=None, db_name=None, cr_fname=None, window=0, exte
     total_reads_cntr[chrom] += 1
 
     if read.is_unmapped:
-      error_type |= 0x8
+      error_type |= 0b1000
     else:
       if read.reference_id != chrom - 1:
-        error_type |= 1
+        error_type |= 0b0001
       if not (-window <= read.pos - pos <= window):
-        error_type |= 2
+        error_type |= 0b0010
       if read.cigarstring != cigar:
-        error_type |= 4
-    if error_type & 0xff != 0:
-      if error_type & 8:  # Unmapped read
+        error_type |= 0b0100
+    if error_type & 0b1111:
+      if error_type & 0b1000:  # Unmapped read
         unmapped_reads_cntr[chrom] += 1
       else:
         incorrectly_aligned_reads_cntr[chrom] += 1
@@ -416,7 +397,7 @@ def main(bam_in_fp, bam_out_fp=None, db_name=None, cr_fname=None, window=0, exte
     write_summary_to_db(conn, total_reads_cntr, incorrectly_aligned_reads_cntr, unmapped_reads_cntr, bam_in_fp.header['SQ'])
     commit_and_create_db_indexes(conn)
 
-  if cat_reads: cat_reads.write(cr_fname)
+  if cat_reads: cat_reads.finalize()
 
   return int(total_read_count)
 
