@@ -12,9 +12,8 @@ class Population:
     {'seq_id': 'chr2', 'seq_len': 200, 'seq_md5': '1337'},
   ]
   pop = Population(genome_metadata)
-  pop.
 
-
+  The master list and samples for each chromosome are added separately. This
   """
   def __init__(self, fname=None, genome_metadata=None):
     """Load a population from file, or create a new file. Over write or store the passed master list and/or samples
@@ -106,6 +105,8 @@ class Population:
     if key in self.fp:
       del self.fp[key]
     self.fp.create_dataset(name=key, shape=indexes.shape, dtype=[('index', 'i4'), ('gt', 'i1')], data=indexes, chunks=True, compression='gzip')
+    if sample_name not in self.fp.attrs.get('sample_names', []):
+      self.fp.attrs['sample_names'] = list(self.fp.attrs.get('sample_names', [])) + [sample_name]
 
   def get_master_list(self, chrom):
     """This function loads the whole data set into memory. We have no need for chunked access right now"""
@@ -118,6 +119,10 @@ class Population:
     """This function loads the whole data set into memory. We have no need for chunked access right now"""
     sample_key = self.get_sample_key(chrom) + '/' + sample_name
     return self.fp[sample_key][:] if sample_key in self.fp else np.array([], dtype=[('index', 'i4'), ('gt', 'i1')])
+
+  def get_sample_names(self):
+    """Return a list of sample names"""
+    return self.fp.attrs['sample_names']
 
   def get_version(self):
     return self.fp.attrs['Mitty version']
