@@ -197,10 +197,6 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], population_m
   seed_rng = np.random.RandomState(seed=master_seed)
   pop = vr.Population(fname=pop_db_name, genome_metadata=ref.get_seq_metadata())
 
-  # conn = mdb.connect(db_name=pop_db_name)
-  # for n, meta in enumerate(ref.get_seq_metadata()):
-  #   mdb.save_chromosome_metadata(conn, n + 1, **meta)
-
   p, f = sfs_model.get_spectrum() if sfs_model is not None else (None, None)
   unique_variant_count, total_variant_count = 0, 0
   for ch in chromosomes:
@@ -210,18 +206,13 @@ def run_simulations(pop_db_name, ref, sfs_model, variant_models=[], population_m
     ml.sort()
     if sfs_model is not None: ml.balance_probabilities(*sfs_model.get_spectrum())
     pop.set_master_list(chrom=ch, master_list=ml)
-    #mdb.save_master_list(conn, ch, ml)
     unique_variant_count += len(ml)
-    for gen, n, this_sample, frac_done in population_model.samples(chrom_no=ch, ml=ml, rng_seed=seed_rng.randint(mutil.SEED_MAX)):
-      #this_sample = ml.generate_chromosome(rng)
-      #mdb.save_sample(conn, gen, n, ch, this_sample)
-      pop.add_sample_chromosome(chrom=ch, sample_name='g{:d}_s{:d}'.format(gen, n), indexes=this_sample)
+    for sample_name, this_sample, frac_done in population_model.samples(chrom_no=ch, ml=ml, rng_seed=seed_rng.randint(mutil.SEED_MAX)):
+      pop.add_sample_chromosome(chrom=ch, sample_name=sample_name, indexes=this_sample)
       total_variant_count += len(this_sample)
       if progress_bar_func is not None:
         progress_bar_func('Chrom {:d} '.format(ch), frac_done, 80)
     if progress_bar_func is not None: print('')
-    #mdb.save_chromosome_metadata(conn, ch, ref[ch]['id'], len(ref[ch]['seq']), ref[ch]['md5'])
-  #conn.close()
   return unique_variant_count, total_variant_count
 
 

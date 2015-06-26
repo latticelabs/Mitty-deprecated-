@@ -53,7 +53,7 @@ def integration_test():
     "rng": {
       "master_seed": 1
     },
-    "sample_size": 1,
+    "sample_size": 10,
     "site_model": {
         "double_exp": {
           "k1": 0.1,
@@ -83,3 +83,5 @@ def integration_test():
   os.remove(db_file)
 
   assert len(ml) > 0
+  assert len(pop.get_sample_names()) == 10
+  assert 'g0_s6' in pop.get_sample_names()
