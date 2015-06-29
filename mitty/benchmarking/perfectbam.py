@@ -25,12 +25,14 @@ The category flags are defined as follows
 ---------------------------------
 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 ---------------------------------
-              |   |   |   |   |
-              |   |   |   |   \------  1 => chrom was wrong
-              |   |   |   \----------  1 => pos was wrong
-              |   |   \--------------  1 => cigar was wrong
-              |   \------------------  1 => unmapped
-              \----------------------  1 => read from reference region (no variants)
+          |   |   |   |   |   |
+          |   |   |   |   |   \------  1 => chrom was wrong
+          |   |   |   |   \----------  1 => pos was wrong
+          |   |   |   \--------------  1 => cigar was wrong
+          |   |   \------------------  1 => unmapped
+          |   \----------------------  1 => read from reference region (no variants)
+          \--------------------------  1 => mate is from reference region
+
 
 To store this data for a 30x WG Illumina run will take 9 x 900e6 ~ 8.1 GB
 
@@ -105,202 +107,18 @@ __param__ = """Given a bam file containing simulated reads aligned by a tool
 __doc__ = __cmd__ + '\n\nDetails:\n\n' + __doc__
 
 import os
-import sqlite3 as sq
 import time
-import array
 
-import h5py
-import numpy as np
 import pysam
 from collections import Counter
 import docopt
 
+import mitty.benchmarking.creed as creed
 import mitty.lib.io as mio  # For the bam sort and index function
-from mitty.lib.reads import old_style_cigar
 from mitty.lib import progress_bar
 
 import logging
 logger = logging.getLogger(__name__)
-
-
-class CategorizedReads:
-  """A convenient interface to storing/retrieving read misalignment data. Stores the start, end and category of each
-  read in the bam file
-
-  cat_reads = CategorizedReads(fname='catreads.hdf5', seq_names=bam_in_fp.references, seq_lengths=bam_in_fp.lengths)
-  <in a loop, probably>
-    raa.append(chrom, cpy, pos, code)
-  raa.write(fname)
-
-  You can load a previously saved analysis as:
-
-  raa = CategorizedReads(fname='raa.npz')
-
-  Internally, the data is stored as a set of C x c compressed numpy arrays where C is the number of chromosomes with
-  c copies per chromosome.
-  """
-  def __init__(self, fname=None, seq_names=[], seq_lengths=[], copies=None):
-    """
-
-    :param fname:        File name to save/load data. If None, create a temporary file in memory
-    :param seq_names:    List of sequence ids              # If this and the following arguments are given a new
-    :param seq_lengths:  Corresponding list of seq lengths # file is started. Otherwise an existing file is loaded
-    :param copies:       How many copies per chromosome
-    """
-    if fname is None:
-      self.fp = h5py.File(name=hex(id(self)), driver='core', backing_store=False)
-    else:
-      self.fp = h5py.File(name=fname)
-
-    if len(self.get_sequence_info()) == 0:  # We are not loading a file but creating it
-      if len(seq_names) == 0 or len(seq_lengths) == 0 or copies is None:
-        raise RuntimeError('Creating a new CategorizedReads object requires genome metadata and chrom copy count')
-      assert len(seq_names) == len(seq_lengths)
-      self.fp.attrs['sequence_names'] = seq_names
-      self.fp.attrs['sequence_lens'] = seq_lengths
-      self.fp.attrs['copies'] = copies
-      i4 = self.get_i4type()
-      self._py_arrays = [
-        [[array.array(i4), array.array(i4), array.array('B')] for _ in range(copies)]
-        for _ in range(len(seq_names))
-      ]
-    self.copies = self.fp.attrs['copies']
-
-  @staticmethod
-  def get_i4type():
-    # Since there is no way to force a python array to be a specific width, we have to figure this out for ourselves
-    dtypes = ['H', 'I', 'L']
-    byte_size = [n for n, dt in enumerate(dtypes) if array.array(dt).itemsize == 4]
-    if len(byte_size) == 0: raise ArithmeticError("Can't find an integer `array` type 4 bytes wide")
-    return dtypes[byte_size[0]]
-
-  def get_sequence_info(self):
-    """
-    :return: [(seq_id, seq_len) ...]
-    """
-    return [(n, l) for n, l in zip(self.fp.attrs.get('sequence_names', []), self.fp.attrs.get('sequence_lens', []))]
-
-  def append(self, chrom, cpy, pos, read_len, code):
-    """
-
-    :param chrom:    correct chromosome number [1, 2, 3 ....]
-    :param cpy:      correct copy number [0, 1, ...]
-    :param pos:      correct pos
-    :param read_len: length of read
-    :param code:     code of read
-    """
-    try:
-      a = self._py_arrays[chrom - 1][cpy]
-      a[0].append(pos)
-      a[1].append(pos + read_len)
-      a[2].append(code)
-    except AttributeError:
-      raise RuntimeError("Can't append data after finalizing")
-
-  def finalize(self):
-    """Convert py arrays to numpy structured arrays in HDF5 format. Remove _py_arrays so we can no longer append"""
-    dtype = [('pos', 'i4'), ('stop', 'i4'), ('cat', 'B')]
-    for n in range(len(self.fp.attrs['sequence_names'])):
-      for cpy in range(self.copies):
-        dset = self.fp.create_dataset(name='/chrom_{:d}/copy_{:d}'.format(n + 1, cpy), shape=(len(self._py_arrays[n][cpy][0]),), dtype=dtype, chunks=True, compression='gzip')
-        for dt in [0, 1, 2]:
-          dset[dtype[dt][0]] = self._py_arrays[n][cpy][dt]
-        dset.attrs['sequence_name'] = self.fp.attrs['sequence_names'][n]
-    del self._py_arrays
-
-  def get_data(self, chrom, cpy):
-    assert 0 < chrom <= len(self.fp.attrs['sequence_names']), 'Enter a valid chromosome number'
-    return self.fp['/chrom_{:d}/copy_{:d}'.format(chrom, cpy)][:]
-
-  def __len__(self):
-    return len(self.fp.attrs['sequence_names'])
-
-  def chromosomes(self):
-    return range(1, len(self) + 1)
-
-  def __repr__(self):
-    """Print out some useful information about ourselves"""
-    rep_str = 'Read alignment analysis\n'
-    rep_str += '{:d} chromosomes, {:d} copies each\n'.format(len(self), self.copies)
-    for n in self.chromosomes():
-      rd_cnts = ['{:d}'.format(self.fp['/chrom_{:d}/copy_{:d}'.format(n, c)].shape[0]) for c in range(self.copies)]
-      rep_str += 'Chrom {:d} ['.format(n) + '|'.join(rd_cnts) + ']'
-      rep_str += '\n'
-    # TODO add more data
-    return rep_str
-
-
-def connect_to_db(db_name):
-  """Convenience function so we don't need to import sqlite in other modules just for this"""
-  conn = sq.connect(db_name)
-  conn.row_factory = sq.Row
-  return conn
-
-
-def create_db(conn):
-  """Create tables for the mis-aligned reads database
-
-  :param conn: database connection
-
-  read_serial = read_serial * 10 + 0 or 1 (for mate1 or mate2 of read) for paired reads
-  read_serial = read_serial for un-paired reads
-  """
-  c = conn.cursor()
-  c.execute('CREATE TABLE reads (read_serial INT, qname TEXT, error_type INT, '
-            'correct_chrom INT, correct_pos INT, correct_cigar TEXT, '
-            'aligned_chrom INT, aligned_pos INT, aligned_cigar TEXT,'
-            'mapping_qual INT, mate_is_unmapped BOOL, seq TEXT)')
-  c.execute('CREATE TABLE summary (chrom INT, total_reads INT, incorrect_reads INT, unmapped_reads INT, seq_len INT, seq_id TEXT)')
-  conn.commit()
-
-
-def write_summary_to_db(conn, total_reads_cntr, incorrectly_aligned_reads_cntr, unmapped_reads_cntr, bam_seq_header):
-  """Write the alignment analysis summary for the BAM file into the database
-
-  :param conn: database connection
-  :param total_reads_cntr: Counter by chromosome
-  :param incorrectly_aligned_reads_cntr: Counter by chromosome
-  :param unmapped_reads_cntr: Counter by chromosome
-  :param bam_seq_header: bam_in_fp.header['SQ']
-  :return:
-  """
-  insert_clause = "INSERT INTO summary VALUES (?, ?, ?, ?, ?, ?)"
-  to_insert = [(n + 1, total_reads_cntr[n + 1], incorrectly_aligned_reads_cntr[n + 1], unmapped_reads_cntr[n + 1], seq['LN'], seq['SN']) for n, seq in enumerate(bam_seq_header)]
-  conn.executemany(insert_clause, to_insert)
-
-
-def write_read_to_misaligned_read_table(conn, data_to_save):
-  """Write mis-aligned/unmapped read data to the database
-
-  :param conn: db connection
-  :param data_to_save: [qname, error_type, chrom, pos, cigar, aligned_chrom, aligned_pos, aligned_cigar,
-                        map_quality, mate_is_unmapped, sequence]
-  """
-  insert_clause = "INSERT INTO reads VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  conn.execute(insert_clause, data_to_save)
-
-
-def write_read_to_all_reads_table(conn, chrom_cc, pos, code):
-  """Write mis-aligned/unmapped read data to the database
-
-  :param conn: db connection
-  :param chrom_cc:  correct chromosome of read & chrom copy bit
-  :param pos: correct pos of read
-  :param code: error code (same as error_type)
-  """
-  insert_clause = "INSERT INTO all_reads VALUES (?, ?, ?)"
-  conn.execute(insert_clause, [chrom_cc, pos, code])
-
-
-def commit_and_create_db_indexes(conn):
-  """Need to commit the INSERTs and create search indexes for faster querying
-
-  :param conn: db connection
-  """
-  conn.commit()
-  conn.execute('CREATE INDEX idx_s ON reads (read_serial)')
-  conn.execute('CREATE INDEX idx_f ON reads (correct_chrom, correct_pos)')
-  conn.execute('CREATE INDEX idx_r ON reads (aligned_chrom, aligned_pos)')
 
 
 def main(bam_in_fp, bam_out_fp=None, db_name=None, cr_fname=None, window=0, extended=False, progress_bar_func=None):
@@ -315,11 +133,8 @@ def main(bam_in_fp, bam_out_fp=None, db_name=None, cr_fname=None, window=0, exte
   :param progress_bar_func: Our famous progress bar, if we want it
   :return: number of reads processed
   """
-  if db_name:
-    conn = sq.connect(db_name)
-    create_db(conn)
-  else:
-    conn = None
+  debug_db = creed.ReadDebugDB(db_name) if db_name else None
+  cat_reads = creed.CategorizedReads(fname=cr_fname, seq_names=bam_in_fp.references, seq_lengths=bam_in_fp.lengths, copies=2) if cr_fname else None
 
   total_read_count = float(bam_in_fp.mapped + bam_in_fp.unmapped)
   f0 = 0
@@ -327,54 +142,26 @@ def main(bam_in_fp, bam_out_fp=None, db_name=None, cr_fname=None, window=0, exte
 
   if progress_bar_func is not None: progress_bar_func('Processing BAM ', 0, 80)
 
-  cat_reads = CategorizedReads(fname=cr_fname, seq_names=bam_in_fp.references, seq_lengths=bam_in_fp.lengths, copies=2) if cr_fname else None
+  analyze_read = creed.analyze_read
+  cra = cat_reads.append if cat_reads else lambda **kwargs: None  # The lambda is a NOP
 
   for n, read in enumerate(bam_in_fp):
-    # qname = '{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:s}'
-    try:
-      if read.is_paired:
-        if read.is_read1:
-          rs, chrom, cpy, ro, pos, cigar, _, _, _ = read.qname.split('|')
-        else:
-          rs, chrom, cpy, _, _, _, ro, pos, cigar = read.qname.split('|')
-        read_serial = int(rs) * 10 + (not read.is_read1)
-      else:
-        rs, chrom, cpy, ro, pos, cigar = read.qname.split('|')[:6]  # For Wan-Ping :)
-        read_serial = int(rs)
-      ro, chrom, cpy, pos = int(ro), int(chrom), int(cpy), int(pos)
-    except ValueError:
-      logger.debug('Error processing qname: n={:d}, qname={:s}, chrom={:d}, pos={:d}'.format(n, read.qname, read.reference_id + 1, read.pos))
-      continue
-
-    # Do this before modifying the cigar
-    error_type = 0b0 if 'X' in cigar or 'I' in cigar or 'D' in cigar or 'S' in cigar else 0b10000
-
-    if not extended:
-      cigar = old_style_cigar(cigar)
-
+    read_serial, chrom, cpy, ro, pos, cigar, error_type = analyze_read(read, window, extended)
+    if read_serial is None: continue
     total_reads_cntr[chrom] += 1
 
-    if read.is_unmapped:
-      error_type |= 0b1000
-    else:
-      if read.reference_id != chrom - 1:
-        error_type |= 0b0001
-      if not (-window <= read.pos - pos <= window):
-        error_type |= 0b0010
-      if read.cigarstring != cigar:
-        error_type |= 0b0100
     if error_type & 0b1111:
       if error_type & 0b1000:  # Unmapped read
         unmapped_reads_cntr[chrom] += 1
       else:
         incorrectly_aligned_reads_cntr[chrom] += 1
-      if conn:
-        write_read_to_misaligned_read_table(
-          conn, [read_serial, read.qname, error_type, chrom, pos, cigar,
-                 read.reference_id + 1, read.pos, read.cigarstring,
-                 read.mapq, read.mate_is_unmapped, read.query_sequence])
+      if debug_db:
+        debug_db.write_read_to_misaligned_read_table(
+          [read_serial, read.qname, error_type, chrom, pos, cigar,
+           read.reference_id + 1, read.pos, read.cigarstring,
+           read.mapq, read.mate_is_unmapped, read.query_sequence])
 
-    if cat_reads: cat_reads.append(chrom, cpy, pos, read.query_length, error_type)
+    cra(chrom, cpy, pos, read.query_length, error_type)
 
     if bam_out_fp:
       # Now write out the perfect alignment
@@ -393,50 +180,13 @@ def main(bam_in_fp, bam_out_fp=None, db_name=None, cr_fname=None, window=0, exte
         f0 = f
   if progress_bar_func is not None: print('\n')
 
-  if conn:
-    write_summary_to_db(conn, total_reads_cntr, incorrectly_aligned_reads_cntr, unmapped_reads_cntr, bam_in_fp.header['SQ'])
-    commit_and_create_db_indexes(conn)
+  if debug_db:
+    debug_db.write_summary_to_db(total_reads_cntr, incorrectly_aligned_reads_cntr, unmapped_reads_cntr, bam_in_fp.header['SQ'])
+    debug_db.commit_and_create_db_indexes()
 
   if cat_reads: cat_reads.finalize()
 
   return int(total_read_count)
-
-
-def load_summary(conn):
-  """Load information in the summary table
-
-  :param conn: database connection object
-  :return:
-  """
-  return [{k: row[k] for k in row.keys()} for row in conn.execute('SELECT * FROM summary ORDER BY chrom')]
-
-
-def load_reads(conn, chrom=-1, start_pos=None, stop_pos=None, source=True, sample=None):
-  """Load mis-aligned reads from the database based on the filters we give it
-
-  :param conn: db connection object
-  :param chrom: chromosome number [1,2...]. If -1, load all chroms and ignore start_pos and stop_pos values
-  :param start_pos: If chrom is given, start taking reads from this here
-  :param stop_pos: If chrom given, stop reads here
-  :param source: If True find reads with correct position matching criteria. If False find reads with aligned pos matching criteria
-  :param sample: If given, sub-sample reads to get at most this many
-  :return: list of tuples (corr_chrom, corr_pos, align_chrom, align_pos)
-
-  SELECT * FROM reads WHERE rowid in (SELECT abs(random()) % (select max(rowid) FROM reads) FROM reads LIMIT 10);
-  """
-  select_statement = 'SELECT * FROM reads'
-  col_prefix = 'correct_' if source else 'aligned_'
-  where_clause = []
-  if chrom > 0:
-    where_clause += [col_prefix + 'chrom = {:d}'.format(chrom)]
-    if start_pos is not None:
-      where_clause += [col_prefix + 'pos >= {:d} '.format(start_pos)]
-    if stop_pos is not None:
-      where_clause += [col_prefix + 'pos <= {:d} '.format(stop_pos)]
-  if sample is not None:
-    where_clause += ['rowid in (SELECT abs(random()) % (select MAX(rowid) FROM reads) FROM reads LIMIT {:d})'.format(sample)]
-  query = select_statement + (' WHERE ' if where_clause else '') + ' AND '.join(where_clause)
-  return [r for r in conn.execute(query)]
 
 
 def cli():
@@ -458,9 +208,16 @@ def cli():
   bam_out_fp = pysam.AlignmentFile(pbam_fname, 'wb', template=bam_in_fp) if pbam_fname else None
   db_name = args['--debugdb']
   cr_fname = args['--catreads']
+
   if db_name:
     try:
       os.remove(db_name)
+    except OSError:
+      pass
+
+  if cr_fname:
+    try:
+      os.remove(cr_fname)
     except OSError:
       pass
 

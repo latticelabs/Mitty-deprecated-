@@ -1,27 +1,6 @@
 import pysam
 from nose.tools import assert_raises
 
-import mitty.benchmarking.perfectbam as pbam
-
-
-def categorized_reads_class_test():
-  """benchmarking: CategorizedReads class"""
-  assert_raises(RuntimeError, pbam.CategorizedReads)  # Need seq len and seq id for new file
-  seq_names = ['chr1', 'chr2']
-  seq_lengths = [100, 200]
-  cat_reads = pbam.CategorizedReads(seq_names=seq_names, seq_lengths=seq_lengths, copies=2)
-  assert cat_reads.get_sequence_info()[1][1] == seq_lengths[1]
-
-  cat_reads.append(1, 0, 10, 100, 0b10000)
-  cat_reads.append(1, 0, 20, 100, 0b10010)
-  cat_reads.append(0, 1, 10, 100, 0b10000)
-  cat_reads.finalize()
-
-  dta = cat_reads.get_data(1, 0)
-  assert dta.shape[0] == 2
-
-  assert_raises(RuntimeError, cat_reads.append, 1, 0, 10, 100, 0b10000)  # Can't append after finalizing
-
 
 def create_small_bam(bam_name):
   """Create a small bam file that has a correctly aligned read, a read with wrong chrom, a read with wrong pos and a
