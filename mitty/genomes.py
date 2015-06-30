@@ -10,7 +10,7 @@ Commandline::
     genomes dryrun <pfile>
     genomes inspect <dbfile>
     genomes inspect sfs <chrom> <dbfile>
-    genomes write ((vcf|vcfs)|master) <dbfile> <out_prefix> [<serial>]... [-v|-V]
+    genomes write vcf <dbfile> <out_prefix>  [--sample_name=SN] [-v|-V]
     genomes explain (parameters|(variant-model|spectrum-model|population-model) (all|<model_name>))
     genomes list (variant-model|spectrum-model|population-model)
 
@@ -24,10 +24,8 @@ Commandline::
     <chrom>                 Which chromosome's site frequncy spectrum to print
     write                   Write out genome data from the database file in vcf format
     vcf                     Write out all genomes in one multi-sample vcf file
-    vcfs                    Write out the genomes in separate single sample vcf files
-    master                  Write  a VCF file with all the variants, no sample tag
-    <serial>                Serial number of sample. Not needed and Ignored if 'master' is used. Leave blank with vcf/vcfs to write all samples
     <out_prefix>            Written files will have this prefix
+    --sample_name=SN        Name of sample. Leave out to write master list
     explain                 Explain the parameters/variant model/population model
     all                     Iterate over and explain all models
     <model_name>            Explain specific model
@@ -246,49 +244,12 @@ def load_population_model(pop_model_json, params={}):
 
 
 def write(cmd_args):
-  pop_db_name = cmd_args['<dbfile>']
-  conn = mdb.connect(db_name=pop_db_name)
+  pop = vr.Population(fname=cmd_args['<dbfile>'])
   out_prefix = cmd_args['<out_prefix>']
-  if cmd_args['master']:
-    write_master_vcf(conn, out_prefix)
-  else:
-    samples = cmd_args['<serial>']
-    if len(samples) == 0:
-      samples = [n for n in range(mdb.samples_in_db(conn))]
-    if cmd_args['vcf']:
-      write_samples_vcf(conn, samples, out_prefix)
-    else:
-      write_sample_vcfs(conn, samples, out_prefix)
-
-
-def write_master_vcf(conn, out_prefix):
-  contig_info = [mdb.load_chromosome_metadata(conn, ch[0])[1:] for ch in mdb.chromosomes_in_db(conn)]
-  fname = out_prefix + '_master.vcf'
-  with mio.vcf_for_writing(fname, [], contig_info) as fp:
-    for ch in mdb.chromosomes_in_db(conn):
-      ml = mdb.load_master_list(conn, ch[0])
-      mio.write_chromosomes_to_vcf(fp, seq_id=ch[1], chrom_list=[], master_list=ml)
-
-
-def write_sample_vcfs(conn, samples, out_prefix):
-  contig_info = [mdb.load_chromosome_metadata(conn, ch[0])[1:] for ch in mdb.chromosomes_in_db(conn)]
-  for spl in [int(s) for s in samples]:
-    fname = out_prefix + '_s{:d}.vcf'.format(spl)
-    with mio.vcf_for_writing(fname, ['s{:d}'.format(spl)], contig_info) as fp:
-      for ch in mdb.chromosomes_in_db(conn):
-        ml = mdb.load_master_list(conn, ch[0])
-        mio.write_chromosomes_to_vcf(fp, seq_id=ch[1], chrom_list=[mdb.load_sample(conn, 0, spl, ch[0])], master_list=ml)
-
-
-def write_samples_vcf(conn, samples, out_prefix):
-  _samples = [int(s) for s in samples]
-  contig_info = [mdb.load_chromosome_metadata(conn, ch[0])[1:] for ch in mdb.chromosomes_in_db(conn)]
-  sample_header = ['s{:d}'.format(spl) for spl in _samples]
-  fname = out_prefix + '_s{:d}.vcf'.format(spl)
-  with mio.vcf_for_writing(fname, sample_header, contig_info) as fp:
-    for ch in mdb.chromosomes_in_db(conn):
-      ml = mdb.load_master_list(conn, ch[0])
-      mio.write_chromosomes_to_vcf(fp, seq_id=ch[1], chrom_list=[mdb.load_sample(conn, 0, spl, ch[0]) for spl in _samples], master_list=ml)
+  sample_name = cmd_args['--sample_name']
+  fname = out_prefix + ('_' + sample_name + '.vcf.gz' if sample_name else '_master.vcf.gz')
+  mio.write_single_sample_to_vcf(pop=pop, sample_name=sample_name, out_fname=fname)
+  # if sample_name is none, mio.write_single_sample_to_vcf will write master list
 
 
 def explain(cmd_args):
