@@ -73,7 +73,7 @@ class Population:
     return dict(self.fp[self.get_chrom_key(chrom)].attrs)
 
   def get_chromosome_list(self):
-    return [int(ch[6:]) for ch in self.fp.keys() if ch.startswith('chrom_')]
+    return sorted([int(ch[6:]) for ch in self.fp.keys() if ch.startswith('chrom_')])  # Needs to be sorted
 
   def set_master_list(self, chrom, master_list):
     """Replace any existing master list with this one. Erase any existing samples
