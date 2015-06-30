@@ -10,20 +10,13 @@ dtype=[('correct', 'i4'), ('total', 'i4')].
 There is one bucket array for each bracket array and each bucket array is the same length as the corresponding bucket
 array."""
 
-import os
 import sqlite3 as sq
-import time
+from itertools import izip
 import array
 
 import h5py
 import numpy as np
-import pysam
-from collections import Counter
-import docopt
-
-import mitty.lib.io as mio  # For the bam sort and index function
 from mitty.lib.reads import old_style_cigar
-from mitty.lib import progress_bar
 
 import logging
 logger = logging.getLogger(__name__)
@@ -295,3 +288,80 @@ def analyze_read(read, window=100, extended=False):
       error_type |= 0b0100
 
   return read_serial, chrom, cpy, ro, pos, cigar, error_type
+
+
+def bucket_list(r_pos, r_stop, r_code, v_pos, v_stop):
+  """First run - ignoring CIGAR errors
+
+  :param r_pos:  array of read 'pos'  -> should be sorted
+  :param r_stop: array of read 'stop'
+  :param r_code: array of read category code
+  :param v_pos: start of bucket  -> should be sorted
+  :param v_stop: end of bucket
+  :return:
+  """
+  # correct, total
+  v_win_start = 0  # Which variants do we check
+  v_win_stop = 0
+  v_count = v_pos.shape[0]
+  v_count_1 = v_count - 1
+  v_read_counts = np.zeros(v_count, dtype=[('correct', 'uint32'), ('total', 'uint32')])
+  v_correct = v_read_counts['correct']
+  v_total = v_read_counts['total']
+  r_correct, r_total = 0, 0
+  r2_correct, r2_total = 0, 0  # Both read and mate are from reference regions
+
+  #v0, v1 = variations['pos'], variations['stop']
+  #r_pos, r_stop, r_code = read_data['pos'], read_data['stop'], read_data['cat']
+  for r0, r1, c in izip(r_pos, r_stop, r_code):
+    # If this is a reference read we can bucket it now and move on
+    if c & 0b10000:  # reference read
+      r_total += 1
+      if not (c & 0b1011):  # no chrom, pos or unmapped errors
+        r_correct += 1
+      if c & 0b100000:  # mate is reference read
+        r2_total += 1
+        if not (c & 0b1011):  # no chrom, pos or unmapped errors
+          r2_correct += 1
+      continue
+
+    if v_count == 0: continue  # No variants, don't bother
+
+    # This is a variant read and we have variants
+
+    # Advance our variant window as needed
+    while v_stop[v_win_start] < r0:
+      if v_win_start < v_count_1:
+        v_win_start += 1
+      else:
+        break
+
+    if v_win_stop < v_count_1:  # Only need to advance if there is something left
+      while v_pos[v_win_stop + 1] < r1:
+        v_win_stop += 1
+        if v_win_stop == v_count_1:
+          break
+
+    for n in range(v_win_start, v_win_stop + 1):
+      if r0 <= v_stop[n] and r1 >= v_pos[n]:
+        v_total[n] += 1
+        if not (c & 0b1011):  # no chrom, pos or unmapped errors
+          v_correct[n] += 1
+
+  return np.array([[r_correct, r_total], [r2_correct, r2_total]], dtype='i4'), v_read_counts
+
+
+def categorize_read_counts_by_indel_length(variations, v_read_counts, cat_counts=None, max_indel=100):
+  assert max_indel > 0
+  assert len(variations) == len(v_read_counts)
+  if cat_counts is None:
+    cat_counts = np.zeros(2 * max_indel + 1, dtype=[('x', 'int32'), ('correct', 'uint32'), ('total', 'uint32')])
+    cat_counts['x'] = range(-max_indel, max_indel + 1)  # The range of indel lengths we are assuming.
+  correct = cat_counts['correct']
+  total = cat_counts['total']
+  for v, c in izip(variations, v_read_counts):
+    d = len(v['alt']) - len(v['ref'])
+    if abs(d) > max_indel: continue
+    total[d + max_indel] += c['total']
+    correct[d + max_indel] += c['correct']
+  return cat_counts

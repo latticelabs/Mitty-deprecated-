@@ -23,14 +23,13 @@ setup(
       'mitty.plugins.population': ['standard = mitty.plugins.population.standard'],
       'mitty.plugins.reads': ['simple_sequential = mitty.plugins.reads.simple_sequential_plugin',
                               'simple_illumina = mitty.plugins.reads.simple_illumina_plugin'],
-      # Register example tool wrapper
-      'mitty.benchmarking.tools': ['bwa = mitty.benchmarking.tool_wrappers.bwa'],
       # Command line scripts
       'console_scripts': ['genomes = mitty.genomes:cli',
                           'reads = mitty.reads:cli',
+                          'perfectbam = mitty.benchmarking.perfectbam:cli',
+                          'alindel = mitty.benchmarking.indel_alignment_accuracy:cli',
                           'plot_align = mitty.util.plot_align:cli [plot]',
                           'plot_gc_bias = mitty.util.plot_gc_bias:cli [plot]',
-                          'perfectbam = mitty.benchmarking.perfectbam:cli',
                           'mismat = mitty.util.mismat:cli',
                           'splitta = mitty.util.splitta:cli',
                           'kmers = mitty.util.kmers:cli',
@@ -41,6 +40,7 @@ setup(
       'setuptools>=11.0.0',
       'numpy>=1.9.0',
       'docopt>=0.6.2',
+#      'click>=3.3',
       'pysam>=0.8.1',
       'h5py>=2.5.0'
     ],
