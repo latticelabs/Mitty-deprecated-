@@ -1,12 +1,14 @@
 """Given a categorized reads file and
 
 Usage:
-  bucket <catreads> <vdb> <samplename> <pkl> [--indel=INDEL]
+  alindel <catreads> <pkl> (--vdb=VDB --sample_name=SN|--vcf=VCF) [--indel=INDEL]
 
 Options:
   <catreads>   Categorized reads file
-  <samplename> Name of sample
   <pkl>        name of output pkl file
+  --vdb=VDB    Genome database
+  --sample_name=SN Name of sample in genome database
+  --vcf=VCF    VCF file name instead of genome database + sample_name
   --indel=INDEL  indel range [default: 100]"""
 import cPickle
 
@@ -14,17 +16,22 @@ import docopt
 import numpy as np
 
 import mitty.lib.variants as vr
+import mitty.lib.vcf2pop as vcf2pop
 import mitty.benchmarking.creed as creed
 
 
 def cli():
   args = docopt.docopt(__doc__)
-  main(v_fname=args['<vdb>'], sample_name=args['<samplename>'], cat_fname=args['<catreads>'], out_fname=args['<pkl>'], max_indel=int(args['--indel']))
-
-
-def main(v_fname=None, sample_name=None, cat_fname=None, out_fname=None, max_indel=100):
-  #v_fname = '/Users/kghose/Manuscripts/AlignerPaper/data/variants/v.db'
-  pop = vr.Population(fname=v_fname)
+  cat_fname=args['<catreads>']
+  out_fname=args['<pkl>']
+  max_indel = int(args['--indel'])
+  if args['--vdb']:
+    pop = vr.Population(fname=args['--vdb'])
+    sample_name = args['--sample_name']
+  else:
+    sample_name = 's1'
+    pop_fname = args['--vcf'] + '.pop.h5'
+    pop = vcf2pop.vcf_to_pop(vcf_fname=args['--vcf'], pop_fname=pop_fname, sample_name=sample_name)
   cat_reads = creed.CategorizedReads(fname=cat_fname)
   ref_reads, cat_counts = process_sample(pop, cat_reads, sample_name, max_indel)
   cPickle.dump({'rr': ref_reads, 'cc': cat_counts}, open(out_fname, 'wb'))
