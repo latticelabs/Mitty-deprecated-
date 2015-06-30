@@ -251,6 +251,9 @@ def analyze_read(read, window=100, extended=False):
             |   \----------------------  1 => read from reference region (no variants)
             \--------------------------  1 => mate is from reference region
   """
+  if read.is_secondary:
+    return None, None, None, None
+
   try:
     if read.is_paired:
       if read.is_read1:
