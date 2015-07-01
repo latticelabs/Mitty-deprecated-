@@ -121,7 +121,7 @@ class Model:
     template_loc_rng, read_order_rng, template_len_rng, error_loc_rng, base_choice_rng, gc_bias_rng = mutil.initialize_rngs(seed, 6)
     template_locs = mutil.place_poisson_seq(template_loc_rng, p_template, start_base, end_base, seq)
     template_lens = (template_len_rng.randn(template_locs.shape[0]) * self.template_len_sd + self.template_len_mean).astype('i4')
-    idx = (template_locs + template_lens < end_base).nonzero()[0]
+    idx = ((template_locs + template_lens < end_base) & (template_lens > self.read_len)).nonzero()[0]
     template_locs, template_lens = template_locs[idx], template_lens[idx]
     if self.gc_bias is not None:
       template_locs, template_lens = self.gc_bias_reads(template_locs, template_lens, seq, gc_bias_rng)
