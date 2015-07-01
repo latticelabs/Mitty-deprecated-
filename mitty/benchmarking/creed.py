@@ -232,7 +232,7 @@ def analyze_read(read, window=100, extended=False):
   """Given a read process the qname and read properties to determine what kind of alignment errors were made on it
 
   :param read: a psyam AlignedSegment object
-  :returns read_serial, chrom, cpy, pos, cigar, error_type
+  :returns read_serial, chrom, cpy, pos, cigar, read_category
 
 
   read_serial = read_serial * 10 + 0 or 1 (for mate1 or mate2 of read) for paired reads
@@ -270,27 +270,27 @@ def analyze_read(read, window=100, extended=False):
     return None, None, None, None
 
   # Do this before modifying the cigar
-  error_type = 0b000000
-  if 'X' in cigar or 'I' in cigar or 'D' in cigar or 'S' in cigar:
-    error_type |= 0b010000
+  read_category = 0b000000
+  if not ('X' in cigar or 'I' in cigar or 'D' in cigar or 'S' in cigar):
+    read_category |= 0b010000
   if read.is_paired:
-    if 'X' in cigar1 or 'I' in cigar1 or 'D' in cigar1 or 'S' in cigar1:
-      error_type |= 0b100000
+    if not ('X' in cigar1 or 'I' in cigar1 or 'D' in cigar1 or 'S' in cigar1):
+      read_category |= 0b100000
 
   if not extended:
     cigar = old_style_cigar(cigar)
 
   if read.is_unmapped:
-    error_type |= 0b1000
+    read_category |= 0b1000
   else:
     if read.reference_id != chrom - 1:
-      error_type |= 0b0001
+      read_category |= 0b0001
     if not (-window <= read.pos - pos <= window):
-      error_type |= 0b0010
+      read_category |= 0b0010
     if read.cigarstring != cigar:
-      error_type |= 0b0100
+      read_category |= 0b0100
 
-  return read_serial, chrom, cpy, ro, pos, cigar, error_type
+  return read_serial, chrom, cpy, ro, pos, cigar, read_category
 
 
 def bucket_list(r_pos, r_stop, r_code, v_pos, v_stop):
