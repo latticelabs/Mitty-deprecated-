@@ -4,6 +4,9 @@ import h5py
 from mitty.version import __version__
 
 
+#TODO: Redesign how data is stored in hdf5 so that organization is easier to follow
+# Make list of chromosomes more explicit
+# Make list of samples more explicit
 class Population:
   """This class abstracts the storage and retrieval of the master list and samples of a population
 
@@ -106,7 +109,7 @@ class Population:
       del self.fp[key]
     self.fp.create_dataset(name=key, shape=indexes.shape, dtype=[('index', 'i4'), ('gt', 'i1')], data=indexes, chunks=True, compression='gzip')
     if sample_name not in self.fp.attrs.get('sample_names', []):
-      self.fp.attrs['sample_names'] = list(self.fp.attrs.get('sample_names', [])) + [sample_name]
+      self.fp.attrs['sample_names'] = list(self.fp.attrs.get('sample_names', [])) + [sample_name.encode('utf8')]
 
   def get_master_list(self, chrom):
     """This function loads the whole data set into memory. We have no need for chunked access right now"""
