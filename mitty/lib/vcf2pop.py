@@ -1,8 +1,19 @@
 """This module contains functions to parse a VCF file and return a master-list and chrom that can be used by the
-rest of the system and to save the VCF as a genome db. It is used by `reads` to use VCF files directly as input"""
+rest of the system and to save the VCF as a genome db. It is used by `reads` to use VCF files directly as input
+
+
+Usage:
+  vcf2pop --vcf=VCF --vdb=VDB --sample_name=SN
+
+Options:
+  --vcf=VCF    VCF file name
+  --vdb=VDB    Genome database
+  --sample_name=SN Name of sample
+"""
 import gzip
 import re
 
+import docopt
 import numpy as np
 
 import mitty.lib.variants as vr
@@ -71,3 +82,12 @@ def vcf_to_pop(vcf_fname, pop_fname=None, sample_name='s1'):
     pop.set_master_list(n + 1, ml)
     pop.add_sample_chromosome(n + 1, sample_name, np.array(chroms[n], dtype=[('index', 'i4'), ('gt', 'i1')]))
   return pop
+
+
+def cli():
+  args = docopt.docopt(__doc__)
+  vcf_to_pop(vcf_fname=args['--vcf'], pop_fname=args['--vdb'], sample_name=args['--sample_name'])
+
+
+if __name__ == '__main__':
+  cli()

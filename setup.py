@@ -28,6 +28,7 @@ setup(
                           'reads = mitty.reads:cli',
                           'perfectbam = mitty.benchmarking.perfectbam:cli',
                           'alindel = mitty.benchmarking.indel_alignment_accuracy:cli',
+                          'vcf2pop = mitty.lib.vcf2pop:cli',
                           'plot_align = mitty.util.plot_align:cli [plot]',
                           'plot_gc_bias = mitty.util.plot_gc_bias:cli [plot]',
                           'mismat = mitty.util.mismat:cli',
