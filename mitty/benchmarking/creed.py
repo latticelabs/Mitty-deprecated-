@@ -232,7 +232,7 @@ def analyze_read(read, window=100, extended=False):
   """Given a read process the qname and read properties to determine what kind of alignment errors were made on it
 
   :param read: a psyam AlignedSegment object
-  :returns read_serial, chrom, cpy, pos, cigar, read_category
+  :returns read_serial, chrom, cpy, ro, pos, cigar, read_category
 
 
   read_serial = read_serial * 10 + 0 or 1 (for mate1 or mate2 of read) for paired reads
@@ -251,9 +251,13 @@ def analyze_read(read, window=100, extended=False):
             |   \----------------------  1 => read from reference region (no variants)
             \--------------------------  1 => mate is from reference region
   """
-  if read.is_secondary:
-    return None, None, None, None
+  early_exit_value = [None] * 7
 
+  # Not counted
+  if read.is_secondary:
+    return early_exit_value
+
+  # We should never actually fail this, unless a tool messes badly with the qname
   try:
     if read.is_paired:
       if read.is_read1:
@@ -267,7 +271,7 @@ def analyze_read(read, window=100, extended=False):
     ro, chrom, cpy, pos = int(ro), int(chrom), int(cpy), int(pos)
   except ValueError:
     logger.debug('Error processing qname: qname={:s}, chrom={:d}, pos={:d}'.format(read.qname, read.reference_id + 1, read.pos))
-    return None, None, None, None
+    return early_exit_value
 
   # Do this before modifying the cigar
   read_category = 0b000000
