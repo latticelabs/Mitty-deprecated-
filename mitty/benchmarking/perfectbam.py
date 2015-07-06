@@ -161,7 +161,7 @@ def main(bam_in_fp, bam_out_fp=None, db_name=None, cr_fname=None, window=0, exte
            read.reference_id + 1, read.pos, read.cigarstring,
            read.mapq, read.mate_is_unmapped, read.query_sequence])
 
-    cra(chrom, cpy, pos, read.query_length, error_type)
+    cra(chrom=chrom, cpy=cpy, pos=pos, read_len=read.query_length, code=error_type)
 
     if bam_out_fp:
       # Now write out the perfect alignment
