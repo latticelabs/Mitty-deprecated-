@@ -315,21 +315,20 @@ def bucket_list(r_pos, r_stop, r_code, v_pos, v_stop):
   v_read_counts = np.zeros(v_count, dtype=[('correct', 'uint32'), ('total', 'uint32')])
   v_correct = v_read_counts['correct']
   v_total = v_read_counts['total']
-  r_correct, r_total = 0, 0
-  r2_correct, r2_total = 0, 0  # Both read and mate are from reference regions
+  ref_one_correct, ref_one_total = 0, 0
+  ref_both_correct, ref_both_total = 0, 0  # Both read and mate are from reference regions
 
-  #v0, v1 = variations['pos'], variations['stop']
-  #r_pos, r_stop, r_code = read_data['pos'], read_data['stop'], read_data['cat']
   for r0, r1, c in izip(r_pos, r_stop, r_code):
     # If this is a reference read we can bucket it now and move on
     if c & 0b10000:  # reference read
-      r_total += 1
-      if not (c & 0b1011):  # no chrom, pos or unmapped errors
-        r_correct += 1
-      if c & 0b100000:  # mate is reference read
-        r2_total += 1
-        if not (c & 0b1011):  # no chrom, pos or unmapped errors
-          r2_correct += 1
+      if c & 0b100000:  # mate is reference
+        ref_both_total += 1
+        if not (c & 0b1011):
+          ref_both_correct += 1
+      else:  # mate is not reference
+        ref_one_total += 1
+        if not (c & 0b1011):
+          ref_one_correct += 1
       continue
 
     if v_count == 0: continue  # No variants, don't bother
@@ -355,7 +354,7 @@ def bucket_list(r_pos, r_stop, r_code, v_pos, v_stop):
         if not (c & 0b1011):  # no chrom, pos or unmapped errors
           v_correct[n] += 1
 
-  return np.array([[r_correct, r_total], [r2_correct, r2_total]], dtype='i4'), v_read_counts
+  return np.array([[ref_one_correct, ref_one_total], [ref_both_correct, ref_both_total]], dtype='i4'), v_read_counts
 
 
 def categorize_read_counts_by_indel_length(variations, v_read_counts, cat_counts=None, max_indel=100):
