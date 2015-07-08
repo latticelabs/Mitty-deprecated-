@@ -6,7 +6,8 @@ called ``bwa`` and a variant caller called ``samtools`` and we want to figure ou
 
 Our plan is as follows:
 
-* Consider a small reference genome (we will use the Red Alga, *Cyanidioschyzon merolae strain 10D*, record_, ftp_)
+* Consider a small reference genome (we will use the Red Alga, *Cyanidioschyzon merolae strain 10D*, record_, ftp_ and
+pretend it's diploid)
 * Sprinkle some variants on the reference genome to create a population of 1000 sample genomes (why not?)
 * Take 30x Illumina like reads from one of the sample genomes
 * Use `bwa` to align the reads back to the reference genome
@@ -16,11 +17,36 @@ Our plan is as follows:
 .. _record: http://www.ncbi.nlm.nih.gov/assembly/GCF_000091205.1/#/def
 .. _ftp: ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF_000091205.1_ASM9120v1
 
+--------------
+
+For the impatient, the commands we'll be using for this experiment are:
+
+.. literalinclude:: tutorial/tutorial.sh
+
+This file is included in the source distribution under ``docs/tutorial/tutorial.sh``
+
+--------------
 
 Creating genomes
 ----------------
-The example reference genome has 20 chromosomes. We'd like to add SNPs, insertions and deletions to chromosome 1 and 2.
-We will need the ``genomes`` program for this
+The example reference genome has 20 chromosomes. We'd like to add SNPs, insertions and deletions to chromosome 1 and 20.
+Since this is for testing purposes we would like to have a large number of indels distributed across a range of lengths,
+rather than the power-law distribution we see in nature (which gives us many short indels and far fewer longer indels).
+
+To perform this simulation, we need to create a parameter file describing our simulation requirements and pass this to
+the ``genomes`` program. In the parameter file we need to describe three components:
+
+ * the site frequency spectrum model,
+ * the population generation model and,
+ * the individual variant models themselves.
+
+The variant models are used to sprinkle variations (mutations) on top of an input reference genome. These variations are
+put into a master list of variations. Each stock variation model has a parameter, ``p``, that sets the
+per base probability of observing the variation being generated. For example, setting ``p=0.001`` for the SNP plugin
+and ``p=0.0001`` for the delete plugin will give us SNP and delete densities that are similar to that observed in typical
+human samples. The plugins internally scale the probability according to the site
+frequency spectrum such that samples drawn from the master list contain variations obeying the site frequency spectrum
+and, overall, the desired ``p`` value. For greater detail please see [theory and algorithms] XXX
 
 .. command-output::  genomes
 
@@ -46,13 +72,13 @@ An example parameter snippet?
 
 Let us create a parameter file for the simulations, calling it ``variations.json``:
 
-.. literalinclude:: ../examples/demo/variations.json
+.. literalinclude:: tutorial/variations.json
     :language: json
     :linenos:
 
 Before we run the actual simulation, let's make sure the site frequency spectrum looks satisfactory
 
-.. command-output:: genomes dryrun ../examples/demo/variations.json
+.. command-output:: genomes dryrun tutorial/variations.json
 
 
 Let's run this command and create a database of simulated genomes
