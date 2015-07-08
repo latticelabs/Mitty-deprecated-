@@ -1,5 +1,5 @@
 """Some utilities related to loading/saving different file formats, compressing and indexing."""
-import warnings
+import tempfile
 from os.path import splitext
 import os
 import glob
@@ -264,7 +264,8 @@ def write_chromosomes_to_vcf(fp, seq_id='chr1', chrom_list=[], master_list=None)
 def sort_and_index_bam(bamfile):
   """Do the filename gymnastics required to end up with a sorted, indexed, bam file."""
   # samtools sort adds a '.bam' to the end of the file name.
-  os.rename(bamfile, 'temp.bam')
-  pysam.sort('temp.bam', os.path.splitext(bamfile)[0])
+  _, t_bam = tempfile.mkstemp(suffix='bam')
+  os.rename(bamfile, t_bam)
+  pysam.sort(t_bam, os.path.splitext(bamfile)[0])
   pysam.index(bamfile)
-  os.remove('temp.bam')
+  os.remove(t_bam)

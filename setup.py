@@ -41,7 +41,7 @@ setup(
       'setuptools>=11.0.0',
       'numpy>=1.9.0',
       'docopt>=0.6.2',
-#      'click>=3.3',
+      'click>=3.3',
       'pysam>=0.8.1',
       'h5py>=2.5.0'
     ],
