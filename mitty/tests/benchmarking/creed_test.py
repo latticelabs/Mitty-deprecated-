@@ -61,3 +61,9 @@ def analyze_read_test():
   assert pos == 898, pos
   assert cigar == '100M', cigar
   assert read_category == 0b010100, bin(read_category)
+
+  # Test if we can do fuzzy matching if we soft clips and so on
+  qname = '3|15|0|0|100|1M1000D99M|1|200|100='
+  read = MyRead(qname=qname, secondary=False, paired=True, read1=True, unmapped=False, reference_id=14, pos=180, cigarstring='1S99M')
+  read_serial, chrom, cpy, ro, pos, cigar, read_category = creed.analyze_read(read, window=0, extended=False)
+  assert read_category == 0b100100, bin(read_category)

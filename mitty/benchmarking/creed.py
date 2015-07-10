@@ -16,6 +16,8 @@ import array
 
 import h5py
 import numpy as np
+from pysam import AlignedSegment as pas
+
 from mitty.lib.reads import old_style_cigar
 
 import logging
@@ -229,7 +231,7 @@ class ReadDebugDB:
 
 
 def analyze_read(read, window=100, extended=False):
-  """Given a read process the qname and read properties to determine what kind of alignment errors were made on it
+  """Given a read process the qname and read properties to determine what kind of alignment errors were made on it and
 
   :param read: a psyam AlignedSegment object
   :returns read_serial, chrom, cpy, ro, pos, cigar, read_category
@@ -289,7 +291,12 @@ def analyze_read(read, window=100, extended=False):
   else:
     if read.reference_id != chrom - 1:
       read_category |= 0b0001
-    if not (-window <= read.pos - pos <= window):
+    # if not (-window <= read.pos - pos <= window):
+    #   read_category |= 0b0010
+    perfect_read = pas()
+    perfect_read.cigarstring = cigar
+    perfect_read.pos = pos
+    if not (perfect_read.positions[0] <= read.pos <= perfect_read.positions[-1]):
       read_category |= 0b0010
     if read.cigarstring != cigar:
       read_category |= 0b0100
@@ -370,4 +377,65 @@ def categorize_read_counts_by_indel_length(variations, v_read_counts, cat_counts
     if abs(d) > max_indel: continue
     total[d + max_indel] += c['total']
     correct[d + max_indel] += c['correct']
+  return cat_counts
+
+
+def find_nearest_variant(v1, v2):
+  """For every variant in v1 find the nearest variant in v2 and note its distance and length. length = alt - ref such
+  that SNP = 0, insertion > 0 and deletion < 0
+
+  :param v1: list 1
+  :param v2: list 2
+  :return: numpy structured array the same length as v1 with fields 'dist' and 'length'
+  """
+  nearest_v2 = np.empty(v1.shape[0], dtype=[('dist', 'uint32'), ('length', 'int32')])
+  nearest_dist, nearest_len = nearest_v2['dist'], nearest_v2['length']
+  nearest_dist[:], nearest_len[:] = np.Inf, np.nan
+
+  v2_size = v2.shape[0]
+  v2_size_1 = v2_size - 1
+  if v2_size == 0: return nearest_v2
+  v2_idx = 0
+  for n, v in enumerate(v1):
+    d_min = abs(v2[v2_idx]['pos'] - v['pos'])
+    while 1:
+      if v2_idx < v2_size_1:
+        d = abs(v2[v2_idx + 1]['pos'] - v['pos'])
+        if d <= d_min:
+          d_min = d
+          v2_idx += 1
+      else:
+        break
+    nearest_dist[n] = d_min
+    nearest_len[n] = v2[n]['alt'] - v2[n]['ref']
+  return nearest_v2
+
+
+def categorize_read_counts_by_indel_length_and_nearest_variant(v1, v_read_counts, nearest_v2,
+                                                               cat_counts=None,
+                                                               max_v1_indel=100,
+                                                               max_v2_indel=100,
+                                                               max_dist=300):
+  """v2 indels that are beyond the max range are piled into the first or last bins."""
+  assert max_v1_indel > 0
+  assert max_v2_indel > 0
+  assert len(v1) == len(v_read_counts)
+  assert len(v1) == len(nearest_v2)
+  if cat_counts is None:
+    cat_counts = {
+      'counts': np.zeros((2 * max_v1_indel + 1, 2 * max_v2_indel + 1, max_dist + 1), dtype=[('correct', 'uint32'), ('total', 'uint32')]),
+      'indel_v1_size': range(-max_v1_indel, max_v1_indel + 2),
+      'indel_v2_size': range(-max_v1_indel, max_v1_indel + 1),
+      'dist': range(max_dist + 1)
+    }
+  correct = cat_counts['counts']['correct']
+  total = cat_counts['counts']['total']
+  for n in xrange(v1.shape[0]):
+    d_v1 = len(v1[n]['alt']) - len(v1[n]['ref'])
+    if abs(d_v1) > max_v1_indel: continue
+    idx1 = max_v1_indel + d_v1
+    idx2 = max(0, min(2 * max_v2_indel, nearest_v2[n]['length'] + max_v2_indel))
+    idx3 = min(max_dist + 1, nearest_v2[n]['dist'])
+    total[idx1, idx2, idx3] += v_read_counts['total']
+    correct[idx1, idx2, idx3] += v_read_counts['correct']
   return cat_counts
