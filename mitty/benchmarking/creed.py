@@ -291,13 +291,17 @@ def analyze_read(read, window=100, extended=False):
   else:
     if read.reference_id != chrom - 1:
       read_category |= 0b0001
-    # if not (-window <= read.pos - pos <= window):
-    #   read_category |= 0b0010
+
     perfect_read = pas()
     perfect_read.cigarstring = cigar
     perfect_read.pos = pos
-    if not (perfect_read.positions[0] <= read.pos <= perfect_read.positions[-1]):
-      read_category |= 0b0010
+    if len(perfect_read.positions) > 0:
+      if not (perfect_read.positions[0] <= read.pos <= perfect_read.positions[-1]):
+        read_category |= 0b0010
+    else:
+      if not (-window <= read.pos - pos <= window):
+        read_category |= 0b0010
+
     if read.cigarstring != cigar:
       read_category |= 0b0100
 
