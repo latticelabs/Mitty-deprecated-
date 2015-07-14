@@ -7,7 +7,7 @@ called ``bwa`` and a variant caller called ``samtools`` and we want to figure ou
 Our plan is as follows:
 
 * Consider a small reference genome (we will use the Red Alga, *Cyanidioschyzon merolae strain 10D*, record_, ftp_ and
-pretend it's diploid)
+  pretend it's diploid)
 * Sprinkle some variants on the reference genome to create a population of 1000 sample genomes (why not?)
 * Take 30x Illumina like reads from one of the sample genomes
 * Use `bwa` to align the reads back to the reference genome
@@ -44,31 +44,39 @@ The variant models are used to sprinkle variations (mutations) on top of an inpu
 put into a master list of variations. Each stock variation model has a parameter, ``p``, that sets the
 per base probability of observing the variation being generated. For example, setting ``p=0.001`` for the SNP plugin
 and ``p=0.0001`` for the delete plugin will give us SNP and delete densities that are similar to that observed in typical
-human samples. The plugins internally scale the probability according to the site
-frequency spectrum such that samples drawn from the master list contain variations obeying the site frequency spectrum
-and, overall, the desired ``p`` value. For greater detail please see [theory and algorithms] XXX
+human samples. Internally, the plugins scale the probability according to the site frequency spectrum such that samples
+drawn from the master list contain variations obeying the site frequency spectrum and, overall, the desired ``p`` value.
+For greater detail please see [theory and algorithms] XXX
+
+The genomes program performs several tasks. Typing ``genomes`` on the command line will produce a list of subcommands.
 
 .. command-output::  genomes
 
-We need the ``genomes generate`` tool, and we need a refresher on how to write a simulation parameter file
-
-.. command-output:: genomes explain parameters
+For the task at hand we need the ``genomes generate`` tool.
 
 What are the variant models available to us?
 
-.. command-output:: genomes list variantmodels
+.. command-output:: genomes list variant-model
 
 What kind of parameters do they need?
 
-.. command-output::  genomes explain variantmodel snp
+.. command-output::  genomes explain variant-model snp
+
+What kind of site frequency spectrum models are available?
+
+.. command-output::  genomes list spectrum-model
+
+The double exp model sounds interesting
+
+.. command-output:: genomes explain spectrum-model double_exp
 
 What are the population models available to us?
 
-.. command-output:: genomes list populationmodels
+.. command-output:: genomes list population-model
 
 An example parameter snippet?
 
-.. command-output:: genomes explain populationmodel double_exp
+.. command-output:: genomes explain population-model standard
 
 Let us create a parameter file for the simulations, calling it ``variations.json``:
 
@@ -76,21 +84,21 @@ Let us create a parameter file for the simulations, calling it ``variations.json
     :language: json
     :linenos:
 
+Note that if we are happy with a default plugin parameter, we can omit that in the parameter file.
+
 Before we run the actual simulation, let's make sure the site frequency spectrum looks satisfactory
 
 .. command-output:: genomes dryrun tutorial/variations.json
 
-
 Let's run this command and create a database of simulated genomes
 
-.. command-output:: mkdir -p ../examples/demo/Out
-.. command-output:: genomes generate ../examples/demo/variations.json -v
+.. command-output:: genomes generate tutorial/variations.json -v
 
 (*Using the -v option will give detailed logger messages, using the -p option will give a progress bar*).
 
 Let's take a peek at the produced genomes database using the inspect function
 
-.. command-output:: genomes inspect ../examples/demo/Out/red_alga_genomes.db
+.. command-output:: genomes inspect tutorial/red_alga_genomes.db
 
 We can also take a look at the site frequency spectrum in the generated population, for chromosome 1, for example
 

@@ -12,7 +12,7 @@ Mitty documentation
     :numbered:
 
     introduction
-    quickstart
+    tutorial
     additional_utils
     theory_and_algorithms
     models
