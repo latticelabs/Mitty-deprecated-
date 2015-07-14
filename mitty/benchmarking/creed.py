@@ -1,15 +1,4 @@
-"""Functions to categorize reads for further analysis will be refactored into this file.
-
-
-
-
-"""
-__file_formats__ = """The bracket file should be an HDF5 file. Each bracket array is a structured numpy array with
-dtype=[('pos', 'i4'), ('stop', 'i4')]. The outputs are structured arrays ('buckets')
-dtype=[('correct', 'i4'), ('total', 'i4')].
-There is one bucket array for each bracket array and each bucket array is the same length as the corresponding bucket
-array."""
-
+"""Functions to categorize reads for further analysis."""
 import sqlite3 as sq
 from itertools import izip
 import array
@@ -24,22 +13,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# TODO: make creating a new file vs loading an existing one explicit rather than implicit. Making it impicit makes
+# writing code marginally faster but often leads to confusion during execute time when a file exists and we want to create
+# a new one
 class CategorizedReads:
   """A convenient interface to storing/retrieving read misalignment data. Stores the start, end and category of each
-  read in the bam file
-
-  cat_reads = CategorizedReads(fname='catreads.hdf5', seq_names=bam_in_fp.references, seq_lengths=bam_in_fp.lengths)
-  <in a loop, probably>
-    raa.append(chrom, cpy, pos, code)
-  raa.write(fname)
-
-  You can load a previously saved analysis as:
-
-  raa = CategorizedReads(fname='raa.npz')
-
-  Internally, the data is stored as a set of C x c compressed numpy arrays where C is the number of chromosomes with
-  c copies per chromosome.
-  """
+  read in the bam file"""
   def __init__(self, fname=None, seq_names=[], seq_lengths=[], copies=None):
     """
 
@@ -60,7 +39,7 @@ class CategorizedReads:
       self.fp.attrs['sequence_names'] = seq_names
       self.fp.attrs['sequence_lens'] = seq_lengths
       self.fp.attrs['copies'] = copies
-      i4 = self.get_i4type()
+      i4 = self._get_i4type()
       self._py_arrays = [
         [[array.array(i4), array.array(i4), array.array('B')] for _ in range(copies)]
         for _ in range(len(seq_names))
@@ -68,8 +47,12 @@ class CategorizedReads:
     self.copies = self.fp.attrs['copies']
 
   @staticmethod
-  def get_i4type():
-    # Since there is no way to force a python array to be a specific width, we have to figure this out for ourselves
+  def _get_i4type():
+    """Since there is no way to force a python array to be a specific width, we have to figure this out for ourselves
+
+    :return: a dtype
+    :raise ArithmeticError:
+    """
     dtypes = ['H', 'I', 'L']
     byte_size = [n for n, dt in enumerate(dtypes) if array.array(dt).itemsize == 4]
     if len(byte_size) == 0: raise ArithmeticError("Can't find an integer `array` type 4 bytes wide")
@@ -135,6 +118,7 @@ class CategorizedReads:
     return rep_str
 
 
+# TODO: Make dtaabase creation, reading, writing modes explicit
 class ReadDebugDB:
   def __init__(self, db_name):
     """Create a new database with this name"""
@@ -298,7 +282,7 @@ def analyze_read(read, window=100, extended=False):
     if len(perfect_read.positions) > 0:
       if not (perfect_read.positions[0] <= read.pos <= perfect_read.positions[-1]):
         read_category |= 0b0010
-    else:
+    else:  # This means we have a read inside an insertion (Just soft-clips)
       if not (-window <= read.pos - pos <= window):
         read_category |= 0b0010
 
@@ -308,7 +292,7 @@ def analyze_read(read, window=100, extended=False):
   return read_serial, chrom, cpy, ro, pos, cigar, read_category
 
 
-def bucket_list(r_pos, r_stop, r_code, v_pos, v_stop):
+def bucket_list(r_pos, r_stop, r_code, v_pos, v_stop, analyze_cigar=False):
   """First run - ignoring CIGAR errors
 
   :param r_pos:  array of read 'pos'  -> should be sorted
@@ -316,6 +300,7 @@ def bucket_list(r_pos, r_stop, r_code, v_pos, v_stop):
   :param r_code: array of read category code
   :param v_pos: start of bucket  -> should be sorted
   :param v_stop: end of bucket
+  :param analyze_cigar: If True cigar errors count as errors
   :return:
   """
   # correct, total
@@ -408,10 +393,12 @@ def find_nearest_variant(v1, v2):
         if d <= d_min:
           d_min = d
           v2_idx += 1
+        else:
+          break
       else:
         break
     nearest_dist[n] = d_min
-    nearest_len[n] = v2[n]['alt'] - v2[n]['ref']
+    nearest_len[n] = len(v2[v2_idx]['alt']) - len(v2[v2_idx]['ref'])
   return nearest_v2
 
 
@@ -428,18 +415,18 @@ def categorize_read_counts_by_indel_length_and_nearest_variant(v1, v_read_counts
   if cat_counts is None:
     cat_counts = {
       'counts': np.zeros((2 * max_v1_indel + 1, 2 * max_v2_indel + 1, max_dist + 1), dtype=[('correct', 'uint32'), ('total', 'uint32')]),
-      'indel_v1_size': range(-max_v1_indel, max_v1_indel + 2),
-      'indel_v2_size': range(-max_v1_indel, max_v1_indel + 1),
-      'dist': range(max_dist + 1)
+      'dimensions': [('indel_v1_size', range(-max_v1_indel, max_v1_indel + 1)),
+                     ('indel_v2_size', range(-max_v1_indel, max_v1_indel + 1)),
+                     ('dist', range(max_dist + 1))]
     }
   correct = cat_counts['counts']['correct']
   total = cat_counts['counts']['total']
   for n in xrange(v1.shape[0]):
     d_v1 = len(v1[n]['alt']) - len(v1[n]['ref'])
-    if abs(d_v1) > max_v1_indel: continue
-    idx1 = max_v1_indel + d_v1
+    #if abs(d_v1) > max_v1_indel: continue
+    idx1 = max(0, min(2 * max_v1_indel, max_v1_indel + d_v1))
     idx2 = max(0, min(2 * max_v2_indel, nearest_v2[n]['length'] + max_v2_indel))
-    idx3 = min(max_dist + 1, nearest_v2[n]['dist'])
-    total[idx1, idx2, idx3] += v_read_counts['total']
-    correct[idx1, idx2, idx3] += v_read_counts['correct']
+    idx3 = min(max_dist, nearest_v2[n]['dist'])
+    total[idx1, idx2, idx3] += v_read_counts[n]['total']
+    correct[idx1, idx2, idx3] += v_read_counts[n]['correct']
   return cat_counts
