@@ -69,12 +69,12 @@
 <li class="toctree-l2"><a class="reference internal" href="introduction.html#trivia">1.2. Trivia</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">2. Quick-start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#creating-genomes">2.1. Creating genomes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads">2.2. Taking reads</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#testing-alignment-accuracy-of-bwa-mem">2.3. Testing alignment accuracy of BWA MEM</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads-just-from-regions-around-variants">2.4. Taking reads just from regions around variants</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#analysing-variant-callers">2.5. Analysing variant callers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">2. Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#creating-genomes">2.1. Creating genomes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#taking-reads">2.2. Taking reads</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#testing-alignment-accuracy-of-bwa-mem">2.3. Testing alignment accuracy of BWA MEM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#taking-reads-just-from-regions-around-variants">2.4. Taking reads just from regions around variants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#analysing-variant-callers">2.5. Analysing variant callers</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="additional_utils.html">3. Additional Utilities</a><ul>
@@ -89,6 +89,11 @@
 <li class="toctree-l2"><a class="reference internal" href="models.html#variant-models">5.1. Variant models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#population-models">5.2. Population models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#read-models">5.3. Read models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ramblings.html">6. Ramblings AKA. Diary of a Developer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ramblings.html#simulating-a-million-genomes-in-python">6.1. Simulating a million Genomes in Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ramblings.html#report-generation">6.2. Report generation</a></li>
 </ul>
 </li>
 </ul>
@@ -130,11 +135,35 @@
 <h1>4. Theory and algorithms<a class="headerlink" href="#theory-and-algorithms" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="population-simulations">
 <h2>4.1. Population simulations<a class="headerlink" href="#population-simulations" title="Permalink to this headline">¶</a></h2>
+<p>The human genome is about 3 billion base-pairs (characters) long. Between any two humans, there are about 3 million
+points at which their genomes differ. We have arbitrarily chosen to sequence the genomes from a tiny group of humans and
+combine them into one genome which we call the reference genome. For every other human that we sequence, we compare
+their genome against this reference and report the differences. These differences are called variants, because they are
+the points of variation from the reference.</p>
+<div class="section" id="variant-call-format-vcf">
+<h3>4.1.1. Variant call format (VCF)<a class="headerlink" href="#variant-call-format-vcf" title="Permalink to this headline">¶</a></h3>
+<p>The convention in the bio-informatics community is to write out these variants in a tabular form, indicating the chromosome
+and position of the point of deviation, the reference sequence at that point and the altered (variant) sequence found at
+that point in the sample. These tabular files are called variant call format files. When we have several individuals
+constituting a sample from a population, we write out all the unique variants row-wise and have a separate column for
+each individual indicating if that variant exists in that individual (and whether the individual is heterozygous or
+homozygous for that variant)</p>
+</div>
+<div class="section" id="the-site-frequency-spectrum">
+<h3>4.1.2. The site frequency spectrum<a class="headerlink" href="#the-site-frequency-spectrum" title="Permalink to this headline">¶</a></h3>
+<p>In practice, it is observed, that some variants are very common across the population and some are very rare, sometimes
+being found only in one individual. It is possible to organize this information, in a slightly counter intuitive manner,
+in a plot called the site frequency spectrum. This is a plot of counts of variants seen only once, only twice and so on
+in the sample being considered.</p>
+</div>
+<div class="section" id="variant-growth-curve">
+<h3>4.1.3. Variant growth curve<a class="headerlink" href="#variant-growth-curve" title="Permalink to this headline">¶</a></h3>
 <p>Each sample genome is generated by sampling variants from a master list. The variant plugins return candidate variants
 which are added to the master list. Each variant <span class="math">\(i\)</span> in this list has a probability <span class="math">\(p_i\)</span> of being found in
 a given sample.</p>
 <p>The distribution of</p>
 <p>The population simulations are based on sub-sampling</p>
+</div>
 </div>
 </div>
 
@@ -156,7 +185,7 @@ a given sample.</p>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2014,Seven Bridges Genomics
+        &copy; Copyright 2014-2015,Seven Bridges Genomics
 (kaushik.ghose@sbgenomics.com).
     </p>
   </div>

@@ -31,6 +31,7 @@
 
   
     <link rel="top" title="Mitty 1.1.1dev documentation" href="index.html"/>
+        <link rel="next" title="6. Ramblings AKA. Diary of a Developer" href="ramblings.html"/>
         <link rel="prev" title="4. Theory and algorithms" href="theory_and_algorithms.html"/> 
 
   
@@ -68,12 +69,12 @@
 <li class="toctree-l2"><a class="reference internal" href="introduction.html#trivia">1.2. Trivia</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">2. Quick-start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#creating-genomes">2.1. Creating genomes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads">2.2. Taking reads</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#testing-alignment-accuracy-of-bwa-mem">2.3. Testing alignment accuracy of BWA MEM</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads-just-from-regions-around-variants">2.4. Taking reads just from regions around variants</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#analysing-variant-callers">2.5. Analysing variant callers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">2. Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#creating-genomes">2.1. Creating genomes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#taking-reads">2.2. Taking reads</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#testing-alignment-accuracy-of-bwa-mem">2.3. Testing alignment accuracy of BWA MEM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#taking-reads-just-from-regions-around-variants">2.4. Taking reads just from regions around variants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#analysing-variant-callers">2.5. Analysing variant callers</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="additional_utils.html">3. Additional Utilities</a><ul>
@@ -88,6 +89,11 @@
 <li class="toctree-l2"><a class="reference internal" href="#variant-models">5.1. Variant models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#population-models">5.2. Population models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#read-models">5.3. Read models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ramblings.html">6. Ramblings AKA. Diary of a Developer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ramblings.html#simulating-a-million-genomes-in-python">6.1. Simulating a million Genomes in Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ramblings.html#report-generation">6.2. Report generation</a></li>
 </ul>
 </li>
 </ul>
@@ -130,85 +136,35 @@
 <div class="section" id="variant-models">
 <h2>5.1. Variant models<a class="headerlink" href="#variant-models" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-text"><div class="highlight"><pre>$ genomes explain variantmodel all
-
----- delete (mitty.plugins.variants.delete_plugin) ----
-
-This is the stock delete plugin. A typical parameter set resembles
-
-{
-  &quot;p&quot;: 0.01,           # probability that the deletion will happen at any given base
-  &quot;p_end&quot;: 0.1,        # probability governing length of deletion
-  &quot;del_len_min&quot;: 10,   # Lower bound on deletion lengths
-  &quot;del_len_max&quot;: 1000  # upper bound on deletion lengths
-}
-
-Model defaults: (p=0.01,  p_end=0.1,  del_len_min=10,  del_len_max=1000)
-
----- insert (mitty.plugins.variants.insert_plugin) ----
-
-Stock insertion model that generates sequences with same base transition matrix as the human genome and creates a
-power-law distribution of insertion lengths.
-A typical parameter set resembles
-
-{
-  &quot;p&quot;: 0.0001,        # Per-base probability of having an insertion
-  &quot;t_mat&quot;: [[ 0.32654629,  0.17292732,  0.24524503,  0.25528135],  # Base transition matrix
-            [ 0.3489394,   0.25942695,  0.04942584,  0.3422078],
-            [ 0.28778188,  0.21087004,  0.25963262,  0.24171546],
-            [ 0.21644706,  0.20588717,  0.24978216,  0.32788362]],
-  &quot;p_end&quot;: 0.1,       # Probability of chain ending
-  &quot;max_len&quot;: 1000     # Maximum length of insertion
-}
-
-Model defaults: (p=0.01,  t_mat=None,  p_end=0.1,  max_len=1000)
-
----- snp (mitty.plugins.variants.snp_plugin) ----
-
-This is the stock SNP plugin. A typical parameter set resembles
-
-{
-  &quot;p&quot;: 0.01,              # probability that the SNP will happen at any given base
-  &quot;t_mat&quot;: [[ 0.32654629,  0.17292732,  0.24524503,  0.25528135],  # Base transition matrix
-            [ 0.3489394,   0.25942695,  0.04942584,  0.3422078],   # Leading diagonal is ignored
-            [ 0.28778188,  0.21087004,  0.25963262,  0.24171546],
-            [ 0.21644706,  0.20588717,  0.24978216,  0.32788362]],
-}
-
-Model defaults: (p=0.01,  t_mat=None)
+Usage:
+    genomes generate &lt;pfile&gt;  [-v|-V] [-p]
+    genomes dryrun &lt;pfile&gt;
+    genomes inspect &lt;dbfile&gt;
+    genomes inspect sfs &lt;chrom&gt; &lt;dbfile&gt;
+    genomes write vcf &lt;dbfile&gt; &lt;out_prefix&gt;  [--sample_name=SN] [-v|-V]
+    genomes explain (parameters|(variant-model|spectrum-model|population-model) (all|&lt;model_name&gt;))
+    genomes list (variant-model|spectrum-model|population-model)
 </pre></div>
 </div>
 </div>
 <div class="section" id="population-models">
 <h2>5.2. Population models<a class="headerlink" href="#population-models" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-text"><div class="highlight"><pre>$ genomes explain populationmodel all
-
----- double_exp (mitty.plugins.site_frequency.double_exp) ----
-This stock site frequency plugin employs a double exponential as a simple site frequency model.
-
-f = a1 * exp(-p * k1) + a2 * exp(-p * k2)   (f is normalized such that sum(f) = 1.0)
-
-Example parameters:
-
-{
-  &quot;double_exp&quot;: {
-    &quot;a1&quot;: 1.0,        # Amplitude of component 1
-    &quot;k1&quot;: 20.0,       # decay rate of component 1
-    &quot;a2&quot;: 0.1,        # Amplitude of component 2
-    &quot;k2&quot;: 5.0,        # Decay rate of component 2
-    &quot;p0&quot;: 0.001,      # Lower end of probability range
-    &quot;p1&quot;: 0.2,        # Upper end of probability range
-    &quot;bin_cnt&quot;: 30     # Number of bins for probability distribution
-  }
-}
-
-Model defaults: (a1=1.0,  k1=20.0,  a2=0.1,  k2=5.0,  p0=0.001,  p1=0.2,  bin_cnt=21)
+Usage:
+    genomes generate &lt;pfile&gt;  [-v|-V] [-p]
+    genomes dryrun &lt;pfile&gt;
+    genomes inspect &lt;dbfile&gt;
+    genomes inspect sfs &lt;chrom&gt; &lt;dbfile&gt;
+    genomes write vcf &lt;dbfile&gt; &lt;out_prefix&gt;  [--sample_name=SN] [-v|-V]
+    genomes explain (parameters|(variant-model|spectrum-model|population-model) (all|&lt;model_name&gt;))
+    genomes list (variant-model|spectrum-model|population-model)
 </pre></div>
 </div>
 </div>
 <div class="section" id="read-models">
 <h2>5.3. Read models<a class="headerlink" href="#read-models" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-text"><div class="highlight"><pre>$ reads explain model all
-/Users/kghose/Code/Mitty/mitty/lib/common.py:52: UserWarning: More than one model with that name found. Loading first one only.
+/Users/kghose/Code/Mitty/mitty/lib/common.py:59: UserWarning: More than one model with that name found. Loading first one only.
   warnings.warn(&#39;More than one model with that name found. Loading first one only.&#39;)
 This is the stock read plugin that approximates Illumina reads
 
@@ -252,6 +208,8 @@ Model defaults: (read_len=100,  template_len_mean=250,  template_len_sd=50,  max
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
+        <a href="ramblings.html" class="btn btn-neutral float-right" title="6. Ramblings AKA. Diary of a Developer">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
       
         <a href="theory_and_algorithms.html" class="btn btn-neutral" title="4. Theory and algorithms"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
@@ -262,7 +220,7 @@ Model defaults: (read_len=100,  template_len_mean=250,  template_len_sd=50,  max
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2014,Seven Bridges Genomics
+        &copy; Copyright 2014-2015,Seven Bridges Genomics
 (kaushik.ghose@sbgenomics.com).
     </p>
   </div>

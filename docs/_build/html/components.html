@@ -67,12 +67,12 @@
 <li class="toctree-l2"><a class="reference internal" href="introduction.html#trivia">1.2. Trivia</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">2. Quick-start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#creating-genomes">2.1. Creating genomes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads">2.2. Taking reads</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#testing-alignment-accuracy-of-bwa-mem">2.3. Testing alignment accuracy of BWA MEM</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads-just-from-regions-around-variants">2.4. Taking reads just from regions around variants</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#analysing-variant-callers">2.5. Analysing variant callers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">2. Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#creating-genomes">2.1. Creating genomes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#taking-reads">2.2. Taking reads</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#testing-alignment-accuracy-of-bwa-mem">2.3. Testing alignment accuracy of BWA MEM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#taking-reads-just-from-regions-around-variants">2.4. Taking reads just from regions around variants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#analysing-variant-callers">2.5. Analysing variant callers</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="additional_utils.html">3. Additional Utilities</a><ul>
@@ -87,6 +87,11 @@
 <li class="toctree-l2"><a class="reference internal" href="models.html#variant-models">5.1. Variant models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#population-models">5.2. Population models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#read-models">5.3. Read models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ramblings.html">6. Ramblings AKA. Diary of a Developer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ramblings.html#simulating-a-million-genomes-in-python">6.1. Simulating a million Genomes in Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ramblings.html#report-generation">6.2. Report generation</a></li>
 </ul>
 </li>
 </ul>
@@ -129,16 +134,16 @@
 <div class="section" id="create-single-or-multiple-genomes">
 <h2>Create single or multiple genomes<a class="headerlink" href="#create-single-or-multiple-genomes" title="Permalink to this headline">¶</a></h2>
 <p>(For a detailed description of the algorithms/structures please see <code class="xref doc docutils literal"><span class="pre">genomes</span></code>)</p>
-<span class="target" id="module-mitty.genomes"></span><p>Generate simulated genomes from a simulation parameter file.</p>
+<span class="target" id="module-mitty.genomes"></span><p>genomes (1.9.0.dev0): Generate simulated genomes from a simulation parameter file.</p>
 <p>Commandline:</p>
 <div class="highlight-python"><div class="highlight"><pre>Usage:
   genomes generate &lt;pfile&gt;  [-v|-V] [-p]
   genomes dryrun &lt;pfile&gt;
   genomes inspect &lt;dbfile&gt;
   genomes inspect sfs &lt;chrom&gt; &lt;dbfile&gt;
-  genomes write ((vcf|vcfs)|master) &lt;dbfile&gt; &lt;out_prefix&gt; [&lt;serial&gt;]... [-v|-V]
-  genomes explain (parameters|(variantmodel|populationmodel) (all|&lt;model_name&gt;))
-  genomes list (variantmodels|populationmodels)
+  genomes write vcf &lt;dbfile&gt; &lt;out_prefix&gt;  [--sample_name=SN] [-v|-V]
+  genomes explain (parameters|(variant-model|spectrum-model|population-model) (all|&lt;model_name&gt;))
+  genomes list (variant-model|spectrum-model|population-model)
 
 Options:
   generate                Create a database of genomes by running the models specified
@@ -150,10 +155,8 @@ Options:
   &lt;chrom&gt;                 Which chromosome&#39;s site frequncy spectrum to print
   write                   Write out genome data from the database file in vcf format
   vcf                     Write out all genomes in one multi-sample vcf file
-  vcfs                    Write out the genomes in separate single sample vcf files
-  master                  Write  a VCF file with all the variants, no sample tag
-  &lt;serial&gt;                Serial number of sample. Not needed and Ignored if &#39;master&#39; is used. Leave blank with vcf/vcfs to write all samples
   &lt;out_prefix&gt;            Written files will have this prefix
+  --sample_name=SN        Name of sample. Leave out to write master list
   explain                 Explain the parameters/variant model/population model
   all                     Iterate over and explain all models
   &lt;model_name&gt;            Explain specific model
@@ -172,10 +175,14 @@ Options:
   &quot;rng&quot;: {
     &quot;master_seed&quot;: 1
   },
-  &quot;sample_size&quot;: 1,      # How many samples to generate
+  &quot;population_model&quot;: {
+    &quot;standard&quot;: {            # Name of sample chooser (population) model.
+      &quot;sample_size&quot;: 1,      # population model parameters
+    }
+  },
   &quot;site_model&quot;: {
       &quot;double_exp&quot;: {    # Name of model that handles the site frequency spectrum
-        &quot;k1&quot;: 0.1,       # Population model parameters
+        &quot;k1&quot;: 0.1,       # spectrum model parameters
         &quot;k2&quot;: 2.0,
         &quot;p0&quot;: 0.001,
         &quot;p1&quot;: 0.2,
@@ -232,7 +239,7 @@ Options:
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2014,Seven Bridges Genomics
+        &copy; Copyright 2014-2015,Seven Bridges Genomics
 (kaushik.ghose@sbgenomics.com).
     </p>
   </div>
