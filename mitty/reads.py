@@ -76,7 +76,6 @@ import os
 import time
 
 import numpy as np
-import docopt
 import click
 
 import mitty.lib
@@ -123,8 +122,8 @@ class ReadSimulator:
     total_blocks_to_do = self.coverage / float(params['coverage_per_block'])
 
     chrom_meta = self.ref.get_seq_metadata()
-    sum_of_chromosome_lengths = float(sum([chrom_meta[chrom - 1]['seq_len'] for chrom in self.chromosomes]))
-    self.blocks_for_chromosome = {chrom: int(max(1, round(total_blocks_to_do * chrom_meta[chrom - 1]['seq_len'] / sum_of_chromosome_lengths)))
+    self.sum_of_chromosome_lengths = float(sum([chrom_meta[chrom - 1]['seq_len'] for chrom in self.chromosomes]))
+    self.blocks_for_chromosome = {chrom: int(max(1, round(total_blocks_to_do * chrom_meta[chrom - 1]['seq_len'] / self.sum_of_chromosome_lengths)))
                                   for chrom in self.chromosomes}
 
     self.read_model = mitty.lib.load_reads_plugin(params['read_model']).Model(**params['model_params'])
@@ -140,7 +139,8 @@ class ReadSimulator:
       self.fastq_fp = [open(fname_prefix + '_1.fq', 'w'), open(fname_prefix + '_2.fq', 'w')]
       self.fastq_c_fp = [open(fname_prefix + '_c_1.fq', 'w'), open(fname_prefix + '_c_2.fq', 'w')] if self.corrupt_reads else [None, None]
 
-    self.first_serial_no = 0
+    self.templates_written = 0
+    self.bases_covered = 0
 
   def get_total_blocks_to_do(self):
     return sum(self.blocks_for_chromosome.values()) * 2  # Two copies for each chromosome
@@ -170,13 +170,22 @@ class ReadSimulator:
                                      self.seed_rng,
                                      variants_only=self.variants_only)
       pos, cigars = lib_reads.roll_cigars(variant_waypoints, reads)
-      template_count = write_reads_to_file(self.fastq_fp[0], self.fastq_fp[1],
-                                           self.fastq_c_fp[0], self.fastq_c_fp[1],
-                                           reads, paired, pos, cigars,
-                                           chrom, cpy,
-                                           self.first_serial_no)
-      self.first_serial_no += template_count
+      template_count, bases_covered = write_reads_to_file(
+        self.fastq_fp[0], self.fastq_fp[1],
+        self.fastq_c_fp[0], self.fastq_c_fp[1],
+        reads, paired, pos, cigars,
+        chrom, cpy,
+        self.templates_written)
+      self.templates_written += template_count
+      self.bases_covered += bases_covered
       yield
+
+  def get_templates_written(self):
+    return self.templates_written
+
+  def get_coverage_done(self):
+    return float(self.bases_covered / self.sum_of_chromosome_lengths)
+    # This is approximate, since sample will have different length than reference, but good enough
 
 
 def generate_reads(seq, seq_c, variant_waypoints, variant_window,
@@ -231,14 +240,16 @@ def write_reads_to_file(fastq_fp_1, fastq_fp_2,
   :param first_serial_no: serial number of first template in this batch
   :return: next_serial_no: the serial number the next batch should start at
   """
-  #cntr = first_serial_no
+  bases_covered = 0
   ro, pr_seq, cr_seq, phred = reads['read_order'], reads['perfect_reads'], reads['corrupt_reads'], reads['phred']
 
   if paired:
     for n in xrange(0, reads.shape[0], 2):
       qname = '{:d}|{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:d}|{:s}'.format(first_serial_no + n/2, chrom, cpy, ro[n], pos[n], cigars[n], ro[n + 1], pos[n + 1], cigars[n + 1])
-      fastq_fp_1.write('@' + qname + '/1\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
-      fastq_fp_2.write('@' + qname + '/2\n' + pr_seq[n + 1] + '\n+\n' + '~' * len(pr_seq[n + 1]) + '\n')
+      l1, l2 = len(pr_seq[n]), len(pr_seq[n + 1])
+      fastq_fp_1.write('@' + qname + '/1\n' + pr_seq[n] + '\n+\n' + '~' * l1 + '\n')
+      fastq_fp_2.write('@' + qname + '/2\n' + pr_seq[n + 1] + '\n+\n' + '~' * l2 + '\n')
+      bases_covered += l1 + l2
       if fastq_c_fp_1 is not None:
         fastq_c_fp_1.write('@' + qname + '/1\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
         fastq_c_fp_2.write('@' + qname + '/2\n' + cr_seq[n + 1] + '\n+\n' + phred[n + 1] + '\n')
@@ -246,11 +257,13 @@ def write_reads_to_file(fastq_fp_1, fastq_fp_2,
   else:
     for n in xrange(0, reads.shape[0]):
       qname = '{:d}|{:d}|{:d}|{:d}|{:d}|{:s}'.format(first_serial_no + n, chrom, cpy, ro[n], pos[n], cigars[n])
-      fastq_fp_1.write('@' + qname + '\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
+      l1 = len(pr_seq[n])
+      fastq_fp_1.write('@' + qname + '\n' + pr_seq[n] + '\n+\n' + '~' * l1 + '\n')
+      bases_covered += l1
       if fastq_c_fp_1 is not None:
         fastq_c_fp_1.write('@' + qname + '\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
     template_count = reads.shape[0]
-  return template_count
+  return template_count, bases_covered
 
 
 @contextmanager
@@ -285,7 +298,7 @@ def cli(param_fname, v, p):
         for _ in simulation.generate_and_save_reads(chrom, cpy):
           bar.update(1)
   t1 = time.time()
-  logger.debug('Took {:f}s to write {:d} templates'.format(t1 - t0, simulation.first_serial_no))
+  logger.debug('Took {:f}s to write {:d} templates ({:f} coverage)'.format(t1 - t0, simulation.get_templates_written(), simulation.get_coverage_done()))
 
 
 def print_list(cmd_args):
