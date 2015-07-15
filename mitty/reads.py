@@ -1,29 +1,4 @@
 #!python
-from mitty.version import __version__
-
-__cmd__ = """reads ({:s}): Generate reads from a genome (either a reference genome or a sample genome).
-The read characteristics are governed by the chosen read plugin.
-
-Commandline::
-
-  Usage:
-    reads generate <pfile>  [-v|-V] [-p]
-    reads list
-    reads explain (parameters|model (all|<model_name>))
-
-  Options:
-    <pfile>         Name for parameter file
-    list            List available models
-    explain         Explain details about the indicated model
-    parameters      Explain parameters
-    model           Explain a model
-    all             Iterate over all models and explain them
-    <model_name>    The model to explain
-    -p              Show progress bar
-    -v              Dump detailed logger messages
-    -V              Dump very detailed logger messages
-""".format(__version__)
-
 __param__ = """Parameter file example::
 
   {
@@ -66,9 +41,6 @@ __param__ = """Parameter file example::
 
   }
 """
-__doc__ = __cmd__ + __param__
-# We split this up so that when we print the help, we can print it as separate pages. It got cluttered when printed all
-# together. We want this to be the docstring because that is a nice format for our generated documentation
 
 from contextlib import contextmanager
 import json
@@ -272,6 +244,7 @@ def write_reads_to_file(fastq_fp_1, fastq_fp_2,
 
 
 @click.group()
+@click.version_option()
 def cli():
   # Figure out if we can print help here
   pass
@@ -321,17 +294,16 @@ def models():
 
 
 @cli.command()
-@click.option('-p', is_flag=True, help='Parameter file example')
 @click.option('-m', help='Model name or "all"')
-def parameters(p, m):
+def parameters(m):
   """Print out parameter .json snippets"""
-  if p:
-    print(__param__)
   if m:
     if m == 'all':
       explain_all_read_models()
     else:
       explain_read_model(m)
+  else:
+    print(__param__)
 
 
 def explain_read_model(name):

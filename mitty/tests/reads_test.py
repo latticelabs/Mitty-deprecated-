@@ -2,6 +2,8 @@ import tempfile
 import json
 import shutil
 
+from click.testing import CliRunner
+
 from mitty.tests import *  # To get definitions from the setup script
 import mitty.lib.io as mio
 import mitty.lib.variants as vr
@@ -51,11 +53,15 @@ def integration_test():
   alt = ['G']
   p = [0.9]
   ml = vr.VariantList(pos, stop, ref, alt, p)
+  ml.sort()
   index_list = vr.l2ca([(0, 2)])
-  pl = vr.Population(genome_metadata=r_seq.get_seq_metadata())
+  pl = vr.Population(fname=db_file, genome_metadata=r_seq.get_seq_metadata())
+  pl.set_master_list(chrom=1, master_list=ml)
   pl.add_sample_chromosome(chrom=1, sample_name='g0_s0', indexes=index_list)
-  reads.executor({'generate': True, '<pfile>': param_file, '-v': False, '-p': False})
 
+  runner = CliRunner()
+  result = runner.invoke(reads.cli, ['generate', param_file])
+  assert result.exit_code == 0, result
   assert os.path.exists(read_prefix + '.fq')
   assert os.path.exists(read_prefix + '_c.fq')
 
