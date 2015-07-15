@@ -70,42 +70,222 @@ __doc__ = __cmd__ + __param__
 # We split this up so that when we print the help, we can print it as separate pages. It got cluttered when printed all
 # together. We want this to be the docstring because that is a nice format for our generated documentation
 
+from contextlib import contextmanager
 import json
 import os
 import time
 
 import numpy as np
 import docopt
+import click
 
 import mitty.lib
 import mitty.lib.reads as lib_reads
 import mitty.lib.io as mio
-#import mitty.lib.db as mdb
 import mitty.lib.variants as vr
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-def cli():  # pragma: no cover
-  """Serves as entry point for scripts"""
-  if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
-    docopt.docopt(__cmd__, ['-h'])
+class ReadSimulator:
+  """A convenience class that wraps the parameters and settings for a read simulation"""
+  def __init__(self, base_dir, params):
+    """Create a read simulator object
+
+    :param base_dir: the directory with respect to which relative file paths will be resolved
+    :param params: dict loaded from json file
+    """
+
+    fname_prefix = mitty.lib.rpath(base_dir, params['files']['output_prefix'])
+    if not os.path.exists(os.path.dirname(fname_prefix)):
+      os.makedirs(os.path.dirname(fname_prefix))
+
+    self.ref = mio.Fasta(multi_fasta=mitty.lib.rpath(base_dir, params['files'].get('reference_file', None)),
+                         multi_dir=mitty.lib.rpath(base_dir, params['files'].get('reference_dir', None)),
+                         persistent=True)
+
+    self.sample_name = params.get('sample_name', None)
+    if 'dbfile' in params['files']:
+      pop_db_name = mitty.lib.rpath(base_dir, params['files']['dbfile'])
+      self.pop = vr.Population(fname=pop_db_name)
+    else:
+      self.pop = None
+      logger.debug('Taking reads from reference')
+
+    master_seed = int(params['rng']['master_seed'])
+    assert 0 < master_seed < mitty.lib.SEED_MAX
+    self.seed_rng = np.random.RandomState(seed=master_seed)
+
+    self.chromosomes = params['chromosomes']
+    self.coverage = float(params['coverage'])
+
+    total_blocks_to_do = self.coverage / float(params['coverage_per_block'])
+
+    chrom_meta = self.ref.get_seq_metadata()
+    sum_of_chromosome_lengths = float(sum([chrom_meta[chrom - 1]['seq_len'] for chrom in self.chromosomes]))
+    self.blocks_for_chromosome = {chrom: int(max(1, round(total_blocks_to_do * chrom_meta[chrom - 1]['seq_len'] / sum_of_chromosome_lengths)))
+                                  for chrom in self.chromosomes}
+
+    self.read_model = mitty.lib.load_reads_plugin(params['read_model']).Model(**params['model_params'])
+    self.corrupt_reads = bool(params['corrupt'])
+
+    self.variants_only = params.get('variants_only', None)
+    self.variant_window = int(params.get('variant_window', 200)) if self.variants_only else None
+
+    if params['files'].get('interleaved', True):
+      self.fastq_fp = [open(fname_prefix + '.fq', 'w')] * 2
+      self.fastq_c_fp = [open(fname_prefix + '_c.fq', 'w')] * 2 if self.corrupt_reads else [None, None]
+    else:  # Need two files separately
+      self.fastq_fp = [open(fname_prefix + '_1.fq', 'w'), open(fname_prefix + '_2.fq', 'w')]
+      self.fastq_c_fp = [open(fname_prefix + '_c_1.fq', 'w'), open(fname_prefix + '_c_2.fq', 'w')] if self.corrupt_reads else [None, None]
+
+    self.first_serial_no = 0
+
+  def get_total_blocks_to_do(self):
+    return sum(self.blocks_for_chromosome.values()) * 2  # Two copies for each chromosome
+
+  def get_chromosome_list(self):
+    return self.chromosomes
+
+  def get_blocks_to_do(self, chrom):
+    return self.blocks_for_chromosome
+
+  def generate_and_save_reads(self, chrom, cpy):
+    """Grab the appropriate seq, apply variants as needed, generate reads, roll cigars and then save."""
+    if self.pop is not None:
+      ml = self.pop.get_master_list(chrom=chrom)
+      v_index = self.pop.get_sample_chromosome(chrom=chrom, sample_name=self.sample_name)
+    else:
+      ml, v_index = vr.VariantList(), []  # Need a dummy variant list for nulls
+
+    seq, variant_waypoints = lib_reads.expand_sequence(self.ref[chrom]['seq'], ml, v_index, cpy)
+    seq_c = mitty.lib.string.translate(seq, mitty.lib.DNA_complement)
+    coverage_per_block = 0.5 * self.coverage / self.blocks_for_chromosome[chrom]
+    for blk in range(self.blocks_for_chromosome[chrom]):
+      reads, paired = generate_reads(seq, seq_c, variant_waypoints,
+                                     self.variant_window, self.read_model,
+                                     coverage_per_block,
+                                     self.corrupt_reads,
+                                     self.seed_rng,
+                                     variants_only=self.variants_only)
+      pos, cigars = lib_reads.roll_cigars(variant_waypoints, reads)
+      template_count = write_reads_to_file(self.fastq_fp[0], self.fastq_fp[1],
+                                           self.fastq_c_fp[0], self.fastq_c_fp[1],
+                                           reads, paired, pos, cigars,
+                                           chrom, cpy,
+                                           self.first_serial_no)
+      self.first_serial_no += template_count
+      yield
+
+
+def generate_reads(seq, seq_c, variant_waypoints, variant_window,
+                   read_model, coverage, corrupt, seed_rng, variants_only=False):
+  """Wrapper around read function to handle both regular reads as well as reads restricted to around
+
+  :param seq:      forward sequence
+  :param seq_c:    complement sequence
+  :param variant_waypoints: as returned by expand_sequence
+  :param variant_window: how many bases before and after variant should we include
+  :param corrupt:  T/F generate corrupted reads too or not
+  :param seed_rng:    rng for seed generation
+  :param variants_only: set True if we want reads only from variant regions
+  :return:
+  """
+  if variants_only:
+    reads, paired = [], False
+    for v in variant_waypoints:  # [1:-1]:
+      start, stop = max(v[1] - variant_window, 0), min(v[1] + variant_window, len(seq))
+      # v[1] is the pos of the variant in sequence coordinates (rather than ref coordinates)
+      these_reads, paired = read_model.get_reads(seq, seq_c,
+                                                 start_base=start, end_base=stop,
+                                                 coverage=coverage,
+                                                 corrupt=corrupt,
+                                                 seed=seed_rng.randint(0, mitty.lib.SEED_MAX))
+      reads += [these_reads]
+    reads = np.concatenate(reads)
   else:
-    cmd_args = docopt.docopt(__cmd__)  # Version string?
+    reads, paired = read_model.get_reads(seq, seq_c,
+                                         coverage=coverage,
+                                         corrupt=corrupt,
+                                         seed=seed_rng.randint(0, mitty.lib.SEED_MAX))
+  return reads, paired
 
-  level = logging.DEBUG if cmd_args['-V'] else logging.WARNING
+
+def write_reads_to_file(fastq_fp_1, fastq_fp_2,
+                        fastq_c_fp_1, fastq_c_fp_2,
+                        reads, paired, pos, cigars,
+                        chrom, cpy,
+                        first_serial_no):
+  """
+  :param fastq_fp_1:   file pointer to perfect reads file
+  :param fastq_fp_2:   file pointer to perfect reads file 2. Same as 1 if interleaving. None if not paired
+  :param fastq_c_fp_1: file pointer to corrupted reads file. None if no corrupted reads being written
+  :param fastq_c_fp_2: file pointer to corrupted reads file 2. Same as 1 if interleaving. None if no corrupted reads being written. None if not paired
+  :param reads:        reads recarray
+  :param paired:       bool, are reads paired
+  :param pos:          list of POS values for the reads
+  :param cigars:       list of cigar values for the reads
+  :param chrom:           chromosome number
+  :param cpy:           chromosome copy
+  :param first_serial_no: serial number of first template in this batch
+  :return: next_serial_no: the serial number the next batch should start at
+  """
+  #cntr = first_serial_no
+  ro, pr_seq, cr_seq, phred = reads['read_order'], reads['perfect_reads'], reads['corrupt_reads'], reads['phred']
+
+  if paired:
+    for n in xrange(0, reads.shape[0], 2):
+      qname = '{:d}|{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:d}|{:s}'.format(first_serial_no + n/2, chrom, cpy, ro[n], pos[n], cigars[n], ro[n + 1], pos[n + 1], cigars[n + 1])
+      fastq_fp_1.write('@' + qname + '/1\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
+      fastq_fp_2.write('@' + qname + '/2\n' + pr_seq[n + 1] + '\n+\n' + '~' * len(pr_seq[n + 1]) + '\n')
+      if fastq_c_fp_1 is not None:
+        fastq_c_fp_1.write('@' + qname + '/1\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
+        fastq_c_fp_2.write('@' + qname + '/2\n' + cr_seq[n + 1] + '\n+\n' + phred[n + 1] + '\n')
+    template_count = reads.shape[0] / 2
+  else:
+    for n in xrange(0, reads.shape[0]):
+      qname = '{:d}|{:d}|{:d}|{:d}|{:d}|{:s}'.format(first_serial_no + n, chrom, cpy, ro[n], pos[n], cigars[n])
+      fastq_fp_1.write('@' + qname + '\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
+      if fastq_c_fp_1 is not None:
+        fastq_c_fp_1.write('@' + qname + '\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
+    template_count = reads.shape[0]
+  return template_count
+
+
+@contextmanager
+def no_bar(**kwargs):
+  class NoBar():
+    def update(self, _):
+      pass
+  yield NoBar()
+
+
+@click.command()
+@click.argument('param_fname', type=click.Path(exists=True))
+@click.option('-v', count=True, help='Verbosity level')
+@click.option('-p', is_flag=True, help='Show progress bar')
+def cli(param_fname, v, p):
+  """Generate reads (fastq) given a parameter file"""
+  level = logging.DEBUG if v > 1 else logging.WARNING
   logging.basicConfig(level=level)
-
-  if cmd_args['-v']:
+  if v == 1:
     logger.setLevel(logging.DEBUG)
 
-  if cmd_args['list']:
-    print_list(cmd_args)
-  elif cmd_args['explain']:
-    explain(cmd_args)
-  else:
-    executor(cmd_args)
+  base_dir = os.path.dirname(param_fname)     # Other files will be with respect to this
+  params = json.load(open(param_fname, 'r'))
+
+  simulation = ReadSimulator(base_dir, params)
+
+  bar_func = click.progressbar if p else no_bar
+  t0 = time.time()
+  with bar_func(length=simulation.get_total_blocks_to_do(), label='Generating reads') as bar:
+    for chrom in simulation.get_chromosome_list():
+      for cpy in [0, 1]:
+        for _ in simulation.generate_and_save_reads(chrom, cpy):
+          bar.update(1)
+  t1 = time.time()
+  logger.debug('Took {:f}s to write {:d} templates'.format(t1 - t0, simulation.first_serial_no))
 
 
 def print_list(cmd_args):
@@ -121,7 +301,6 @@ def explain(cmd_args):
     explain_read_model(cmd_args['<model_name>'])
 
 
-# TODO update this when we use classes for read models
 def explain_read_model(name):
   try:
     mod = mitty.lib.load_reads_plugin(name)
@@ -139,190 +318,6 @@ def explain_read_model(name):
 def explain_all_read_models():
   for name, mod_name in mitty.lib.discover_all_reads_plugins():
     explain_read_model(name)
-
-
-def generate_reads_loop(ref, pop=None, sample_name=None, chromosomes=[], read_model=None,
-                        variants_only=False, variant_window=None,
-                        fastq_fp=[], fastq_c_fp=[],
-                        actual_coverage_per_block=1.0, blocks_to_do=1,
-                        master_seed=1,
-                        progress_bar_func=None):
-  """
-
-  :param ref: reference sequence object
-  :param pop: Population object. Leave None for null reads
-  :param sample_name: sample in pop to take reads from
-  :param chromosomes: list of chromosomes to take reads from
-  :param read_model: read model object
-  :param variants_only: True if reads should be taken from regions neighboring variants only
-  :param variant_window: Size of region (in bases) around variants for local reads
-  :param fastq_fp:   List of two file pointers to perfect reads files. If interleaved, the pointers are same
-  :param fastq_c_fp: List of two file pointers to corrupted reads file, leave None to skip computing corrupted reads.
-                     If interleaved, the pointers are same
-  :param actual_coverage_per_block: coverage of reads per computation block
-  :param blocks_to_do: total blocks that need to be done per pass
-  :param master_seed: rng seed
-  :param progress_bar_func: function that draws a progress bar. Leave None to skip printing progress bar
-  :return: total number of reads generated
-  """
-  first_serial_no = 0
-  total_blocks = len(chromosomes) * 2 * blocks_to_do  # For the progress bar
-  blocks_done = 0
-  seed_rng = np.random.RandomState(seed=master_seed)
-  corrupt = fastq_c_fp is not None
-
-  if progress_bar_func: progress_bar_func('Generating reads ', f=float(blocks_done) / total_blocks, cols=80)
-  for ch in chromosomes:
-    if pop is not None:
-      ml = pop.get_master_list(chrom=ch)
-      chrom = pop.get_sample_chromosome(chrom=ch, sample_name=sample_name)
-    else:
-      ml, chrom = vr.VariantList(), []  # Need a dummy variant list for nulls
-    for cpy in [0, 1]:
-      seq, variant_waypoints = lib_reads.expand_sequence(ref[ch]['seq'], ml, chrom, cpy)
-      seq_c = mitty.lib.string.translate(seq, mitty.lib.DNA_complement)
-      for blk in range(blocks_to_do):
-        if not variants_only:
-          reads, paired = read_model.get_reads(seq, seq_c, coverage=actual_coverage_per_block, corrupt=corrupt,
-                                               seed=seed_rng.randint(0, mitty.lib.SEED_MAX))
-        else:
-          reads, paired = reads_from_variants_only(seq, seq_c, variant_waypoints, variant_window, read_model,
-                                                   actual_coverage_per_block, corrupt, seed_rng)
-        pos, cigars = lib_reads.roll_cigars(variant_waypoints, reads)
-        first_serial_no = write_reads_to_file(fastq_fp[0], fastq_fp[1], fastq_c_fp[0], fastq_c_fp[1],
-                                              reads, paired, pos, cigars, ch, cpy,
-                                              first_serial_no)
-        blocks_done += 1
-        if progress_bar_func: progress_bar_func('Generating reads ', f=float(blocks_done) / total_blocks, cols=80)
-  if progress_bar_func: print('')
-  return first_serial_no
-
-
-def executor(cmd_args):
-  """Executor for read generation. Parses command line arguments, sets up file handles and then off we go!
-
-  :param cmd_args: parameters as parsed by doc_opt
-  """
-  base_dir = os.path.dirname(cmd_args['<pfile>'])     # Other files will be with respect to this
-  params = json.load(open(cmd_args['<pfile>'], 'r'))
-
-  fname_prefix = mitty.lib.rpath(base_dir, params['files']['output_prefix'])
-  if not os.path.exists(os.path.dirname(fname_prefix)):
-    os.makedirs(os.path.dirname(fname_prefix))
-
-  ref = mio.Fasta(multi_fasta=mitty.lib.rpath(base_dir, params['files'].get('reference_file', None)),
-                  multi_dir=mitty.lib.rpath(base_dir, params['files'].get('reference_dir', None)),
-                  persistent=True)
-
-  sample_name = params.get('sample_name', None)
-  if 'dbfile' in params['files']:
-    pop_db_name = mitty.lib.rpath(base_dir, params['files']['dbfile'])
-    pop = vr.Population(fname=pop_db_name, genome_metadata=ref)
-  elif 'input_vcf' in params['files']:
-    # In order to keep things modular we convert the VCF to a genome db file and then proceed
-    import mitty.lib.vcf2pop as vcf2pop
-    vcf_fname = mitty.lib.rpath(base_dir, params['files']['input_vcf'])
-    pop_db_name = fname_prefix + '_genome.db'
-    if os.path.exists(pop_db_name):
-      os.remove(pop_db_name)
-    pop = vcf2pop.vcf_to_pop(vcf_fname=vcf_fname, pop_fname=pop_db_name, sample_name=sample_name)
-    logger.debug('Converted VCF file ({:s}) to Mitty database file ({:s})'.format(vcf_fname, pop_db_name))
-  else:
-    pop = None
-    logger.debug('Taking reads from reference')
-
-  master_seed = int(params['rng']['master_seed'])
-  assert 0 < master_seed < mitty.lib.SEED_MAX
-
-  chromosomes = params['chromosomes']
-
-  coverage_per_chromosome = float(params['coverage']) / 2.0
-  coverage_per_block = float(params['coverage_per_block'])
-
-  blocks_to_do = int(coverage_per_chromosome / coverage_per_block)
-  actual_coverage_per_block = coverage_per_chromosome / blocks_to_do  # Actual coverage has to be adjusted, because blocks_to_do is an int
-
-  read_model = mitty.lib.load_reads_plugin(params['read_model']).Model(**params['model_params'])
-  corrupt = bool(params['corrupt'])
-
-  variants_only = params.get('variants_only', None)
-  variant_window = int(params.get('variant_window', 200)) if variants_only else None
-
-  if params['files'].get('interleaved', True):
-    fastq_fp = [open(fname_prefix + '.fq', 'w')] * 2
-    fastq_c_fp = [open(fname_prefix + '_c.fq', 'w')] * 2 if corrupt else [None, None]
-  else:  # Need two files separately
-    fastq_fp = [open(fname_prefix + '_1.fq', 'w'), open(fname_prefix + '_2.fq', 'w')]
-    fastq_c_fp = [open(fname_prefix + '_c_1.fq', 'w'), open(fname_prefix + '_c_2.fq', 'w')] if corrupt else [None, None]
-
-  t0 = time.time()
-  read_count = generate_reads_loop(ref=ref, pop=pop, sample_name=sample_name, chromosomes=chromosomes,
-                                   read_model=read_model, variants_only=variants_only, variant_window=variant_window,
-                                   fastq_fp=fastq_fp, fastq_c_fp=fastq_c_fp,
-                                   actual_coverage_per_block=actual_coverage_per_block, blocks_to_do=blocks_to_do,
-                                   master_seed=master_seed,
-                                   progress_bar_func=mitty.lib.progress_bar if cmd_args['-p'] else None)
-  t1 = time.time()
-  logger.debug('Took {:f}s to write {:d} templates'.format(t1 - t0, read_count))
-
-
-def reads_from_variants_only(seq, seq_c, variant_waypoints, variant_window, read_model, coverage, corrupt, seed_rng):
-  """Wrapper around read function to get reads only from around variant locations
-
-  :param seq:      forward sequence
-  :param seq_c:    complement sequence
-  :param variant_waypoints: as returned by expand_sequence
-  :param variant_window: how many bases before and after variant should we include
-  :param corrupt:  T/F generate corrupted reads too or not
-  :param seed_rng:    rng for seed generation
-  :return:
-  """
-  reads, paired = [], False
-  for v in variant_waypoints:  # [1:-1]:
-    start, stop = max(v[1] - variant_window, 0), min(v[1] + variant_window, len(seq))
-    # v[1] is the pos of the variant in sequence coordinates (rather than ref coordinates)
-    these_reads, paired = read_model.get_reads(seq, seq_c, start_base=start, end_base=stop, coverage=coverage, corrupt=corrupt, seed=seed_rng.randint(0, mitty.lib.SEED_MAX))
-    reads += [these_reads]
-  return np.concatenate(reads), paired
-
-
-def write_reads_to_file(fastq_fp_1, fastq_fp_2, fastq_c_fp_1, fastq_c_fp_2,
-                        reads, paired, pos, cigars, ch, cc, first_serial_no):
-  """
-  :param fastq_fp_1:   file pointer to perfect reads file
-  :param fastq_fp_2:   file pointer to perfect reads file 2. Same as 1 if interleaving. None if not paired
-  :param fastq_c_fp_1: file pointer to corrupted reads file. None if no corrupted reads being written
-  :param fastq_c_fp_2: file pointer to corrupted reads file 2. Same as 1 if interleaving. None if no corrupted reads being written. None if not paired
-  :param reads:        reads recarray
-  :param paired:       bool, are reads paired
-  :param pos:          list of POS values for the reads
-  :param cigars:       list of cigar values for the reads
-  :param ch:           chromosome number
-  :param cc:           chromosome copy
-  :param first_serial_no: serial number of first template in this batch
-  :return: next_serial_no: the serial number the next batch should start at
-  """
-  cntr = first_serial_no
-  ro, pr_seq, cr_seq, phred = reads['read_order'], reads['perfect_reads'], reads['corrupt_reads'], reads['phred']
-
-  if paired:
-    for n in xrange(0, reads.shape[0], 2):
-      qname = '{:d}|{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:d}|{:s}'.format(cntr, ch, cc, ro[n], pos[n], cigars[n], ro[n + 1], pos[n + 1], cigars[n + 1])
-      fastq_fp_1.write('@' + qname + '/1\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
-      fastq_fp_2.write('@' + qname + '/2\n' + pr_seq[n + 1] + '\n+\n' + '~' * len(pr_seq[n + 1]) + '\n')
-      if fastq_c_fp_1 is not None:
-        fastq_c_fp_1.write('@' + qname + '/1\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
-        fastq_c_fp_2.write('@' + qname + '/2\n' + cr_seq[n + 1] + '\n+\n' + phred[n + 1] + '\n')
-      cntr += 1
-  else:
-    for n in xrange(0, reads.shape[0]):
-      qname = '{:d}|{:d}|{:d}|{:d}|{:d}|{:s}'.format(cntr, ch, cc, ro[n], pos[n], cigars[n])
-      fastq_fp_1.write('@' + qname + '\n' + pr_seq[n] + '\n+\n' + '~' * len(pr_seq[n]) + '\n')
-      if fastq_c_fp_1 is not None:
-        fastq_c_fp_1.write('@' + qname + '\n' + cr_seq[n] + '\n+\n' + phred[n] + '\n')
-      cntr += 1
-
-  return cntr
 
 
 if __name__ == '__main__':
