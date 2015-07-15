@@ -64,7 +64,7 @@ class Fasta:
       cells = line.split('\t')
       return {
         'seq_id': cells[0].strip(),
-        'seq_len': cells[1].strip(),
+        'seq_len': int(cells[1].strip()),
         'seq_md5': cells[2].strip()
       }
 
