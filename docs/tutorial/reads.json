@@ -8,10 +8,10 @@
   "rng": {
     "master_seed": 123456
   },
-  "chromosomes": [1, 20],
+  "chromosomes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
   "read_model": "simple_illumina",
-  "coverage": 30,
-  "coverage_per_block": 1,
+  "coverage": 1,
+  "coverage_per_block": 0.1,
   "corrupt": true,
   "model_params": {
     "read_len": 100,
