@@ -140,6 +140,7 @@ class ReadSimulator:
       self.fastq_c_fp = [open(fname_prefix + '_c_1.fq', 'w'), open(fname_prefix + '_c_2.fq', 'w')] if self.corrupt_reads else [None, None]
 
     self.templates_written = 0
+    self.reads_generated = 0
     self.bases_covered = 0
 
   def get_total_blocks_to_do(self):
@@ -177,11 +178,15 @@ class ReadSimulator:
         chrom, cpy,
         self.templates_written)
       self.templates_written += template_count
+      self.reads_generated += reads.shape[0]
       self.bases_covered += bases_covered
       yield
 
   def get_templates_written(self):
     return self.templates_written
+
+  def get_read_count(self):
+    return self.reads_generated
 
   def get_coverage_done(self):
     return float(self.bases_covered / self.sum_of_chromosome_lengths)
@@ -266,6 +271,12 @@ def write_reads_to_file(fastq_fp_1, fastq_fp_2,
   return template_count, bases_covered
 
 
+@click.group()
+def cli():
+  # Figure out if we can print help here
+  pass
+
+
 @contextmanager
 def no_bar(**kwargs):
   class NoBar():
@@ -274,11 +285,11 @@ def no_bar(**kwargs):
   yield NoBar()
 
 
-@click.command()
+@cli.command()
 @click.argument('param_fname', type=click.Path(exists=True))
 @click.option('-v', count=True, help='Verbosity level')
 @click.option('-p', is_flag=True, help='Show progress bar')
-def cli(param_fname, v, p):
+def generate(param_fname, v, p):
   """Generate reads (fastq) given a parameter file"""
   level = logging.DEBUG if v > 1 else logging.WARNING
   logging.basicConfig(level=level)
@@ -298,20 +309,29 @@ def cli(param_fname, v, p):
         for _ in simulation.generate_and_save_reads(chrom, cpy):
           bar.update(1)
   t1 = time.time()
-  logger.debug('Took {:f}s to write {:d} templates ({:f} coverage)'.format(t1 - t0, simulation.get_templates_written(), simulation.get_coverage_done()))
+  logger.debug('Took {:f}s to write {:d} reads ({:f} coverage)'.format(t1 - t0, simulation.get_read_count(), simulation.get_coverage_done()))
 
 
-def print_list(cmd_args):
+@cli.command()
+def models():
+  """Print list of available read models"""
   print('\nAvailable models\n----------------')
   for name, mod_name in mitty.lib.discover_all_reads_plugins():
     print('- {:s} ({:s})\n'.format(name, mod_name))
 
 
-def explain(cmd_args):
-  if cmd_args['parameters']:
+@cli.command()
+@click.option('-p', is_flag=True, help='Parameter file example')
+@click.option('-m', help='Model name or "all"')
+def parameters(p, m):
+  """Print out parameter .json snippets"""
+  if p:
     print(__param__)
-  elif cmd_args['model']:
-    explain_read_model(cmd_args['<model_name>'])
+  if m:
+    if m == 'all':
+      explain_all_read_models()
+    else:
+      explain_read_model(m)
 
 
 def explain_read_model(name):
