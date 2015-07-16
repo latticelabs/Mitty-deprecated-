@@ -40,3 +40,7 @@ class Model:
       yield 'g{:d}_s{:d}'.format(gen, n), ml.zip_up_chromosome(*[(r[:, 0] < ml.variants['p']).nonzero()[0], (r[:, 1] < ml.variants['p']).nonzero()[0]]), float(n + 1) / self.sample_size
     # In more complex population models, for example simulating sexual reproduction, we would probably return an iterator
     # class that kept state representing parents etc., having worked out the population tree
+
+  def get_sample_count_estimate(self):
+    """Give us an as exact as possible estimate of how many samples we will produce"""
+    return self.sample_size
