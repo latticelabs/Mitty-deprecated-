@@ -283,17 +283,25 @@ def models():
     print('- {:s} ({:s})\n'.format(name, mod_name))
 
 
-@cli.command()
-@click.option('-m', help='Model name or "all"')
-def parameters(m):
-  """Print out parameter .json snippets"""
-  if m:
-    if m == 'all':
-      explain_all_read_models()
-    else:
-      explain_read_model(m)
+@cli.group()
+def parameters():
+  pass
+
+
+@parameters.command()
+def program():
+  """Print out program parameter .json"""
+  print(__param__)
+
+
+@parameters.command()
+@click.option('-m', help='Model name or "all"', default='all')
+def model(m):
+  """Print out model parameter .json snippets"""
+  if m == 'all':
+    explain_all_read_models()
   else:
-    print(__param__)
+    explain_read_model(m)
 
 
 def explain_read_model(name):
