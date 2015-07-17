@@ -81,8 +81,10 @@ __doc__ = __cmd__ + __param__
 import json
 import os
 import time
+import io
 
 import docopt
+import click
 import numpy as np
 
 import mitty.lib
@@ -95,7 +97,138 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def cli():  # pragma: no cover
+class PopulationSimulator:
+  """A convenience class that wraps the parameters and settings for a population simulation"""
+  def __init__(self, base_dir, params):
+    """Create a genome simulation object
+
+    :param base_dir: the directory with respect to which relative file paths will be resolved
+    :param params: dict loaded from json file
+    """
+    pop_db_name = mitty.lib.rpath(base_dir, params['files']['dbfile'])
+    if os.path.exists(pop_db_name):
+      logger.warning('Removed old simulation file')
+      os.remove(pop_db_name)
+    if not os.path.exists(os.path.dirname(pop_db_name)):
+      logger.warning('Creating output directory {:s}'.format(pop_db_name))
+      os.makedirs(os.path.dirname(pop_db_name))
+
+    self.ref = mio.Fasta(multi_fasta=mitty.lib.rpath(base_dir, params['files'].get('reference_file', None)),
+                    multi_dir=mitty.lib.rpath(base_dir, params['files'].get('reference_dir', None)))  # TODO: Ability to switch off persistence flag
+    master_seed = int(params['rng']['master_seed'])
+    assert 0 < master_seed < mitty.lib.SEED_MAX
+
+    self.seed_rng = np.random.RandomState(seed=master_seed)
+    self.pop = vr.Population(fname=pop_db_name, genome_metadata=self.ref.get_seq_metadata())
+
+    self.chromosomes = params['chromosomes']
+    self.sfs_model = load_site_frequency_model(params.get('site_model', None))
+    self.sfs_p, self.sfs_f = self.sfs_model.get_spectrum() if self.sfs_model is not None else (None, None)
+    self.variant_models = load_variant_models(self.ref, params['variant_models'])
+    self.population_model = load_population_model(params.get('population_model', None), params)
+
+    self.unique_variant_count, self.total_variant_count = 0, 0
+
+  def get_chromosome_list(self):
+    return self.chromosomes
+
+  def get_total_blocks_to_do(self):
+    return len(self.chromosomes) * self.population_model.get_sample_count_estimate()
+
+  def generate_and_save_samples(self, chrom):
+    ml = vr.VariantList()
+    for m in self.variant_models:
+      ml.add(*m.get_variants(ref=self.ref[chrom]['seq'], chrom=chrom,
+                             p=self.sfs_p, f=self.sfs_f,
+                             seed=self.seed_rng.randint(mutil.SEED_MAX)))
+    ml.sort()
+    if self.sfs_model is not None: ml.balance_probabilities(*self.sfs_model.get_spectrum())
+    self.pop.set_master_list(chrom=chrom, master_list=ml)
+    self.unique_variant_count += len(ml)
+    for sample_name, this_sample, frac_done in self.population_model.samples(chrom_no=chrom, ml=ml, rng_seed=self.seed_rng.randint(mutil.SEED_MAX)):
+      self.pop.add_sample_chromosome(chrom=chrom, sample_name=sample_name, indexes=this_sample)
+      self.total_variant_count += len(this_sample)
+      yield
+
+
+@click.group()
+@click.version_option()
+def cli():
+  """Mitty genomes simulator"""
+  pass
+
+
+@cli.command()
+@click.argument('param_fname', type=click.Path(exists=True))
+@click.option('-v', count=True, help='Verbosity level')
+@click.option('-p', is_flag=True, help='Show progress bar')
+def generate(param_fname, v, p):
+  """Generate population of genomes"""
+  level = logging.DEBUG if v > 1 else logging.WARNING
+  logging.basicConfig(level=level)
+  if v == 1:
+    logger.setLevel(logging.DEBUG)
+
+  base_dir = os.path.dirname(param_fname)     # Other files will be with respect to this
+  params = json.load(open(param_fname, 'r'))
+
+  simulation = PopulationSimulator(base_dir, params)
+  t0 = time.time()
+  with click.progressbar(length=simulation.get_total_blocks_to_do(), label='Generating genomes', file=None if p else io.BytesIO()) as bar:
+    for chrom in simulation.get_chromosome_list():
+      for _ in simulation.generate_and_save_samples(chrom):
+        bar.update(1)
+  t1 = time.time()
+  logger.debug('Took {:f}s'.format(t1 - t0))
+  logger.debug('{:d} unique variants, {:d} variants in samples'.format(simulation.unique_variant_count, simulation.total_variant_count))
+
+
+@cli.command()
+def dryrun():
+  """Print useful info about simulation"""
+  params = json.load(open(cmd_args['<pfile>'], 'r'))
+  sfs_model = load_site_frequency_model(params.get('site_model', None))
+  if sfs_model:
+    print('Site frequency model')
+    print(sfs_model)
+    p, f = sfs_model.get_spectrum()
+    if len(p):  # Don't print this for a dud spectrum
+      print('1/sum(p_i * f_i) = {:2.1f}'.format(1./(p*f).sum()))
+    x, y = mutil.growth_curve_from_sfs(p, f)
+    print('\nGrowth curve:\n')
+    print('N\tv')
+    for _x, _y in zip(x, y):
+      print('{:d}\t{:f}'.format(_x, _y))
+  else:
+    print('No site model')
+
+
+@cli.command()
+@click.argument('dbfile', type=click.Path(exists=True))
+@click.argument('vcfgz', type=click.Path())
+@click.option('--sample-name', help='Name of sample. Omit to write master list')
+def write(dbfile, vcfgz, sample_name):
+  """Write sample/master list to VCF"""
+  pop = vr.Population(fname=dbfile)
+  mio.write_single_sample_to_vcf(pop=pop, sample_name=sample_name, out_fname=vcfgz)
+  # if sample_name is none, mio.write_single_sample_to_vcf will write master list
+
+
+@cli.command()
+def models():
+  """Print list of models"""
+  discoverer = [
+    ('variant', mitty.lib.discover_all_variant_plugins),
+    ('spectrum', mitty.lib.discover_all_sfs_plugins),
+    ('population', mitty.lib.discover_all_pop_plugins)
+  ]
+  for mod_type, disco in discoverer:
+    print('--------------------------------\nAvailable {} models\n--------------------------------'.format(mod_type))
+    for name, mod_name in disco():
+      print('- {:s} ({:s})'.format(name, mod_name))
+
+
+def cli_old():  # pragma: no cover
   """Serves as entry point for scripts"""
   if len(docopt.sys.argv) < 2:  # Print help message if no options are passed
     docopt.docopt(__cmd__, ['-h'])
@@ -124,26 +257,10 @@ def cli():  # pragma: no cover
     db_summary(cmd_args)
 
 
-def dry_run(cmd_args):
-  """Don't run simulation, but print out useful info about it"""
-  params = json.load(open(cmd_args['<pfile>'], 'r'))
-  sfs_model = load_site_frequency_model(params.get('site_model', None))
-  if sfs_model:
-    print('Site frequency model')
-    print(sfs_model)
-    p, f = sfs_model.get_spectrum()
-    if len(p):  # Don't print this for a dud spectrum
-      print('1/sum(p_i * f_i) = {:2.1f}'.format(1./(p*f).sum()))
-    x, y = mutil.growth_curve_from_sfs(p, f)
-    print('\nGrowth curve:\n')
-    print('N\tv')
-    for _x, _y in zip(x, y):
-      print('{:d}\t{:f}'.format(_x, _y))
-  else:
-    print('No site model')
 
 
-def generate(cmd_args):
+
+def generate_old(cmd_args):
   """Generate genomes based on the simulation parameter file
 
   :param cmd_args: from doc opt parsing
@@ -243,13 +360,6 @@ def load_population_model(pop_model_json, params={}):
   return mitty.lib.load_pop_model_plugin(k).Model(**v)
 
 
-def write(cmd_args):
-  pop = vr.Population(fname=cmd_args['<dbfile>'])
-  out_prefix = cmd_args['<out_prefix>']
-  sample_name = cmd_args['--sample_name']
-  fname = out_prefix + ('_' + sample_name + '.vcf.gz' if sample_name else '_master.vcf.gz')
-  mio.write_single_sample_to_vcf(pop=pop, sample_name=sample_name, out_fname=fname)
-  # if sample_name is none, mio.write_single_sample_to_vcf will write master list
 
 
 def explain(cmd_args):
@@ -297,23 +407,6 @@ def explain_model(name, kind):
     print(mitty.lib.model_init_signature_string(mod.Model.__init__))
   except AttributeError:
     print('No help for model "{:s}" available'.format(name))
-
-
-def print_list(cmd_args):
-  kind = ['variant-model', 'spectrum-model', 'population-model']
-  idx = [cmd_args[k] for k in kind].index(True)
-  print_model_list(kind[idx])
-
-
-def print_model_list(kind):
-  discoverer = {
-    'variant-model': mitty.lib.discover_all_variant_plugins,
-    'spectrum-model': mitty.lib.discover_all_sfs_plugins,
-    'population-model': mitty.lib.discover_all_pop_plugins
-  }
-  print('\nAvailable {} models\n----------------'.format(kind))
-  for name, mod_name in discoverer[kind]():
-    print('- {:s} ({:s})\n'.format(name, mod_name))
 
 
 def db_summary(cmd_args):
