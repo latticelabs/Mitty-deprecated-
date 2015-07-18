@@ -27,7 +27,7 @@ def expand_sequence(ref_seq, ml, chrom, copy):
   pos, stop, ref, alt = ml.variants['pos'], ml.variants['stop'], ml.variants['ref'], ml.variants['alt']
   c_iter = chrom.__iter__()
   variant = next(c_iter, None)
-  while variant:
+  while variant is not None:
     if pos_ref < pos[variant[0]]:
       alt_fragments += [ref_seq[pos_ref:pos[variant[0]]]]
       pos_alt += pos[variant[0]] - pos_ref
