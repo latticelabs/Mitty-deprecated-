@@ -41,11 +41,10 @@ __param__ = """Parameter file example::
 
   }
 """
-
-from contextlib import contextmanager
 import json
 import os
 import time
+import io
 
 import numpy as np
 import click
@@ -246,16 +245,8 @@ def write_reads_to_file(fastq_fp_1, fastq_fp_2,
 @click.group()
 @click.version_option()
 def cli():
-  # Figure out if we can print help here
+  """Mitty read simulator"""
   pass
-
-
-@contextmanager
-def no_bar(**kwargs):
-  class NoBar():
-    def update(self, _):
-      pass
-  yield NoBar()
 
 
 @cli.command()
@@ -274,9 +265,8 @@ def generate(param_fname, v, p):
 
   simulation = ReadSimulator(base_dir, params)
 
-  bar_func = click.progressbar if p else no_bar
   t0 = time.time()
-  with bar_func(length=simulation.get_total_blocks_to_do(), label='Generating reads') as bar:
+  with click.progressbar(length=simulation.get_total_blocks_to_do(), label='Generating reads', file=None if p else io.BytesIO()) as bar:
     for chrom in simulation.get_chromosome_list():
       for cpy in [0, 1]:
         for _ in simulation.generate_and_save_reads(chrom, cpy):
@@ -293,17 +283,25 @@ def models():
     print('- {:s} ({:s})\n'.format(name, mod_name))
 
 
-@cli.command()
-@click.option('-m', help='Model name or "all"')
-def parameters(m):
-  """Print out parameter .json snippets"""
-  if m:
-    if m == 'all':
-      explain_all_read_models()
-    else:
-      explain_read_model(m)
+@cli.group()
+def parameters():
+  pass
+
+
+@parameters.command()
+def program():
+  """Print out program parameter .json"""
+  print(__param__)
+
+
+@parameters.command()
+@click.option('-m', help='Model name or "all"', default='all')
+def model(m):
+  """Print out model parameter .json snippets"""
+  if m == 'all':
+    explain_all_read_models()
   else:
-    print(__param__)
+    explain_read_model(m)
 
 
 def explain_read_model(name):

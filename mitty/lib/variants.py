@@ -130,6 +130,46 @@ class Population:
   def get_version(self):
     return self.fp.attrs['Mitty version']
 
+  #TODO: make more detailed
+  def __repr__(self):
+    """Pretty print the genome file"""
+    rep_str = """
+    ---------------------------------------
+    Genome file. Mitty version {mv:s}
+    ---------------------------------------
+    {chrom_cnt:d} chromosomes
+    {sample_cnt:d} samples
+    """.format(mv=self.get_version(), chrom_cnt=len(self.get_chromosome_list()), sample_cnt=len(self.get_sample_names()))
+    return rep_str
+
+  # chrom_list = pop.get_chromosome_list()
+  # populated_chrom_list = mdb.populated_chromosomes_in_db(conn)
+  # n_s = mdb.samples_in_db(conn)
+  # variant_stats = np.empty((len(populated_chrom_list), 3), dtype=float)
+  # sample_max = 100
+  # for i, c in enumerate(populated_chrom_list):
+  #   if n_s < sample_max:  # Take every sample
+  #     ss = range(n_s)
+  #   else:
+  #     ss = np.random.randint(0, n_s, sample_max)
+  #   s_len = np.empty(len(ss), dtype=float)
+  #   for j, s in enumerate(ss):
+  #     s_len[j] = len(mdb.load_sample(conn, 0, s, c[0]))
+  #   _, _, seq_len, _ = mdb.load_chromosome_metadata(conn, c[0])
+  #   variant_stats[i, :] = (s_len.mean(), s_len.std(), 1e6 * s_len.mean() / float(seq_len))
+  #
+  # print('{:s}'.format(dbfile))
+  # print('\tVariants in {:d} chromosomes (Genome has {:d})'.format(len(populated_chrom_list), len(chrom_list)))
+  # print('\t{:d} samples'.format(n_s))
+  # print('Unique variants in population')
+  # print('\tChrom\tVariants')
+  # for c in populated_chrom_list:
+  #   print('\t{:d}\t{:d}'.format(c[0], mdb.variants_in_master_list(conn, c[0])))
+  # print('Variants in samples')
+  # print('\tChrom\tAvg variants\tStd variants\tVariants/megabase')
+  # for i, c in enumerate(populated_chrom_list):
+  #   print('\t{:d}\t{:<9.2f}\t{:<9.2f}\t{:.1f}'.format(c[0], variant_stats[i, 0], variant_stats[i, 1], variant_stats[i, 2]))
+
 
 def l2ca(l):
   """Convenience function that converts a Python list of tuples into an numpy structured array corresponding to a
