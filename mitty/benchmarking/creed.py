@@ -2,6 +2,7 @@
 import sqlite3 as sq
 from itertools import izip
 import array
+import re
 
 import h5py
 import numpy as np
@@ -274,22 +275,42 @@ def analyze_read(read, window=100, extended=False):
     read_category |= 0b1000
   else:
     if read.reference_id != chrom - 1:
-      read_category |= 0b0001
-
-    perfect_read = pas()
-    perfect_read.cigarstring = cigar
-    perfect_read.pos = pos
-    if len(perfect_read.positions) > 0:
-      if not (perfect_read.positions[0] <= read.pos <= perfect_read.positions[-1]):
-        read_category |= 0b0010
-    else:  # This means we have a read inside an insertion (Just soft-clips)
-      if not (-window <= read.pos - pos <= window):
-        read_category |= 0b0010
+      read_category |= 0b0011  # chrom wrong, so pos and cigar wrong
+    else:
+      if check_read(read_pos=read.pos, read_cigar=read.cigarstring, correct_pos=pos, correct_cigar=cigar, window=window) != 0b000:
+        read_category |= 0b0110  # pos and cigar are wrong
 
     if read.cigarstring != cigar:
       read_category |= 0b0100
 
   return read_serial, chrom, cpy, ro, pos, cigar, read_category
+
+
+cigar_parser = re.compile(r'(\d+)(\D)')
+def check_read(read_pos, read_cigar, correct_pos, correct_cigar, window):
+  """
+
+  :param read_pos:
+  :param read_cigar:
+  :param correct_pos:
+  :param correct_cigar:
+  :param window:
+  :return: cat 3 bit value: category_code fragment indicating (pos bit, cigar bits)
+
+  * For now the CIAGR bit is always set to 11 (fully correct) if pos is correct
+  """
+  cat = 0b111  # all wrong
+  cigar_ops = cigar_parser.findall(correct_cigar)
+  # Not comparing CIGARs right now. Will do for the future
+  for cnt, op in cigar_ops:
+    if op == '=' or op == 'M' or op == 'X':
+      if -window <= read_pos - correct_pos <= window:
+        cat = 0b000  # all correct
+        break
+      correct_pos += int(cnt)
+    elif op == 'D':
+      correct_pos += int(cnt)
+  return cat
 
 
 def bucket_list(r_pos, r_stop, r_code, v_pos, v_stop, analyze_cigar=False):
