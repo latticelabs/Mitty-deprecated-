@@ -113,7 +113,7 @@ cdef markov_chain_sequence_gen(
   cdef:
     unsigned char last_letter = 0, n
     const char *alphabet = "ACGT"
-    np.ndarray[double, ndim=1, mode="c"] rnd = rng.rand(max_len)
+    np.ndarray[double, ndim=1, mode="c"] rnd = rng.rand(max_len + 5)  # Give a little overage for premature exit states
     Py_ssize_t rnd_idx = 0
     double r
     bint keep_running = 1
@@ -127,6 +127,9 @@ cdef markov_chain_sequence_gen(
   l[0] = 1
 
   while keep_running:
+    if rnd_idx == rnd.shape[0]:  # We're out of randomness. Need more. Need more.
+      rnd = rng.rand(max_len)
+      rnd_idx = 0
     r = rnd[rnd_idx]
     rnd_idx += 1
     for n in range(5):
@@ -139,7 +142,7 @@ cdef markov_chain_sequence_gen(
       last_letter = n
       l[0] += 1
 
-    if l[0] == max_len: keep_running = 0
+    if l[0] == max_len + 1: keep_running = 0
 
 
 def markov_sequences(bytes seq, ins_pts, max_len, t_mat, rng):
@@ -160,7 +163,7 @@ def markov_sequences(bytes seq, ins_pts, max_len, t_mat, rng):
     assert len(max_len) == len(ins_pts), 'Lengths of insertion points and max lengths must be equal'
     max_max_len = max(max_len) if len(max_len) else 1
 
-  pre_alloc_str = 'N' * max_max_len  # Pre-allocated string
+  pre_alloc_str = 'N' * (max_max_len + 1)  # Pre-allocated string. +1 to include ref base
 
   cdef:
     unsigned char *s = seq
