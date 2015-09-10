@@ -13,17 +13,19 @@ def expand_sequence(ref_seq, ml, chrom, copy):
                  no -> index on ml,
                  het -> 0 = copy 0, 1 = copy 1, 2 = homozygous
   :param copy:   0/1 which copy of the chromosome
-  :return alt_seq, variant_waypoint: consensus sequence and array used by roll_cigars to determine POS and CIGAR strings for reads
+  :return alt_seq, variant_waypoint, var_loc_alt_coordinates
 
   variant_waypoint -> recarray with the fields
-              pos_ref: position on ref seq
-              pos_alt: position on alt seq
-              delta:  +k for insertions of length k, -k for deletions of length k, 0 for SNPs
-
+      consensus sequence and array used by roll_cigars to determine POS and CIGAR strings for reads
+          pos_ref: position on ref seq
+          pos_alt: position on alt seq
+          delta:  +k for insertions of length k, -k for deletions of length k, 0 for SNPs
+  var_loc_alt_coordinates -> array of variants locations in the expanded sequence coordinates
   """
   pos_ref, pos_alt = 0, 0  # Current position in ref and alt coordinates
   alt_fragments = []
   variant_waypoint = [(-1, -1, 0)]  # The start waypoint, guaranteed to be to the left and out of range of any base and not an insertion or deletion
+  var_loc_alt_coordinates = []
   pos, stop, ref, alt = ml.variants['pos'], ml.variants['stop'], ml.variants['ref'], ml.variants['alt']
   c_iter = chrom.__iter__()
   variant = next(c_iter, None)
@@ -34,6 +36,7 @@ def expand_sequence(ref_seq, ml, chrom, copy):
       pos_ref = pos[variant[0]]
     else:
       if pos_ref == pos[variant[0]]:
+        var_loc_alt_coordinates += [pos_alt]
         if variant[1] == 2 or variant[1] == copy:  # The variant applies to this chromosome copy
           alt_fragments += [alt[variant[0]]]
           dl = len(alt[variant[0]]) - len(ref[variant[0]])
@@ -59,7 +62,7 @@ def expand_sequence(ref_seq, ml, chrom, copy):
   variant_waypoint += [(final_ref, final_alt, -1)]
   # The end waypoint, guaranteed to be to the right of any base and not a SNP, and maintaining the delta
   dtype = [('ref_pos', 'i4'), ('alt_pos', 'i4'), ('delta', 'i4')]
-  return ''.join(alt_fragments), np.rec.fromrecords(variant_waypoint, dtype=dtype)
+  return ''.join(alt_fragments), np.rec.fromrecords(variant_waypoint, dtype=dtype), var_loc_alt_coordinates
 
 
 # TODO: make this code more elegant

@@ -131,11 +131,11 @@ class ReadSimulator:
     else:
       ml, v_index = vr.VariantList(), []  # Need a dummy variant list for nulls
 
-    seq, variant_waypoints = lib_reads.expand_sequence(self.ref[chrom]['seq'], ml, v_index, cpy)
+    seq, variant_waypoints, var_locs_alt_coords = lib_reads.expand_sequence(self.ref[chrom]['seq'], ml, v_index, cpy)
     seq_c = mitty.lib.string.translate(seq, mitty.lib.DNA_complement)
     coverage_per_block = 0.5 * self.coverage / self.blocks_for_chromosome[chrom]
     for blk in range(self.blocks_for_chromosome[chrom]):
-      reads, paired = generate_reads(seq, seq_c, variant_waypoints,
+      reads, paired = generate_reads(seq, seq_c, var_locs_alt_coords,
                                      self.variant_window, self.read_model,
                                      coverage_per_block,
                                      self.corrupt_reads,
@@ -164,13 +164,13 @@ class ReadSimulator:
     # This is approximate, since sample will have different length than reference, but good enough
 
 
-def generate_reads(seq, seq_c, variant_waypoints, variant_window,
+def generate_reads(seq, seq_c, var_locs_alt_coords, variant_window,
                    read_model, coverage, corrupt, seed_rng, variants_only=False):
-  """Wrapper around read function to handle both regular reads as well as reads restricted to around
+  """Wrapper around read function to handle both regular reads as well as reads restricted to around variants
 
   :param seq:      forward sequence
   :param seq_c:    complement sequence
-  :param variant_waypoints: as returned by expand_sequence
+  :param var_locs_alt_coords: as returned by expand_sequence
   :param variant_window: how many bases before and after variant should we include
   :param corrupt:  T/F generate corrupted reads too or not
   :param seed_rng:    rng for seed generation
@@ -179,9 +179,9 @@ def generate_reads(seq, seq_c, variant_waypoints, variant_window,
   """
   if variants_only:
     reads, paired = [], False
-    for v in variant_waypoints:  # [1:-1]:
-      start, stop = max(v[1] - variant_window, 0), min(v[1] + variant_window, len(seq))
-      # v[1] is the pos of the variant in sequence coordinates (rather than ref coordinates)
+    for v in var_locs_alt_coords:  # [1:-1]:
+      start, stop = max(v - variant_window, 0), min(v + variant_window, len(seq))
+      # v is the pos of the variant in sequence coordinates (rather than ref coordinates)
       these_reads, paired = read_model.get_reads(seq, seq_c,
                                                  start_base=start, end_base=stop,
                                                  coverage=coverage,
