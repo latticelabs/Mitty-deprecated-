@@ -4,11 +4,11 @@
     "dbfile": "red_alga_genomes.h5"
   },
   "rng": {
-    "master_seed": 12345
+    "master_seed": 234
   },
   "population_model": {
     "standard": {
-      "sample_size": 1000
+      "sample_size": 100
     }
   },
   "site_model": {
@@ -22,7 +22,7 @@
       "bin_cnt": 30
     }
   },
-  "chromosomes": [1, 20],
+  "chromosomes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
   "variant_models": [          
     {
       "snp": {
@@ -31,14 +31,14 @@
     },
     {
       "uniformdel": {
-        "p": 0.001,
+        "p": 0.0001,
         "min_len": 1,
         "max_len": 50
       }
     },
     {
       "uniformins": {
-        "p": 0.001,
+        "p": 0.0001,
         "min_len": 1,
         "max_len": 50
       }
