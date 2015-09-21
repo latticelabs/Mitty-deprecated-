@@ -182,7 +182,7 @@ def load_population_model(pop_model_json, params={}):
 @click.version_option()
 def cli():
   """Mitty genomes simulator"""
-  pass
+  logging.basicConfig(level=logging.INFO)
 
 
 @cli.command()
@@ -246,7 +246,10 @@ def g_file():
 def write_vcf(dbfile, vcfgz, sample_name):
   """Write sample/master list to VCF"""
   pop = vr.Population(fname=dbfile)
-  mio.write_single_sample_to_vcf(pop=pop, sample_name=sample_name, out_fname=vcfgz)
+  if sample_name in pop.get_sample_names() or sample_name is None:
+    mio.write_single_sample_to_vcf(pop=pop, sample_name=sample_name, out_fname=vcfgz)
+  else:
+    logger.warning('Sample name {:s} not in population'.format(sample_name))
   # if sample_name is none, mio.write_single_sample_to_vcf will write master list
 
 

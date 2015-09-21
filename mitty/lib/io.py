@@ -221,7 +221,7 @@ def write_single_sample_to_vcf(pop, out_fname, sample_name=None):
     for ch in pop.get_chromosome_list():
       ml = pop.get_master_list(ch)
       write_chromosomes_to_vcf(fp, seq_id=pop.get_chromosome_metadata(ch)['seq_id'],
-                               chrom_list=[pop.get_sample_chromosome(ch, sample_name)] if sample_name else [],
+                               chrom_list=[pop.get_sample_chromosome(ch, sample_name)] if sample_name else None,
                                master_list=ml)
 
 
@@ -234,7 +234,7 @@ def compress_and_index_vcf(in_vcf_name, out_vcf_name):
   pysam.tabix_index(out_vcf_name, force=True, preset='vcf')
 
 
-def write_chromosomes_to_vcf(fp, seq_id='chr1', chrom_list=[], master_list=None):
+def write_chromosomes_to_vcf(fp, seq_id='chr1', chrom_list=None, master_list=None):
   """Write out the chromosomes to as VCF lines
 
   :param fp: file pointer to context opened vcf file
@@ -242,8 +242,9 @@ def write_chromosomes_to_vcf(fp, seq_id='chr1', chrom_list=[], master_list=None)
   :param chrom_list: list of chromosome objects
   :param master_list: master list that the chromosome object indexes refer to
   """
-  if len(chrom_list) > 1:
-    raise NotImplementedError('Multiple sample VCF file saving is not supported in this version.')
+  if chrom_list is not None:
+    if len(chrom_list) > 1:
+      raise NotImplementedError('Multiple sample VCF file saving is not supported in this version.')
 
   seq_id = seq_id.split(' ')[0]  # Only take contig_id upto up to the first space
   wr = fp.write
@@ -253,7 +254,7 @@ def write_chromosomes_to_vcf(fp, seq_id='chr1', chrom_list=[], master_list=None)
   alt = master_list.variants['alt']
   maf = master_list.variants['p']
 
-  if len(chrom_list) == 0:  # We want to write master list
+  if chrom_list is None:  # We want to write master list
     for p, r, a, f in izip(pos, ref, alt, maf):
       wr(seq_id + '\t' + str(p) + '\t.\t' + r + '\t' + a + '\t100\tPASS\tAF=' + str(f) + '\n')
   else:
