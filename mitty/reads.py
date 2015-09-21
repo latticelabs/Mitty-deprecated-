@@ -275,29 +275,30 @@ def generate(param_fname, v, p):
   logger.debug('Took {:f}s to write {:d} reads ({:f} coverage)'.format(t1 - t0, simulation.get_read_count(), simulation.get_coverage_done()))
 
 
-@cli.command()
-def models():
-  """Print list of available read models"""
-  print('\nAvailable models\n----------------')
-  for name, mod_name in mitty.lib.discover_all_reads_plugins():
-    print('- {:s} ({:s})\n'.format(name, mod_name))
-
-
 @cli.group()
-def parameters():
+def show():
+  """Show various help pages"""
   pass
 
 
-@parameters.command()
-def program():
-  """Print out program parameter .json"""
+@show.command()
+def parameters():
+  """Program parameter .json"""
   print(__param__)
 
 
-@parameters.command()
-@click.option('-m', help='Model name or "all"', default='all')
+@show.command('model-list')
+def model_list():
+  """Print list of available read models"""
+  print('\nAvailable models\n----------------')
+  for name, mod_name in mitty.lib.discover_all_reads_plugins():
+    print('- {:s} ({:s})'.format(name, mod_name))
+
+
+@show.command('read-model')
+@click.argument('name')
 def model(m):
-  """Print out model parameter .json snippets"""
+  """Model .json snippets, 'all' for all models"""
   if m == 'all':
     explain_all_read_models()
   else:

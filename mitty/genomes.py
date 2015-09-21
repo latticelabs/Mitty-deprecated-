@@ -281,7 +281,7 @@ def show():
 
 @show.command()
 def parameters():
-  """Example parameter file."""
+  """Program parameter .json"""
   print(__param__)
 
 
