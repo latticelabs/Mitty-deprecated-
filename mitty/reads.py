@@ -297,12 +297,12 @@ def model_list():
 
 @show.command('read-model')
 @click.argument('name')
-def model(m):
+def model(name):
   """Model .json snippets, 'all' for all models"""
-  if m == 'all':
+  if name == 'all':
     explain_all_read_models()
   else:
-    explain_read_model(m)
+    explain_read_model(name)
 
 
 def explain_read_model(name):
