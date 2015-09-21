@@ -187,7 +187,7 @@ def cli():
 
 @cli.command()
 @click.argument('param_fname', type=click.Path(exists=True))
-@click.option('--dry-run', is_flag=True, help='Print useful information about simulation, but dont run')
+@click.option('--dry-run', is_flag=True, help="Print useful information about simulation, but don't run")
 @click.option('-v', count=True, help='Verbosity level')
 @click.option('-p', is_flag=True, help='Show progress bar')
 def generate(param_fname, dry_run, v, p):
