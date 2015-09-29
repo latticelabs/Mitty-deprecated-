@@ -1,22 +1,22 @@
 {
   "files": {
-    "reference_file": "red_alga.fa.gz",
+    "reference_file": "reddus_pentalgus.fa.gz",
     "output_prefix": "reads",
-    "dbfile": "red_alga_genomes.h5"
+    "dbfile": "reddus_genomes.h5"
   },
   "sample_name" : "g0_s0",
   "rng": {
     "master_seed": 123456
   },
-  "chromosomes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+  "chromosomes": [1, 2, 3, 4, 5],
   "read_model": "simple_illumina",
-  "coverage": 1,
-  "coverage_per_block": 0.1,
+  "coverage": 30,
+  "coverage_per_block": 1,
   "corrupt": true,
   "model_params": {
     "read_len": 100,
-    "template_len_mean": 300,
-    "template_len_sd": 20,
+    "template_len_mean": 250,
+    "template_len_sd": 1,
     "max_p_error": 0.2,
     "k": 10
   }

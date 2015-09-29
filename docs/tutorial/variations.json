@@ -1,7 +1,7 @@
 {
   "files": {
-    "reference_file": "red_alga.fa.gz",
-    "dbfile": "red_alga_genomes.h5"
+    "reference_file": "reddus_pentalgus.fa.gz",
+    "dbfile": "reddus_genomes.h5"
   },
   "rng": {
     "master_seed": 234
@@ -22,7 +22,7 @@
       "bin_cnt": 30
     }
   },
-  "chromosomes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+  "chromosomes": [1, 2, 3, 4, 5],
   "variant_models": [          
     {
       "snp": {
