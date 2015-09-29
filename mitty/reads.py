@@ -86,21 +86,21 @@ class ReadSimulator:
     assert 0 < master_seed < mitty.lib.SEED_MAX
     self.seed_rng = np.random.RandomState(seed=master_seed)
 
-    self.chromosomes = params['chromosomes']
     # In the parameter file we only need to specify a region with the chromosome only if we are not taking reads from
     # the entire chromosome. This is for convenience. Here we have to unpack this into a consistent format
     # We make start_f < stop_f regardless of the order in the parameter file
-    self.chromosomes = [
-      {'chrom': ch[0], 'start_f': min(ch[1:]), 'stop_f': max(ch[1:])} if type(ch) == list else
-      {'chrom': ch, 'start_f': 0.0, 'stop_f': 1.0} for ch in self.chromosomes]
+    self.chromosomes = [ch[0] if type(ch) == list else ch for ch in params['chromosomes']]
+    self.chromosome_regions = {
+      ch: {'chrom': chr_par[0], 'start_f': min(chr_par[1:]), 'stop_f': max(chr_par[1:])} if type(chr_par) == list else
+          {'chrom': chr_par, 'start_f': 0.0, 'stop_f': 1.0} for ch, chr_par in zip(self.chromosomes, params['chromosomes'])}
 
     self.coverage = float(params['coverage'])
 
     total_blocks_to_do = self.coverage / float(params['coverage_per_block'])
 
     chrom_meta = self.ref.get_seq_metadata()
-    self.sum_of_chromosome_lengths = float(sum([chrom_meta[c['chrom'] - 1]['seq_len'] for c in self.chromosomes]))
-    self.blocks_for_chromosome = {c['chrom']: int(max(1, round(total_blocks_to_do * (c['stop_f'] - c['start_f']) * chrom_meta[c['chrom'] - 1]['seq_len'] / self.sum_of_chromosome_lengths)))
+    self.sum_of_chromosome_lengths = float(sum([chrom_meta[c - 1]['seq_len'] for c in self.chromosomes]))
+    self.blocks_for_chromosome = {c: int(max(1, round(total_blocks_to_do * (self.chromosome_regions[c]['stop_f'] - self.chromosome_regions[c]['start_f']) * chrom_meta[c - 1]['seq_len'] / self.sum_of_chromosome_lengths)))
                                   for c in self.chromosomes}
 
     self.read_model = mitty.lib.load_reads_plugin(params['read_model']).Model(**params['model_params'])
@@ -124,7 +124,7 @@ class ReadSimulator:
     return sum(self.blocks_for_chromosome.values()) * 2  # Two copies for each chromosome
 
   def get_chromosome_list(self):
-    return [ch['chrom'] for ch in self.chromosomes]
+    return self.chromosomes
 
   def get_blocks_to_do(self, chrom):
     return self.blocks_for_chromosome
@@ -146,8 +146,8 @@ class ReadSimulator:
                                      coverage_per_block,
                                      self.corrupt_reads,
                                      self.seed_rng,
-                                     start_f=self.chromosomes[chrom - 1]['start_f'],
-                                     stop_f=self.chromosomes[chrom - 1]['stop_f'],
+                                     start_f=self.chromosome_regions[chrom]['start_f'],
+                                     stop_f=self.chromosome_regions[chrom]['stop_f'],
                                      variants_only=self.variants_only)
       pos, cigars = lib_reads.roll_cigars(variant_waypoints, reads)
       template_count, bases_covered = write_reads_to_file(
