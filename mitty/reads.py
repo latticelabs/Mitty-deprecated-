@@ -7,10 +7,7 @@ __param__ = """Parameter file example::
       # a relative path is taken relative to the location of the *script*
       "reference_dir": "/Users/kghose/Data/hg38/",  # Use this if the reference consists of multiple .fa files in a directory
       "reference_file": "/Users/kghose/Data/hg38/hg38.fa.gz",  # Use this if reference is a single multi-fasta file
-      "dbfile": "Out/test.db"  # Genomes database file. Leave out if taking reads from a reference, or from VCF file
-      "input_vcf": "Out/test.vcf",  # Use this if using a VCF file. Leave out if taking reads from a reference, or from VCF file
-                                    # The vcf file is converted to a Mitty genome database that is stored alognside the
-                                    # fastq files
+      "dbfile": "Out/test.h5"    # Genomes database file. Leave out if taking reads from reference
       "output_prefix": "Out/reads", # Output file name prefix
                                     # the reads will be called reads.fq and reads_c.fq if we call for corrupted reads too
       "interleaved": true     # Set to false if you need separate files for each mate of a pair
@@ -22,7 +19,9 @@ __param__ = """Parameter file example::
     "rng": {
       "master_seed": 1
     },
-    "chromosomes": [1,2],               # List the chromosomes the reads should be taken from
+    "chromosomes": [1, [2, 0.7, 0.8]],  # List of chromosomes the reads should be taken from
+                                        # Note nested notation for taking reads from only part of the chromosome
+                                        # [2, 0.7, 0.8]] -> chrom2, take reads only from fraction 0.7 to 0.8 of chromosome
     "variants_only": false,             # If true, reads will only come from the vicinity of variants
     "variant_window": 500,              # Only used if variants_only is true. Reads will be taken from this vicinity
     "corrupt": true,                    # If true, corrupted reads will also be written
@@ -88,14 +87,21 @@ class ReadSimulator:
     self.seed_rng = np.random.RandomState(seed=master_seed)
 
     self.chromosomes = params['chromosomes']
+    # In the parameter file we only need to specify a region with the chromosome only if we are not taking reads from
+    # the entire chromosome. This is for convenience. Here we have to unpack this into a consistent format
+    # We make start_f < stop_f regardless of the order in the parameter file
+    self.chromosomes = [
+      {'chrom': ch[0], 'start_f': min(ch[1:]), 'stop_f': max(ch[1:])} if type(ch) == list else
+      {'chrom': ch, 'start_f': 0.0, 'stop_f': 1.0} for ch in self.chromosomes]
+
     self.coverage = float(params['coverage'])
 
     total_blocks_to_do = self.coverage / float(params['coverage_per_block'])
 
     chrom_meta = self.ref.get_seq_metadata()
-    self.sum_of_chromosome_lengths = float(sum([chrom_meta[chrom - 1]['seq_len'] for chrom in self.chromosomes]))
-    self.blocks_for_chromosome = {chrom: int(max(1, round(total_blocks_to_do * chrom_meta[chrom - 1]['seq_len'] / self.sum_of_chromosome_lengths)))
-                                  for chrom in self.chromosomes}
+    self.sum_of_chromosome_lengths = float(sum([chrom_meta[c['chrom'] - 1]['seq_len'] for c in self.chromosomes]))
+    self.blocks_for_chromosome = {c['chrom']: int(max(1, round(total_blocks_to_do * (c['stop_f'] - c['start_f']) * chrom_meta[c['chrom'] - 1]['seq_len'] / self.sum_of_chromosome_lengths)))
+                                  for c in self.chromosomes}
 
     self.read_model = mitty.lib.load_reads_plugin(params['read_model']).Model(**params['model_params'])
     self.corrupt_reads = bool(params['corrupt'])
@@ -118,7 +124,7 @@ class ReadSimulator:
     return sum(self.blocks_for_chromosome.values()) * 2  # Two copies for each chromosome
 
   def get_chromosome_list(self):
-    return self.chromosomes
+    return [ch['chrom'] for ch in self.chromosomes]
 
   def get_blocks_to_do(self, chrom):
     return self.blocks_for_chromosome
@@ -140,6 +146,8 @@ class ReadSimulator:
                                      coverage_per_block,
                                      self.corrupt_reads,
                                      self.seed_rng,
+                                     start_f=self.chromosomes[chrom - 1]['start_f'],
+                                     stop_f=self.chromosomes[chrom - 1]['stop_f'],
                                      variants_only=self.variants_only)
       pos, cigars = lib_reads.roll_cigars(variant_waypoints, reads)
       template_count, bases_covered = write_reads_to_file(
@@ -161,26 +169,35 @@ class ReadSimulator:
 
   def get_coverage_done(self):
     return float(self.bases_covered / self.sum_of_chromosome_lengths)
-    # This is approximate, since sample will have different length than reference, but good enough
+    # This is approximate, since sample will have different length than reference, reference has 'N's, but good enough
 
 
 def generate_reads(seq, seq_c, var_locs_alt_coords, variant_window,
-                   read_model, coverage, corrupt, seed_rng, variants_only=False):
+                   read_model, coverage, corrupt, seed_rng,
+                   start_f=0.0, stop_f=1.0,
+                   variants_only=False):
   """Wrapper around read function to handle both regular reads as well as reads restricted to around variants
 
   :param seq:      forward sequence
   :param seq_c:    complement sequence
   :param var_locs_alt_coords: as returned by expand_sequence
   :param variant_window: how many bases before and after variant should we include
+  :param read_model: read model object
+  :param coverage: real number indicating coverage needed for this run of the simulator
   :param corrupt:  T/F generate corrupted reads too or not
   :param seed_rng:    rng for seed generation
+  :param start_f: start fraction for chromosome
+  :param stop_f:  stop fraction for chromosome
   :param variants_only: set True if we want reads only from variant regions
   :return:
   """
+  start_base = int(len(seq) * start_f)
+  stop_base = int(len(seq) * stop_f)
   if variants_only:
     reads, paired = [], False
     for v in var_locs_alt_coords:  # [1:-1]:
       start, stop = max(v - variant_window, 0), min(v + variant_window, len(seq))
+      if start > stop_base or stop < start_base: continue
       # v is the pos of the variant in sequence coordinates (rather than ref coordinates)
       these_reads, paired = read_model.get_reads(seq, seq_c,
                                                  start_base=start, end_base=stop,
@@ -191,6 +208,7 @@ def generate_reads(seq, seq_c, var_locs_alt_coords, variant_window,
     reads = np.concatenate(reads)
   else:
     reads, paired = read_model.get_reads(seq, seq_c,
+                                         start_base=start_base, end_base=stop_base,
                                          coverage=coverage,
                                          corrupt=corrupt,
                                          seed=seed_rng.randint(0, mitty.lib.SEED_MAX))
