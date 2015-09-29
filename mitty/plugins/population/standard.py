@@ -1,27 +1,30 @@
 """Standard population model that picks variants randomly from the master list based on probability value"""
 import numpy as np
-
+import json
 
 __example_param_text = """
 {
   "standard": {
-    "sample_size": 10
+    "sample_size": 10,
+    "force_homozygous": true
   }
 }
 """
 
 _description = __doc__ + '\nExample parameters:\n' + __example_param_text
 
-_example_params = eval(__example_param_text)
+_example_params = json.loads(__example_param_text)
 
 
 class Model:
-  def __init__(self, sample_size=10):
+  def __init__(self, sample_size=10, force_homozygous=False):
     """Standard population model that picks variants randomly from the master list to generate chromosomes
 
     :param sample_size: number of samples we should be returning
+    :param force_homozygous: force all variants to be homozygous
     """
     self.sample_size = sample_size
+    self.force_homozygous = force_homozygous
     # In more complex population models, for example simulating sexual reproduction, we would have more parameters
     # setting up things like generations to do, size of generations, number of children etc. etc.
 
@@ -36,7 +39,10 @@ class Model:
     rng = np.random.RandomState(rng_seed)
     gen = 0
     for n in range(self.sample_size):
-      r = rng.rand(ml.variants.shape[0], 2)
+      if self.force_homozygous:
+        r = np.tile(rng.rand(ml.variants.shape[0], 1), 2)
+      else:
+        r = rng.rand(ml.variants.shape[0], 2)
       yield 'g{:d}_s{:d}'.format(gen, n), ml.zip_up_chromosome(*[(r[:, 0] < ml.variants['p']).nonzero()[0], (r[:, 1] < ml.variants['p']).nonzero()[0]]), float(n + 1) / self.sample_size
     # In more complex population models, for example simulating sexual reproduction, we would probably return an iterator
     # class that kept state representing parents etc., having worked out the population tree
