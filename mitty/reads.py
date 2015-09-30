@@ -14,6 +14,7 @@ __param__ = """Parameter file example::
                               # files will then be named reads_1.fq, reads_c_1.fq and reads_2.fq, reads_c_2.fq
                               # If the reads are actually not paired and you set interleaved to false you will get two
                               # files _1 and _2 and all the data will be in _1 only
+      "gzipped": true    # file(s) should be gzipped
     },
     "sample_name": "g0_s0",   # Name of sample
     "rng": {
@@ -44,6 +45,7 @@ import json
 import os
 import time
 import io
+import gzip
 
 import numpy as np
 import click
@@ -109,12 +111,13 @@ class ReadSimulator:
     self.variants_only = params.get('variants_only', None)
     self.variant_window = int(params.get('variant_window', 200)) if self.variants_only else None
 
+    fname_suffix, open_fun = ('.fq.gz', gzip.open) if params['files'].get('gzipped', False) else ('.fq', open)
     if params['files'].get('interleaved', True):
-      self.fastq_fp = [open(fname_prefix + '.fq', 'w')] * 2
-      self.fastq_c_fp = [open(fname_prefix + '_c.fq', 'w')] * 2 if self.corrupt_reads else [None, None]
+      self.fastq_fp = [open_fun(fname_prefix + fname_suffix, 'w')] * 2
+      self.fastq_c_fp = [open_fun(fname_prefix + '_c' + fname_suffix, 'w')] * 2 if self.corrupt_reads else [None, None]
     else:  # Need two files separately
-      self.fastq_fp = [open(fname_prefix + '_1.fq', 'w'), open(fname_prefix + '_2.fq', 'w')]
-      self.fastq_c_fp = [open(fname_prefix + '_c_1.fq', 'w'), open(fname_prefix + '_c_2.fq', 'w')] if self.corrupt_reads else [None, None]
+      self.fastq_fp = [open_fun(fname_prefix + '_1' + fname_suffix, 'w'), open_fun(fname_prefix + '_2' + fname_suffix, 'w')]
+      self.fastq_c_fp = [open_fun(fname_prefix + '_c_1' + fname_suffix, 'w'), open_fun(fname_prefix + '_c_2' + fname_suffix, 'w')] if self.corrupt_reads else [None, None]
 
     self.templates_written = 0
     self.reads_generated = 0
