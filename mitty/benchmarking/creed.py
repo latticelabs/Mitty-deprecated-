@@ -215,30 +215,88 @@ class ReadDebugDB:
     return [r for r in self.conn.execute(query)]
 
 
+# def analyze_read(read, window=100, extended=False):
+#   """Given a read process the qname and read properties to determine what kind of alignment errors were made on it and
+#
+#   :param read: a psyam AlignedSegment object
+#   :returns read_serial, chrom, cpy, ro, pos, cigar, read_category
+#
+#
+#   read_serial = read_serial * 10 + 0 or 1 (for mate1 or mate2 of read) for paired reads
+#   read_serial = read_serial for un-paired reads
+#
+#   The category flags are defined as follows
+#
+#   ---------------------------------
+#   | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+#   ---------------------------------
+#             |   |   |   |   |   |
+#             |   |   |   |   |   \------  1 => chrom was wrong
+#             |   |   |   |   \----------  1 => pos was wrong
+#             |   |   |   \--------------  1 => cigar was wrong
+#             |   |   \------------------  1 => unmapped
+#             |   \----------------------  1 => read from reference region (no variants)
+#             \--------------------------  1 => mate is from reference region
+#   """
+#   early_exit_value = [None] * 7
+#
+#   # Not counted
+#   if read.is_secondary:
+#     return early_exit_value
+#
+#   # We should never actually fail this, unless a tool messes badly with the qname
+#   try:
+#     if read.is_paired:
+#       if read.is_read1:
+#         rs, chrom, cpy, ro, pos, cigar, _, _, cigar1 = read.qname.split('|')  # We decode mate cigar to determine if mate is a reference read
+#       else:
+#         rs, chrom, cpy, _, _, cigar1, ro, pos, cigar = read.qname.split('|')
+#       read_serial = int(rs) * 10 + (not read.is_read1)
+#     else:
+#       rs, chrom, cpy, ro, pos, cigar = read.qname.split('|')[:6]  # For Wan-Ping :)
+#       read_serial = int(rs)
+#     ro, chrom, cpy, pos = int(ro), int(chrom), int(cpy), int(pos)
+#   except ValueError:
+#     logger.debug('Error processing qname: qname={:s}, chrom={:d}, pos={:d}'.format(read.qname, read.reference_id + 1, read.pos))
+#     return early_exit_value
+#
+#   # Do this before modifying the cigar
+#   read_category = 0b000000
+#   if not ('X' in cigar or 'I' in cigar or 'D' in cigar or 'S' in cigar):
+#     read_category |= 0b010000
+#   if read.is_paired:
+#     if not ('X' in cigar1 or 'I' in cigar1 or 'D' in cigar1 or 'S' in cigar1):
+#       read_category |= 0b100000
+#
+#   if not extended:
+#     cigar = old_style_cigar(cigar)
+#
+#   if read.is_unmapped:
+#     read_category |= 0b1000
+#   else:
+#     if read.reference_id != chrom - 1:
+#       read_category |= 0b0011  # chrom wrong, so pos and cigar wrong
+#     else:
+#       if check_read(read_pos=read.pos, read_cigar=read.cigarstring, correct_pos=pos, correct_cigar=cigar, window=window) != 0b000:
+#         read_category |= 0b0110  # pos and cigar are wrong
+#
+#     if read.cigarstring != cigar:
+#       read_category |= 0b0100
+#
+#   return read_serial, chrom, cpy, ro, pos, cigar, read_category
+
+
 def analyze_read(read, window=100, extended=False):
-  """Given a read process the qname and read properties to determine what kind of alignment errors were made on it and
+  """Given a read process the qname and read properties to determine the correct (CHROM, POS, CIGAR) and determine
+  what kind of alignment errors were made on it
 
   :param read: a psyam AlignedSegment object
-  :returns read_serial, chrom, cpy, ro, pos, cigar, read_category
-
+  :returns read_serial, chrom, cpy, ro, pos, cigar, chrom_c, pos_c, cigar_c, unmapped
 
   read_serial = read_serial * 10 + 0 or 1 (for mate1 or mate2 of read) for paired reads
   read_serial = read_serial for un-paired reads
-
-  The category flags are defined as follows
-
-  ---------------------------------
-  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-  ---------------------------------
-            |   |   |   |   |   |
-            |   |   |   |   |   \------  1 => chrom was wrong
-            |   |   |   |   \----------  1 => pos was wrong
-            |   |   |   \--------------  1 => cigar was wrong
-            |   |   \------------------  1 => unmapped
-            |   \----------------------  1 => read from reference region (no variants)
-            \--------------------------  1 => mate is from reference region
   """
-  early_exit_value = [None] * 7
+  early_exit_value = [None] * 10
 
   # Not counted
   if read.is_secondary:
@@ -260,30 +318,24 @@ def analyze_read(read, window=100, extended=False):
     logger.debug('Error processing qname: qname={:s}, chrom={:d}, pos={:d}'.format(read.qname, read.reference_id + 1, read.pos))
     return early_exit_value
 
-  # Do this before modifying the cigar
-  read_category = 0b000000
-  if not ('X' in cigar or 'I' in cigar or 'D' in cigar or 'S' in cigar):
-    read_category |= 0b010000
-  if read.is_paired:
-    if not ('X' in cigar1 or 'I' in cigar1 or 'D' in cigar1 or 'S' in cigar1):
-      read_category |= 0b100000
+  chrom_c, pos_c, cigar_c, unmapped = 1, 1, 1, 0
 
   if not extended:
     cigar = old_style_cigar(cigar)
 
   if read.is_unmapped:
-    read_category |= 0b1000
+    unmapped = 1
   else:
     if read.reference_id != chrom - 1:
-      read_category |= 0b0011  # chrom wrong, so pos and cigar wrong
+      chrom_c, pos_c = 0, 0  # chrom wrong, so pos wrong too
     else:
       if check_read(read_pos=read.pos, read_cigar=read.cigarstring, correct_pos=pos, correct_cigar=cigar, window=window) != 0b000:
-        read_category |= 0b0110  # pos and cigar are wrong
+        pos_c = 0
 
-    if read.cigarstring != cigar:
-      read_category |= 0b0100
+    if read.cigarstring != cigar:  # TODO Use check read for this?
+      cigar_c = 0
 
-  return read_serial, chrom, cpy, ro, pos, cigar, read_category
+  return read_serial, chrom, cpy, ro, pos, cigar, chrom_c, pos_c, cigar_c, unmapped
 
 
 cigar_parser = re.compile(r'(\d+)(\D)')

@@ -33,34 +33,36 @@ def analyze_read_test():
   """Read analysis"""
   qname = '3|15|0|1|898|100=|0|744|24=2I74='
   read = MyRead(qname=qname, secondary=False, paired=True, read1=True, unmapped=False, reference_id=14, pos=898, cigarstring='100M')
-  read_serial, chrom, cpy, ro, pos, cigar, read_category = creed.analyze_read(read, window=0, extended=False)
+  read_serial, chrom, cpy, ro, pos, cigar, chrom_c, pos_c, cigar_c, unmapped = creed.analyze_read(read, window=0, extended=False)
   assert read_serial == 30, read_serial
   assert chrom == 15, chrom
   assert cpy == 0, cpy
   assert ro == 1, ro
   assert pos == 898, pos
   assert cigar == '100M', cigar
-  assert read_category == 0b010000, bin(read_category)
+  assert chrom_c and pos_c and cigar_c == 1
 
   read = MyRead(qname=qname, secondary=False, paired=True, read1=False, unmapped=False, reference_id=14, pos=744, cigarstring='24M2I74M')
-  read_serial, chrom, cpy, ro, pos, cigar, read_category = creed.analyze_read(read, window=0, extended=False)
+  read_serial, chrom, cpy, ro, pos, cigar, chrom_c, pos_c, cigar_c, unmapped = creed.analyze_read(read, window=0, extended=False)
   assert read_serial == 31, read_serial
   assert chrom == 15, chrom
   assert cpy == 0, cpy
   assert ro == 0, ro
   assert pos == 744, pos
   assert cigar == '24M2I74M', cigar
-  assert read_category == 0b100000, bin(read_category)
+  assert chrom_c and pos_c and cigar_c == 1
 
   read = MyRead(qname=qname, secondary=False, paired=True, read1=True, unmapped=False, reference_id=14, pos=898, cigarstring='24M2I74M')
-  read_serial, chrom, cpy, ro, pos, cigar, read_category = creed.analyze_read(read, window=0, extended=False)
+  read_serial, chrom, cpy, ro, pos, cigar, chrom_c, pos_c, cigar_c, unmapped = creed.analyze_read(read, window=0, extended=False)
   assert read_serial == 30, read_serial
   assert chrom == 15, chrom
   assert cpy == 0, cpy
   assert ro == 1, ro
   assert pos == 898, pos
   assert cigar == '100M', cigar
-  assert read_category == 0b010100, bin(read_category)
+  assert chrom_c == 1
+  assert pos_c == 1
+  assert cigar_c == 0
 
   # # Test if we can do fuzzy matching if we soft clips and so on
   # qname = '3|15|0|0|100|1M1000D99M|1|200|100='
