@@ -2,6 +2,9 @@ Planned changes
 * vcf-write should have option to remove unzipped .vcf file
 * variants only reads - need to properly handle end of variants
 
+Possible changes
+* add more info to qname to make BAM analysis faster/easier
+
 2015.10.01
 * Instead of making several different files write out the alignment accuracy in the original BAM itself.
   Still produce a perfect BAM as needed

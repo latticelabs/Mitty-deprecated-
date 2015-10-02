@@ -240,6 +240,9 @@ def write_reads_to_file(fastq_fp_1, fastq_fp_2,
   bases_covered = 0
   ro, pr_seq, cr_seq, phred = reads['read_order'], reads['perfect_reads'], reads['corrupt_reads'], reads['phred']
 
+  # TODO: We could add template length and other details here (breaking backward compatibility) but making our lives
+  # easier for the indel analysis. For now we are content to do some exta computation during the BAM analysis to extract
+  # these values
   if paired:
     for n in xrange(0, reads.shape[0], 2):
       qname = '{:d}|{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:d}|{:s}'.format(first_serial_no + n/2, chrom, cpy, ro[n], pos[n], cigars[n], ro[n + 1], pos[n + 1], cigars[n + 1])
