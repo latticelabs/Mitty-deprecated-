@@ -135,8 +135,8 @@ class ReadSimulator:
   def generate_and_save_reads(self, chrom, cpy):
     """Grab the appropriate seq, apply variants as needed, generate reads, roll cigars and then save."""
     if self.pop is not None:
-      ml = self.pop.get_master_list(chrom=chrom)
-      v_index = self.pop.get_sample_chromosome(chrom=chrom, sample_name=self.sample_name)
+      ml = self.pop.get_variant_master_list(chrom=chrom)
+      v_index = self.pop.get_sample_variant_index_for_chromosome(chrom=chrom, sample_name=self.sample_name)
     else:
       ml, v_index = vr.VariantList(), []  # Need a dummy variant list for nulls
 
@@ -236,17 +236,22 @@ def write_reads_to_file(fastq_fp_1, fastq_fp_2,
   :param cpy:           chromosome copy
   :param first_serial_no: serial number of first template in this batch
   :return: next_serial_no: the serial number the next batch should start at
+
+  qname format:
+
+  'read_serial|chrom|copy|ro|pos|rlen|cigar|ro|pos|rlen|cigar'
+
+  ro = readorder => 0 if forward seq, 1 if rev complement
+
   """
   bases_covered = 0
   ro, pr_seq, cr_seq, phred = reads['read_order'], reads['perfect_reads'], reads['corrupt_reads'], reads['phred']
 
-  # TODO: We could add template length and other details here (breaking backward compatibility) but making our lives
-  # easier for the indel analysis. For now we are content to do some exta computation during the BAM analysis to extract
-  # these values
   if paired:
     for n in xrange(0, reads.shape[0], 2):
-      qname = '{:d}|{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:d}|{:s}'.format(first_serial_no + n/2, chrom, cpy, ro[n], pos[n], cigars[n], ro[n + 1], pos[n + 1], cigars[n + 1])
       l1, l2 = len(pr_seq[n]), len(pr_seq[n + 1])
+      qname = '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:s}|{:d}|{:d}|{:d}|{:s}'.\
+        format(first_serial_no + n/2, chrom, cpy, ro[n], pos[n], l1, cigars[n], ro[n + 1], pos[n + 1], l2, cigars[n + 1])
       fastq_fp_1.write('@' + qname + '/1\n' + pr_seq[n] + '\n+\n' + '~' * l1 + '\n')
       fastq_fp_2.write('@' + qname + '/2\n' + pr_seq[n + 1] + '\n+\n' + '~' * l2 + '\n')
       bases_covered += l1 + l2
@@ -256,8 +261,8 @@ def write_reads_to_file(fastq_fp_1, fastq_fp_2,
     template_count = reads.shape[0] / 2
   else:
     for n in xrange(0, reads.shape[0]):
-      qname = '{:d}|{:d}|{:d}|{:d}|{:d}|{:s}'.format(first_serial_no + n, chrom, cpy, ro[n], pos[n], cigars[n])
       l1 = len(pr_seq[n])
+      qname = '{:d}|{:d}|{:d}|{:d}|{:d}|{:d}|{:s}'.format(first_serial_no + n, chrom, cpy, ro[n], pos[n], l1, cigars[n])
       fastq_fp_1.write('@' + qname + '\n' + pr_seq[n] + '\n+\n' + '~' * l1 + '\n')
       bases_covered += l1
       if fastq_c_fp_1 is not None:
