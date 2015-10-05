@@ -181,12 +181,12 @@ def master_list_roundtrip_test():
   ml.sort()
   pl.set_master_list(1, ml)
 
-  ml2 = pl.get_master_list(1)
+  ml2 = pl.get_variant_master_list(1)
   assert_array_equal(ml.variants, ml2.variants)
 
   pl = vr.Population(genome_metadata=genome_metadata)
   pl.set_master_list(1, ml)
-  assert_array_equal(ml.variants, pl.get_master_list(1).variants)
+  assert_array_equal(ml.variants, pl.get_variant_master_list(1).variants)
 
   from mitty.version import __version__
   assert pl.get_version() == __version__
@@ -198,7 +198,7 @@ def sample_roundtrip_test():
   chrom = np.array([(1, 0), (2, 1), (3, 2), (1073741823, 2)], dtype=[('index', 'i4'), ('gt', 'i1')])
   pl = vr.Population(genome_metadata=genome_metadata)
   pl.add_sample_chromosome(chrom=1, sample_name='my_sample', indexes=chrom)
-  c2 = pl.get_sample_chromosome(chrom=1, sample_name='my_sample')
+  c2 = pl.get_sample_variant_index_for_chromosome(chrom=1, sample_name='my_sample')
   assert_array_equal(chrom, c2)
 
 
@@ -211,3 +211,25 @@ def chrom_metadata_roundtrip_test():
 
   pl = vr.Population(genome_metadata=genome_metadata)
   assert_sequence_equal(genome_metadata, pl.get_genome_metadata())
+
+
+def sample_variant_test():
+  """Chromosome variant list test."""
+  genome_metadata = [{'seq_id': 'chr1', 'seq_len': 10, 'seq_md5': '10'}]
+
+  pos = [1, 10, 20]
+  stop = [2, 11, 21]
+  ref = ['A', 'C', 'T']
+  alt = ['AA', 'CAT', 'G']
+  p = [0.1, 0.5, 0.9]
+  ml = vr.VariantList(pos, stop, ref, alt, p)
+  pl = vr.Population(genome_metadata=genome_metadata)
+  ml.sort()
+  pl.set_master_list(1, ml)
+  chrom = np.array([(1, 0), (2, 2)], dtype=[('index', 'i4'), ('gt', 'i1')])
+  pl.add_sample_chromosome(chrom=1, sample_name='my_sample', indexes=chrom)
+
+  ch_v_l = pl.get_sample_variant_list_for_chromosome(chrom=1, sample_name='my_sample')
+
+  assert ch_v_l[0][0]['pos'] == 10
+  assert ch_v_l[1][0]['pos'] == 20

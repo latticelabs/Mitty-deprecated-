@@ -45,12 +45,12 @@ def round_trip_test():
   pop2 = vcf2pop.vcf_to_pop(temp_name, sample_name='brown_fox')
 
   # for k, v in master_lists.iteritems():
-  #   assert_array_equal(pop.get_sample_chromosome(k, 'brown_fox'), pop2.get_sample_chromosome(k, 'brown_fox'))
+  #   assert_array_equal(pop.get_sample_variant_index_for_chromosome(k, 'brown_fox'), pop2.get_sample_variant_index_for_chromosome(k, 'brown_fox'))
 
   for n in [0, 1]:  # Chromosomes
-    for v1, v2 in zip(pop2.get_sample_chromosome(n + 1, 'brown_fox'), genotype_data[n]):
+    for v1, v2 in zip(pop2.get_sample_variant_index_for_chromosome(n + 1, 'brown_fox'), genotype_data[n]):
       assert v1[1] == v2[1]  # Genotypes match
       for k in ['pos', 'stop', 'ref', 'alt']:
-        assert pop2.get_master_list(n + 1).variants[v1[0]][k] == master_lists[n + 1].variants[v2[0]][k]  # Variant data match
+        assert pop2.get_variant_master_list(n + 1).variants[v1[0]][k] == master_lists[n + 1].variants[v2[0]][k]  # Variant data match
 
   os.remove(temp_name)

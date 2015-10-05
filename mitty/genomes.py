@@ -269,7 +269,7 @@ def summary(dbfile):
 def print_sfs(dbfile, chrom):
   """Print site frequency spectrum for chrom in file"""
   pop = vr.Population(fname=dbfile)
-  ml = pop.get_master_list(chrom)
+  ml = pop.get_variant_master_list(chrom)
   print('Site frequency spectrum for chrom {:d}'.format(chrom))
   print(ml)
 
