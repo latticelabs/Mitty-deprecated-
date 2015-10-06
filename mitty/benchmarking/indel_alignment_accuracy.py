@@ -19,7 +19,7 @@ def prepare_features(pop, ch, sample_name=None):
   :param ch: chromosome number (1, 2, 3 ...)
   :param sample_name: name of sample to take variant list from. Leave as None to take master list
   """
-  sample_variant_list = pop.get_variant_master_list(chrom=ch) if sample_name is None else \
+  sample_variant_list = [pop.get_variant_master_list(chrom=ch).variants] if sample_name is None else \
     pop.get_sample_variant_list_for_chromosome(chrom=ch, sample_name=sample_name)
   return [
     {'footprint': {'start': svl['pos'], 'stop': svl['stop']},
@@ -42,6 +42,18 @@ def categorize_read_counts_by_indel_length(read_counts, indel_lengths, cat_read_
   return cat_read_counts
 
 
+def categorize_indels_by_length(indel_lengths, cat_counts=None, max_indel=100):
+  """Given an indel_length vector bin it by inde length and add to existing vector."""
+  if cat_counts is None:
+    cat_counts = np.zeros(2 * max_indel + 1, dtype=[('x', 'int32'), ('total', 'uint32')])
+    cat_counts['x'] = range(-max_indel, max_indel + 1)  # The range of indel lengths we are assuming.
+
+  indel_counts, _ = np.histogram(indel_lengths, bins=np.arange(-max_indel - 0.5, max_indel + 1.5),
+                                 range=[-max_indel, max_indel])
+  cat_counts['total'] += indel_counts
+  return cat_counts
+
+
 def categorize_data_from_one_chromosome(bam_fp, pop, ch, sample_name=None, cat_read_counts=None, max_indel=100):
   """For the given perfect BAM file categorize reads under the variants indicated and return the data binned by indel
   size
@@ -54,7 +66,8 @@ def categorize_data_from_one_chromosome(bam_fp, pop, ch, sample_name=None, cat_r
   """
   if cat_read_counts is None: cat_read_counts = {'fully_outside_features': [0, 0],
                                                  'templates_within_feature_but_read_outside': None,
-                                                 'reads_within_feature': None}
+                                                 'reads_within_feature': None,
+                                                 'indel_count': None}
   features = prepare_features(pop, ch, sample_name)
   f_chrom_id = bam_fp.header['SQ'][ch - 1]['SN']
   for cpy, f_v in enumerate(features):
@@ -67,7 +80,10 @@ def categorize_data_from_one_chromosome(bam_fp, pop, ch, sample_name=None, cat_r
     #for k in ['templates_within_feature_but_read_outside', 'reads_within_feature']:
     for k in ['reads_within_feature', 'templates_within_feature_but_read_outside']:
       cat_read_counts[k] = categorize_read_counts_by_indel_length(read_counts[k], f_v['indel lengths'],
-                                                                  cat_read_counts=cat_read_counts[k], max_indel=max_indel)
+                                                                  cat_read_counts=cat_read_counts[k],
+                                                                  max_indel=max_indel)
+    cat_read_counts['indel_count'] = categorize_indels_by_length(f_v['indel lengths'], cat_read_counts['indel_count'],
+                                                                 max_indel=max_indel)
 
   return cat_read_counts
 
@@ -75,7 +91,7 @@ def categorize_data_from_one_chromosome(bam_fp, pop, ch, sample_name=None, cat_r
 class NumpyJsonEncoder(json.JSONEncoder):
   def default(self, obj):
     if isinstance(obj, np.ndarray):
-      return obj.tolist()
+      return json.dumps(obj.tolist())
     return json.JSONEncoder.default(self, obj)
 
 
