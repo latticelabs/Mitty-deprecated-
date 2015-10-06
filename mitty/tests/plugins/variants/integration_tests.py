@@ -48,7 +48,7 @@ def check_plugin_integration(args):
   assert os.path.exists(db_file)
 
   pop = vr.Population(fname=db_file)
-  ml = pop.get_master_list(chrom=1)
+  ml = pop.get_variant_master_list(chrom=1)
 
   os.remove(param_file)
   os.remove(db_file)
