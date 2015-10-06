@@ -123,6 +123,7 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
     if n0 == 0:
       yield cnt
       n0 = progress_bar_update_interval
+  yield cnt + 1  #  cnt starts from 0 actually ...
 
 
 def process_bams(in_bam_fname, bad_bam_fname, per_bam_fname, flag_cigar_errors, perfect_bam, window, x, p):
