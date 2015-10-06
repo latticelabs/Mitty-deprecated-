@@ -83,8 +83,8 @@ class NumpyJsonEncoder(json.JSONEncoder):
 @click.argument('perbam', type=click.Path(exists=True))
 @click.argument('vdb', type=click.Path(exists=True))  # , help='File name of genome database')
 @click.argument('out-json', type=click.Path())
-@click.option('--sample-name', help='Name of sample. Leave out to test against whole graph')
-@click.option('--indel-range', help='Maximum base pair count of indels we process_bams', type=int, default=50)
+@click.option('--sample-name', help='Name of sample. Leave out to test against population')
+@click.option('--indel-range', help='Maximum base pair count of indels we process', type=int, default=50)
 def cli(perbam, out_json, vdb, sample_name, indel_range):
   """Compute alignment accuracy as a function of indel size"""
   bam_fp = pysam.AlignmentFile(perbam, 'rb')
