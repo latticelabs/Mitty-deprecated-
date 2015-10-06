@@ -123,12 +123,15 @@ class Population:
     sample_key = self.get_sample_key(chrom) + '/' + sample_name
     return self.fp[sample_key][:] if sample_key in self.fp else np.array([], dtype=[('index', 'i4'), ('gt', 'i1')])
 
-  def get_sample_variant_list_for_chromosome(self, chrom, sample_name):
+  def get_sample_variant_list_for_chromosome(self, chrom, sample_name, ignore_zygosity=False):
     """Return variant list for this sample and chromosome."""
     ml = self.get_variant_master_list(chrom)
     v_idx = self.get_sample_variant_index_for_chromosome(chrom, sample_name)
-    return [ml.variants[v_idx['index'][(v_idx['gt'] == 0) | (v_idx['gt'] == 2)]],
-            ml.variants[v_idx['index'][(v_idx['gt'] == 1) | (v_idx['gt'] == 2)]]]
+    if ignore_zygosity:
+      return ml.variants[v_idx['index']]
+    else:
+      return [ml.variants[v_idx['index'][(v_idx['gt'] == 0) | (v_idx['gt'] == 2)]],
+              ml.variants[v_idx['index'][(v_idx['gt'] == 1) | (v_idx['gt'] == 2)]]]
 
   def get_sample_names(self):
     """Return a list of sample names"""
