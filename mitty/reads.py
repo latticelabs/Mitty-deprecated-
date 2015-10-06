@@ -197,7 +197,8 @@ def generate_reads(seq, seq_c, var_locs_alt_coords, variant_window,
   start_base = int(len(seq) * start_f)
   stop_base = int(len(seq) * stop_f)
   if variants_only:
-    reads, paired = [], False
+    rds, paired = read_model.get_zero_reads()
+    reads = [rds]
     for v in var_locs_alt_coords:  # [1:-1]:
       start, stop = max(v - variant_window, 0), min(v + variant_window, len(seq))
       if start > stop_base or stop < start_base: continue

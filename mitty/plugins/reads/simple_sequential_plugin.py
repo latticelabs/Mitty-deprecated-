@@ -30,6 +30,14 @@ class Model:
     self.read_len, self.template_len, self.paired = read_len, template_len, paired
     self.start_base = 0
 
+  def get_zero_reads(self):
+    """Return empty array of reads. Useful for concatenation etc."""
+    dtype = [('start_a', 'i4'), ('read_len', 'i4'), ('read_order', 'i1'),
+             ('perfect_reads', 'S' + str(self.read_len)), ('corrupt_reads', 'S' + str(self.read_len)),
+             ('phred', 'S' + str(self.read_len))]
+    reads = np.recarray(dtype=dtype, shape=0)
+    return reads, True
+
   def get_reads(self, seq, seq_c, start_base=0, end_base=None, coverage=0.01, corrupt=False, seed=1):
     """The main simulation calls this function.
 
