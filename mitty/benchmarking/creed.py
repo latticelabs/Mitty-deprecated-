@@ -339,11 +339,12 @@ def count_reads_under_features(bam_fp, f_chrom_id, f_start, f_stop, f_chrom_cpy=
     template_stop = max(r_stop, rm_stop)
 
     # Advance our variant window as needed
-    while f_stop[f_win_start] < template_start:
-      if f_win_start < f_count_1:
-        f_win_start += 1
-      else:
-        break
+    if f_win_start < f_count_1:  # Only need to advance if there is something left
+      while f_stop[f_win_start] < template_start:
+        if f_win_start < f_count_1:
+          f_win_start += 1
+        else:
+          break
 
     if f_win_stop < f_count_1:  # Only need to advance if there is something left
       while f_start[f_win_stop + 1] < template_stop:
@@ -351,21 +352,23 @@ def count_reads_under_features(bam_fp, f_chrom_id, f_start, f_stop, f_chrom_cpy=
         if f_win_stop == f_count_1:
           break
 
-    # Now test this read against every feature
     this_read_is_within_a_feature = False
-    for n in range(f_win_start, f_win_stop + 1):
-      if r_start <= f_stop[n] and r_stop >= f_start[n]:
-        this_read_is_within_a_feature = True
-        rwf_total[n] += 1
-        if r.get_tag('Xf') == 1: rwf_correct[n] += 1
-
     this_template_is_within_a_feature = False
-    if not this_read_is_within_a_feature:
+
+    if f_win_start <= f_win_stop < f_count:
+      # Now test this read against every feature
       for n in range(f_win_start, f_win_stop + 1):
-        if rm_start <= f_stop[n] and rm_stop >= f_start[n]:
-          this_template_is_within_a_feature = True
-          twf_total[n] += 1
-          if r.get_tag('Xf') == 1: twf_correct[n] += 1
+        if r_start <= f_stop[n] and r_stop >= f_start[n]:
+          this_read_is_within_a_feature = True
+          rwf_total[n] += 1
+          if r.get_tag('Xf') == 1: rwf_correct[n] += 1
+
+      if not this_read_is_within_a_feature:
+        for n in range(f_win_start, f_win_stop + 1):
+          if rm_start <= f_stop[n] and rm_stop >= f_start[n]:
+            this_template_is_within_a_feature = True
+            twf_total[n] += 1
+            if r.get_tag('Xf') == 1: twf_correct[n] += 1
 
     if not (this_read_is_within_a_feature or this_template_is_within_a_feature):
       non_feature_total += 1
