@@ -18,6 +18,8 @@ Extended tags
 
 TAG TYPE VALUE
 Zc  A    0 - read comes from chrom copy 0, 1 - read comes from chrom copy 1
+ZE  i    Read stop (Read start is in POS)
+Ze  i    Mate stop (Mate start is available from other BAM info)
 Xf  A    0 - incorrectly mapped, 1 - correctly mapped, 2 - unmapped
 YR  A    0 - chrom was wrong, 1 - chrom was correct
 YP  A    0 - pos was wrong, 1 - pos was correct
@@ -60,8 +62,7 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
   n0 = progress_bar_update_interval
   analyze_read = creed.analyze_read
   for cnt, read in enumerate(bam_in_fp):
-    read_serial, chrom, cpy, ro, pos, cigar, chrom_c, pos_c, cigar_c, unmapped = analyze_read(read, window, extended)
-    #if read_serial != 8200: continue
+    read_serial, chrom, cpy, ro, pos, rl, cigar, ro_m, pos_m, rl_m, cigar_m, chrom_c, pos_c, cigar_c, unmapped = analyze_read(read, window, extended)
     if read_serial is None: continue  # Something wrong with this read.
     read_is_misaligned = not (chrom_c and pos_c and (cigar_c or (not flag_cigar_errors_as_misalignments)))
     if read_is_misaligned or full_perfect_bam:  # Need all the read info, incl seq and quality
@@ -69,19 +70,31 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
     else:  # Need only some tags and pos, chrom info
       new_read = pysam.AlignedSegment()
 
-    # Zc  A    0 - read comes from chrom copy 0, 1 - read comes from chrom copy 1
-    # Xf  A    0 - incorrectly mapped, 1 - correctly mapped, 2 - unmapped
-    # YR  A    0 - chrom was wrong, 1 - chrom was correct
-    # YP  A    0 - pos was wrong, 1 - pos was correct
-    # YC  A    0 - CIGAR was wrong, 1 - CIGAR was correct
+    # File size note
+    #For a file with 202999 reads (per_bam, condensed - perfectbam -v -v -p reads.bam):
+    #With 'A' -> 2571157 Oct  5 14:23 reads_per.bam
+    #with 'i' -> 2576795 Oct  5 14:25 reads_per.bam
+    # -> 0.2 % increase in size. This is negligible (probably due to BAM compression)
+    # Hence we use 'i' instead of 'A' even for data that can fit in a byte. The extra hassle of conversion is not
+    # worth the tiny savings
+
+    # Zc  i    0 - read comes from chrom copy 0, 1 - read comes from chrom copy 1  ()
+    # ZE  i    Read stop (Read start is in POS)
+    # Ze  i    Mate stop (Mate end is available from other BAM info)
+    # Xf  i    0 - incorrectly mapped, 1 - correctly mapped, 2 - unmapped
+    # YR  i    0 - chrom was wrong, 1 - chrom was correct
+    # YP  i    0 - pos was wrong, 1 - pos was correct
+    # YC  i    0 - CIGAR was wrong, 1 - CIGAR was correct
     # XR  i    Aligned chromosome
     # XP  i    Aligned pos
     # XC  Z    Aligned CIGAR
-    new_read.set_tags([('Zc', str(cpy), 'A'),
-                       ('Xf', '2' if unmapped else str(chrom_c and pos_c), 'A'),
-                       ('YR', str(chrom_c), 'A'),
-                       ('YP', str(pos_c), 'A'),
-                       ('YC', str(cigar_c), 'A'),
+    new_read.set_tags([('Zc', cpy, 'i'),
+                       ('ZE', pos + rl, 'i'),
+                       ('Ze', pos_m + rl_m, 'i'),
+                       ('Xf', 2 if unmapped else (chrom_c and pos_c), 'i'),
+                       ('YR', chrom_c, 'i'),
+                       ('YP', pos_c, 'i'),
+                       ('YC', cigar_c, 'i'),
                        ('XR', read.reference_id, 'i'),
                        ('XP', read.pos, 'i'),
                        ('XC', read.cigarstring or '', 'Z')])
@@ -94,7 +107,9 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
 
     new_read.is_reverse = ro
     new_read.mate_is_reverse = 1 - ro
+    new_read.is_unmapped = False
     new_read.mate_is_unmapped = False  # Gotta check this - what if mate is deep in an insert?
+    new_read.pnext = pos_m
     new_read.reference_id = chrom - 1
     new_read.pos = pos
     new_read.cigarstring = cigar  # What if this is deep in an insert?
@@ -110,7 +125,7 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
       n0 = progress_bar_update_interval
 
 
-def analyze(in_bam_fname, bad_bam_fname, per_bam_fname, flag_cigar_errors, perfect_bam, window, x, p):
+def process_bams(in_bam_fname, bad_bam_fname, per_bam_fname, flag_cigar_errors, perfect_bam, window, x, p):
   bam_in_fp = pysam.AlignmentFile(in_bam_fname, 'rb')
 
   def true2str(v): return 'true' if v else 'false'
@@ -144,7 +159,7 @@ def analyze(in_bam_fname, bad_bam_fname, per_bam_fname, flag_cigar_errors, perfe
   logger.debug('Analyzed {:d} reads in BAM in {:2.2f}s'.format(cnt, t1 - t0))
 
 
-def sort_and_index(bad_bam_fname, per_bam_fname):
+def sort_and_index_bams(bad_bam_fname, per_bam_fname):
   t0 = time.time()
   mio.sort_and_index_bam(bad_bam_fname)
   t1 = time.time()
@@ -173,8 +188,8 @@ def cli(inbam, cigar_errors_are_misalignments, perfect_bam, window, x, v, p):
   bad_bam_fname = os.path.splitext(inbam)[0] + '_bad.bam'
   per_bam_fname = os.path.splitext(inbam)[0] + '_per.bam'
 
-  analyze(inbam, bad_bam_fname, per_bam_fname, cigar_errors_are_misalignments, perfect_bam, window, x, p)
-  sort_and_index(bad_bam_fname, per_bam_fname)
+  process_bams(inbam, bad_bam_fname, per_bam_fname, cigar_errors_are_misalignments, perfect_bam, window, x, p)
+  sort_and_index_bams(bad_bam_fname, per_bam_fname)
 
 
 if __name__ == "__main__":
