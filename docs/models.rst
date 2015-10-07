@@ -1,19 +1,26 @@
 Stock Models
 ============
 
+
 Variant models
 --------------
 
-.. command-output:: genomes explain variantmodel all
+.. command-output:: genomes show variant-model all
+
+
+Site frequency spectrum models
+------------------------------
+
+.. command-output:: genomes show spectrum-model all
 
 
 Population models
 --------------
 
-.. command-output:: genomes explain populationmodel all
+.. command-output:: genomes show population-model all
 
 
 Read models
 -----------
 
-.. command-output:: reads explain model all
+.. command-output:: reads show read-model all

@@ -31,7 +31,7 @@
 
   
     <link rel="top" title="Mitty 1.1.1dev documentation" href="index.html"/>
-        <link rel="next" title="2. Quick-start" href="quickstart.html"/>
+        <link rel="next" title="2. Tutorial" href="tutorial.html"/>
         <link rel="prev" title="Mitty documentation" href="index.html"/> 
 
   
@@ -69,12 +69,12 @@
 <li class="toctree-l2"><a class="reference internal" href="#trivia">1.2. Trivia</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">2. Quick-start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#creating-genomes">2.1. Creating genomes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads">2.2. Taking reads</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#testing-alignment-accuracy-of-bwa-mem">2.3. Testing alignment accuracy of BWA MEM</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads-just-from-regions-around-variants">2.4. Taking reads just from regions around variants</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#analysing-variant-callers">2.5. Analysing variant callers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">2. Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#creating-genomes">2.1. Creating genomes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#taking-reads">2.2. Taking reads</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#testing-alignment-accuracy-of-bwa-mem">2.3. Testing alignment accuracy of BWA MEM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#taking-reads-just-from-regions-around-variants">2.4. Taking reads just from regions around variants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#analysing-variant-callers">2.5. Analysing variant callers</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="additional_utils.html">3. Additional Utilities</a><ul>
@@ -89,6 +89,11 @@
 <li class="toctree-l2"><a class="reference internal" href="models.html#variant-models">5.1. Variant models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#population-models">5.2. Population models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#read-models">5.3. Read models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ramblings.html">6. Ramblings AKA. Diary of a Developer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ramblings.html#simulating-a-million-genomes-in-python">6.1. Simulating a million Genomes in Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ramblings.html#report-generation">6.2. Report generation</a></li>
 </ul>
 </li>
 </ul>
@@ -196,20 +201,33 @@ source /usr/local/bin/virtualenvwrapper.sh  # You may want to add this to your l
 <div class="section" id="mitty-installation">
 <h3>1.1.2. Mitty installation<a class="headerlink" href="#mitty-installation" title="Permalink to this headline">¶</a></h3>
 <p>On Linux, you may first need to pull some dependencies (as needed) such as</p>
-<div class="highlight-python"><div class="highlight"><pre>sudo apt-get install python-pip git python-numpy python-dev cython zlib1g-dev
+<div class="highlight-python"><div class="highlight"><pre>sudo apt-get install python-pip git python-numpy python-dev cython zlib1g-dev libhdf5-serial-dev
 </pre></div>
 </div>
-<p>For the dev team, you will want the <cite>develop</cite> branch of Mitty</p>
-<div class="highlight-python"><div class="highlight"><pre>pip install git+https://gitlab.sbgenomics.com:9443/graphgenome/mitty.git@develop#egg=mitty
+<p>You will also need setuptools 11.0.0 or more recent</p>
+<div class="highlight-python"><div class="highlight"><pre>pip install -U setuptools
 </pre></div>
 </div>
-<p>On mac os x this will pull all packages as needed, including numpy.</p>
-<p>The SBG dev pi server contains wheels for most of the packages. You can use the devpi server (cuts down on compilation
-time in many cases) by adding the following lines to your ~/.pip/pip.conf file (you may need to create the file first):</p>
+<p>The SBG dev pi server contains wheels for most of the packages, including the latest builds of Mitty. You can use the
+devpi server (cuts down on compilation time in many cases) by adding the following lines to your ~/.pip/pip.conf file
+(you may need to create the file first):</p>
 <div class="highlight-python"><div class="highlight"><pre>[global]
 extra-index-url = https://pip.sbgenomics.com/packages
 </pre></div>
 </div>
+<p>To get the stable release version of Mitty try</p>
+<div class="highlight-python"><div class="highlight"><pre>pip install -U mitty
+</pre></div>
+</div>
+<p>For the dev team, you will want the <cite>develop</cite> branch of Mitty</p>
+<div class="highlight-python"><div class="highlight"><pre>pip install -U mitty --pre
+</pre></div>
+</div>
+<p>To get the code directly from gitlab (e.g. because you want a specific commit/tag) use something like</p>
+<div class="highlight-python"><div class="highlight"><pre>pip install git+https://gitlab.sbgenomics.com:9443/graphgenome/mitty.git@develop#egg=mitty
+</pre></div>
+</div>
+<p>On mac os x this will pull all packages as needed, including numpy.</p>
 <div class="section" id="installing-optional-dependencies">
 <h4>1.1.2.1. Installing optional dependencies<a class="headerlink" href="#installing-optional-dependencies" title="Permalink to this headline">¶</a></h4>
 <p>The analysis report generators, like <cite>plot_align</cite> may require additional packages, like matplotlib, to run. To install
@@ -222,7 +240,7 @@ these too you should add the tag <cite>[mplot]</cite> to the install command:</p
 <div class="section" id="run-the-tests">
 <h3>1.1.3. Run the tests<a class="headerlink" href="#run-the-tests" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><div class="highlight"><pre>pip install nose  # If needed
-nosetests mitty.tests -v
+nosetests mitty -v
 </pre></div>
 </div>
 </div>
@@ -230,6 +248,10 @@ nosetests mitty.tests -v
 <h3>1.1.4. Developing<a class="headerlink" href="#developing" title="Permalink to this headline">¶</a></h3>
 <p>To develop on Mitty, simply clone the repository, and from the project root run</p>
 <div class="highlight-python"><div class="highlight"><pre>pip install -e .
+</pre></div>
+</div>
+<p>or, for the optional, plotting dependencies</p>
+<div class="highlight-python"><div class="highlight"><pre>pip install -e .[mplot]
 </pre></div>
 </div>
 <div class="section" id="creating-wheels">
@@ -256,7 +278,7 @@ parts of life with a little harmless fantasy.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="quickstart.html" class="btn btn-neutral float-right" title="2. Quick-start">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tutorial.html" class="btn btn-neutral float-right" title="2. Tutorial">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="index.html" class="btn btn-neutral" title="Mitty documentation"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -268,7 +290,7 @@ parts of life with a little harmless fantasy.</p>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2014,Seven Bridges Genomics
+        &copy; Copyright 2014-2015,Seven Bridges Genomics
 (kaushik.ghose@sbgenomics.com).
     </p>
   </div>

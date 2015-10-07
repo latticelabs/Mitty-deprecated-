@@ -2,25 +2,22 @@
   "files": {
     "reference_file": "../data/red_alga.fa.gz",
     "output_prefix": "Out/reads",
-    "dbfile": "Out/red_alga_genomes.db"
+    "dbfile": "Out/red_alga_genomes.h5"
   },
-  "sample" : {
-    "gen": 0,
-    "serial": 3
-  },
+  "sample_name" : "g0_s0",
   "rng": {
     "master_seed": 123456
   },
-  "chromosomes": [1, 2, 3, 4],
+  "chromosomes": [15, 16, 17, 18, 19, 20],
   "read_model": "simple_illumina",
   "coverage": 30,
-  "coverage_per_block": 5,
-  "corrupt": true,
+  "coverage_per_block": 1,
+  "corrupt": false,
   "model_params": {
     "read_len": 100,
     "template_len_mean": 250,
-    "template_len_sd": 20,
-    "max_p_error": 0.1,
-    "k": 100
+    "template_len_sd": 10,
+    "max_p_error": 0.2,
+    "k": 10
   }
 }

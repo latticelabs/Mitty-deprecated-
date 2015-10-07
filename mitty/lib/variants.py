@@ -1,7 +1,12 @@
 import numpy as np
 import h5py
 
+from mitty.version import __version__
 
+
+#TODO: Redesign how data is stored in hdf5 so that organization is easier to follow
+# Make list of chromosomes more explicit
+# Make list of samples more explicit
 class Population:
   """This class abstracts the storage and retrieval of the master list and samples of a population
 
@@ -10,9 +15,8 @@ class Population:
     {'seq_id': 'chr2', 'seq_len': 200, 'seq_md5': '1337'},
   ]
   pop = Population(genome_metadata)
-  pop.
 
-
+  The master list and samples for each chromosome are added separately. This
   """
   def __init__(self, fname=None, genome_metadata=None):
     """Load a population from file, or create a new file. Over write or store the passed master list and/or samples
@@ -30,10 +34,11 @@ class Population:
       self.fp = h5py.File(name=hex(id(self)), driver='core', backing_store=False)  # Create it in memory
     else:
       self.fp = h5py.File(name=fname)
-    if len(self.get_genome_metadata()) == 0:
+    if len(self.get_genome_metadata()) == 0:  # This is an indication that we are creating a new file
       if genome_metadata is None:
         raise RuntimeError('Creating a new Population object requires genome metadata')
       self.set_genome_metadata(genome_metadata)
+      self.fp.attrs['Mitty version'] = __version__
 
   @staticmethod
   def get_chrom_key(chrom):
@@ -71,7 +76,7 @@ class Population:
     return dict(self.fp[self.get_chrom_key(chrom)].attrs)
 
   def get_chromosome_list(self):
-    return [int(ch[6:]) for ch in self.fp.keys() if ch.startswith('chrom_')]
+    return sorted([int(ch[6:]) for ch in self.fp.keys() if ch.startswith('chrom_')])  # Needs to be sorted
 
   def set_master_list(self, chrom, master_list):
     """Replace any existing master list with this one. Erase any existing samples
@@ -103,18 +108,77 @@ class Population:
     if key in self.fp:
       del self.fp[key]
     self.fp.create_dataset(name=key, shape=indexes.shape, dtype=[('index', 'i4'), ('gt', 'i1')], data=indexes, chunks=True, compression='gzip')
+    if sample_name not in self.fp.attrs.get('sample_names', []):
+      self.fp.attrs['sample_names'] = list(self.fp.attrs.get('sample_names', [])) + [sample_name.encode('utf8')]
 
-  def get_master_list(self, chrom):
-    """This function loads the whole data set into memory. We have no need for chunked access right now"""
+  def get_variant_master_list(self, chrom):
+    """Return the whole master variant list for this chromosome"""
     ml = VariantList()
     if self.get_ml_key(chrom) in self.fp:
       ml.variants = self.fp[self.get_ml_key(chrom)][:]
     return ml
 
-  def get_sample_chromosome(self, chrom, sample_name):
-    """This function loads the whole data set into memory. We have no need for chunked access right now"""
+  def get_sample_variant_index_for_chromosome(self, chrom, sample_name):
+    """Return the indexes pointing to the master list for given sample and chromosome"""
     sample_key = self.get_sample_key(chrom) + '/' + sample_name
     return self.fp[sample_key][:] if sample_key in self.fp else np.array([], dtype=[('index', 'i4'), ('gt', 'i1')])
+
+  def get_sample_variant_list_for_chromosome(self, chrom, sample_name, ignore_zygosity=False):
+    """Return variant list for this sample and chromosome."""
+    ml = self.get_variant_master_list(chrom)
+    v_idx = self.get_sample_variant_index_for_chromosome(chrom, sample_name)
+    if ignore_zygosity:
+      return ml.variants[v_idx['index']]
+    else:
+      return [ml.variants[v_idx['index'][(v_idx['gt'] == 0) | (v_idx['gt'] == 2)]],
+              ml.variants[v_idx['index'][(v_idx['gt'] == 1) | (v_idx['gt'] == 2)]]]
+
+  def get_sample_names(self):
+    """Return a list of sample names"""
+    return self.fp.attrs['sample_names']
+
+  def get_version(self):
+    return self.fp.attrs['Mitty version']
+
+  #TODO: make more detailed
+  def __repr__(self):
+    """Pretty print the genome file"""
+    rep_str = """
+    ---------------------------------------
+    Genome file. Mitty version {mv:s}
+    ---------------------------------------
+    {chrom_cnt:d} chromosomes
+    {sample_cnt:d} samples
+    """.format(mv=self.get_version(), chrom_cnt=len(self.get_chromosome_list()), sample_cnt=len(self.get_sample_names()))
+    return rep_str
+
+  # chrom_list = pop.get_chromosome_list()
+  # populated_chrom_list = mdb.populated_chromosomes_in_db(conn)
+  # n_s = mdb.samples_in_db(conn)
+  # variant_stats = np.empty((len(populated_chrom_list), 3), dtype=float)
+  # sample_max = 100
+  # for i, c in enumerate(populated_chrom_list):
+  #   if n_s < sample_max:  # Take every sample
+  #     ss = range(n_s)
+  #   else:
+  #     ss = np.random.randint(0, n_s, sample_max)
+  #   s_len = np.empty(len(ss), dtype=float)
+  #   for j, s in enumerate(ss):
+  #     s_len[j] = len(mdb.load_sample(conn, 0, s, c[0]))
+  #   _, _, seq_len, _ = mdb.load_chromosome_metadata(conn, c[0])
+  #   variant_stats[i, :] = (s_len.mean(), s_len.std(), 1e6 * s_len.mean() / float(seq_len))
+  #
+  # print('{:s}'.format(dbfile))
+  # print('\tVariants in {:d} chromosomes (Genome has {:d})'.format(len(populated_chrom_list), len(chrom_list)))
+  # print('\t{:d} samples'.format(n_s))
+  # print('Unique variants in population')
+  # print('\tChrom\tVariants')
+  # for c in populated_chrom_list:
+  #   print('\t{:d}\t{:d}'.format(c[0], mdb.variants_in_master_list(conn, c[0])))
+  # print('Variants in samples')
+  # print('\tChrom\tAvg variants\tStd variants\tVariants/megabase')
+  # for i, c in enumerate(populated_chrom_list):
+  #   print('\t{:d}\t{:<9.2f}\t{:<9.2f}\t{:.1f}'.format(c[0], variant_stats[i, 0], variant_stats[i, 1], variant_stats[i, 2]))
 
 
 def l2ca(l):

@@ -78,7 +78,7 @@ Mitty installation
 ------------------
 On Linux, you may first need to pull some dependencies (as needed) such as ::
 
-    sudo apt-get install python-pip git python-numpy python-dev cython zlib1g-dev
+    sudo apt-get install python-pip git python-numpy python-dev cython zlib1g-dev libhdf5-serial-dev
 
 You will also need setuptools 11.0.0 or more recent ::
 
@@ -101,9 +101,9 @@ For the dev team, you will want the `develop` branch of Mitty ::
 
     pip install -U mitty --pre
 
-To get the code directly from gitlab (e.g. because you want a specific commit) use something like
+To get the code directly from gitlab (e.g. because you want a specific commit/tag) use something like ::
     
-    pip install git+https://gitlab.sbgenomics.com:9443/graphgenome/mitty.git@develop#egg=mitty
+    pip install -U git+https://gitlab.sbgenomics.com:9443/graphgenome/mitty.git@develop#egg=mitty
 
 On mac os x this will pull all packages as needed, including numpy. 
 

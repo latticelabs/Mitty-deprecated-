@@ -1,8 +1,10 @@
 """Automatically find variant plugins and perform integration tests on them. For a plugin to avail of this test
 the plugin needs a _example_params() function that returns a complete parameter file"""
 import tempfile
+import json
 from inspect import getmembers, isfunction
 
+from click.testing import CliRunner
 from nose.plugins.skip import SkipTest
 from nose.tools import nottest
 
@@ -24,21 +26,34 @@ def check_plugin_integration(args):
     raise SkipTest('{:s} has no _example_params method. Can not test automatically'.format(name))
   var_model_params = [{name: model._example_params}]
 
-  temp_fp, temp_name = tempfile.mkstemp(suffix='.sqlite3')
-  os.close(temp_fp)
-  pop_db_name = temp_name
-  sfs_model = double_exp.Model()
-  variant_models = genomes.load_variant_models(ref, var_model_params)
-  pop_model = genomes.load_population_model(None, {'sample_size': 2})
-  chromosomes = [1]
-  master_seed = 2
-  genomes.run_simulations(pop_db_name, ref=ref, sfs_model=sfs_model, variant_models=variant_models,
-                          population_model=pop_model, chromosomes=chromosomes, master_seed=master_seed)
+  _, param_file = tempfile.mkstemp(suffix='.json')
+  _, db_file = tempfile.mkstemp(suffix='.hdf5')
+  test_params = {
+    "files": {
+      "reference_dir": example_data_dir,
+      "dbfile": db_file
+    },
+    "rng": {
+      "master_seed": 1
+    },
+    "sample_size": 2,
+    "chromosomes": [1, 2],
+    "variant_models": var_model_params
+  }
+  json.dump(test_params, open(param_file, 'w'))
 
-  # If we get here, the simulation ran. We just want a superficial test to round things out
-  pop = vr.Population(fname=pop_db_name)
-  ml = pop.get_master_list(chrom=1)
-  assert ml.variants.shape[0] > 0
+  runner = CliRunner()
+  result = runner.invoke(genomes.cli, ['generate', param_file])
+  assert result.exit_code == 0, result
+  assert os.path.exists(db_file)
+
+  pop = vr.Population(fname=db_file)
+  ml = pop.get_variant_master_list(chrom=1)
+
+  os.remove(param_file)
+  os.remove(db_file)
+
+  assert len(ml) > 0
 
 
 #http://stackoverflow.com/questions/19071601/how-do-i-run-multiple-python-test-cases-in-a-loop

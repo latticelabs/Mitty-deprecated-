@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Ramblings AKA. Diary of a Developer &mdash; Mitty 1.1.1dev documentation</title>
+  <title>6. Ramblings AKA. Diary of a Developer &mdash; Mitty 1.1.1dev documentation</title>
   
 
   
@@ -30,7 +30,8 @@
   
 
   
-    <link rel="top" title="Mitty 1.1.1dev documentation" href="index.html"/> 
+    <link rel="top" title="Mitty 1.1.1dev documentation" href="index.html"/>
+        <link rel="prev" title="5. Stock Models" href="models.html"/> 
 
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
@@ -61,18 +62,18 @@
         
           
           
-              <ul>
+              <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="introduction.html">1. Overview</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="introduction.html#installation">1.1. Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="introduction.html#trivia">1.2. Trivia</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">2. Quick-start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#creating-genomes">2.1. Creating genomes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads">2.2. Taking reads</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#testing-alignment-accuracy-of-bwa-mem">2.3. Testing alignment accuracy of BWA MEM</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#taking-reads-just-from-regions-around-variants">2.4. Taking reads just from regions around variants</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#analysing-variant-callers">2.5. Analysing variant callers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">2. Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#creating-genomes">2.1. Creating genomes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#taking-reads">2.2. Taking reads</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#testing-alignment-accuracy-of-bwa-mem">2.3. Testing alignment accuracy of BWA MEM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#taking-reads-just-from-regions-around-variants">2.4. Taking reads just from regions around variants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#analysing-variant-callers">2.5. Analysing variant callers</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="additional_utils.html">3. Additional Utilities</a><ul>
@@ -87,6 +88,11 @@
 <li class="toctree-l2"><a class="reference internal" href="models.html#variant-models">5.1. Variant models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#population-models">5.2. Population models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#read-models">5.3. Read models</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">6. Ramblings AKA. Diary of a Developer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#simulating-a-million-genomes-in-python">6.1. Simulating a million Genomes in Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#report-generation">6.2. Report generation</a></li>
 </ul>
 </li>
 </ul>
@@ -113,7 +119,7 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Ramblings AKA. Diary of a Developer</li>
+    <li>6. Ramblings AKA. Diary of a Developer</li>
       <li class="wy-breadcrumbs-aside">
         
           <a href="_sources/ramblings.txt" rel="nofollow"> View page source</a>
@@ -125,12 +131,12 @@
           <div role="main" class="document">
             
   <div class="section" id="ramblings-aka-diary-of-a-developer">
-<h1>Ramblings AKA. Diary of a Developer<a class="headerlink" href="#ramblings-aka-diary-of-a-developer" title="Permalink to this headline">¶</a></h1>
+<h1>6. Ramblings AKA. Diary of a Developer<a class="headerlink" href="#ramblings-aka-diary-of-a-developer" title="Permalink to this headline">¶</a></h1>
 <p>(In which I write down some of my design decisions.)</p>
 <div class="section" id="simulating-a-million-genomes-in-python">
-<h2>Simulating a million Genomes in Python<a class="headerlink" href="#simulating-a-million-genomes-in-python" title="Permalink to this headline">¶</a></h2>
+<h2>6.1. Simulating a million Genomes in Python<a class="headerlink" href="#simulating-a-million-genomes-in-python" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="memory-considerations">
-<h3>Memory considerations<a class="headerlink" href="#memory-considerations" title="Permalink to this headline">¶</a></h3>
+<h3>6.1.1. Memory considerations<a class="headerlink" href="#memory-considerations" title="Permalink to this headline">¶</a></h3>
 <p>In the early days Python was a no-brainer in terms of prototyping ideas. It got us off the ground very fast, it allowed
 me to write comprehensive and compact code and to use things like docopts and sphinx that allowed good command line
 interfaces and painless, excellent documentation generation.</p>
@@ -169,9 +175,31 @@ genotype 1 byte</p>
 same time, but by using a master list of unique variants we can halve our memory requirements.</p>
 </div>
 <div class="section" id="sampling-a-population-into-existence">
-<h3>Sampling a population into existence<a class="headerlink" href="#sampling-a-population-into-existence" title="Permalink to this headline">¶</a></h3>
+<h3>6.1.2. Sampling a population into existence<a class="headerlink" href="#sampling-a-population-into-existence" title="Permalink to this headline">¶</a></h3>
 <p>While I was</p>
 </div>
+</div>
+<div class="section" id="report-generation">
+<h2>6.2. Report generation<a class="headerlink" href="#report-generation" title="Permalink to this headline">¶</a></h2>
+<p>Static textual html pages are pretty easy to generate with pure Python. HTML pages with static or interactive graphs are a
+little harder but some distance can be covered using <a class="reference external" href="http://matplotlib.com">Matplotlib</a> and the <a class="reference external" href="http://mpld3.com">mpld3</a> library. If we are willing to abandon
+Matplotlib, we can use <a class="reference external" href="http://bokeh.io">Bokeh</a> which is perfect for this. Matplotlib, however, has a high bar for publication type static
+figures that are written to pdf.</p>
+<p>The challenge comes when we
+need interactive plots that show large datasets. Loading all the data in at once causes the page to become sluiggish.</p>
+<p>In a pure Matplotlib interactive figure we can use callbacks to load views of the data from disk as needed. There is no
+way to translate this to a web-page, currently.</p>
+<p>Using Bokeh we can build such a plot, but we need a bokeh server to serve the page and
+respond to the interaction commands. This is not feasible with our current platform.</p>
+<p>From these considerations I decided to use the following approach for the platform:</p>
+<ol class="arabic simple">
+<li>There is a single page html report generated that can be easily seen on the platform</li>
+<li>The html has some interactive textual tables summarizing benchmark data.</li>
+</ol>
+<p>3. There are a few interactive summary plots which attempt to give a graphical overview of the errors. The summary plots
+bin the data so that we handle a small quantity of numbers which keep our web-page snappy.</p>
+<p>For people using the terminal, we generate interactive plots in Bokeh/Matplotlib that load data from disk as needed to
+display detailed views of the errors for extensive debugging.</p>
 </div>
 </div>
 
@@ -179,12 +207,19 @@ same time, but by using a master list of unique variants we can halve our memory
           </div>
           <footer>
   
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="models.html" class="btn btn-neutral" title="5. Stock Models"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
 
   <hr/>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2014,Seven Bridges Genomics
+        &copy; Copyright 2014-2015,Seven Bridges Genomics
 (kaushik.ghose@sbgenomics.com).
     </p>
   </div>

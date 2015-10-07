@@ -4,19 +4,16 @@
     "output_prefix": "Out/vreads",
     "dbfile": "Out/red_alga_genomes.db"
   },
-  "sample" : {
-    "gen": 0,
-    "serial": 3
-  },
+  "sample_name" : "g0_s0",
   "rng": {
     "master_seed": 123456
   },
-  "chromosomes": [1, 2, 3, 4],
+  "chromosomes": [1],
   "variants_only": true,
   "read_model": "simple_illumina",
   "coverage": 30,
   "coverage_per_block": 5,
-  "corrupt": true,
+  "corrupt": false,
   "model_params": {
     "read_len": 100,
     "template_len_mean": 200,

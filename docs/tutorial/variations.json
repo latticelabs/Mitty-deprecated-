@@ -1,0 +1,47 @@
+{
+  "files": {
+    "reference_file": "reddus_pentalgus.fa.gz",
+    "dbfile": "reddus_genomes.h5"
+  },
+  "rng": {
+    "master_seed": 234
+  },
+  "population_model": {
+    "standard": {
+      "sample_size": 1000
+    }
+  },
+  "site_model": {
+    "double_exp": {
+      "a1": 1.0,
+      "k1": 20,
+      "a2": 0.1,
+      "k2": 5.0,
+      "p0": 0.001,
+      "p1": 0.8,
+      "bin_cnt": 30
+    }
+  },
+  "chromosomes": [1, 2, 3, 4, 5],
+  "variant_models": [          
+    {
+      "snp": {
+        "p": 0.001
+      }
+    },
+    {
+      "uniformdel": {
+        "p": 0.0001,
+        "min_len": 1,
+        "max_len": 21
+      }
+    },
+    {
+      "uniformins": {
+        "p": 0.0001,
+        "min_len": 1,
+        "max_len": 21
+      }
+    }
+  ]
+}

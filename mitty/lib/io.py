@@ -1,5 +1,5 @@
 """Some utilities related to loading/saving different file formats, compressing and indexing."""
-import warnings
+import tempfile
 from os.path import splitext
 import os
 import glob
@@ -64,7 +64,7 @@ class Fasta:
       cells = line.split('\t')
       return {
         'seq_id': cells[0].strip(),
-        'seq_len': cells[1].strip(),
+        'seq_len': int(cells[1].strip()),
         'seq_md5': cells[2].strip()
       }
 
@@ -219,9 +219,9 @@ def write_single_sample_to_vcf(pop, out_fname, sample_name=None):
   contig_info = pop.get_genome_metadata()
   with vcf_for_writing(out_fname, [sample_name] if sample_name else [], contig_info) as fp:
     for ch in pop.get_chromosome_list():
-      ml = pop.get_master_list(ch)
+      ml = pop.get_variant_master_list(ch)
       write_chromosomes_to_vcf(fp, seq_id=pop.get_chromosome_metadata(ch)['seq_id'],
-                               chrom_list=[pop.get_sample_chromosome(ch, sample_name)] if sample_name else [],
+                               chrom_list=[pop.get_sample_variant_index_for_chromosome(ch, sample_name)] if sample_name else None,
                                master_list=ml)
 
 
@@ -234,7 +234,7 @@ def compress_and_index_vcf(in_vcf_name, out_vcf_name):
   pysam.tabix_index(out_vcf_name, force=True, preset='vcf')
 
 
-def write_chromosomes_to_vcf(fp, seq_id='chr1', chrom_list=[], master_list=None):
+def write_chromosomes_to_vcf(fp, seq_id='chr1', chrom_list=None, master_list=None):
   """Write out the chromosomes to as VCF lines
 
   :param fp: file pointer to context opened vcf file
@@ -242,8 +242,9 @@ def write_chromosomes_to_vcf(fp, seq_id='chr1', chrom_list=[], master_list=None)
   :param chrom_list: list of chromosome objects
   :param master_list: master list that the chromosome object indexes refer to
   """
-  if len(chrom_list) > 1:
-    raise NotImplementedError('Multiple sample VCF file saving is not supported in this version.')
+  if chrom_list is not None:
+    if len(chrom_list) > 1:
+      raise NotImplementedError('Multiple sample VCF file saving is not supported in this version.')
 
   seq_id = seq_id.split(' ')[0]  # Only take contig_id upto up to the first space
   wr = fp.write
@@ -253,7 +254,7 @@ def write_chromosomes_to_vcf(fp, seq_id='chr1', chrom_list=[], master_list=None)
   alt = master_list.variants['alt']
   maf = master_list.variants['p']
 
-  if len(chrom_list) == 0:  # We want to write master list
+  if chrom_list is None:  # We want to write master list
     for p, r, a, f in izip(pos, ref, alt, maf):
       wr(seq_id + '\t' + str(p) + '\t.\t' + r + '\t' + a + '\t100\tPASS\tAF=' + str(f) + '\n')
   else:
@@ -264,7 +265,8 @@ def write_chromosomes_to_vcf(fp, seq_id='chr1', chrom_list=[], master_list=None)
 def sort_and_index_bam(bamfile):
   """Do the filename gymnastics required to end up with a sorted, indexed, bam file."""
   # samtools sort adds a '.bam' to the end of the file name.
-  os.rename(bamfile, 'temp.bam')
-  pysam.sort('temp.bam', os.path.splitext(bamfile)[0])
+  _, t_bam = tempfile.mkstemp(suffix='bam')
+  os.rename(bamfile, t_bam)
+  pysam.sort(t_bam, os.path.splitext(bamfile)[0])
   pysam.index(bamfile)
-  os.remove('temp.bam')
+  os.remove(t_bam)

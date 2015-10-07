@@ -69,6 +69,32 @@ Sampling a population into existence
 While I was
 
 
+Report generation
+-----------------
+Static textual html pages are pretty easy to generate with pure Python. HTML pages with static or interactive graphs are a
+little harder but some distance can be covered using Matplotlib_ and the mpld3_ library. If we are willing to abandon
+Matplotlib, we can use Bokeh_ which is perfect for this. Matplotlib, however, has a high bar for publication type static
+figures that are written to pdf.
 
+The challenge comes when we
+need interactive plots that show large datasets. Loading all the data in at once causes the page to become sluiggish.
 
+In a pure Matplotlib interactive figure we can use callbacks to load views of the data from disk as needed. There is no
+way to translate this to a web-page, currently.
 
+Using Bokeh we can build such a plot, but we need a bokeh server to serve the page and
+respond to the interaction commands. This is not feasible with our current platform.
+
+From these considerations I decided to use the following approach for the platform:
+
+1. There is a single page html report generated that can be easily seen on the platform
+2. The html has some interactive textual tables summarizing benchmark data.
+3. There are a few interactive summary plots which attempt to give a graphical overview of the errors. The summary plots
+bin the data so that we handle a small quantity of numbers which keep our web-page snappy.
+
+For people using the terminal, we generate interactive plots in Bokeh/Matplotlib that load data from disk as needed to
+display detailed views of the errors for extensive debugging.
+
+.. _Matplotlib: http://matplotlib.com
+.. _mpld3: http://mpld3.com
+.. _Bokeh: http://bokeh.io

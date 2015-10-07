@@ -5,15 +5,20 @@ import mitty.lib.reads as reads
 from nose.tools import assert_sequence_equal
 
 
+def npl(x):
+  return np.array(x, dtype=[('index', 'i4'), ('gt', 'i1')])
+
+
 def expand_seq_test1():
   """Expand sequence: no variants"""
   ref_seq = 'ACTGACTGACTGACT'
   ml = vr.VariantList()
   chrom = []
-  alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  alt_seq, beacons, v_locs = reads.expand_sequence(ref_seq, ml, chrom, 0)
 
   assert ref_seq == alt_seq
   assert_sequence_equal(beacons[1:-1], [])
+  assert_sequence_equal(v_locs, [])
 
 
 def expand_seq_test2():
@@ -27,17 +32,19 @@ def expand_seq_test2():
   alt = ['T']
   p = [0.1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
-  chrom = [(0, 1)]
+  chrom = npl([(0, 1)])
   #        012345678901234
   #ref     ACTGACTGACTGACT
   m_alt = 'ACTTACTGACTGACT'
-  alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  alt_seq, beacons, v_locs = reads.expand_sequence(ref_seq, ml, chrom, 0)
   assert ref_seq == alt_seq, alt_seq
   assert_sequence_equal(beacons[1:-1], [], str(beacons))
+  assert_sequence_equal(v_locs, [3])
 
-  alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 1)
+  alt_seq, beacons, v_locs = reads.expand_sequence(ref_seq, ml, chrom, 1)
   assert alt_seq == m_alt, alt_seq
   assert_sequence_equal(beacons[1:-1].tolist(), [(3, 3, 0)])
+  assert_sequence_equal(v_locs, [3])
 
   pos = [3]
   stop = [4]
@@ -45,15 +52,16 @@ def expand_seq_test2():
   alt = ['GAAA']
   p = [0.1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
-  chrom = [(0, 0)]
+  chrom = npl([(0, 0)])
 
   #        0123   45678901234
   #ref     ACTG   ACTGACTGACT
   m_alt = 'ACTGAAAACTGACTGACT'
   #        012345678901234567
-  alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  alt_seq, beacons, v_locs = reads.expand_sequence(ref_seq, ml, chrom, 0)
   assert alt_seq == m_alt, alt_seq
   assert_sequence_equal(beacons[1:-1].tolist(), [(4, 4, 3)])
+  assert_sequence_equal(v_locs, [3])
 
   pos = [3]
   stop = [7]
@@ -61,16 +69,17 @@ def expand_seq_test2():
   alt = ['G']
   p = [0.1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
-  chrom = [(0, 2)]
+  chrom = npl([(0, 2)])
 
   #        012345678901234
   #            xxx
   #ref     ACTGACTGACTGACT
   m_alt = 'ACTG' 'GACTGACT'
   #        0123   45678901
-  alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  alt_seq, beacons, v_locs = reads.expand_sequence(ref_seq, ml, chrom, 0)
   assert alt_seq == m_alt, alt_seq
   assert_sequence_equal(beacons[1:-1].tolist(), [(7, 4, -3)])
+  assert_sequence_equal(v_locs, [3])
 
 
 def expand_seq_test3():
@@ -84,23 +93,26 @@ def expand_seq_test3():
   alt = ['GAT', 'C']
   p = [0.1, 0.1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
-  chrom = [(0, 1), (1, 1)]
+  chrom = npl([(0, 1), (1, 1)])
   #        0123  4567   8901
   #ref     ACTG  ACTG   ACTG
   m_alt = 'ACTGATAC' + 'ACTG'
   #        01234567     8901
-  alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 1)
+  alt_seq, beacons, v_locs = reads.expand_sequence(ref_seq, ml, chrom, 1)
   assert alt_seq == m_alt, alt_seq
   assert_sequence_equal(beacons[1:-1].tolist(), [(4, 4, 2), (8, 8, -2)])
+  assert_sequence_equal(v_locs, [3, 7])
 
-  chrom = [(0, 0), (1, 1)]
+
+  chrom = npl([(0, 0), (1, 1)])
   #        012345678901
   #ref     ACTGACTGACTG
   m_alt = 'ACTGAC''ACTG'
   #        012345  6789
-  alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 1)
+  alt_seq, beacons, v_locs = reads.expand_sequence(ref_seq, ml, chrom, 1)
   assert alt_seq == m_alt, alt_seq
   assert_sequence_equal(beacons[1:-1].tolist(), [(8, 6, -2)])
+  assert_sequence_equal(v_locs, [3, 5])
 
   pos = [1, 5, 7]
   stop = [4, 6, 8]
@@ -108,15 +120,16 @@ def expand_seq_test3():
   alt = ['C', 'T', 'GAT']
   p = [0.1, 0.1, 0.1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
-  chrom = [(0, 2), (1, 0), (2, 2)]
+  chrom = npl([(0, 2), (1, 0), (2, 2)])
   #        01234567  8901
   #ref     ACTGACTG  ACTG
   m_alt = 'AC''ATTGATACTG'
   #        01  2345678901
   #         ^   ^ ^
-  alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  alt_seq, beacons, v_locs = reads.expand_sequence(ref_seq, ml, chrom, 0)
   assert alt_seq == m_alt, alt_seq
   assert_sequence_equal(beacons[1:-1].tolist(), [(4, 2, -2), (5, 3, 0), (8, 6, 2)])
+  assert_sequence_equal(v_locs, [1, 3, 5])
 
 
 def expand_seq_test4():
@@ -130,14 +143,15 @@ def expand_seq_test4():
   alt = ['ATT', 'C']
   p = [0.1, 0.1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
-  chrom = [(0, 0), (1, 1)]
+  chrom = npl([(0, 0), (1, 1)])
   #        012  345
   #ref     AAA  GGG
   m_alt = 'AAATTGGG'  # For copy 0
   #        01234567
-  alt_seq, beacons = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  alt_seq, beacons, v_locs = reads.expand_sequence(ref_seq, ml, chrom, 0)
   assert alt_seq == m_alt, alt_seq
   assert_sequence_equal(beacons[1:-1].tolist(), [(3, 3, 2)])
+  assert_sequence_equal(v_locs, [2])
 
 
 def cigar_test1():
@@ -145,8 +159,8 @@ def cigar_test1():
   #          012345678901234
   ref_seq = 'ACTGACTGACTGACT'
   ml = vr.VariantList()
-  chrom = []
-  alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  chrom = npl([])
+  alt_seq, variant_waypoints, _ = reads.expand_sequence(ref_seq, ml, chrom, 0)
   read_list = np.rec.fromrecords([(n, 3) for n in range(0, 8)], names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
   for cigar in cigars:
@@ -166,13 +180,13 @@ def cigar_test2():
   alt = ['T']
   p = [0.1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
-  chrom = [(0, 2)]
+  chrom = npl([(0, 2)])
 
   #      012345678901234
   #ref   ACTGACTGACTGACT
   #alt   ACTTACTGACTGACT
   #         ^
-  alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  alt_seq, variant_waypoints, _ = reads.expand_sequence(ref_seq, ml, chrom, 0)
   read_list = np.rec.fromrecords([(n, 3) for n in range(6)], names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
   assert cigars[0] == '3=', cigars[0]
@@ -195,13 +209,13 @@ def cigar_test3():
   alt = ['GA']
   p = [0.1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
-  chrom = [(0, 2)]
+  chrom = npl([(0, 2)])
 
   #        0123 45678901234
   #ref     ACTG ACTGACTGACT
   #alt     ACTGAACTGACTGACT
   #        0123456789012345
-  alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  alt_seq, variant_waypoints, _ = reads.expand_sequence(ref_seq, ml, chrom, 0)
   read_list = np.rec.fromrecords([(n, 3) for n in range(6)], names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
   assert cigars[0] == '3=', cigars[0]
@@ -228,13 +242,13 @@ def cigar_test4():
   alt = ['GAAAA']
   p = [0.1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
-  chrom = [(0, 2)]
+  chrom = npl([(0, 2)])
 
   #        0123    45678901234
   #ref     ACTG    ACTGACTGACT
   #alt     ACTGAAAAACTGACTGACT
   #        0123456789012345678
-  alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  alt_seq, variant_waypoints, _ = reads.expand_sequence(ref_seq, ml, chrom, 0)
   read_list = np.rec.fromrecords([(n, 3) for n in range(7)], names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
   assert cigars[0] == '3=', cigars[0]
@@ -260,13 +274,13 @@ def cigar_test5():
   alt = ['G']
   p = [0.1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
-  chrom = [(0, 2)]
+  chrom = npl([(0, 2)])
 
   #        012345678901234
   #ref     ACTGACTGACTGACT
   #alt     ACTG  TGACTGACT
   #        0123  456789012
-  alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  alt_seq, variant_waypoints, _ = reads.expand_sequence(ref_seq, ml, chrom, 0)
   read_list = np.rec.fromrecords([(n, 3) for n in range(6)], names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
   assert cigars[0] == '3=', cigars[0]
@@ -298,9 +312,9 @@ def cigar_test6():
   alt = ['AAA', 'G', 'A', 'T', 'TTT']
   p = [0.1, .1, .1, .1, .1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
-  chrom = [(0, 2), (1, 2), (2, 2), (3, 2), (4, 2)]
+  chrom = npl([(0, 2), (1, 2), (2, 2), (3, 2), (4, 2)])
 
-  alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  alt_seq, variant_waypoints, _ = reads.expand_sequence(ref_seq, ml, chrom, 0)
   read_list = np.rec.fromrecords([(0, 3), (0, 4), (0, 5), (0, 7), (1, 7), (4, 8)],
                                  names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
@@ -323,12 +337,12 @@ def cigar_test7():
   alt = ['ATT', 'C']
   p = [0.1, 0.1]
   ml = vr.VariantList(pos, stop, ref, alt, p)
-  chrom = [(0, 0), (1, 1)]
+  chrom = npl([(0, 0), (1, 1)])
   #        012  345
   #ref     AAA  GGG
   m_alt = 'AAATTGGG'  # For copy 0
   #        01234567
-  alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 0)
+  alt_seq, variant_waypoints, _ = reads.expand_sequence(ref_seq, ml, chrom, 0)
   read_list = np.rec.fromrecords([(0, 3), (1, 3), (2, 3), (3, 3), (4, 3)],
                                  names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)
@@ -343,7 +357,7 @@ def cigar_test7():
   m_alt = 'AAACGG'  # For copy 1
   #        012345
 
-  alt_seq, variant_waypoints = reads.expand_sequence(ref_seq, ml, chrom, 1)
+  alt_seq, variant_waypoints, _ = reads.expand_sequence(ref_seq, ml, chrom, 1)
   read_list = np.rec.fromrecords([(0, 3), (1, 3), (2, 3), (3, 3)],
                                  names=['start_a', 'read_len'])
   pos, cigars = reads.roll_cigars(variant_waypoints, read_list)

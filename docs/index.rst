@@ -12,14 +12,13 @@ Mitty documentation
     :numbered:
 
     introduction
-    quickstart
-    additional_utils
-    theory_and_algorithms
+    tutorial
     models
-    ramblings
 
+..    additional_utils
+..    theory_and_algorithms
+..    ramblings
 ..    files
-..    components
 
 Indices and tables
 ==================
