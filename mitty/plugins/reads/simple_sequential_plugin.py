@@ -20,23 +20,18 @@ _example_params = eval(__example_param_text)
 
 import numpy as np
 
+from mitty.plugins.reads.base_plugin import ReadModel
+
 import logging
 logger = logging.getLogger(__name__)
 
 
-class Model:
+class Model(ReadModel):
   def __init__(self, read_len=100, template_len=250, paired=True):
     """."""
-    self.read_len, self.template_len, self.paired = read_len, template_len, paired
+    self.read_len, self.template_len = read_len, template_len
     self.start_base = 0
-
-  def get_zero_reads(self):
-    """Return empty array of reads. Useful for concatenation etc."""
-    dtype = [('start_a', 'i4'), ('read_len', 'i4'), ('read_order', 'i1'),
-             ('perfect_reads', 'S' + str(self.read_len)), ('corrupt_reads', 'S' + str(self.read_len)),
-             ('phred', 'S' + str(self.read_len))]
-    reads = np.recarray(dtype=dtype, shape=0)
-    return reads, True
+    ReadModel.__init__(self, paired)
 
   def get_reads(self, seq, seq_c, start_base=0, end_base=None, coverage=0.01, corrupt=False, seed=1):
     """The main simulation calls this function.
@@ -66,11 +61,7 @@ class Model:
     stride = float(self.read_len) / coverage
     template_locs = np.array([x for x in np.arange(self.start_base, end_base or len(seq), stride, dtype='i4') if seq[x] != 'N'], dtype='i4')
 
-    dtype = [('start_a', 'i4'), ('read_len', 'i4'), ('read_order', 'i1'),
-             ('perfect_reads', 'S' + str(self.read_len)), ('corrupt_reads', 'S' + str(self.read_len)),
-             ('phred', 'S' + str(self.read_len))]
-
-    reads = np.core.recarray(dtype=dtype, shape=(2 if self.paired else 1) * template_locs.shape[0])
+    reads = np.core.recarray(dtype=ReadModel.dtype, shape=(2 if self.paired else 1) * template_locs.shape[0])
     reads['read_len'] = self.read_len
     if self.paired:
       reads['start_a'][::2] = template_locs

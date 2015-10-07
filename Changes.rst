@@ -2,13 +2,20 @@ Planned changes
 * change CLIs to allow parameter files to be fed in from std in (piped as a file)
 * vcf-write should have option to remove unzipped .vcf file
 * variants only reads - need to properly handle end of variants
-* finish implementing ad hoc filtering - het/hom filtering in standard population model
+* finish implementing ad hoc filtering for variants
+   - het/hom filtering in standard population model
+   - range filter for variations (put as core spec - like for reads - rather than pop)
 
 Possible changes
-* In read simulator/plugins change the 'S' for the sequences into 'obj' (like for variants)
-* See if we can abstract any of the read plugin code into a base class
 * Have a post filter in variant generation to do simple things like prune het/hom variants, prune variants too close
   together etc.
+
+2015.10.07
+* In read simulator/plugins 'SSS..' for the sequence/phred score strings has been changed into 'O' ('object', like for variants)
+* Some of the read plugin code has been abstracted into a base class, allowing us a standard dtype for the numpy arrays
+  and one common helper function (get_zero_reads)
+
+
 
 --- 1.18.0.dev0 ---
 

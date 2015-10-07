@@ -37,12 +37,13 @@ from itertools import izip
 import numpy as np
 
 import mitty.lib.util as mutil
+from mitty.plugins.reads.base_plugin import ReadModel
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class Model:
+class Model(ReadModel):
   """Stock read plugin that approximates Illumina reads"""
   def __init__(self, read_len=100, template_len_mean=250, template_len_sd=50, max_p_error=0.01, k=20, gc_bias=None):
     """Initialization
@@ -65,6 +66,7 @@ class Model:
     self.gc_bias = gc_bias
     if gc_bias is not None:
       self.gc_curve = self.initialize_gc_curve()
+    ReadModel.__init__(self, True)
 
   def initialize_gc_curve(self):
     """This creates a lookup table for the GC bias curve. We split the GC content range [0, 1.0] into 100 bins. We
@@ -89,14 +91,6 @@ class Model:
     # return zip(*[(t_loc, t_len) for r, t_loc, t_len in izip(rg, template_locs, template_lens)
     #              if r < gc_crv[int(100 * (s_cnt('G', t_loc, t_loc + t_len) + s_cnt('C', t_loc, t_loc + t_len)) / float(t_len))]])
     return template_locs[idx], template_lens[idx]
-
-  def get_zero_reads(self):
-    """Return empty array of reads. Useful for concatenation etc."""
-    dtype = [('start_a', 'i4'), ('read_len', 'i4'), ('read_order', 'i1'),
-             ('perfect_reads', 'S' + str(self.read_len)), ('corrupt_reads', 'S' + str(self.read_len)),
-             ('phred', 'S' + str(self.read_len))]
-    reads = np.recarray(dtype=dtype, shape=0)
-    return reads, True
 
   def get_reads(self, seq, seq_c, start_base=0, end_base=None, coverage=0.01, corrupt=False, seed=1):
     """The main simulation calls this function.
@@ -136,10 +130,7 @@ class Model:
 
     read_order = read_order_rng.randint(2, size=template_locs.shape[0])  # Which read comes first?
 
-    dtype = [('start_a', 'i4'), ('read_len', 'i4'), ('read_order', 'i1'),
-             ('perfect_reads', 'S' + str(self.read_len)), ('corrupt_reads', 'S' + str(self.read_len)),
-             ('phred', 'S' + str(self.read_len))]
-    reads = np.recarray(dtype=dtype, shape=2 * template_locs.shape[0])
+    reads = np.recarray(dtype=ReadModel.dtype, shape=2 * template_locs.shape[0])
     r_start, r_o, pr = reads['start_a'], reads['read_order'], reads['perfect_reads']
     reads['read_len'] = self.read_len
     reads['read_order'][::2] = read_order[:]
@@ -162,7 +153,7 @@ class Model:
 
     if corrupt:
       self.corrupt_reads(reads, error_loc_rng, base_choice_rng)
-    return reads, True
+    return reads, self.paired
 
   def corrupt_reads(self, reads, error_loc_rng, base_choice_rng):
     """Corrupt reads
