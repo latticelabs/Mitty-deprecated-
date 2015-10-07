@@ -1,39 +1,4 @@
 #!python
-from mitty.version import __version__
-
-__cmd__ = """genomes ({:s}): Generate simulated genomes from a simulation parameter file.
-
-Commandline::
-
-  Usage:
-    genomes generate <pfile>  [-v|-V] [-p]
-    genomes dryrun <pfile>
-    genomes inspect <dbfile>
-    genomes inspect sfs <chrom> <dbfile>
-    genomes write vcf <dbfile> <out_prefix>  [--sample_name=SN] [-v|-V]
-    genomes explain (parameters|(variant-model|spectrum-model|population-model) (all|<model_name>))
-    genomes list (variant-model|spectrum-model|population-model)
-
-  Options:
-    generate                Create a database of genomes by running the models specified
-    <pfile>                 Name for parameter file
-    dryrun                  Don't run simulation, but print out useful info about it
-    inspect                 Give summary information about a genome database
-    <dbfile>                Name of genome database file
-    sfs                     Print the site frequency spectrum
-    <chrom>                 Which chromosome's site frequncy spectrum to print
-    write                   Write out genome data from the database file in vcf format
-    vcf                     Write out all genomes in one multi-sample vcf file
-    <out_prefix>            Written files will have this prefix
-    --sample_name=SN        Name of sample. Leave out to write master list
-    explain                 Explain the parameters/variant model/population model
-    all                     Iterate over and explain all models
-    <model_name>            Explain specific model
-    list                    List the models
-    -v                      Dump log messages
-    -V                      Dump detailed log messages
-    -p                      Show progress bar""".format(__version__)
-
 __param__ = """Parameter file example::
 
   {
@@ -74,9 +39,6 @@ __param__ = """Parameter file example::
       }
     ]
   }"""
-__doc__ = __cmd__ + __param__
-# We split this up so that when we print the help, we can print it as separate pages. It got cluttered when printed all
-# together. We want this to be the docstring because that is a nice format for our generated documentation
 
 import json
 import os
