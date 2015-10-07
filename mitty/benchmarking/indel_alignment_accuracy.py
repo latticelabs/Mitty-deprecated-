@@ -91,7 +91,7 @@ def categorize_data_from_one_chromosome(bam_fp, pop, ch, sample_name=None, cat_r
 class NumpyJsonEncoder(json.JSONEncoder):
   def default(self, obj):
     if isinstance(obj, np.ndarray):
-      return json.dumps(obj.tolist())
+      return obj.tolist()
     return json.JSONEncoder.default(self, obj)
 
 
@@ -110,7 +110,7 @@ def cli(perbam, out_json, vdb, sample_name, indel_range):
     cat_read_counts = categorize_data_from_one_chromosome(
       bam_fp, pop, ch, sample_name=sample_name, cat_read_counts=cat_read_counts, max_indel=indel_range)
 
-  json.dump(cat_read_counts, open(out_json, 'w'), cls=NumpyJsonEncoder, indent=2)
+  json.dump(cat_read_counts, open(out_json, 'w'), cls=NumpyJsonEncoder)
 
 if __name__ == '__main__':
   cli()
