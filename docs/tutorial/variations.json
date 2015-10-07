@@ -8,7 +8,7 @@
   },
   "population_model": {
     "standard": {
-      "sample_size": 100
+      "sample_size": 1000
     }
   },
   "site_model": {
@@ -33,14 +33,14 @@
       "uniformdel": {
         "p": 0.0001,
         "min_len": 1,
-        "max_len": 50
+        "max_len": 21
       }
     },
     {
       "uniformins": {
         "p": 0.0001,
         "min_len": 1,
-        "max_len": 50
+        "max_len": 21
       }
     }
   ]

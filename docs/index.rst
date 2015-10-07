@@ -13,13 +13,12 @@ Mitty documentation
 
     introduction
     tutorial
-    additional_utils
-    theory_and_algorithms
     models
-    ramblings
 
+..    additional_utils
+..    theory_and_algorithms
+..    ramblings
 ..    files
-..    components
 
 Indices and tables
 ==================

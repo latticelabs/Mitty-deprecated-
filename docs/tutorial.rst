@@ -6,8 +6,8 @@ called ``bwa`` and a variant caller called ``samtools`` and we want to figure ou
 
 Our plan is as follows:
 
-* Consider a small reference genome (we will use the Red Alga, *Cyanidioschyzon merolae strain 10D*, record_, ftp_ and
-  pretend it's diploid)
+* Consider a small reference genome (we will use a made up genome *Reddus pentalgus* made up of the five largest
+chromosomes of the Red Alga, *Cyanidioschyzon merolae strain 10D*, record_, ftp_ and pretend it's a diploid organism)
 * Sprinkle some variants on the reference genome to create a population of 1000 sample genomes (why not?)
 * Take 30x Illumina like reads from one of the sample genomes
 * Use `bwa` to align the reads back to the reference genome
@@ -36,47 +36,49 @@ rather than the power-law distribution we see in nature (which gives us many sho
 To perform this simulation, we need to create a parameter file describing our simulation requirements and pass this to
 the ``genomes`` program. In the parameter file we need to describe three components:
 
- * the site frequency spectrum model,
- * the population generation model and,
- * the individual variant models themselves.
+ * the individual variant models
+ * the site frequency spectrum model and,
+ * the population generation model
 
 The variant models are used to sprinkle variations (mutations) on top of an input reference genome. These variations are
 put into a master list of variations. Each stock variation model has a parameter, ``p``, that sets the
 per base probability of observing the variation being generated. For example, setting ``p=0.001`` for the SNP plugin
 and ``p=0.0001`` for the delete plugin will give us SNP and delete densities that are similar to that observed in typical
-human samples. Internally, the plugins scale the probability according to the site frequency spectrum such that samples
+human samples.
+
+Internally, the plugins scale the probability according to the site frequency spectrum such that samples
 drawn from the master list contain variations obeying the site frequency spectrum and, overall, the desired ``p`` value.
+
+The population generation model specifies how to construct individual samples from the master list of variants. The
+default population model randomly selects variations for each sample from the master list following the site frequency
+spectrum. This default model is sufficient for large population simulations.
+
 For greater detail please see [theory and algorithms] XXX
 
-The genomes program performs several tasks. Typing ``genomes`` on the command line will produce a list of subcommands.
+The genomes program performs several tasks. Typing ``genomes`` on the command line will produce a list of sub-commands.
 
 .. command-output::  genomes
 
-For the task at hand we need the ``genomes generate`` tool.
+For the task at hand we need the ``genomes generate`` tool. We need to construct a parameter file which contains,
+among other things, specifications for variant models, spectrum models and population models.
 
-What are the variant models available to us?
+.. command-output:: genomes show parameters
 
-.. command-output:: genomes list variant-model
+What are the models available to us?
 
-What kind of parameters do they need?
+.. command-output:: genomes show model-list
 
-.. command-output::  genomes explain variant-model snp
+What kind of parameters does, for example, the SNP model need?
 
-What kind of site frequency spectrum models are available?
+.. command-output::  genomes show variant-model snp
 
-.. command-output::  genomes list spectrum-model
+The spectrum model?
 
-The double exp model sounds interesting
+.. command-output::  genomes show spectrum-model double_exp
 
-.. command-output:: genomes explain spectrum-model double_exp
+The standard population model?
 
-What are the population models available to us?
-
-.. command-output:: genomes list population-model
-
-An example parameter snippet?
-
-.. command-output:: genomes explain population-model standard
+.. command-output:: genomes show population-model standard
 
 Let us create a parameter file for the simulations, calling it ``variations.json``:
 
@@ -84,11 +86,11 @@ Let us create a parameter file for the simulations, calling it ``variations.json
     :language: json
     :linenos:
 
-Note that if we are happy with a default plugin parameter, we can omit that in the parameter file.
+*Note that if we are happy with a default plugin parameter, we can omit that in the parameter file.*
 
 Before we run the actual simulation, let's make sure the site frequency spectrum looks satisfactory
 
-.. command-output:: genomes dryrun tutorial/variations.json
+.. command-output:: genomes generate --dry-run tutorial/variations.json
 
 Let's run this command and create a database of simulated genomes
 
@@ -96,65 +98,68 @@ Let's run this command and create a database of simulated genomes
 
 (*Using the -v option will give detailed logger messages, using the -p option will give a progress bar*).
 
-Let's take a peek at the produced genomes database using the inspect function
+Let's take a peek at the produced genome population database:
 
-.. command-output:: genomes inspect tutorial/red_alga_genomes.db
+.. command-output:: genomes genome-file summary tutorial/red_alga_genomes.h5
 
 We can also take a look at the site frequency spectrum in the generated population, for chromosome 1, for example
 
-.. command-output:: genomes inspect sfs 1 ../examples/demo/Out/red_alga_genomes.db
+.. command-output:: genomes genome-file sfs tutorial/red_alga_genomes.h5 1
 
 Right now, all our genomes are in a database. The rest of the world works in VCF files, so let's write out one of the
 samples as a VCF file
 
-.. command-output:: genomes write vcf ../examples/demo/Out/red_alga_genomes.db ../examples/demo/Out/red_alga 3
-.. command-output:: head -n 20 ../examples/demo/Out/red_alga_s3.vcf
+.. command-output:: genomes genome-file write-vcf tutorial/red_alga_genomes.h5 tutorial/red_alga --sample-name 'g0_s0'
+.. command-output:: head -n 30 tutorial/red_alga.vcf | tail -n 10
+    :shell:
 
 Things seem to have run satisfactorily. Note that we produce phased VCF files and we also use the notation `1|0` since we
 have complete knowledge of the phasing. Now let's generate a bag of reads from this genome.
 
 Taking reads
 ------------
-We will use the `reads` program to generate a fastq file of reads from the selected genome.
+We will use the `reads` program to generate a fastq file of reads from the selected genome. We could do with a refresher
+on how to create a parameters file for `reads`:
 
-.. command-output:: reads
+.. command-output:: reads show parameters
 
-We know how to get help for writing the parameter file
+And what sort of read models are currently available?
 
-.. command-output:: reads explain parameters
-
-What sort of read models are currently available?
-
-.. command-output:: reads list
+.. command-output:: reads show model-list
 
 ``simple_illumina`` sounds promising, what kind of parameter file does it need?
 
-.. command-output:: reads explain model simple_illumina
+.. command-output:: reads show read-model simple_illumina
 
-Ok, let's put together a parameter file for our experiment, let's call it `illumina_reads.json`:
+Ok, let's put together a parameter file for our experiment, let's call it `reads.json`:
 
-.. literalinclude:: ../examples/demo/illumina_reads.json
+.. literalinclude:: tutorial/reads.json
     :language: json
     :linenos:
 
 Let's run this command and create some reads from the variant genome
 
-.. command-output::  reads generate ../examples/demo/illumina_reads.json -v
+.. command-output::  reads generate tutorial/reads.json -v
 
 Testing alignment accuracy of BWA MEM
 -------------------------------------
 First, use BWA-MEM to create an alignment:
 
-.. command-output:: bwa index ../examples/data/red_alga.fa.gz
+.. command-output:: bwa index tutorial/red_alga.fa.gz
     :ellipsis: 1,-2
-.. command-output:: bwa mem -t 8 -p ../examples/data/red_alga.fa.gz  ../examples/demo/Out/reads_c.fq > ../examples/demo/Out/temp.sam
+.. command-output:: bwa mem -t 8 -p tutorial/red_alga.fa.gz  tutorial/reads_c.fq > tutorial/temp.sam
     :shell:
     :ellipsis: 1,-2
-.. command-output:: samtools view -Sb  ../examples/demo/Out/temp.sam > ../examples/demo/Out/temp.bam
+.. command-output:: samtools view -Sb  tutorial/temp.sam > tutorial/temp.bam
     :shell:
 
-.. command-output:: samtools sort ../examples/demo/Out/temp.bam  ../examples/demo/Out/reads
-.. command-output:: samtools index ../examples/demo/Out/reads.bam
+.. command-output:: samtools sort tutorial/temp.bam  tutorial/reads
+.. command-output:: samtools index tutorial/reads.bam
+
+Let's check the alignments:
+
+.. command-output:: samtools tview -p NC_010127.1:350 -d T tutorial/reads.bam tutorial/red_alga.fa.gz
+
 
 We can use an alignment browser, such as [Tablet]_, to see the alignments
 
@@ -170,7 +175,7 @@ the corrupted reads file)
 Analyse the alignment
 .....................
 
-We use ``perfectbam`` to both analyze the performance of the aligner and to create a perfectly aligned ``.bam`` file from the
+We use ``perfectbam`` to both process_bams the performance of the aligner and to create a perfectly aligned ``.bam`` file from the
 ``.bam`` file output by the aligner.
 
 .. command-output::  perfectbam ../examples/demo/Out/reads.bam
