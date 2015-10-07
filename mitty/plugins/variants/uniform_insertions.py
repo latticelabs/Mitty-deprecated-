@@ -67,7 +67,7 @@ class Model:
     ins_list, len_list = mutil.markov_sequences(ref, ins_locs, ins_lens, pt_mat, ins_markov_rng)
     lengths = np.array(len_list, dtype='i4')
 
-    return ins_locs, ins_locs + 1, [ins[0] for ins in ins_list], ins_list, (1.0 - lengths / float(lengths.max())) if lengths.shape[0] else []
+    return ins_locs, ins_locs + 1, [ins[0] for ins in ins_list], ins_list, 0.5 * np.ones(len(ins_list), dtype=float)
 
 
 def test0():
