@@ -1,218 +1,196 @@
-"""In order to perform our alignment analysis we need to go through the BAM file and classify whether each read was
-correctly aligned or not. The following back-of-the-envelope calculations indicate to us what size of data we are
-expecting for a 30x illumina whole genome dataset:
+"""Go through a BAM file made from alignments on a FASTQ and do the following:
 
-# reads = 30 * 3e9 / 100 = 900e6 (900 million reads)
+1. BADBAM: Create a bam file containing only the misaligned reads. The read (CHROM, POS, CIGAR) are set to be the correct alignment
+and the original alignment (CHROM, POS, CIGAR) is encoded in extended tags (see below).
+The reason for setting the read CHROM, POS and CIGAR attributes to the correct one is to be able to merge several of
+these BAM files. Having the reads in the correct (and therefore fixed) order enables us to merge sort them
 
-If about 5% if these are misaligned/unmapped, we have 45 million misaligned reads
+2. PERBAM: Create a BAM file containing all reads with the correct (CHROM, POS, CIGAR) set and the aligned (CHROM,POS,CIGAR)
+stored using extended tags (same as above, details below).
 
-For debugging purposes we store complete read data for only the incorrectly aligned reads. These are stored in a
-database which offers efficient enough retrieval for debugging.
+If we are asked for just a read analysis then this file omits read data (such as sequence and quality scores) so that
+the resultant BAM is smaller and more manageable.
 
-For comprehensive data analysis, where we want to compute alignment accuracy over different spots of the genome, but are
-not interested in the read details - like sequence and base quality score - we only store the following information
+If we are asked for a perfect BAM then we also write the full read data into this file and can use this as a perfect
+input for variant callers and so on.
 
-chrom,
-cpy,
-start_pos  - 4 bytes  start of read
-stop_pos   - 4 bytes  end of read    = start of read + read length
-category   - 1 byte
----------------------
-             9 bytes
+Extended tags
 
-The category flags are defined as follows
-
----------------------------------
-| 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
----------------------------------
-          |   |   |   |   |   |
-          |   |   |   |   |   \------  1 => chrom was wrong
-          |   |   |   |   \----------  1 => pos was wrong
-          |   |   |   \--------------  1 => cigar was wrong
-          |   |   \------------------  1 => unmapped
-          |   \----------------------  1 => read from reference region (no variants)
-          \--------------------------  1 => mate is from reference region
-
-
-To store this data for a 30x WG Illumina run will take 9 x 900e6 ~ 8.1 GB
-
-This can  be loaded onto a modern machine. For this reason, we don't do anything very fancy and simply store the
-categorized reads as a set of compressed numpy arrays using readily available mechanisms.
-
-The categorized reads are stored in POS sorted order. The primary analysis we are are considering is to count the number
-of correct and total reads in the vicinity of a series of positions (usually variants) or for the whole sequence without
-regard to position (e.g. for reference reads).
-
-The most efficient way to do this is to walk through the sorted list of reads side by side with the sorted list of
-variants and count the relevant reads as we go.
-"""
-__param__ = """Given a bam file containing simulated reads aligned by a tool
-  1. Produce a new bam that re-aligns all reads so that their alignment is perfect
-
-  2. Produce a database file containing data about the misaligned and unmapped reads with the following tables::
-
-  summary::
-
-      chrom           - chromosome number
-      total_reads     - total reads on this chrom
-      incorrect_reads - total incorrect reads on this chrom
-      unmapped_reads  - unmapped reads
-      seq_len         - len of this sequence
-      seq_id          - full seq name as found in BAM header
-
-  reads::
-
-       qname              -  qname of the read
-       error_type         -  type of error 3 bit number  bit 0=chrom, 1=pos, 2=cigar, 3=unmapped
-       correct_chrom      -  correct chromosome number of read
-       correct_pos        -  correct position of read
-       correct_cigar      -  correct cigar of read
-       aligned_chrom      -  actual aligned chromosome
-       aligned_pos        -  actual aligned pos
-       aligned_cigar      -  actual aligned cigar
-       mapping_qual       -  mapping quality
-       mate_is_unmapped   -  is mate unmapped
-       seq                -  actual sequence string
-
-  3. Produce a compressed numpy array file with details of all the reads in the file
-
-      chrom_cc   - 8 bit int: bit 0 -> chrom copy 0=0, 1=1  bit 1 onwards -> original chromosome of read
-      pos        - 32 bit int: original position of read
-      code       - reference_read_bit | error_type
-                   bit 4 = 1 if read is from reference
-
-      We could have split up the arrays into no_of_chroms x 2 arrays and dropped the chromosome field for space savings
-      but this makes the code more complex since we no longer no how large to make the arrays.
-      It also makes computations on the whole genome faster.
-  """
-
+TAG TYPE VALUE
+Zc  A    0 - read comes from chrom copy 0, 1 - read comes from chrom copy 1
+ZE  i    Read stop (Read start is in POS)
+Ze  i    Mate stop (Mate start is available from other BAM info)
+Xf  A    0 - incorrectly mapped, 1 - correctly mapped, 2 - unmapped
+YR  A    0 - chrom was wrong, 1 - chrom was correct
+YP  A    0 - pos was wrong, 1 - pos was correct
+YC  A    0 - CIGAR was wrong, 1 - CIGAR was correct
+XR  i    Aligned chromosome
+XP  i    Aligned pos
+XC  Z    Aligned CIGAR"""
 import os
 import time
 import io
 
 import pysam
-from collections import Counter
 import click
 
+from mitty.version import __version__
 import mitty.benchmarking.creed as creed
 import mitty.lib.io as mio  # For the bam sort and index function
+from mitty.lib import DNA_complement
+from string import translate
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-def main(bam_in_fp, bam_out_fp=None, db_name=None, cr_fname=None, window=0, extended=False, show_progress_bar=False):
+def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=False, window=0, extended=False,
+                 flag_cigar_errors_as_misalignments=False,
+                 progress_bar_update_interval=100):
   """Main processing function that goes through the bam file, analyzing read alignment and writing out
 
   :param bam_in_fp:  Pointer to original BAM
-  :param bam_out_fp: Pointer to perfect BAM being created
-  :param db_name:    database name
-  :param cr_fname:   name of file to store analysed reads in
+  :param bad_bam_fp: Pointer to BADBAM being created
+  :param per_bam_fp: Pointer to PERBAM being created
+  :param full_perfect_bam: If True, write the read seq and qual scores too, to make a complete perfect bam
   :param window:     Tolerance window for deciding if read is correctly aligned
   :param extended:   If True write out new style CIGARs (With '=' and 'X')
-  :param show_progress_bar: Our famous progress bar, if we want it
+  :param flag_cigar_errors_as_misalignments: Set to True if we want CIGAR errors to count as misalignments
+  :param progress_bar_update_interval: how many reads to process before yielding (to update progress bar as needed)
   :return: number of reads processed
   """
-  debug_db = creed.ReadDebugDB(db_name) if db_name else None
-  cat_reads = creed.CategorizedReads(fname=cr_fname, seq_names=bam_in_fp.references, seq_lengths=bam_in_fp.lengths, copies=2) if cr_fname else None
-
-  total_read_count = bam_in_fp.mapped + bam_in_fp.unmapped
-  n0 = 0
-  delta_read_cnt = int(0.01 * total_read_count)
-
-  total_reads_cntr, incorrectly_aligned_reads_cntr, unmapped_reads_cntr = Counter(), Counter(), Counter()
-
+  n0 = progress_bar_update_interval
   analyze_read = creed.analyze_read
-  cra = cat_reads.append if cat_reads else lambda **kwargs: None  # The lambda is a NOP
+  for cnt, read in enumerate(bam_in_fp):
+    read_serial, chrom, cpy, ro, pos, rl, cigar, ro_m, pos_m, rl_m, cigar_m, chrom_c, pos_c, cigar_c, unmapped = analyze_read(read, window, extended)
+    if read_serial is None: continue  # Something wrong with this read.
+    read_is_misaligned = not (chrom_c and pos_c and (cigar_c or (not flag_cigar_errors_as_misalignments)))
+    if read_is_misaligned or full_perfect_bam:  # Need all the read info, incl seq and quality
+      new_read = read
+    else:  # Need only some tags and pos, chrom info
+      new_read = pysam.AlignedSegment()
 
-  with click.progressbar(length=total_read_count, label='Processing BAM', file=None if show_progress_bar else io.BytesIO()) as bar:
-    for n, read in enumerate(bam_in_fp):
-      read_serial, chrom, cpy, ro, pos, cigar, error_type = analyze_read(read, window, extended)
-      if read_serial is None: continue
-      total_reads_cntr[chrom] += 1
+    # File size note
+    #For a file with 202999 reads (per_bam, condensed - perfectbam -v -v -p reads.bam):
+    #With 'A' -> 2571157 Oct  5 14:23 reads_per.bam
+    #with 'i' -> 2576795 Oct  5 14:25 reads_per.bam
+    # -> 0.2 % increase in size. This is negligible (probably due to BAM compression)
+    # Hence we use 'i' instead of 'A' even for data that can fit in a byte. The extra hassle of conversion is not
+    # worth the tiny savings
 
-      if error_type & 0b1111:
-        if error_type & 0b1000:  # Unmapped read
-          unmapped_reads_cntr[chrom] += 1
-        else:
-          incorrectly_aligned_reads_cntr[chrom] += 1
-        if debug_db:
-          debug_db.write_read_to_misaligned_read_table(
-            [read_serial, read.qname, error_type, chrom, pos, cigar,
-             read.reference_id + 1, read.pos, read.cigarstring,
-             read.mapq, read.mate_is_unmapped, read.query_sequence])
+    # Zc  i    0 - read comes from chrom copy 0, 1 - read comes from chrom copy 1  ()
+    # ZE  i    Read stop (Read start is in POS)
+    # Ze  i    Mate stop (Mate end is available from other BAM info)
+    # Xf  i    0 - incorrectly mapped, 1 - correctly mapped, 2 - unmapped
+    # YR  i    0 - chrom was wrong, 1 - chrom was correct
+    # YP  i    0 - pos was wrong, 1 - pos was correct
+    # YC  i    0 - CIGAR was wrong, 1 - CIGAR was correct
+    # XR  i    Aligned chromosome
+    # XP  i    Aligned pos
+    # XC  Z    Aligned CIGAR
+    new_read.set_tags([('Zc', cpy, 'i'),
+                       ('ZE', pos + rl, 'i'),
+                       ('Ze', pos_m + rl_m, 'i'),
+                       ('Xf', 2 if unmapped else (chrom_c and pos_c), 'i'),
+                       ('YR', chrom_c, 'i'),
+                       ('YP', pos_c, 'i'),
+                       ('YC', cigar_c, 'i'),
+                       ('XR', read.reference_id, 'i'),
+                       ('XP', read.pos, 'i'),
+                       ('XC', read.cigarstring or '', 'Z')])
 
-      cra(chrom=chrom, cpy=cpy, pos=pos, read_len=read.query_length, code=error_type)
+    if read_is_misaligned:  # We need to check if the read was reverse complemented when it should have been and vv
+      if new_read.is_reverse != ro:  # The complement is not consistent
+        qual = new_read.qual[::-1]
+        new_read.seq = translate(new_read.seq, DNA_complement)[::-1]
+        new_read.qual = qual
 
-      if bam_out_fp:
-        # Now write out the perfect alignment
-        read.is_reverse = 1 - ro
-        read.mate_is_reverse = ro
-        read.mate_is_unmapped = False  # Gotta check this - what if mate is deep in an insert?
-        read.reference_id = chrom - 1
-        read.pos = pos
-        read.cigarstring = cigar  # What if this is deep in an insert?
-        bam_out_fp.write(read)
+    new_read.is_reverse = ro
+    new_read.mate_is_reverse = 1 - ro
+    new_read.is_unmapped = False
+    new_read.mate_is_unmapped = False  # Gotta check this - what if mate is deep in an insert?
+    new_read.pnext = pos_m
+    new_read.reference_id = chrom - 1
+    new_read.pos = pos
+    new_read.cigarstring = cigar  # What if this is deep in an insert?
 
-      if n - n0 > delta_read_cnt:
-        bar.update(n - n0)
-        n0 = n
+    if read_is_misaligned:
+      bad_bam_fp.write(new_read)
 
-  if debug_db:
-    debug_db.write_summary_to_db(total_reads_cntr, incorrectly_aligned_reads_cntr, unmapped_reads_cntr, bam_in_fp.header['SQ'])
-    debug_db.commit_and_create_db_indexes()
+    per_bam_fp.write(new_read)
 
-  if cat_reads: cat_reads.finalize()
+    n0 -= 1
+    if n0 == 0:
+      yield cnt
+      n0 = progress_bar_update_interval
+  yield cnt + 1  #  cnt starts from 0 actually ...
 
-  return int(total_read_count)
+
+def process_bams(in_bam_fname, bad_bam_fname, per_bam_fname, flag_cigar_errors, perfect_bam, window, x, p):
+  bam_in_fp = pysam.AlignmentFile(in_bam_fname, 'rb')
+
+  def true2str(v): return 'true' if v else 'false'
+
+  new_header = bam_in_fp.header
+  new_header['PG'].append({
+    'CL': 'perfectbam ....',
+    'ID': 'mitty-perfectbam',
+    'PN': 'perfectbam',
+    'VN': __version__,
+    'PP': new_header['PG'][-1]['ID'],
+    'DS': 'window={:d}, cigar errors result in misalignments={:s}, extended_cigar={:s}'.
+      format(window, true2str(flag_cigar_errors), true2str(x))
+  })
+
+  bad_bam_fp = pysam.AlignmentFile(bad_bam_fname, 'wb', header=new_header)
+  per_bam_fp = pysam.AlignmentFile(per_bam_fname, 'wb', header=new_header)
+
+  cnt = 0
+  t0 = time.time()
+  total_read_count = bam_in_fp.mapped + bam_in_fp.unmapped  # Sadly, this is only approximate
+  progress_bar_update_interval = int(0.01 * total_read_count)
+  with click.progressbar(length=total_read_count, label='Processing BAM',
+                         file=None if p else io.BytesIO()) as bar:
+    for cnt in process_file(bam_in_fp=bam_in_fp, bad_bam_fp=bad_bam_fp, per_bam_fp=per_bam_fp,
+                            full_perfect_bam=perfect_bam, window=window,
+                            flag_cigar_errors_as_misalignments=flag_cigar_errors, extended=x,
+                            progress_bar_update_interval=progress_bar_update_interval):
+      bar.update(progress_bar_update_interval)
+  t1 = time.time()
+  logger.debug('Analyzed {:d} reads in BAM in {:2.2f}s'.format(cnt, t1 - t0))
+
+
+def sort_and_index_bams(bad_bam_fname, per_bam_fname):
+  t0 = time.time()
+  mio.sort_and_index_bam(bad_bam_fname)
+  t1 = time.time()
+  logger.debug('Sort and indexed bad BAM in {:2.2f}s'.format(t1 - t0))
+
+  t0 = time.time()
+  mio.sort_and_index_bam(per_bam_fname)
+  t1 = time.time()
+  logger.debug('Sort and indexed perfect BAM in {:2.2f}s'.format(t1 - t0))
+
 
 @click.command()
 @click.version_option()
 @click.argument('inbam', type=click.Path(exists=True))
-@click.option('--perfectbam', help='Write out perfect BAM to this file', type=click.Path())
-@click.option('--debugdb', help='Write mis aligned reads to this database', type=click.Path())
-@click.option('--catreads', help='Write categorized reads to this file', type=click.Path())
+@click.option('--cigar-errors-are-misalignments', is_flag=True, help='CIGAR errors result in reads being classified as misaligned')
+@click.option('--perfect-bam', is_flag=True, help='Write out perfect BAM')
 @click.option('--window', help='Size of tolerance window', default=0, type=int)
 @click.option('-x', is_flag=True, help='Use extended CIGAR ("X"s and "="s) rather than traditional CIGAR (just "M"s)')
 @click.option('-v', count=True, help='Verbosity level')
 @click.option('-p', is_flag=True, help='Show progress bar')
-# [--perfectbam=PBAM] [--debugdb=DB] [--catreads=CR] [--window=WN] [-x] [-v] [-p]
-def cli(inbam, perfectbam, debugdb, catreads, window, x, v, p):
-  """Command line script entry point."""
+def cli(inbam, cigar_errors_are_misalignments, perfect_bam, window, x, v, p):
+  """Analyse BAMs produced from Mitty generated fastqs for alignment accuracy."""
   level = logging.DEBUG if v > 0 else logging.WARNING
   logging.basicConfig(level=level)
 
-  if perfectbam is None and debugdb is None and catreads is None:
-    print('No outputs specified. Easiest gig ever.')
-    return
+  bad_bam_fname = os.path.splitext(inbam)[0] + '_bad.bam'
+  per_bam_fname = os.path.splitext(inbam)[0] + '_per.bam'
 
-  bam_in_fp = pysam.AlignmentFile(inbam, 'rb')
-  bam_out_fp = pysam.AlignmentFile(perfectbam, 'wb', template=bam_in_fp) if perfectbam else None
-
-  if debugdb:
-    try:
-      os.remove(debugdb)
-    except OSError:
-      pass
-
-  if catreads:
-    try:
-      os.remove(catreads)
-    except OSError:
-      pass
-
-  t0 = time.time()
-  read_count = main(bam_in_fp=bam_in_fp, bam_out_fp=bam_out_fp, db_name=debugdb, cr_fname=catreads,
-                    window=window, extended=x, show_progress_bar=p)
-  if bam_out_fp: bam_out_fp.close()
-  t1 = time.time()
-  logger.debug('Analyzed {:d} reads in BAM in {:2.2f}s'.format(read_count, t1 - t0))
-
-  if perfectbam:
-    t0 = time.time()
-    mio.sort_and_index_bam(perfectbam)
-    t1 = time.time()
-    logger.debug('Sort and indexed perfect BAM in {:2.2f}s'.format(t1 - t0))
+  process_bams(inbam, bad_bam_fname, per_bam_fname, cigar_errors_are_misalignments, perfect_bam, window, x, p)
+  sort_and_index_bams(bad_bam_fname, per_bam_fname)
 
 
 if __name__ == "__main__":

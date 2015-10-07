@@ -1,81 +1,116 @@
-"""Given a categorized reads file and
-
-Usage:
-  alindel <catreads> <pkl> (--vdb=VDB --sample_name=SN|--vcf=VCF) [--indel=INDEL]
-
-Options:
-  <catreads>   Categorized reads file
-  <pkl>        name of output pkl file
-  --vdb=VDB    Genome database
-  --sample_name=SN Name of sample in genome database
-  --vcf=VCF    VCF file name instead of genome database + sample_name
-  --indel=INDEL  indel range [default: 100]"""
-import cPickle
+"""Given a perfect BAM file from perfectbam use the information in the extended tags to work out alignment accuracy
+parametrized by the sample indel lengths. Return information in a json file"""
+from itertools import izip
+import json
 
 import click
-import docopt
 import numpy as np
+import pysam
 
 import mitty.lib.variants as vr
-import mitty.lib.vcf2pop as vcf2pop
 import mitty.benchmarking.creed as creed
 
 
+def prepare_features(pop, ch, sample_name=None):
+  """Given a population database, a sample name and a chromosome, create a feature footprint vector to pass to
+  creed.count_reads_under_features.
+
+  :param pop: Population database
+  :param ch: chromosome number (1, 2, 3 ...)
+  :param sample_name: name of sample to take variant list from. Leave as None to take master list
+  """
+  sample_variant_list = [pop.get_variant_master_list(chrom=ch).variants] if sample_name is None else \
+    pop.get_sample_variant_list_for_chromosome(chrom=ch, sample_name=sample_name)
+  return [
+    {'footprint': {'start': svl['pos'], 'stop': svl['stop']},
+     'indel lengths': [len(a) - len(r) for a, r in izip(svl['alt'], svl['ref'])]}
+    for svl in sample_variant_list]
+
+
+def categorize_read_counts_by_indel_length(read_counts, indel_lengths, cat_read_counts=None, max_indel=100):
+  assert max_indel > 0
+  assert len(indel_lengths) == len(read_counts)
+  if cat_read_counts is None:
+    cat_read_counts = np.zeros(2 * max_indel + 1, dtype=[('x', 'int32'), ('correct', 'uint32'), ('total', 'uint32')])
+    cat_read_counts['x'] = range(-max_indel, max_indel + 1)  # The range of indel lengths we are assuming.
+  correct = cat_read_counts['correct']
+  total = cat_read_counts['total']
+  for rcc, rct, il in izip(read_counts['correct'], read_counts['total'], indel_lengths):
+    if abs(il) > max_indel: continue
+    correct[il + max_indel] += rcc
+    total[il + max_indel] += rct
+  return cat_read_counts
+
+
+def categorize_indels_by_length(indel_lengths, cat_counts=None, max_indel=100):
+  """Given an indel_length vector bin it by inde length and add to existing vector."""
+  if cat_counts is None:
+    cat_counts = np.zeros(2 * max_indel + 1, dtype=[('x', 'int32'), ('total', 'uint32')])
+    cat_counts['x'] = range(-max_indel, max_indel + 1)  # The range of indel lengths we are assuming.
+
+  indel_counts, _ = np.histogram(indel_lengths, bins=np.arange(-max_indel - 0.5, max_indel + 1.5),
+                                 range=[-max_indel, max_indel])
+  cat_counts['total'] += indel_counts
+  return cat_counts
+
+
+def categorize_data_from_one_chromosome(bam_fp, pop, ch, sample_name=None, cat_read_counts=None, max_indel=100):
+  """For the given perfect BAM file categorize reads under the variants indicated and return the data binned by indel
+  size
+
+  :param bam_fp: input bam file as a pysam AlignmentFile class
+  :param pop: Population database
+  :param ch: chromosome number (1, 2, 3 ...)
+  :param sample_name: name of sample to take variant list from. Leave as None to take master list
+  :param max_indel: Longest indels to consider
+  """
+  if cat_read_counts is None: cat_read_counts = {'fully_outside_features': [0, 0],
+                                                 'templates_within_feature_but_read_outside': None,
+                                                 'reads_within_feature': None,
+                                                 'indel_count': None}
+  features = prepare_features(pop, ch, sample_name)
+  f_chrom_id = bam_fp.header['SQ'][ch - 1]['SN']
+  for cpy, f_v in enumerate(features):
+    f_chrom_cpy = None if sample_name is None else cpy
+    f_start = f_v['footprint']['start']
+    f_stop = f_v['footprint']['stop']
+    read_counts = creed.count_reads_under_features(bam_fp, f_chrom_id, f_start, f_stop, f_chrom_cpy=f_chrom_cpy)
+    cat_read_counts['fully_outside_features'][0] += read_counts['fully_outside_features'][0]
+    cat_read_counts['fully_outside_features'][1] += read_counts['fully_outside_features'][1]
+    #for k in ['templates_within_feature_but_read_outside', 'reads_within_feature']:
+    for k in ['reads_within_feature', 'templates_within_feature_but_read_outside']:
+      cat_read_counts[k] = categorize_read_counts_by_indel_length(read_counts[k], f_v['indel lengths'],
+                                                                  cat_read_counts=cat_read_counts[k],
+                                                                  max_indel=max_indel)
+    cat_read_counts['indel_count'] = categorize_indels_by_length(f_v['indel lengths'], cat_read_counts['indel_count'],
+                                                                 max_indel=max_indel)
+
+  return cat_read_counts
+
+
+class NumpyJsonEncoder(json.JSONEncoder):
+  def default(self, obj):
+    if isinstance(obj, np.ndarray):
+      return obj.tolist()
+    return json.JSONEncoder.default(self, obj)
+
+
 @click.command()
-@click.argument('cat_fname', type=click.Path(exists=True))
-@click.argument('out_fname', type=click.Path())
+@click.argument('perbam', type=click.Path(exists=True))
 @click.argument('vdb', type=click.Path(exists=True))  # , help='File name of genome database')
-@click.argument('sample_name')  # , help='Name of sample')
-@click.option('--sample_name2', help='Sample name indicating graph variants in database')
-@click.option('--indel-range', help='Maximum base pair count of indels we analyze', type=int, default=50)
-@click.option('--indel-range2', help='Maximum base pair count of indels we analyze', type=int, default=10)
-def cli(cat_fname, out_fname, vdb, sample_name, sample_name2, indel_range, indel_range2):
+@click.argument('out-json', type=click.Path())
+@click.option('--sample-name', help='Name of sample. Leave out to test against population')
+@click.option('--indel-range', help='Maximum base pair count of indels we process', type=int, default=50)
+def cli(perbam, out_json, vdb, sample_name, indel_range):
+  """Compute alignment accuracy as a function of indel size"""
+  bam_fp = pysam.AlignmentFile(perbam, 'rb')
   pop = vr.Population(vdb)
-  cat_reads = creed.CategorizedReads(fname=cat_fname)
-  ref_reads, cat_counts = process_sample(pop=pop, cat_reads=cat_reads, sample_name=sample_name, sample_name2=sample_name2, max_indel=indel_range, max_indel2=indel_range2)
-  cPickle.dump({'rr': ref_reads, 'cc': cat_counts}, open(out_fname, 'wb'))
-
-  # args = docopt.docopt(__doc__)
-  # cat_fname=args['<catreads>']
-  # out_fname=args['<pkl>']
-  # max_indel = int(args['--indel'])
-  # if args['--vdb']:
-  #   pop = vr.Population(fname=args['--vdb'])
-  #   sample_name = args['--sample_name']
-  # else:
-  #   sample_name = 's1'
-  #   pop_fname = args['--vcf'] + '.pop.h5'
-  #   pop = vcf2pop.vcf_to_pop(vcf_fname=args['--vcf'], pop_fname=pop_fname, sample_name=sample_name)
-  # cat_reads = creed.CategorizedReads(fname=cat_fname)
-  # ref_reads, cat_counts = process_sample(pop=pop, cat_reads=cat_reads, sample_name=sample_name, sammax_indel=max_indel)
-  # cPickle.dump({'rr': ref_reads, 'cc': cat_counts}, open(out_fname, 'wb'))
-
-
-def process_sample(pop, cat_reads, sample_name, sample_name2=None, max_indel=500, max_indel2=10, max_dist=30):
-  ref_reads = np.array([[0, 0], [0, 0]], dtype='i4')
-  # rows -> one of pair is reference read, both of pair is reference read
-  # cols -> correct, total
-  cat_counts = None
-  cat_shared_counts = None
+  cat_read_counts = None
   for ch in pop.get_chromosome_list():
-    ml = pop.get_master_list(chrom=ch)
-    vl = pop.get_sample_chromosome(chrom=ch, sample_name=sample_name)
-    vl2 = pop.get_sample_chromosome(chrom=ch, sample_name=sample_name2) if sample_name2 else None
-    for cpy in [0, 1]:
-      rl = cat_reads.get_data(chrom=ch, cpy=cpy)
-      v_list = ml.variants[vl['index'][(vl['gt'] == cpy) | (vl['gt'] == 2)]]
-      rc, vc0 = creed.bucket_list(rl['pos'], rl['stop'], rl['cat'], v_list['pos'], v_list['stop'])
-      ref_reads += rc
-      if sample_name2:
-        v_list2 = ml.variants[vl2['index'][(vl2['gt'] == cpy) | (vl2['gt'] == 2)]]
-        nearest_v2 = creed.find_nearest_variant(v_list, v_list2)
-        cat_counts = creed.categorize_read_counts_by_indel_length_and_nearest_variant(
-          v1=v_list, v_read_counts=vc0, nearest_v2=nearest_v2, cat_counts=cat_counts, max_v1_indel=max_indel,
-          max_v2_indel=max_indel2, max_dist=max_dist)
-      else:
-        cat_counts = creed.categorize_read_counts_by_indel_length(variations=v_list, v_read_counts=vc0, cat_counts=cat_counts, max_indel=max_indel)
-  return ref_reads, cat_counts
+    cat_read_counts = categorize_data_from_one_chromosome(
+      bam_fp, pop, ch, sample_name=sample_name, cat_read_counts=cat_read_counts, max_indel=indel_range)
 
+  json.dump(cat_read_counts, open(out_json, 'w'), cls=NumpyJsonEncoder)
 
 if __name__ == '__main__':
   cli()

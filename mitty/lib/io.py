@@ -219,9 +219,9 @@ def write_single_sample_to_vcf(pop, out_fname, sample_name=None):
   contig_info = pop.get_genome_metadata()
   with vcf_for_writing(out_fname, [sample_name] if sample_name else [], contig_info) as fp:
     for ch in pop.get_chromosome_list():
-      ml = pop.get_master_list(ch)
+      ml = pop.get_variant_master_list(ch)
       write_chromosomes_to_vcf(fp, seq_id=pop.get_chromosome_metadata(ch)['seq_id'],
-                               chrom_list=[pop.get_sample_chromosome(ch, sample_name)] if sample_name else None,
+                               chrom_list=[pop.get_sample_variant_index_for_chromosome(ch, sample_name)] if sample_name else None,
                                master_list=ml)
 
 

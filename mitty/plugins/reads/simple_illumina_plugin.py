@@ -90,6 +90,14 @@ class Model:
     #              if r < gc_crv[int(100 * (s_cnt('G', t_loc, t_loc + t_len) + s_cnt('C', t_loc, t_loc + t_len)) / float(t_len))]])
     return template_locs[idx], template_lens[idx]
 
+  def get_zero_reads(self):
+    """Return empty array of reads. Useful for concatenation etc."""
+    dtype = [('start_a', 'i4'), ('read_len', 'i4'), ('read_order', 'i1'),
+             ('perfect_reads', 'S' + str(self.read_len)), ('corrupt_reads', 'S' + str(self.read_len)),
+             ('phred', 'S' + str(self.read_len))]
+    reads = np.recarray(dtype=dtype, shape=0)
+    return reads, True
+
   def get_reads(self, seq, seq_c, start_base=0, end_base=None, coverage=0.01, corrupt=False, seed=1):
     """The main simulation calls this function.
 

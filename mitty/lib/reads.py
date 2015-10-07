@@ -66,6 +66,9 @@ def expand_sequence(ref_seq, ml, chrom, copy):
 
 
 # TODO: make this code more elegant
+# TODO: write up algorithm. See if we can refactor it
+# TODO: revise algorithm to handle reads in the middle of insertions properly
+# TODO: Add appropriate tests for longer insertions POS and CIGAR
 def roll_cigars(variant_waypoints, reads):
   """Use beacons to generate POS and CIGAR strings for reads
 

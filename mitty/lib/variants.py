@@ -111,17 +111,27 @@ class Population:
     if sample_name not in self.fp.attrs.get('sample_names', []):
       self.fp.attrs['sample_names'] = list(self.fp.attrs.get('sample_names', [])) + [sample_name.encode('utf8')]
 
-  def get_master_list(self, chrom):
-    """This function loads the whole data set into memory. We have no need for chunked access right now"""
+  def get_variant_master_list(self, chrom):
+    """Return the whole master variant list for this chromosome"""
     ml = VariantList()
     if self.get_ml_key(chrom) in self.fp:
       ml.variants = self.fp[self.get_ml_key(chrom)][:]
     return ml
 
-  def get_sample_chromosome(self, chrom, sample_name):
-    """This function loads the whole data set into memory. We have no need for chunked access right now"""
+  def get_sample_variant_index_for_chromosome(self, chrom, sample_name):
+    """Return the indexes pointing to the master list for given sample and chromosome"""
     sample_key = self.get_sample_key(chrom) + '/' + sample_name
     return self.fp[sample_key][:] if sample_key in self.fp else np.array([], dtype=[('index', 'i4'), ('gt', 'i1')])
+
+  def get_sample_variant_list_for_chromosome(self, chrom, sample_name, ignore_zygosity=False):
+    """Return variant list for this sample and chromosome."""
+    ml = self.get_variant_master_list(chrom)
+    v_idx = self.get_sample_variant_index_for_chromosome(chrom, sample_name)
+    if ignore_zygosity:
+      return ml.variants[v_idx['index']]
+    else:
+      return [ml.variants[v_idx['index'][(v_idx['gt'] == 0) | (v_idx['gt'] == 2)]],
+              ml.variants[v_idx['index'][(v_idx['gt'] == 1) | (v_idx['gt'] == 2)]]]
 
   def get_sample_names(self):
     """Return a list of sample names"""

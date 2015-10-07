@@ -216,76 +216,60 @@ class ReadDebugDB:
 
 
 def analyze_read(read, window=100, extended=False):
-  """Given a read process the qname and read properties to determine what kind of alignment errors were made on it and
+  """Given a read process the qname and read properties to determine the correct (CHROM, POS, CIGAR) and determine
+  what kind of alignment errors were made on it
 
   :param read: a psyam AlignedSegment object
-  :returns read_serial, chrom, cpy, ro, pos, cigar, read_category
-
+  :returns read_serial, chrom, cpy, ro, pos, cigar, chrom_c, pos_c, cigar_c, unmapped, t_start, t_end
 
   read_serial = read_serial * 10 + 0 or 1 (for mate1 or mate2 of read) for paired reads
   read_serial = read_serial for un-paired reads
-
-  The category flags are defined as follows
-
-  ---------------------------------
-  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-  ---------------------------------
-            |   |   |   |   |   |
-            |   |   |   |   |   \------  1 => chrom was wrong
-            |   |   |   |   \----------  1 => pos was wrong
-            |   |   |   \--------------  1 => cigar was wrong
-            |   |   \------------------  1 => unmapped
-            |   \----------------------  1 => read from reference region (no variants)
-            \--------------------------  1 => mate is from reference region
   """
-  early_exit_value = [None] * 7
+  early_exit_value = [None] * 15
 
   # Not counted
   if read.is_secondary:
     return early_exit_value
 
+  ro_m, pos_m, rl_m, cigar_m = 0, 0, 0, ''  # These are the values passed in for unpaired reads
   # We should never actually fail this, unless a tool messes badly with the qname
   try:
+    #  'read_serial|chrom|copy|ro|pos|rlen|cigar|ro|pos|rlen|cigar'
     if read.is_paired:
       if read.is_read1:
-        rs, chrom, cpy, ro, pos, cigar, _, _, cigar1 = read.qname.split('|')  # We decode mate cigar to determine if mate is a reference read
+        rs, chrom, cpy, ro, pos, rl, cigar, ro_m, pos_m, rl_m, cigar_m = read.qname.split('|')
       else:
-        rs, chrom, cpy, _, _, cigar1, ro, pos, cigar = read.qname.split('|')
+        rs, chrom, cpy, ro_m, pos_m, rl_m, cigar_m, ro, pos, rl, cigar = read.qname.split('|')
       read_serial = int(rs) * 10 + (not read.is_read1)
     else:
-      rs, chrom, cpy, ro, pos, cigar = read.qname.split('|')[:6]  # For Wan-Ping :)
+      rs, chrom, cpy, ro, pos, rl, cigar = read.qname.split('|')[:9]
       read_serial = int(rs)
-    ro, chrom, cpy, pos = int(ro), int(chrom), int(cpy), int(pos)
+    ro, chrom, cpy, pos, rl, pos_m, rl_m = int(ro), int(chrom), int(cpy), int(pos), int(rl), int(pos_m), int(rl_m)
   except ValueError:
     logger.debug('Error processing qname: qname={:s}, chrom={:d}, pos={:d}'.format(read.qname, read.reference_id + 1, read.pos))
     return early_exit_value
 
-  # Do this before modifying the cigar
-  read_category = 0b000000
-  if not ('X' in cigar or 'I' in cigar or 'D' in cigar or 'S' in cigar):
-    read_category |= 0b010000
-  if read.is_paired:
-    if not ('X' in cigar1 or 'I' in cigar1 or 'D' in cigar1 or 'S' in cigar1):
-      read_category |= 0b100000
+  chrom_c, pos_c, cigar_c, unmapped = 1, 1, 1, 0
 
   if not extended:
     cigar = old_style_cigar(cigar)
 
   if read.is_unmapped:
-    read_category |= 0b1000
+    unmapped = 1
   else:
     if read.reference_id != chrom - 1:
-      read_category |= 0b0011  # chrom wrong, so pos and cigar wrong
+      chrom_c, pos_c = 0, 0  # chrom wrong, so pos wrong too
     else:
       if check_read(read_pos=read.pos, read_cigar=read.cigarstring, correct_pos=pos, correct_cigar=cigar, window=window) != 0b000:
-        read_category |= 0b0110  # pos and cigar are wrong
+        pos_c = 0
 
-    if read.cigarstring != cigar:
-      read_category |= 0b0100
+    if read.cigarstring != cigar:  # TODO Use check read for this?
+      cigar_c = 0
 
-  return read_serial, chrom, cpy, ro, pos, cigar, read_category
+  return read_serial, chrom, cpy, ro, pos, rl, cigar, ro_m, pos_m, rl_m, cigar_m, chrom_c, pos_c, cigar_c, unmapped
 
 
+# TODO: Revise algorithm to properly work with reads inside long insertions
 cigar_parser = re.compile(r'(\d+)(\D)')
 def check_read(read_pos, read_cigar, correct_pos, correct_cigar, window):
   """
@@ -313,81 +297,88 @@ def check_read(read_pos, read_cigar, correct_pos, correct_cigar, window):
   return cat
 
 
-def bucket_list(r_pos, r_stop, r_code, v_pos, v_stop, analyze_cigar=False):
-  """First run - ignoring CIGAR errors
+def count_reads_under_features(bam_fp, f_chrom_id, f_start, f_stop, f_chrom_cpy=None):
+  """Count correct/total reads under given features
 
-  :param r_pos:  array of read 'pos'  -> should be sorted
-  :param r_stop: array of read 'stop'
-  :param r_code: array of read category code
-  :param v_pos: start of bucket  -> should be sorted
-  :param v_stop: end of bucket
-  :param analyze_cigar: If True cigar errors count as errors
-  :return:
+  :param bam_fp: perfect BAM file with read alignment analysis in extended tags
+  :param f_chrom_id: chrom id of feature should allow us to fetch reads from the file
+  :param f_chrom_cpy: copy of chromosome features come from. Set to none if this does not matter
+  :param f_start: start of features -> Should be in ascending order
+  :param f_stop: end of features
+  :return: dict
+   {
+    "fully_outside_features": [correct, total],
+    "templates_within_feature_but_read_outside": recarray same size as f_pos. Fields are correct, total
+    "reads_within_feature": recarray same size as f_pos. Fields are correct, total
+   }
   """
-  # correct, total
-  v_win_start = 0  # Which variants do we check
-  v_win_stop = 0
-  v_count = v_pos.shape[0]
-  v_count_1 = v_count - 1
-  v_read_counts = np.zeros(v_count, dtype=[('correct', 'uint32'), ('total', 'uint32')])
-  v_correct = v_read_counts['correct']
-  v_total = v_read_counts['total']
-  ref_one_correct, ref_one_total = 0, 0
-  ref_both_correct, ref_both_total = 0, 0  # Both read and mate are from reference regions
+  non_feature_correct, non_feature_total = 0, 0
+  templates_within_feature_but_read_outside = np.zeros(len(f_start), dtype=[('correct', 'uint32'), ('total', 'uint32')])
+  twf_correct = templates_within_feature_but_read_outside['correct']
+  twf_total = templates_within_feature_but_read_outside['total']
+  reads_within_feature = np.zeros(len(f_start), dtype=[('correct', 'uint32'), ('total', 'uint32')])
+  rwf_correct = reads_within_feature['correct']
+  rwf_total = reads_within_feature['total']
 
-  for r0, r1, c in izip(r_pos, r_stop, r_code):
-    # If this is a reference read we can bucket it now and move on
-    if c & 0b10000:  # reference read
-      if c & 0b100000:  # mate is reference
-        ref_both_total += 1
-        if not (c & 0b1011):
-          ref_both_correct += 1
-      else:  # mate is not reference
-        ref_one_total += 1
-        if not (c & 0b1011):
-          ref_one_correct += 1
-      continue
+  f_win_start = 0  # The window over the features
+  f_win_stop = 0
+  f_count = len(f_start)
+  f_count_1 = f_count - 1
 
-    if v_count == 0: continue  # No variants, don't bother
+  for r in bam_fp.fetch(region=f_chrom_id):
+    if f_chrom_cpy is not None:
+      if r.get_tag('Zc') != f_chrom_cpy:  # Read comes from other chrom copy
+        continue
 
-    # This is a variant read and we have variants
+    r_start = r.pos
+    r_stop = r.get_tag('ZE')
+    rm_start = r.pnext
+    rm_stop = r.get_tag('Ze')
+
+    template_start = min(r_start, rm_start)
+    template_stop = max(r_stop, rm_stop)
 
     # Advance our variant window as needed
-    while v_stop[v_win_start] < r0:
-      if v_win_start < v_count_1:
-        v_win_start += 1
-      else:
-        break
-
-    if v_win_stop < v_count_1:  # Only need to advance if there is something left
-      while v_pos[v_win_stop + 1] < r1:
-        v_win_stop += 1
-        if v_win_stop == v_count_1:
+    if f_win_start < f_count_1:  # Only need to advance if there is something left
+      while f_stop[f_win_start] < template_start:
+        if f_win_start < f_count_1:
+          f_win_start += 1
+        else:
           break
 
-    for n in range(v_win_start, v_win_stop + 1):
-      if r0 <= v_stop[n] and r1 >= v_pos[n]:
-        v_total[n] += 1
-        if not (c & 0b1011):  # no chrom, pos or unmapped errors
-          v_correct[n] += 1
+    if f_win_stop < f_count_1:  # Only need to advance if there is something left
+      while f_start[f_win_stop + 1] < template_stop:
+        f_win_stop += 1
+        if f_win_stop == f_count_1:
+          break
 
-  return np.array([[ref_one_correct, ref_one_total], [ref_both_correct, ref_both_total]], dtype='i4'), v_read_counts
+    this_read_is_within_a_feature = False
+    this_template_is_within_a_feature = False
 
+    if f_win_start <= f_win_stop < f_count:
+      # Now test this read against every feature
+      for n in range(f_win_start, f_win_stop + 1):
+        if r_start <= f_stop[n] and r_stop >= f_start[n]:
+          this_read_is_within_a_feature = True
+          rwf_total[n] += 1
+          if r.get_tag('Xf') == 1: rwf_correct[n] += 1
 
-def categorize_read_counts_by_indel_length(variations, v_read_counts, cat_counts=None, max_indel=100):
-  assert max_indel > 0
-  assert len(variations) == len(v_read_counts)
-  if cat_counts is None:
-    cat_counts = np.zeros(2 * max_indel + 1, dtype=[('x', 'int32'), ('correct', 'uint32'), ('total', 'uint32')])
-    cat_counts['x'] = range(-max_indel, max_indel + 1)  # The range of indel lengths we are assuming.
-  correct = cat_counts['correct']
-  total = cat_counts['total']
-  for v, c in izip(variations, v_read_counts):
-    d = len(v['alt']) - len(v['ref'])
-    if abs(d) > max_indel: continue
-    total[d + max_indel] += c['total']
-    correct[d + max_indel] += c['correct']
-  return cat_counts
+      if not this_read_is_within_a_feature:
+        for n in range(f_win_start, f_win_stop + 1):
+          if rm_start <= f_stop[n] and rm_stop >= f_start[n]:
+            this_template_is_within_a_feature = True
+            twf_total[n] += 1
+            if r.get_tag('Xf') == 1: twf_correct[n] += 1
+
+    if not (this_read_is_within_a_feature or this_template_is_within_a_feature):
+      non_feature_total += 1
+      if r.get_tag('Xf') == 1: non_feature_correct += 1
+
+  return {
+    "fully_outside_features": [non_feature_correct, non_feature_total],
+    "templates_within_feature_but_read_outside": templates_within_feature_but_read_outside,
+    "reads_within_feature": reads_within_feature
+  }
 
 
 def find_nearest_variant(v1, v2):

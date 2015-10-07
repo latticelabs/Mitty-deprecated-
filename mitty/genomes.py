@@ -82,6 +82,7 @@ import json
 import os
 import time
 import io
+from itertools import izip
 
 import click
 import numpy as np
@@ -269,9 +270,28 @@ def summary(dbfile):
 def print_sfs(dbfile, chrom):
   """Print site frequency spectrum for chrom in file"""
   pop = vr.Population(fname=dbfile)
-  ml = pop.get_master_list(chrom)
+  ml = pop.get_variant_master_list(chrom)
   print('Site frequency spectrum for chrom {:d}'.format(chrom))
   print(ml)
+
+
+@g_file.command('indel')
+@click.argument('dbfile', type=click.Path(exists=True))
+@click.argument('chrom', type=int)
+@click.option('--sample-name', help='Name of sample. Omit to get stats for master list')
+@click.option('--max-indel', help='Range of indels to consider', default=50)
+def indel_count(dbfile, chrom, sample_name, max_indel):
+  """Indel length distribution for given chromosome"""
+  pop = vr.Population(fname=dbfile)
+  sample_variant_list = pop.get_variant_master_list(chrom=chrom).variants if sample_name is None else \
+    pop.get_sample_variant_list_for_chromosome(chrom=chrom, sample_name=sample_name, ignore_zygosity=True)
+  indel_lengths = [len(a) - len(r) for a, r in izip(sample_variant_list['alt'], sample_variant_list['ref'])]
+  cnts, _ = np.histogram(indel_lengths, bins=np.arange(-max_indel - 0.5, max_indel + 1.5),
+                                 range=[-max_indel, max_indel])
+  print('Indel distribution: Chrom {:d}'.format(chrom))
+  print('  LEN | COUNT')
+  for l, c in zip(np.arange(-max_indel, max_indel + 1), cnts):
+    print('{:5d} | {:d}'.format(l, c))
 
 
 @cli.group()

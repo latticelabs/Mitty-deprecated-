@@ -29,7 +29,7 @@ setup(
                           'perfectbam = mitty.benchmarking.perfectbam:cli',
                           'alindel = mitty.benchmarking.indel_alignment_accuracy:cli',
                           'vcf2pop = mitty.lib.vcf2pop:cli',
-                          'plot_indel = mitty.benchmarking.indel_plot:cli',
+                          'alindel_plot = mitty.benchmarking.indel_alignment_accuracy_plot:cli',
                           'plot_align = mitty.util.plot_align:cli [plot]',
                           'plot_gc_bias = mitty.util.plot_gc_bias:cli [plot]',
                           'mismat = mitty.util.mismat:cli',
@@ -47,6 +47,6 @@ setup(
       'h5py>=2.5.0'
     ],
     extras_require = {
-      'plot': ['matplotlib>=1.3.0']
+      'plot': ['matplotlib>=1.3.0', 'scipy']
     }
 )
