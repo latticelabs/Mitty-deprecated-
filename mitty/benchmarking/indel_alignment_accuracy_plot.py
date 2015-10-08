@@ -60,12 +60,15 @@ def decorate_axes(ax, axes_spec):
       plt.setp(ax[ak],
                xlim=x_lim[k1], xticks=x_ticks[k1], xticklabels=[] if k2 in ['A', 'B'] else x_tick_labels[k1],
                ylim=y_lim,
-               yticks=[] if k1 != 'DEL' else y_ticks,
+               yticks=y_ticks,
                yticklabels=[] if k1 != 'DEL' else y_tick_labels)
       if ak == 'C-REF/SNP':
         ax[ak].set_xticklabels(x_tick_labels[k1], rotation=90)
 
       ax[ak].xaxis.grid('true')  # The vertical guide lines
+
+      if k2 == 'A':
+        ax[ak].yaxis.grid('true')  # The horizontal guide lines
 
       # Ticks and axes
       for p in ['left', 'top', 'right']:
@@ -73,10 +76,12 @@ def decorate_axes(ax, axes_spec):
         ax[ak].spines[p].set_visible(False)
 
       ax[ak].minorticks_off()
-      if k1 == 'DEL' or k2 == 'C':
+      ax[ak].tick_params(direction='in', left='off', top='off', right='off')
+      if k2 == 'C':
+        ax[ak].tick_params(direction='out', length=3, left='off', top='off', right='off', pad=0)
+      if k1 == 'DEL':
         ax[ak].tick_params(direction='out', length=3, top='off', right='off', pad=0)
-      else:
-        ax[ak].tick_params(direction='in', left='off', top='off', right='off')
+
 
   ax['A-REF/SNP'].title.set(text=axes_spec['title'])
   ax['A-DEL'].legend(loc='lower left', fontsize=8)
@@ -187,7 +192,7 @@ def cli(f, o, l, win, indel_range, title):
   axes_specs = {
     'title': title,
     'x-lim': [-indel_range, indel_range],
-    'x-ticks': [-indel_range, 0, indel_range],
+    'x-ticks': [-indel_range, -1, 0, 1, indel_range],
     'A': {'y-lim': [0, 105], 'y-ticks': [25, 50, 75, 95, 100]},
     'B': {'y-lim': [1, max_read_cnt * 2],
           'y-ticks': [1, max_read_cnt/100, max_read_cnt/10, max_read_cnt],
