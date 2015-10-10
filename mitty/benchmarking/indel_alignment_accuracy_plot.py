@@ -48,7 +48,7 @@ def decorate_axes(ax, axes_spec):
   x_lim = {'DEL': [fxl[0], -1], 'REF/SNP': [-1, 1], 'INS': [1, fxl[1]]}
   fxt = axes_spec['x-ticks']
   x_ticks = {'DEL': [t for t in fxt if t < 0], 'REF/SNP': [-0.5, 0.5], 'INS': [t for t in fxt if t > 0]}
-  x_tick_labels = {'DEL': x_ticks['DEL'], 'REF/SNP': ['Ref', 'SNP'], 'INS': x_ticks['INS']}
+  x_tick_labels = {'DEL': [abs(x) for x in x_ticks['DEL']], 'REF/SNP': ['Ref', 'SNP'], 'INS': x_ticks['INS']}
 
   for k1 in ['DEL', 'REF/SNP', 'INS']:
     for k2 in ['A', 'B', 'C']:
@@ -76,19 +76,18 @@ def decorate_axes(ax, axes_spec):
         ax[ak].spines[p].set_visible(False)
 
       ax[ak].minorticks_off()
-      ax[ak].tick_params(direction='in', left='off', top='off', right='off')
+      ax[ak].tick_params(bottom='off', left='off', top='off', right='off')
       if k2 == 'C':
-        ax[ak].tick_params(direction='out', length=3, left='off', top='off', right='off', pad=0)
+        ax[ak].tick_params(direction='out', length=3, bottom='on', pad=3)
       if k1 == 'DEL':
-        ax[ak].tick_params(direction='out', length=3, top='off', right='off', pad=0)
-
+        ax[ak].tick_params(direction='out', length=3, left='on', pad=2)
 
   ax['A-REF/SNP'].title.set(text=axes_spec['title'])
   ax['A-DEL'].legend(loc='lower left', fontsize=8)
 
   # X-labels
-  ax['C-DEL'].set_xlabel('Deletions')
-  ax['C-INS'].set_xlabel('Insertions')
+  ax['C-DEL'].set_xlabel('Deletions (bp)')
+  ax['C-INS'].set_xlabel('Insertions (bp)')
 
   # Y-labels
   ax['A-DEL'].set_ylabel('% reads\ncorrectly aligned')
@@ -186,8 +185,8 @@ def cli(f, o, l, win, indel_range, title):
     max_indel_cnt = max(max_indel_cnt, data['indel_count']['total'].max())
     plot_indel_accuracy(data['reads_within_feature'], data['fully_outside_features'],
                         kernel_size=win, color=this_plot_spec['color_spec'], label=this_plot_spec['label'], ax=ax)
-    plot_read_count(data['reads_within_feature'], data['fully_outside_features'], color='k', ax=ax)
-    plot_var_count(data['indel_count'], color='k', ax=ax)
+  plot_read_count(data['reads_within_feature'], data['fully_outside_features'], color='k', ax=ax)
+  plot_var_count(data['indel_count'], color='k', ax=ax)
 
   axes_specs = {
     'title': title,
