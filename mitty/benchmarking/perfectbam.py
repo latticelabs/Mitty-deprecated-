@@ -12,21 +12,7 @@ If we are asked for just a read analysis then this file omits read data (such as
 the resultant BAM is smaller and more manageable.
 
 If we are asked for a perfect BAM then we also write the full read data into this file and can use this as a perfect
-input for variant callers and so on.
-
-Extended tags
-
-TAG TYPE VALUE
-Zc  A    0 - read comes from chrom copy 0, 1 - read comes from chrom copy 1
-ZE  i    Read stop (Read start is in POS)
-Ze  i    Mate stop (Mate start is available from other BAM info)
-Xf  A    0 - incorrectly mapped, 1 - correctly mapped, 2 - unmapped
-YR  A    0 - chrom was wrong, 1 - chrom was correct
-YP  A    0 - pos was wrong, 1 - pos was correct
-YC  A    0 - CIGAR was wrong, 1 - CIGAR was correct
-XR  i    Aligned chromosome
-XP  i    Aligned pos
-XC  Z    Aligned CIGAR"""
+input for variant callers and so on."""
 import os
 import time
 import io
@@ -42,6 +28,30 @@ from string import translate
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+__extended_bam_tags_info__ = """
+Extended tags
+
+TAG TYPE VALUE
+Zc  i    0 - read comes from chrom copy 0, 1 - read comes from chrom copy 1
+ZE  i    Read stop (Read start is in POS)
+Ze  i    Mate stop (Mate start is available from other BAM info)
+Xf  i    0 - incorrectly mapped, 1 - correctly mapped, 2 - unmapped
+YR  i    0 - chrom was wrong, 1 - chrom was correct
+YP  i    0 - pos was wrong, 1 - pos was correct
+YC  i    0 - CIGAR was wrong, 1 - CIGAR was correct
+XR  i    Aligned chromosome
+XP  i    Aligned pos
+XC  Z    Aligned CIGAR
+"""
+
+
+def print_tags(ctx, param, value):
+  if not value or ctx.resilient_parsing:
+    return
+  click.echo(__extended_bam_tags_info__)
+  ctx.exit()
 
 
 def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=False, window=0, extended=False,
@@ -78,16 +88,7 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
     # Hence we use 'i' instead of 'A' even for data that can fit in a byte. The extra hassle of conversion is not
     # worth the tiny savings
 
-    # Zc  i    0 - read comes from chrom copy 0, 1 - read comes from chrom copy 1  ()
-    # ZE  i    Read stop (Read start is in POS)
-    # Ze  i    Mate stop (Mate end is available from other BAM info)
-    # Xf  i    0 - incorrectly mapped, 1 - correctly mapped, 2 - unmapped
-    # YR  i    0 - chrom was wrong, 1 - chrom was correct
-    # YP  i    0 - pos was wrong, 1 - pos was correct
-    # YC  i    0 - CIGAR was wrong, 1 - CIGAR was correct
-    # XR  i    Aligned chromosome
-    # XP  i    Aligned pos
-    # XC  Z    Aligned CIGAR
+    # Needs to be consistent with __extended_bam_tags_info__
     new_read.set_tags([('Zc', cpy, 'i'),
                        ('ZE', pos + rl, 'i'),
                        ('Ze', pos_m + rl_m, 'i'),
@@ -123,7 +124,7 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
     if n0 == 0:
       yield cnt
       n0 = progress_bar_update_interval
-  yield cnt + 1  #  cnt starts from 0 actually ...
+  yield cnt + 1  # cnt starts from 0 actually ...
 
 
 def process_bams(in_bam_fname, bad_bam_fname, per_bam_fname, flag_cigar_errors, perfect_bam, window, x, p):
@@ -175,21 +176,33 @@ def sort_and_index_bams(bad_bam_fname, per_bam_fname):
 @click.command()
 @click.version_option()
 @click.argument('inbam', type=click.Path(exists=True))
-@click.option('--cigar-errors-are-misalignments', is_flag=True, help='CIGAR errors result in reads being classified as misaligned')
-@click.option('--perfect-bam', is_flag=True, help='Write out perfect BAM')
+@click.option('--tags', is_flag=True, callback=print_tags, expose_value=False, is_eager=True, help='Print documentation for extended BAM tags')
+@click.option('--cigar-errors', is_flag=True, help='CIGAR errors result in reads being classified as misaligned')
+@click.option('--perfect-bam', is_flag=True, help='Perfect BAM has full read information')
 @click.option('--window', help='Size of tolerance window', default=0, type=int)
 @click.option('-x', is_flag=True, help='Use extended CIGAR ("X"s and "="s) rather than traditional CIGAR (just "M"s)')
 @click.option('-v', count=True, help='Verbosity level')
 @click.option('-p', is_flag=True, help='Show progress bar')
-def cli(inbam, cigar_errors_are_misalignments, perfect_bam, window, x, v, p):
-  """Analyse BAMs produced from Mitty generated fastqs for alignment accuracy."""
+def cli(inbam, cigar_errors, perfect_bam, window, x, v, p):
+  """Analyse BAMs produced from Mitty generated FASTQs for alignment accuracy.
+  Produces two BAM files with reads having correct POS, CIGAR values. The original
+  alignment information is written in the extended tags (use --tags for documentation)
+
+  \b
+    <INBAM>_bad.bam - contains just the misaligned reads
+    <INBAM>_per.bam - contains all reads. If --perfect-bam flag is set, full read information
+                      is written, otherwise only the POS and CIGAR values are filled out
+
+  The <INBAM>_bad.bam file can be used for analyzing misalignments whereas the <INBAM>_per.bam file is
+  important for analyzing true positive alignment rates.
+  """
   level = logging.DEBUG if v > 0 else logging.WARNING
   logging.basicConfig(level=level)
 
   bad_bam_fname = os.path.splitext(inbam)[0] + '_bad.bam'
   per_bam_fname = os.path.splitext(inbam)[0] + '_per.bam'
 
-  process_bams(inbam, bad_bam_fname, per_bam_fname, cigar_errors_are_misalignments, perfect_bam, window, x, p)
+  process_bams(inbam, bad_bam_fname, per_bam_fname, cigar_errors, perfect_bam, window, x, p)
   sort_and_index_bams(bad_bam_fname, per_bam_fname)
 
 
