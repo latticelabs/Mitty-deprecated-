@@ -41,6 +41,27 @@ __param__ = """Parameter file example::
 
   }
 """
+
+__qname_info__ = """
+The qname is interpreted as follows:
+(Note that the qname is identical for mates from a pair of reads
+This is a requirement of the FASTQ convention)
+
+@read_serial|chrom|copy|ro|pos|rlen|cigar|ro|pos|rlen|cigar
+
+read_serial = The read serial is an increasing number
+chrom       = chromosome number the read is from
+copy        = copy of the chromosome the read is from.
+              (Makes a difference for heterozygous variant bearing reads)
+                                                                      --@
+ro          = 0 - forward strand read (matched to the ref as is)        |
+              1 - reverse strand read (has to be reverse complemented)  |
+pos         = start position of read in reference sequence (0 indexed)  |
+rlen        = length of read                                            |
+cigar       = correct CIGAR string                                      |
+                                               repeated for each mate --@
+"""
+
 import json
 import os
 import time
@@ -272,8 +293,16 @@ def write_reads_to_file(fastq_fp_1, fastq_fp_2,
   return template_count, bases_covered
 
 
+def print_qname(ctx, param, value):
+  if not value or ctx.resilient_parsing:
+    return
+  click.echo(__qname_info__)
+  ctx.exit()
+
+
 @click.group()
 @click.version_option()
+@click.option('--qname', is_flag=True, callback=print_qname, expose_value=False, is_eager=True, help='Print documentation for information encoded in qname')
 def cli():
   """Mitty read simulator"""
   pass
