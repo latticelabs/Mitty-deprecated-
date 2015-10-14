@@ -103,7 +103,7 @@ class NumpyJsonEncoder(json.JSONEncoder):
 @click.option('--indel-range', help='Maximum base pair count of indels we process', type=int, default=50)
 def cli(perbam, out_json, vdb, sample_name, indel_range):
   """Compute alignment accuracy as a function of SNPs and indels in sample_name being covered by the reads in PERBAM.
-  PERBAM should be from the perfectbam program"""
+  PERBAM should be from the perfectbam program. The result is stored as arrays in the OUT_JSON file"""
   bam_fp = pysam.AlignmentFile(perbam, 'rb')
   pop = vr.Population(vdb)
   cat_read_counts = None
