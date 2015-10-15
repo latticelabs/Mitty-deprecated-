@@ -1,5 +1,8 @@
 #!/bin/bash
-set +x
+set -ex
+
+genomes --help
+genomes show model-list
 
 # Generate genome database
 genomes generate variations.json -v -p
@@ -16,29 +19,29 @@ reads generate reads.json -v -p
 
 # Align them using BWA and view the alignments
 #bwa index reddus_pentalgus.fa.gz
-pybwa reddus_pentalgus.fa.gz reads_c.fq reads_c.bam -p -v
-samtools tview -d T -p "NC_010142.1:4400" reads_c.bam reddus_pentalgus.fa.gz
-samtools tview -d T -p "NC_010142.1:8900" reads_c.bam reddus_pentalgus.fa.gz
+pybwa reddus_pentalgus.fa.gz reads_c.fq bwa.bam -p -v
+samtools tview -d T -p "NC_010142.1:4400" bwa.bam reddus_pentalgus.fa.gz
+samtools tview -d T -p "NC_010142.1:8900" bwa.bam reddus_pentalgus.fa.gz
 
-# TODO: Show aligner benchmarking
-
-
-perfectbam --perfect-bam -v -v -p reads_c.bam
-alindel --sample-name g0_s0 --indel-range 20 reads_c_per.bam reddus_genomes.h5 reddus_indel.json
-head -n 20 reddus_indel.json  # Note that indel counts are for each chromosome *copy* separately
-alindel_plot -f reddus_indel.json --indel-range 20
-exit 0
+# Analyse the alignments
+perfectbam --perfect-bam -v -v -p bwa.bam
+alindel --sample-name g0_s0 --indel-range 20 bwa_per.bam reddus_genomes.h5 bwa_indel.json
+cat bwa_indel.json  # Note that indel counts are for each chromosome *copy* separately
+alindel_plot -f bwa_indel.json --indel-range 20 -o bwa_indel.png
 
 
-pybwa red_alga.fa.gz reads_c.fq reads_c_2.bam -p -v -P -S  # No mate rescue or pairing
+# Show aligner benchmarking: do another run with a 'crappier aligner'
+pybwa reddus_pentalgus.fa.gz reads_c.fq bwa_poor.bam -p -v -P -S  # No mate rescue or pairing
 
-perfectbam reads_c_2.bam --catreads catreads_2.h5 -v --window 10 -p
-alindel catreads_2.h5 indel_2.pkl red_alga_genomes.h5 g0_s0 --indel-range 50
+# Analyse the alignments
+perfectbam --perfect-bam -v -v -p bwa_poor.bam
+alindel --sample-name g0_s0 --indel-range 20 bwa_poor_per.bam reddus_genomes.h5 bwa_poor_indel.json
+#cat bwa_poor_indel.json  # Note that indel counts are for each chromosome *copy* separately
 
-plot_indel -f indel.pkl -f indel_2.pkl -l 'BWA' -l 'BWA(bad)' --indel-range 50 --win 5
+alindel_plot -f bwa_indel.json -l 'BWA' -f bwa_poor_indel.json -l 'BWA/poor' --indel-range 20 -o combined_indel.png
 
-#genomes write vcf Out/red_alga_genomes.h5 Out/alga  --sample_name g0_s0
-#alindel Out/catreads.h5 Out/indel2.pkl --vcf Out/alga_g0_s0.vcf.gz --indel 50
+alindel --sample-name g0_s1 --indel-range 20 bwa_per.bam reddus_genomes.h5 bwa_scrambled_indel.json
+alindel_plot -f bwa_indel.json -l 'BWA' -f bwa_poor_indel.json -l 'BWA/poor' -f bwa_scrambled_indel.json -l 'BWA/scambled' --indel-range 20 -o combined_indel.png
 
 
 # For reads solely from neighborhoods of variants

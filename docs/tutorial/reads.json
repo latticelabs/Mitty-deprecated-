@@ -7,19 +7,19 @@
   },
   "sample_name" : "g0_s0",
   "rng": {
-    "master_seed": 123456
+    "master_seed": 1234567
   },
   "chromosomes": [1, [3, 0.4, 0.6], 4, 5],
   "read_model": "simple_illumina",
-  "coverage": 5,
+  "coverage": 10,
   "coverage_per_block": 1,
   "corrupt": true,
   "variants_only": false,
   "variant_window": 50,
   "model_params": {
-    "read_len": 100,
-    "template_len_mean": 250,
-    "template_len_sd": 1,
+    "read_len": 40,
+    "template_len_mean": 100,
+    "template_len_sd": 20,
     "max_p_error": 0.2,
     "k": 10
   }

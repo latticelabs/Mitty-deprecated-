@@ -1,5 +1,5 @@
-"""For our tutorial we want to demonstrations on a genome that
-  * is not too big - don't want a ton of data to process each time we regnerate the docs
+"""For our tutorial we want to do demonstrations on a genome that
+  * is not too big - don't want a ton of data to process each time we regenerate the docs or do a demo
   * want several chromosomes - important to illustrate all features
   * is not too small - we want a decent number of variations and reads
 

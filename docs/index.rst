@@ -12,8 +12,10 @@ Mitty documentation
     :numbered:
 
     introduction
-    tutorial
+    tutorial/tutorial
     models
+    developer
+    roadmap
 
 ..    additional_utils
 ..    theory_and_algorithms
