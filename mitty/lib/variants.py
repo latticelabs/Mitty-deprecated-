@@ -252,11 +252,12 @@ class VariantList:
     r = rng.rand(self.variants.shape[0], 2)
     return [(r[:, 0] < self.variants['p']).nonzero()[0], (r[:, 1] < self.variants['p']).nonzero()[0]]
 
-  def zip_up_chromosome(self, idx0, idx1):
+  def zip_up_chromosome(self, idx0, idx1, filter_multi_allele=False):
     """Given two chromosomes, go through each copy, variant by variant, making sure they don't clash and merging any
     homozygous ones. Return us a chromosome array. Will sort master list if not sorted
     :param idx0: proposed indexes for chrom copy 0
     :param idx1: proposed indexes for chrom copy 1
+    :param filter_multi_allele: If True discard any alleles that are both non-Ref (and not homozygous)
     :returns: chrom, a list of tuples (index, genotype)
     """
     if not self.sorted:
@@ -267,7 +268,7 @@ class VariantList:
     z0, z1 = avoid_collisions(pos, stop, idx0), avoid_collisions(pos, stop, idx1)
 
     # Pass 2: merge homozygous where needed
-    return merge_homozygous(pos, z0, z1)
+    return merge_homozygous(pos, z0, z1, filter_multi_allele)
 
   def generate_chromosome(self, rng):
     """Convenient wrapper around select and zip_up_chromosome
@@ -328,12 +329,13 @@ def avoid_collisions(pos, stop, idx):
   return z_idx
 
 
-def merge_homozygous(pos, z0, z1):
+def merge_homozygous(pos, z0, z1, filter_multi_allele=False):
   """Create a chromosome out of a pair of variant lists.
 
   :param pos:  position array from master list
   :param z0:   indexes making chrom copy 0
   :param z1:   indexes making chrom copy 1
+  :param filter_multi_allele: If True discard any alleles that are both non-Ref (and not homozygous)
   :return: a list of tuples (index, genotype)
   """
   n_max0, n_max1 = len(z0), len(z1)
@@ -352,7 +354,7 @@ def merge_homozygous(pos, z0, z1):
     if n0 < n_max0 and n1 < n_max1:  # We are equal. Are we homozygous, or just a one in a million het?
       if z0[n0] == z1[n1]:  # Yes, a hom
         chrom += [(z0[n0], 2)]
-      else:  # Just two weird hets
+      elif not filter_multi_allele:  # Just two weird hets
         chrom += [(z0[n0], 0)]
         chrom += [(z1[n1], 1)]
       n0 += 1

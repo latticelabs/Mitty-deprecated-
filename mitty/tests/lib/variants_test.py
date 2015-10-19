@@ -150,6 +150,24 @@ def merge_test2():
   assert_index_array_equal(chrom, [(0, 1), (1, 0), (2, 0), (3, 1), (4, 0)])
 
 
+def merge_test3():
+  """Reject multi allele"""
+  pos = [1, 2, 2, 3, 4, 5]
+  z0 = [1, 3, 4]
+  z1 = [0, 1, 3]
+  chrom = vr.merge_homozygous(pos, z0, z1)
+  assert_index_array_equal(chrom, [(0, 1), (1, 2), (3, 2), (4, 0)])
+
+  z0 = [1, 3, 4]
+  z1 = [0, 2, 3]
+  chrom = vr.merge_homozygous(pos, z0, z1)
+  assert_index_array_equal(chrom, [(0, 1), (1, 0), (2, 1), (3, 2), (4, 0)])
+
+  z0 = [1, 3, 4]
+  z1 = [0, 2, 3]
+  chrom = vr.merge_homozygous(pos, z0, z1, filter_multi_allele=True)
+  assert_index_array_equal(chrom, [(0, 1), (3, 2), (4, 0)])
+
 def zip_test():
   """Zip chromosomes together"""
   pos = [1, 2, 20]

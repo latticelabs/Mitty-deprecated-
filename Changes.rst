@@ -32,20 +32,28 @@ Planned changes
 * finish implementing ad hoc filtering for variants
 
    - het/hom filtering in standard population model
-   - range filter for variations (put as core spec - like for reads - rather than pop)
+   - range filter for variations (put as core spec - like for reads - rather than in population model?)
 
-* Update plot_align (diff ways to plot mis-alignments) to work with BAM+tags way of saving misalignments
 * Combine multiple (or at least two) BADBAMs to perform intersection and difference analyses. Interactive tool?
-
+* matrix plot should show light gray dots for grid points
 
 
 Possible changes
 ----------------
 * Interpret lower case in FASTA as repeat regions and have option to avoid these for variants and reads
-
+* (non-backward compatible) change reads.json format such that read model name is key for model parameters
+  much like how it is done for variant models.
+* Heuristic for coverage per block?
 
 Changelog
 ---------
+
+2015.10.19
+* Implemented option to filter multiple allele loci.
+
+
+2015.10.14
+* Update plot_align (diff ways to plot mis-alignments) to work with BAM+tags way of saving misalignments
 
 2015.10.11
   * Improved documentation

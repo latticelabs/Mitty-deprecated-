@@ -6,18 +6,23 @@ __example_param_text = """
 {
   "standard": {
     "sample_size": 10,
-    "force_homozygous": true
+    "force_homozygous": True, # Force sample variants to be 1|1
+    "filter_multi_allele": False,  # Take out locii with different variants on the two copies
+    "filter_hom": False,  # Take out homozygous
+    "max_v_count": 100,  # Maximum number of variants
+    "min_v_spacing": 1000  # Minimum gap between variants on same copy
   }
 }
 """
 
 _description = __doc__ + '\nExample parameters:\n' + __example_param_text
 
-_example_params = json.loads(__example_param_text)
+#_example_params = json.loads(__example_param_text)
+_example_params = eval(__example_param_text)
 
 
 class Model:
-  def __init__(self, sample_size=10, force_homozygous=False, filter_het=False, filter_hom=False,
+  def __init__(self, sample_size=10, force_homozygous=False, filter_multi_allele=False, filter_hom=False,
                max_v_count=None, min_v_spacing=None):
     """Standard population model that picks variants randomly from the master list to generate chromosomes
 
@@ -26,7 +31,7 @@ class Model:
     """
     self.sample_size = sample_size
     self.force_homozygous = force_homozygous
-    self.filter_het = filter_het
+    self.filter_multi_allele = filter_multi_allele
     self.filter_hom = filter_hom
     self.max_v_count = max_v_count
     self.min_v_spacing = min_v_spacing
@@ -42,8 +47,6 @@ class Model:
       all_idx = ((r[:, 0] < ml.variants['p']) | (r[:, 1] < ml.variants['p'])).nonzero()[0]
       if all_idx.size > self.max_v_count:
         r[rng.choice(all_idx, size=(all_idx.size - self.max_v_count), replace=False), :] = 1.0
-    if self.filter_het:
-      raise NotImplementedError
     if self.filter_hom:
       raise NotImplementedError
     if self.min_v_spacing:  # Expensive
@@ -72,7 +75,7 @@ class Model:
     :return: A generator returning (generation no, serial_no, chromosome, % samples done) for each sample in population
     """
     rng = np.random.RandomState(rng_seed)
-    if self.force_homozygous or self.filter_het or self.filter_hom or \
+    if self.force_homozygous or self.filter_multi_allele or self.filter_hom or \
       self.max_v_count is not None or self.min_v_spacing is not None:
       ad_hoc_filtering = True
     else:
@@ -83,7 +86,7 @@ class Model:
       r = rng.rand(ml.variants.shape[0], 2)
       if ad_hoc_filtering:
         r = self.filter_sample(r, ml, rng)
-      yield 'g{:d}_s{:d}'.format(gen, n), ml.zip_up_chromosome(*[(r[:, 0] < ml.variants['p']).nonzero()[0], (r[:, 1] < ml.variants['p']).nonzero()[0]]), float(n + 1) / self.sample_size
+      yield 'g{:d}_s{:d}'.format(gen, n), ml.zip_up_chromosome(*[(r[:, 0] < ml.variants['p']).nonzero()[0], (r[:, 1] < ml.variants['p']).nonzero()[0]], filter_multi_allele=self.filter_multi_allele), float(n + 1) / self.sample_size
     # In more complex population models, for example simulating sexual reproduction, we would probably return an iterator
     # class that kept state representing parents etc., having worked out the population tree
 
