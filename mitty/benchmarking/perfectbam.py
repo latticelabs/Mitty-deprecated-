@@ -176,6 +176,8 @@ def sort_and_index_bams(bad_bam_fname, per_bam_fname):
 @click.command()
 @click.version_option()
 @click.argument('inbam', type=click.Path(exists=True))
+@click.option('--bad-bam', type=click.Path(), help='BADBAM name (if omitted, file will be written to same directory as input file)')
+@click.option('--per-bam', type=click.Path(), help='PERBAM name (if omitted, file will be written to same directory as input file)')
 @click.option('--tags', is_flag=True, callback=print_tags, expose_value=False, is_eager=True, help='Print documentation for extended BAM tags')
 @click.option('--cigar-errors', is_flag=True, help='CIGAR errors result in reads being classified as misaligned')
 @click.option('--perfect-bam', is_flag=True, help='Perfect BAM has full read information')
@@ -183,7 +185,7 @@ def sort_and_index_bams(bad_bam_fname, per_bam_fname):
 @click.option('-x', is_flag=True, help='Use extended CIGAR ("X"s and "="s) rather than traditional CIGAR (just "M"s)')
 @click.option('-v', count=True, help='Verbosity level')
 @click.option('-p', is_flag=True, help='Show progress bar')
-def cli(inbam, cigar_errors, perfect_bam, window, x, v, p):
+def cli(inbam, bad_bam, per_bam, cigar_errors, perfect_bam, window, x, v, p):
   """Analyse BAMs produced from Mitty generated FASTQs for alignment accuracy.
   Produces two BAM files with reads having correct POS, CIGAR values. The original
   alignment information is written in the extended tags (use --tags for documentation)
@@ -199,8 +201,8 @@ def cli(inbam, cigar_errors, perfect_bam, window, x, v, p):
   level = logging.DEBUG if v > 0 else logging.WARNING
   logging.basicConfig(level=level)
 
-  bad_bam_fname = os.path.splitext(inbam)[0] + '_bad.bam'
-  per_bam_fname = os.path.splitext(inbam)[0] + '_per.bam'
+  bad_bam_fname = bad_bam or (os.path.splitext(inbam)[0] + '_bad.bam')
+  per_bam_fname = per_bam or (os.path.splitext(inbam)[0] + '_per.bam')
 
   process_bams(inbam, bad_bam_fname, per_bam_fname, cigar_errors, perfect_bam, window, x, p)
   sort_and_index_bams(bad_bam_fname, per_bam_fname)
