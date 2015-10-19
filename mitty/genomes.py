@@ -280,44 +280,20 @@ def model_list():
     for name, mod_name in disco():
       print('- {:s} ({:s})'.format(name, mod_name))
 
-@show.command('variant-model')
-@click.argument('name')
-def explain_variant_models(name):
-  """Explain variant models. 'all' for all models"""
-  if name == 'all':
-    explain_all_models('variant-model')
-  else:
-    explain_model(name, 'variant-model')
-
-
-@show.command('spectrum-model')
-@click.argument('name')
-def explain_spectrum_models(name):
-  """Explain spectrum models. 'all' for all models"""
-  if name == 'all':
-    explain_all_models('spectrum-model')
-  else:
-    explain_model(name, 'spectrum-model')
-
-
-@show.command('population-model')
-@click.argument('name')
-def explain_population_models(name):
-  """Explain population models. 'all' for all models"""
-  if name == 'all':
-    explain_all_models('population-model')
-  else:
-    explain_model(name, 'population-model')
-
 
 def explain_all_models(kind):
-  discoverer = {
-    'variant-model': mitty.lib.discover_all_variant_plugins,
-    'spectrum-model': mitty.lib.discover_all_sfs_plugins,
-    'population-model': mitty.lib.discover_all_pop_plugins
-  }
-  for name, mod_name in discoverer[kind]():
-    explain_model(name, kind)
+  def callback(ctx, param, value):
+    if not value or ctx.resilient_parsing:
+      return
+    discoverer = {
+      'variant-model': mitty.lib.discover_all_variant_plugins,
+      'spectrum-model': mitty.lib.discover_all_sfs_plugins,
+      'population-model': mitty.lib.discover_all_pop_plugins
+    }
+    for name, mod_name in discoverer[kind]():
+      explain_model(name, kind)
+    ctx.exit()
+  return callback
 
 
 def explain_model(name, kind):
@@ -343,6 +319,30 @@ def explain_model(name, kind):
     print(mitty.lib.model_init_signature_string(mod.Model.__init__))
   except AttributeError:
     print('No help for model "{:s}" available'.format(name))
+
+
+@show.command('variant-model')
+@click.argument('name')
+@click.option('--all', is_flag=True, callback=explain_all_models('variant-model'), expose_value=False, is_eager=True, help='Print documentation for all models')
+def explain_variant_models(name):
+  """Explain variant models"""
+  explain_model(name, 'variant-model')
+
+
+@show.command('spectrum-model')
+@click.argument('name')
+@click.option('--all', is_flag=True, callback=explain_all_models('spectrum-model'), expose_value=False, is_eager=True, help='Print documentation for all models')
+def explain_spectrum_models(name):
+  """Explain spectrum models. 'all' for all models"""
+  explain_model(name, 'spectrum-model')
+
+
+@show.command('population-model')
+@click.argument('name')
+@click.option('--all', is_flag=True, callback=explain_all_models('population-model'), expose_value=False, is_eager=True, help='Print documentation for all models')
+def explain_population_models(name):
+  """Explain population models. 'all' for all models"""
+  explain_model(name, 'population-model')
 
 
 if __name__ == "__main__":

@@ -354,14 +354,20 @@ def model_list():
     print('- {:s} ({:s})'.format(name, mod_name))
 
 
+def explain_all_read_models(ctx, param, value):
+  if not value or ctx.resilient_parsing:
+    return
+  for name, mod_name in mitty.lib.discover_all_reads_plugins():
+    explain_read_model(name)
+  ctx.exit()
+
+
 @show.command('read-model')
 @click.argument('name')
+@click.option('--all', is_flag=True, callback=explain_all_read_models, expose_value=False, is_eager=True, help='Print documentation for all models')
 def model(name):
   """Model .json snippets, 'all' for all models"""
-  if name == 'all':
-    explain_all_read_models()
-  else:
-    explain_read_model(name)
+  explain_read_model(name)
 
 
 def explain_read_model(name):
@@ -371,16 +377,12 @@ def explain_read_model(name):
     print('No model named {:s}'.format(name))
     return
   try:
+    print('\n---- ' + name + ' (' + mod.__name__ + ') ----')
     print(mod._description)
     print(mitty.lib.model_init_signature_string(mod.Model.__init__))
   except AttributeError:
     print('No help for model "{:s}" available'.format(name))
   return
-
-
-def explain_all_read_models():
-  for name, mod_name in mitty.lib.discover_all_reads_plugins():
-    explain_read_model(name)
 
 
 if __name__ == '__main__':
