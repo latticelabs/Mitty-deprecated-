@@ -50,7 +50,7 @@ def categorize_indels_by_length(indel_lengths, cat_counts=None, max_indel=100):
 
   indel_counts, _ = np.histogram(indel_lengths, bins=np.arange(-max_indel - 0.5, max_indel + 1.5),
                                  range=[-max_indel, max_indel])
-  cat_counts['total'] += indel_counts
+  cat_counts['total'] += indel_counts.astype('uint32')
   return cat_counts
 
 
