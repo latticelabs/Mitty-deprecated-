@@ -12,7 +12,7 @@ from matplotlib.colors import LogNorm
 import numpy as np
 
 
-def bam2mismat(bam_fp, bin_size=1000):
+def compute_misalignment_matrix_from_bam(bam_fp, bin_size=1000):
   """Create a matrix of binned mis-alignments"""
   def binnify(_pos, _bins):
     for n in range(1, len(_bins)):
@@ -21,7 +21,8 @@ def bam2mismat(bam_fp, bin_size=1000):
     return len(_bins) - 1 # Should not get here
 
   chrom_lens = [hdr['LN'] for hdr in bam_fp.header['SQ']]
-  bins = [range(0, hdr['LN'], bin_size) + [hdr['LN']] for hdr in bam_fp.header['SQ']]
+  bins = [np.array(range(0, hdr['LN'], bin_size) + [hdr['LN']], dtype=int) for hdr in bam_fp.header['SQ']]
+  bin_centers = [(bb[:-1] + bb[1:]) / 2.0 for bb in bins]
   # Rows = source (correct pos) Cols = destination (aligned pos)
   matrices = [[np.zeros(shape=(len(bins[j]) - 1, len(bins[i]) - 1), dtype='uint32') for i in range(len(bins))] for j in range(len(bins))]
 
@@ -32,7 +33,7 @@ def bam2mismat(bam_fp, bin_size=1000):
     c_chrom, c_pos, a_chrom, a_pos = r.reference_id, r.pos, r.get_tag('XR'), r.get_tag('XP')
     c_pos_binned, a_pos_binned = binnify(c_pos, bins[c_chrom]), binnify(a_pos, bins[a_chrom])
     matrices[c_chrom][a_chrom][c_pos_binned, a_pos_binned] += 1
-  return chrom_lens, bins, matrices
+  return chrom_lens, bins, bin_centers, matrices
 
 
 def plot_genome_as_a_circle(ax, chrom_lens, chrom_gap=np.pi / 50, chrom_radius=1.0, chrom_thick=5, r_max=1.05):
@@ -47,7 +48,7 @@ def plot_genome_as_a_circle(ax, chrom_lens, chrom_gap=np.pi / 50, chrom_radius=1
     end_radian = start_radian + l * radians_per_base
     theta = np.arange(start_radian, end_radian, delta_radian)
     theta_stops.append((start_radian, end_radian))
-    ax.plot(theta, [chrom_radius * 1.01] * theta.size, lw=chrom_thick)  # , color=[.3, .3, .3])
+    ax.plot(theta, [chrom_radius * 1.01] * theta.size, lw=chrom_thick, zorder=-1)  # , color=[.3, .3, .3])
     x_ticks.append((start_radian + end_radian)/2)
     x_tick_labels.append(str(ch_no + 1))
     start_radian = end_radian + chrom_gap
@@ -59,9 +60,9 @@ def plot_genome_as_a_circle(ax, chrom_lens, chrom_gap=np.pi / 50, chrom_radius=1
   return theta_stops
 
 
-def plot_read_mis_alignments_on_a_circle(ax, chrom_lens, bins, matrices, theta_stops, chrom_radius=1.0, lw=0.01):
-  bin_centers = [[(b0 + b1) / 2.0 for b0, b1 in zip(bb[:-1], bb[1:])] for bb in bins]
-
+def plot_read_mis_alignments_on_a_circle(ax, chrom_lens, bins, bin_centers, matrices, theta_stops,
+                                         chrom_radius=1.0, scaling_factor=0.01):
+  scaling_factor *= 0.01
   # http://matplotlib.org/users/path_tutorial.html
   codes = [
     Path.MOVETO,
@@ -72,31 +73,35 @@ def plot_read_mis_alignments_on_a_circle(ax, chrom_lens, bins, matrices, theta_s
   for i in range(len(bins)):
     for j in range(len(bins)):
       mat = matrices[i][j]
-      for ii in range(mat.shape[0]):
-        for jj in range(mat.shape[1]):
-          if mat[ii, jj] == 0: continue
+      range_bp_origin, range_bp_dest = float(chrom_lens[i]), float(chrom_lens[j])
+      offset_origin, offset_dest = theta_stops[i][0], theta_stops[j][0]
+      range_origin, range_dest = theta_stops[i][1] - theta_stops[i][0], theta_stops[j][1] - theta_stops[j][0]
+      scale_origin, scale_dest = range_origin / range_bp_origin, range_dest / range_bp_dest
+      c_origin, c_dest = offset_origin + bin_centers[i] * scale_origin, offset_dest + bin_centers[j] * scale_dest
+      this_origin, this_dest = np.tile(c_origin, c_dest.shape[0]), np.repeat(c_dest, c_origin.shape[0])
+      mat_flat = mat.ravel()
+      idx, = mat_flat.nonzero()
+      for ii in idx:
+        t0, t1 = this_origin[ii], this_dest[ii]
 
-          t0 = theta_stops[i][0] + (bin_centers[i][ii] / float(chrom_lens[i])) * (theta_stops[i][1] - theta_stops[i][0])
-          t1 = theta_stops[j][0] + (bin_centers[j][jj] / float(chrom_lens[j])) * (theta_stops[j][1] - theta_stops[j][0])
-
-          this_radius = max(min(1.0, abs(t1 - t0) / np.pi), 0.05) * chrom_radius
-          vertices = [
-            (t0, chrom_radius),  # P0
-            (t0, chrom_radius - this_radius),  # P1
-            (t1, chrom_radius - this_radius),  # P2
-            (t1, chrom_radius),  # P3
-          ]
-          path = Path(vertices, codes)
-          patch = patches.PathPatch(path, facecolor='none', lw=lw * mat[ii, jj])
-          ax.add_patch(patch)
+        this_radius = max(min(1.0, abs(t1 - t0) / np.pi), 0.05) * chrom_radius
+        vertices = [
+          (t0, chrom_radius),  # P0
+          (t0, chrom_radius - this_radius),  # P1
+          (t1, chrom_radius - this_radius),  # P2
+          (t1, chrom_radius),  # P3
+        ]
+        path = Path(vertices, codes)
+        patch = patches.PathPatch(path, facecolor='none', lw=scaling_factor * mat_flat[ii])
+        ax.add_patch(patch)
 
 
-def circle_plot(chrom_lens, bins, matrices):
+def circle_plot(chrom_lens, bins, bin_centers, matrices, scaling_factor):
   """Plot the confusion matrix as a circle plot."""
   fig = plt.figure()
   ax = fig.add_subplot(111, polar=True)
   theta_stops = plot_genome_as_a_circle(ax, chrom_lens)
-  plot_read_mis_alignments_on_a_circle(ax, chrom_lens, bins, matrices, theta_stops, chrom_radius=1.0, lw=0.01)
+  plot_read_mis_alignments_on_a_circle(ax, chrom_lens, bins, bin_centers, matrices, theta_stops, chrom_radius=1.0, scaling_factor=scaling_factor)
 
 
 def plot_genome_as_a_square(ax, bins, chrom_gap=1000, chrom_thick=5):
@@ -104,8 +109,8 @@ def plot_genome_as_a_square(ax, bins, chrom_gap=1000, chrom_thick=5):
   start_pos, linear_stops, x_ticks, x_tick_labels = chrom_gap, [], [], []
   for ch_no, b in enumerate(bins):
     linear_stops.append([start_pos, start_pos + b[-1]])
-    ax.plot([x + start_pos for x in b], [0 for _ in b], lw=chrom_thick)
-    ax.plot([0 for _ in b], [x + start_pos for x in b], lw=chrom_thick)
+    ax.plot([x + start_pos for x in b], [0 for _ in b], color='k' if ch_no % 2 else 'gray', lw=chrom_thick, zorder=-1)
+    ax.plot([0 for _ in b], [x + start_pos for x in b], color='k' if ch_no % 2 else 'gray', lw=chrom_thick, zorder=-1)
     x_ticks.append((start_pos + start_pos + b[-1]) / 2)
     x_tick_labels.append(str(ch_no + 1))
     start_pos += b[-1] + chrom_gap
@@ -116,32 +121,29 @@ def plot_genome_as_a_square(ax, bins, chrom_gap=1000, chrom_thick=5):
   return linear_stops
 
 
-def plot_read_mis_alignments_as_a_matrix(ax, chrom_lens, bins, matrices, linear_stops, lw=0.01):
-  bin_centers = [[(b0 + b1) / 2.0 for b0, b1 in zip(bb[:-1], bb[1:])] for bb in bins]
-  x, y, z = [], [], []
-
+def plot_read_mis_alignments_as_a_matrix(ax, chrom_lens, bins, bin_centers, matrices, linear_stops, scaling_factor=1.0):
   for i in range(len(bins)):
     for j in range(len(bins)):
       mat = matrices[i][j]
-      for ii in range(mat.shape[0]):
-        for jj in range(mat.shape[1]):
-          if mat[ii, jj] == 0: continue
+      range_bp_x, range_bp_y = float(chrom_lens[i]), float(chrom_lens[j])
+      offset_x, offset_y = linear_stops[i][0], linear_stops[j][0]
+      range_x, range_y = linear_stops[i][1] - linear_stops[i][0], linear_stops[j][1] - linear_stops[j][0]
+      scale_x, scale_y = range_x / range_bp_x, range_y / range_bp_y
+      cx, cy = offset_x + bin_centers[i] * scale_x, offset_y + bin_centers[j] * scale_y
+      this_x, this_y = np.tile(cx, cy.shape[0]), np.repeat(cy, cx.shape[0])
+      ax.plot(this_x, this_y, '.', color=(0.8, 0.8, 0.8), ms=1, zorder=-1)
+      mat_flat = mat.ravel()
+      idx, = mat_flat.nonzero()
+      if idx.size > 0:
+        ax.scatter(this_x[idx], this_y[idx], mat_flat[idx] * scaling_factor, facecolors='none')
 
-          t0 = linear_stops[i][0] + (bin_centers[i][ii] / float(chrom_lens[i])) * (linear_stops[i][1] - linear_stops[i][0])
-          t1 = linear_stops[j][0] + (bin_centers[j][jj] / float(chrom_lens[j])) * (linear_stops[j][1] - linear_stops[j][0])
-          x.append(t0)
-          y.append(t1)
-          z.append(mat[ii, jj])
 
-  ax.scatter(x, y, z, facecolors='none')
-
-
-def matrix_plot(chrom_lens, bins, matrices):
+def matrix_plot(chrom_lens, bins, bin_centers, matrices, scaling_factor):
   """Plot the confusion matrix as a ... matrix."""
   fig = plt.figure()
   ax = fig.add_subplot(111)
   linear_stops = plot_genome_as_a_square(ax, bins, chrom_gap=max(chrom_lens) * 0.1)
-  plot_read_mis_alignments_as_a_matrix(ax, chrom_lens, bins, matrices, linear_stops, lw=0.01)
+  plot_read_mis_alignments_as_a_matrix(ax, chrom_lens, bins, bin_centers, matrices, linear_stops, scaling_factor=scaling_factor)
   plt.setp(ax, aspect=1, xlabel='Correct', ylabel='Aligned')
 
 
@@ -149,14 +151,17 @@ def matrix_plot(chrom_lens, bins, matrices):
 @click.argument('badbam', type=click.Path(exists=True))
 @click.option('--circle', type=click.Path(), help='Name of figure file for circle plot')
 @click.option('--matrix', type=click.Path(), help='Name of figure file for matrix plot')
-def cli(badbam, circle, matrix):
+@click.option('--bin-size', type=float, default=0.01, help='Bin size in Mb')
+@click.option('--scaling-factor', type=float, default=1.0, help='Scale size of disks/lines in plot')
+def cli(badbam, circle, matrix, bin_size, scaling_factor):
   """Prepare a binned matrix of mis-alignments and plot it in different ways"""
-  chrom_lens, bins, matrices = bam2mismat(pysam.AlignmentFile(badbam, 'rb'), bin_size=10000)
+  chrom_lens, bins, bin_centers, matrices = \
+    compute_misalignment_matrix_from_bam(pysam.AlignmentFile(badbam, 'rb'), bin_size=int(bin_size * 1e6))
   if circle is not None:
-    circle_plot(chrom_lens, bins, matrices)
+    circle_plot(chrom_lens, bins, bin_centers, matrices, scaling_factor)
     plt.savefig(circle)
   if matrix is not None:
-    matrix_plot(chrom_lens, bins, matrices)
+    matrix_plot(chrom_lens, bins, bin_centers, matrices, scaling_factor)
     plt.savefig(matrix)
 
 if __name__ == '__main__':

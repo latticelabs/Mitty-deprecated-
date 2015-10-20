@@ -35,8 +35,7 @@ Planned changes
    - range filter for variations (put as core spec - like for reads - rather than in population model?)
 
 * Combine multiple (or at least two) BADBAMs to perform intersection and difference analyses. Interactive tool?
-* matrix plot should show light gray dots for grid points
-
+* alindel_plot should handle case where there are no indels (log scaling fails)
 
 Possible changes
 ----------------
@@ -47,6 +46,9 @@ Possible changes
 
 Changelog
 ---------
+2015.10.20
+* matrix plot should show light gray dots for grid points
+
 
 2015.10.19
 * Implemented option to filter multiple allele loci.
