@@ -183,9 +183,10 @@ def sort_and_index_bams(bad_bam_fname, per_bam_fname):
 @click.option('--perfect-bam', is_flag=True, help='Perfect BAM has full read information')
 @click.option('--window', help='Size of tolerance window', default=0, type=int)
 @click.option('-x', is_flag=True, help='Use extended CIGAR ("X"s and "="s) rather than traditional CIGAR (just "M"s)')
+@click.option('--no-index', is_flag=True, help="Mostly for the platform: Don't sort and index the output files")
 @click.option('-v', count=True, help='Verbosity level')
 @click.option('-p', is_flag=True, help='Show progress bar')
-def cli(inbam, bad_bam, per_bam, cigar_errors, perfect_bam, window, x, v, p):
+def cli(inbam, bad_bam, per_bam, cigar_errors, perfect_bam, window, x, no_index, v, p):
   """Analyse BAMs produced from Mitty generated FASTQs for alignment accuracy.
   Produces two BAM files with reads having correct POS, CIGAR values. The original
   alignment information is written in the extended tags (use --tags for documentation)
@@ -205,7 +206,7 @@ def cli(inbam, bad_bam, per_bam, cigar_errors, perfect_bam, window, x, v, p):
   per_bam_fname = per_bam or (os.path.splitext(inbam)[0] + '_per.bam')
 
   process_bams(inbam, bad_bam_fname, per_bam_fname, cigar_errors, perfect_bam, window, x, p)
-  sort_and_index_bams(bad_bam_fname, per_bam_fname)
+  if not no_index: sort_and_index_bams(bad_bam_fname, per_bam_fname)
 
 
 if __name__ == "__main__":

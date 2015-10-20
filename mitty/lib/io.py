@@ -265,7 +265,7 @@ def write_chromosomes_to_vcf(fp, seq_id='chr1', chrom_list=None, master_list=Non
 def sort_and_index_bam(bamfile):
   """Do the filename gymnastics required to end up with a sorted, indexed, bam file."""
   # samtools sort adds a '.bam' to the end of the file name.
-  _, t_bam = tempfile.mkstemp(suffix='bam')
+  _, t_bam = tempfile.mkstemp(suffix='bam', dir='./')  # Safer to do it in the user directory
   os.rename(bamfile, t_bam)
   pysam.sort(t_bam, os.path.splitext(bamfile)[0])
   pysam.index(bamfile)
