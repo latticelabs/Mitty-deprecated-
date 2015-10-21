@@ -20,7 +20,8 @@ setup(
                                  #'inversion = mitty.plugins.variants.inversion_plugin',
                                  #'low_entropy_insert = mitty.plugins.variants.low_entropy_insert_plugin'
                                  ],
-      'mitty.plugins.population': ['standard = mitty.plugins.population.standard'],
+      'mitty.plugins.population': ['standard = mitty.plugins.population.standard',
+                                   'vn = mitty.plugins.population.vn'],
       'mitty.plugins.reads': ['simple_sequential = mitty.plugins.reads.simple_sequential_plugin',
                               'simple_illumina = mitty.plugins.reads.simple_illumina_plugin'],
       # Command line scripts

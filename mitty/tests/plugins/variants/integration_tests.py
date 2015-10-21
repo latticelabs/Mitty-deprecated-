@@ -16,7 +16,7 @@ from mitty.plugins.site_frequency import double_exp
 from mitty.tests import *
 
 
-ref = mio.Fasta(multi_dir=example_fasta_genome)
+ref = mio.Fasta(multi_dir=test_fasta_genome_dir)
 
 
 def check_plugin_integration(args):

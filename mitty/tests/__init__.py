@@ -6,8 +6,8 @@ from shutil import rmtree
 # These need to be available to the rest of the test suite
 source_tree_root = os.path.join(os.path.dirname(__file__))
 example_data_dir = os.path.join(source_tree_root, 'data')
-
-example_fasta_genome = os.path.join(source_tree_root, 'data')
+test_fasta_genome_file = os.path.join(source_tree_root, 'data', 'chimera.fa.gz')
+test_fasta_genome_dir = os.path.join(source_tree_root, 'data')
 data_dir = 'mitty_test_data_dir'  # tempfile.mkdtemp()
 small_vcf_name = os.path.join(data_dir, 'small.vcf')
 null_fastq_name = os.path.join(data_dir, 'null_reads.fq')
@@ -38,7 +38,7 @@ def create_null_reads():
     "read_advance": 10
   }
   with open(null_fastq_name, 'w') as fastq_fp:
-    ref = FastaGenome(example_fasta_genome, persist=True)
+    ref = FastaGenome(test_fasta_genome_dir, persist=True)
     read_model = mitty.lib.load_reads_plugin('simple_sequential')
     vcf2reads.main(fastq_fp, fastq_c_fp=None, ref=ref, g1={}, chrom_list=[3, 4],
                    read_model=read_model, model_params=model_params, block_len=10e6, master_seed=42)
