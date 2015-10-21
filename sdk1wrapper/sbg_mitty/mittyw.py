@@ -136,7 +136,7 @@ class SNPPlugin(define.Wrapper):
     out = define.output(description='JSON fragment for SNP model', name='SNPModel')
 
   class Params(define.Params):
-    p = define.real(default=0.0001, min=0.0, max=1.0, description='Probability that the SNP will happen at any given base')
+    p = define.real(default=0.001, min=0.0, max=1.0, description='Probability that the SNP will happen at any given base')
     t_mat = define.string(default=
                           "[[ 0.32654629,  0.17292732,  0.24524503,  0.25528135],"
                           "[ 0.3489394,   0.25942695,  0.04942584,  0.3422078],"
@@ -241,7 +241,7 @@ class UniformInsertPlugin(define.Wrapper):
                           "[ 0.28778188,  0.21087004,  0.25963262,  0.24171546],"
                           "[ 0.21644706,  0.20588717,  0.24978216,  0.32788362]]", description='Base transition matrix')
     min_len = define.integer(default=1, min=1, description='Minimum insertion length')
-    max_len = define.integer(default=1, min=1, description='Maximum length of insertion')
+    max_len = define.integer(default=100, min=1, description='Maximum length of insertion')
 
   def execute(self):
     out_file_name = 'uniform_insert_model_parameter_fragment.json'
@@ -307,7 +307,7 @@ class DoubleExpPlugin(define.Wrapper):
     k2 = define.real(default=5.0, description='Decay rate of component 2')
     p0 = define.real(default=0.001, description='Lower end of probability range')
     p1 = define.real(default=0.99, description='Upper end of probability range')
-    bin_cnt = define.integer(default=1, min=1, description='Lower bound on deletion lengths')
+    bin_cnt = define.integer(default=30, min=1, description='Bin count for site freq spectrum during re-normalization')
 
   def execute(self):
     out_file_name = 'double_exp_model_parameter_fragment.json'

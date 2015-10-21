@@ -1,1 +1,1 @@
-from mitty import *
+from .mittyw import *
