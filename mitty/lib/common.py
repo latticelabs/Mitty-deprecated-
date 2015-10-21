@@ -104,4 +104,4 @@ def model_init_signature_string(obj):
   :param obj: object
   """
   arg_spec = py_inspect.getargspec(obj)
-  return 'Model defaults: (' + ',  '.join(reversed(['{:s}={:s}'.format(k, str(v)) for k, v in izip_longest(reversed(arg_spec.args), reversed(arg_spec.defaults), fillvalue='?') if k != 'self'])) + ')'
+  return 'Model defaults: (' + ',  '.join(reversed(['{:s}={:s}'.format(k, str(v)) for k, v in izip_longest(reversed(arg_spec.args), reversed(arg_spec.defaults or []), fillvalue='?') if k != 'self'])) + ')'
