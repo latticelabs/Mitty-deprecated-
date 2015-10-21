@@ -27,11 +27,11 @@ Some tricks to make life easier with the VM, the docker images and the sbgdk
   container but fail several tests run from outside the container claiming that `mitty.lib` was not available). It
   turned out that it was getting confused during testing by the wrapper being named identically.
 
-
+With sbg base image
 ```
 sbg sh
 aptitude update
-aptitude install gfortran wget cmake liblapack-dev python-pip
+aptitude install gfortran wget cmake liblapack-dev python-pip lapack-devel
 #HDF5 need >1.8.16  https://github.com/h5py/h5py/issues/525
 cd home
 wget http://www.hdfgroup.org/ftp/HDF5/current/src/hdf5-1.8.15-patch1.tar.gz
@@ -40,6 +40,7 @@ cd hdf5-1.8.15-patch1
 ./configure --prefix=/usr/local  # IMPORTANT!!!
 make
 make install
+cd
 #pip install numpy
 #pip install cython
 #pip install h5py
@@ -47,7 +48,48 @@ pip install --upgrade pip
 hash -r
 mkdir ~/.pip # Add the SBG pip server to ~/.pip/pip.conf
 pip install -U mitty --pre
+#Matplotlib etc
+aptitude install python-matplotlib python-scipy
+pip install -U matplotlib
+# samtools
+wget https://github.com/samtools/samtools/releases/download/1.2/samtools-1.2.tar.bz2
+aptitude install libncurses5-dev
+bzip2 -d samtools-1.2.tar.bz2
+tar -xvf samtools-1.2.tar
+cd samtools-1.2
+make
+make prefix=/usr/local install
 ```
+
+With "ubuntu" image
+
+- Put in a setting.json file with the contents `{"docker_entrypoint": []}` to skip the initialization
+
+[global]
+extra-index-url = https://pip.sbgenomics.com/packages
+
+
+```
+sbg sh
+apt-get update
+pip install --upgrade pip
+# -> create the file ~/.pip/pip.conf
+apt-get install gfortran wget cmake liblapack-dev python-pip python-dev libhdf5-serial-dev libncurses5-dev python-matplotlib python-scipy
+pip install numpy cython nose h5py pysam
+pip install -U mitty --pre
+# samtools
+cd home
+wget https://github.com/samtools/samtools/releases/download/1.2/samtools-1.2.tar.bz2
+aptitude install libncurses5-dev
+bzip2 -d samtools-1.2.tar.bz2
+tar -xvf samtools-1.2.tar
+cd samtools-1.2
+make -j 8
+make prefix=/usr/local install
+cd
+nosetests mitty  # This also forces compilation
+```
+
 
 Testing the wrappers
 --------------------
@@ -57,3 +99,4 @@ sbg test sbg_mitty.mittyw
 Questions/Todos
 ---------------
 - How to wrap nested lists (like that for Chromosome and chromosome limits)
+- How to handle tools that write out to the same directory as the input file?
