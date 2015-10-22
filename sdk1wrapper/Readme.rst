@@ -75,6 +75,14 @@ Testing the wrappers
 
   sbg test sbg_mitty.mittyw
 
+Pushing the wrappers
+++++++++++++++++++++
+
+::
+
+  sbg push '1.24.0.dev0-w2
+
+The convention adopted has been to lead with the Mitty version followed by a dash and then a wrapper version
 
 Questions/Todos
 ---------------

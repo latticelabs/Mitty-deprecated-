@@ -1,5 +1,7 @@
 import json
 import os
+from datetime import datetime
+now = datetime.now
 
 from sbgsdk import define, Process, require
 from sbgsdk.schema.io_list import IOList
@@ -22,6 +24,9 @@ class DeletePlugin(define.Wrapper):
     }
 
     Model defaults: (p=0.01,  p_end=0.1,  min_len=10,  max_len=1000)"""
+  class Inputs(define.Inputs):
+    dummy = define.input(description='Dummy', required=False)
+
   class Outputs(define.Outputs):
     out = define.output(description='JSON fragment for delete model', name='DeleteModel')
 
@@ -76,6 +81,9 @@ class InsertPlugin(define.Wrapper):
     }
 
     Model defaults: (p=0.01,  t_mat=None,  p_end=0.1,  max_len=1000)"""
+  class Inputs(define.Inputs):
+    dummy = define.input(description='Dummy', required=False)
+
   class Outputs(define.Outputs):
     out = define.output(description='JSON fragment for insert model', name='InsertModel')
 
@@ -132,6 +140,9 @@ class SNPPlugin(define.Wrapper):
   }
 
   Model defaults: (p=0.01,  t_mat=None)"""
+  class Inputs(define.Inputs):
+    dummy = define.input(description='Dummy', required=False)
+
   class Outputs(define.Outputs):
     out = define.output(description='JSON fragment for SNP model', name='SNPModel')
 
@@ -179,6 +190,9 @@ class UniformDeletePlugin(define.Wrapper):
   }
 
   Model defaults: (p=0.01,  min_len=1,  max_len=1000,  ref=None)"""
+  class Inputs(define.Inputs):
+    dummy = define.input(description='Dummy', required=False)
+
   class Outputs(define.Outputs):
     out = define.output(description='JSON fragment for delete model', name='DeleteModel')
 
@@ -230,6 +244,9 @@ class UniformInsertPlugin(define.Wrapper):
   }
 
   Model defaults: (p=0.01,  t_mat=None,  min_len=2,  max_len=30)"""
+  class Inputs(define.Inputs):
+    dummy = define.input(description='Dummy', required=False)
+
   class Outputs(define.Outputs):
     out = define.output(description='JSON fragment for insert model', name='InsertModel')
 
@@ -297,6 +314,9 @@ class DoubleExpPlugin(define.Wrapper):
   }
 
   Model defaults: (a1=1.0,  k1=20.0,  a2=0.1,  k2=5.0,  p0=0.001,  p1=0.2,  bin_cnt=21)"""
+  class Inputs(define.Inputs):
+    dummy = define.input(description='Dummy', required=False)
+
   class Outputs(define.Outputs):
     out = define.output(description='JSON fragment for site model', name='DoubleExpModel')
 
@@ -364,6 +384,9 @@ class StandardPopPlugin(define.Wrapper):
   }
 
   Model defaults: (sample_size=10,  force_homozygous=False,  filter_multi_allele=False,  filter_hom=False,  max_v_count=None,  min_v_spacing=None)"""
+  class Inputs(define.Inputs):
+    dummy = define.input(description='Dummy', required=False)
+
   class Outputs(define.Outputs):
     out = define.output(description='JSON fragment for population model', name='StandardPopModel')
 
@@ -439,6 +462,9 @@ class VnPopPlugin(define.Wrapper):
       "p_vn": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
     }
   }"""
+  class Inputs(define.Inputs):
+    dummy = define.input(description='Dummy', required=False)
+
   class Outputs(define.Outputs):
     out = define.output(description='JSON fragment for population model', name='VnPopModel')
 
@@ -528,6 +554,7 @@ class Genomes(define.Wrapper):
 
   class Params(define.Params):
     rng_master_seed = define.integer(description='Random number seed', min=1, max=SEED_MAX, required=True)
+    prefix = define.string(default='mitty', description='Prefix to add to data file(s) (date/time stamp will be added automatically)')
     chromosomes = define.integer(description='List of chromosomes to generate variants on', list=True, required=True)
     sample_names = define.string(description='Name of samples to write out VCFs for', list=True)
 
@@ -550,12 +577,15 @@ class Genomes(define.Wrapper):
       else [Genomes.parse_json_fragment(wrapper_code_key, jf) for jf in json_fragment_fname]
     }
 
-  def create_parameter_file(self):
+  def timestamped_prefix(self):
+    return self.params.prefix + '_' + now().strftime('%Y_%m_%d_%H_%M_%S')
+
+  def create_parameter_file(self, prefix):
     """Given the inputs, parameters and models, create a parameter file"""
     params = {
       "files": {
         "reference_file": self.inputs.fasta,
-        "dbfile": "genomes.h5"
+        "dbfile": prefix + "_genomes.h5"
       },
       "rng": {
         "master_seed": self.params.rng_master_seed
@@ -571,12 +601,13 @@ class Genomes(define.Wrapper):
     return params
 
   def execute(self):
-    json.dump(self.create_parameter_file(), open('variants.json', 'w'), indent=2)
+    prefix = self.timestamped_prefix()
+    json.dump(self.create_parameter_file(prefix), open('variants.json', 'w'), indent=2)
     Process('genomes', 'generate', '-v', 'variants.json').run()
-    self.outputs.gdb = 'genomes.h5'
+    self.outputs.gdb = prefix + '_genomes.h5'
     for n, sample in enumerate(self.params.sample_names):
-      Process('genomes', 'genome-file', 'write-vcf', '--sample-name', sample, 'genomes.h5', '{:d}.vcf'.format(n)).run()
-    self.outputs.vcf_files = ['{:d}.vcf'.format(n) for n in range(len(self.params.sample_names))]
+      Process('genomes', 'genome-file', 'write-vcf', '--sample-name', sample, prefix + '_genomes.h5', prefix + '_{:d}.vcf'.format(n)).run()
+    self.outputs.vcf_files = [prefix + '_{:d}.vcf'.format(n) for n in range(len(self.params.sample_names))]
 
 
 def run_standard_pop_model():
@@ -695,6 +726,7 @@ class Reads(define.Wrapper):
   class Params(define.Params):
     sample_name = define.string(default="g0_s0", description='Name of sample to take read from', required=True)
     rng_master_seed = define.integer(description='Random number seed', min=1, required=True)
+    prefix = define.string(default='mitty', description='Prefix to add to data file(s) (date/time stamp will be added automatically)')
     chromosomes = define.integer(description='List of chromosomes to take reads from', list=True, required=True)
     coverage = define.real(default=30, min=0, description='Coverage of reads', required=True)
     corrupt = define.boolean(default=False, description='Generate corrupted reads too?')
@@ -702,14 +734,17 @@ class Reads(define.Wrapper):
     variant_window = define.integer(default=100, min=0, description='Size of neighborhood in bp around variants to take reads from')
     gzipped_fasta = define.boolean(default=False, description='GZIP the fasta files')
 
-  def create_parameter_file(self):
+  def timestamped_prefix(self):
+    return self.params.prefix + '_' + now().strftime('%Y_%m_%d_%H_%M_%S')
+
+  def create_parameter_file(self, prefix):
     """Hard coding interleaved to be True for now"""
     read_model_json_fragment = json.load(open(self.inputs.read_model, 'r'))
     read_model_name = read_model_json_fragment.pop('read_model_name_for_sbg_wrappers')
     return {
       "files": {
         "reference_file": self.inputs.fasta,
-        "output_prefix": "reads",
+        "output_prefix": prefix + "_reads",
         "interleaved": True,
         "gzipped": self.params.gzipped_fasta,
         "dbfile": self.inputs.gdb
@@ -729,15 +764,15 @@ class Reads(define.Wrapper):
     }
 
   def execute(self):
-    with open('empty.fq', 'w') as fp:  # Empty file
-      pass
-    json.dump(self.create_parameter_file(), open('reads.json', 'w'), indent=2)
+    prefix = self.timestamped_prefix()
+    json.dump(self.create_parameter_file(prefix), open('reads.json', 'w'), indent=2)
     Process('reads', 'generate', '-v', 'reads.json').run()
-    self.outputs.fq_p = 'reads.fq.gz' if self.params.gzipped_fasta else 'reads.fq'
-    self.outputs.fq_c = ('reads_c.fq.gz' if self.params.gzipped_fasta else 'reads_c.fq') if self.params.corrupt else ('empty.fq')
+    self.outputs.fq_p = (prefix + '_reads.fq.gz') if self.params.gzipped_fasta else (prefix + '_reads.fq')
+    self.outputs.fq_c = ((prefix + '_reads_c.fq.gz') if self.params.gzipped_fasta else (prefix + '_reads_c.fq')) if self.params.corrupt else None
 
 
 def test_reads():
+  """Perfect and corrupted reads"""
   json.dump({"template_len_mean": 250, "max_p_error": 0.01, "k": 20, "read_len": 100, "read_model_name_for_sbg_wrappers": "simple_illumina", "template_len_sd": 30, "gc_bias": {"bias_spread": 0.3, "bias_center": 0.5, "bias_height": 1.5}},
             open('/sbgenomics/test-data/read_model_fragment.json', 'w'))
   inputs = {'fasta': '/sbgenomics/test-data/mock.fa.gz',
@@ -757,6 +792,29 @@ def test_reads():
   assert outputs.fq_p.endswith('reads.fq')
   assert os.path.exists(outputs.fq_p)
   assert os.path.exists(outputs.fq_c)
+
+
+def test_reads2():
+  """Only perfect reads"""
+  json.dump({"template_len_mean": 250, "max_p_error": 0.01, "k": 20, "read_len": 100, "read_model_name_for_sbg_wrappers": "simple_illumina", "template_len_sd": 30, "gc_bias": {"bias_spread": 0.3, "bias_center": 0.5, "bias_height": 1.5}},
+            open('/sbgenomics/test-data/read_model_fragment.json', 'w'))
+  inputs = {'fasta': '/sbgenomics/test-data/mock.fa.gz',
+            'gdb': '/sbgenomics/test-data/mock_genomes.h5',
+            'read_model': '/sbgenomics/test-data/read_model_fragment.json'}
+  params = {
+    'sample_name': 'g0_s0',
+    'rng_master_seed': 10000000,
+    'chromosomes': [1, 2, 4],
+    'coverage': 1,
+    'corrupt': False,
+    'variants_only': False,
+    'variant_window': 200,
+    'gzipped_fasta': False
+  }
+  outputs = Reads(inputs, params).test()
+  assert outputs.fq_p.endswith('reads.fq')
+  assert os.path.exists(outputs.fq_p)
+
 
 # ---- Read models -------
 
@@ -780,13 +838,16 @@ class SimpleIllumina(define.Wrapper):
 
   Model defaults: (read_len=100,  template_len_mean=250,  template_len_sd=50,  max_p_error=0.01,  k=20,  gc_bias=None)
   """
+  class Inputs(define.Inputs):
+    dummy = define.input(description='Dummy', required=False)
+
   class Outputs(define.Outputs):
     out = define.output(description='JSON fragment for read model', name='ReadModel')
 
   class Params(define.Params):
     read_len = define.integer(default=100, min=1, description='Length of read')
     template_len_mean = define.integer(default=250, min=1, description='Mean length of template')
-    template_len_sd = define.integer(define=30, min=0, description='Sd of template length')
+    template_len_sd = define.integer(default=20, min=0, description='Sd of template length')
     max_p_error = define.real(default=0.01, description='Maximum error rate at tip of read')
     k = define.real(default=20, description='Exponent of error profile curve')
     has_gc_bias = define.boolean(default=False, description='Set to true if GC bias should be modeled', category='GC bias')
