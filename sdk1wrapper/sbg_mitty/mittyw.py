@@ -34,7 +34,7 @@ class DeletePlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for delete model', name='DeleteModel')
+    out = define.output(description='JSON fragment for delete model', name='VarModel')
 
   class Params(define.Params):
     p = define.real(default=0.0001, min=0.0, max=1.0, description='Probability that the deletion will happen at any given base')
@@ -91,7 +91,7 @@ class InsertPlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for insert model', name='InsertModel')
+    out = define.output(description='JSON fragment for insert model', name='VarModel')
 
   class Params(define.Params):
     p = define.real(default=0.0001, min=0.0, max=1.0, description='Probability that the insertion will happen at any given base')
@@ -150,7 +150,7 @@ class SNPPlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for SNP model', name='SNPModel')
+    out = define.output(description='JSON fragment for SNP model', name='VarModel')
 
   class Params(define.Params):
     p = define.real(default=0.001, min=0.0, max=1.0, description='Probability that the SNP will happen at any given base')
@@ -200,7 +200,7 @@ class UniformDeletePlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for delete model', name='DeleteModel')
+    out = define.output(description='JSON fragment for delete model', name='VarModel')
 
   class Params(define.Params):
     p = define.real(default=0.0001, min=0.0, max=1.0, description='Probability that the deletion will happen at any given base')
@@ -254,7 +254,7 @@ class UniformInsertPlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for insert model', name='InsertModel')
+    out = define.output(description='JSON fragment for insert model', name='VarModel')
 
   class Params(define.Params):
     p = define.real(default=0.0001, min=0.0, max=1.0, description='Probability that the insertion will happen at any given base')
@@ -324,7 +324,7 @@ class DoubleExpPlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for site model', name='DoubleExpModel')
+    out = define.output(description='JSON fragment for site model', name='SiteModel')
 
   class Params(define.Params):
     a1 = define.real(default=1.0, description='Amplitude of component 1')
@@ -394,7 +394,7 @@ class StandardPopPlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for population model', name='StandardPopModel')
+    out = define.output(description='JSON fragment for population model', name='PopModel')
 
   class Params(define.Params):
     sample_size = define.integer(default=10, min=1, description='Size of sample')
@@ -472,7 +472,7 @@ class VnPopPlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for population model', name='VnPopModel')
+    out = define.output(description='JSON fragment for population model', name='PopModel')
 
   class Params(define.Params):
     p_vx = define.real(min=0.0, max=1.0, description='p_vx')
@@ -549,13 +549,13 @@ class Genomes(define.Wrapper):
 
   """
   class Inputs(define.Inputs):
-    fasta = define.input(description='Reference FASTA file', name='.fa.gz', required=True)
-    population_model = define.input(description='Population model', name='Pop Model', required=True)
-    site_model = define.input(description='Site model', name='Site Model')
-    variant_models = define.input(description='Variant models', name='Variant Model', list=True, required=True)
+    fasta = define.input(description='Reference FASTA file', name='Ref', required=True)
+    population_model = define.input(description='Population model', name='PopModel', required=True)
+    site_model = define.input(description='Site model', name='SiteModel')
+    variant_models = define.input(description='Variant models', name='VarModels', list=True, required=True)
 
   class Outputs(define.Outputs):
-    gdb = define.output(description='Genome HDF5 file', name='Genomes')
+    gdb = define.output(description='Genome HDF5 file', name='GenomeDB')
     vcf_files = define.output(description='Selected VCF files from database', name='VCFs', list=True)
 
   class Params(define.Params):
@@ -718,9 +718,9 @@ class Reads(define.Wrapper):
   }
   """
   class Inputs(define.Inputs):
-    fasta = define.input(required=True, description='Reference FASTA file', name='.fa.gz')
-    gdb = define.input(description='Genome HDF5 file', name='.h5')
-    read_model = define.input(required=True, description='Read model', name='.json')
+    fasta = define.input(required=True, description='Reference FASTA file', name='Ref')
+    gdb = define.input(description='Genome HDF5 file', name='GenomeDB')
+    read_model = define.input(required=True, description='Read model', name='ReadModel')
 
   class Outputs(define.Outputs):
     fq_p = define.output(description='Output FASTQ file (perfect)', name='FASTQ (perfect)')
@@ -905,8 +905,8 @@ class Perfectbam(define.Wrapper):
     inbam = define.input(required=True, description='BAM file to analyze', name='BAM')
 
   class Outputs(define.Outputs):
-    bad_bam = define.output(description='BAM with misaligned reads', name='BAD BAM')
-    per_bam = define.output(description='BAM with all reads correctly aligned and alignment analysis results set', name='PER BAM')
+    bad_bam = define.output(description='BAM with misaligned reads', name='BADBAM')
+    per_bam = define.output(description='BAM with all reads correctly aligned and alignment analysis results set', name='PERBAM')
 
   class Params(define.Params):
     window = define.integer(default=100, min=0, description='Size of tolerance window for marking alignments correct')
@@ -952,7 +952,7 @@ class Alindel(define.Wrapper):
     gdb = define.input(description='Genome HDF5 file', name='.h5')
 
   class Outputs(define.Outputs):
-    out_json = define.output(description='.json file with indel accuracy analysis', name='INDEL json')
+    out_json = define.output(description='.json file with indel accuracy analysis', name='IndelAnal')
 
   class Params(define.Params):
     indel_range = define.integer(default=100, min=0, description='Indel range to compute')
@@ -995,10 +995,10 @@ class AlindelPlot(define.Wrapper):
   --title TEXT           Title
   --help                 Show this message and exit."""
   class Inputs(define.Inputs):
-    indel_json = define.input(required=True, list=True, description='List of indel.json files to plot', name='INDEL json')
+    indel_json = define.input(required=True, list=True, description='List of indel.json files to plot', name='IndelAnal')
 
   class Outputs(define.Outputs):
-    figure_file = define.output(description='Output figure', name='Figure')
+    figure_file = define.output(description='Output figure', name='IndelPlot')
 
   class Params(define.Params):
     #TODO: Smart labels?
@@ -1044,8 +1044,8 @@ class MisalignmentPlot(define.Wrapper):
     bad_bam = define.input(required=True, description='BAD BAM produced by perfectbam', name='BADBAM')
 
   class Outputs(define.Outputs):
-    circle_figure_file = define.output(description='Circle figure plot', name='Circle')
-    matrix_figure_file = define.output(description='Matrix figure plot', name='Matrix')
+    circle_figure_file = define.output(description='Circle figure plot', name='CirclePlot')
+    matrix_figure_file = define.output(description='Matrix figure plot', name='MatrixPlot')
 
   class Params(define.Params):
     bin_size = define.real(default=1, min=0, description='Bin size in Mb')
