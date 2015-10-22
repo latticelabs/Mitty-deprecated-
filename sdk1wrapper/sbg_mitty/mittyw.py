@@ -5,8 +5,14 @@ now = datetime.now
 
 from sbgsdk import define, Process, require
 from sbgsdk.schema.io_list import IOList
+from sbgsdk.file_utils import change_ext
 
 SEED_MAX = (1 << 32) - 1  # Used for seeding rng
+
+
+def timestamped_prefix(prefix):
+  return prefix + '_' + now().strftime('%Y_%m_%d_%H_%M_%S')
+
 
 # -------------- Wrappers for Genome generator and models ------------------------
 
@@ -577,9 +583,6 @@ class Genomes(define.Wrapper):
       else [Genomes.parse_json_fragment(wrapper_code_key, jf) for jf in json_fragment_fname]
     }
 
-  def timestamped_prefix(self):
-    return self.params.prefix + '_' + now().strftime('%Y_%m_%d_%H_%M_%S')
-
   def create_parameter_file(self, prefix):
     """Given the inputs, parameters and models, create a parameter file"""
     params = {
@@ -601,7 +604,7 @@ class Genomes(define.Wrapper):
     return params
 
   def execute(self):
-    prefix = self.timestamped_prefix()
+    prefix = timestamped_prefix(self.params.prefix)
     json.dump(self.create_parameter_file(prefix), open('variants.json', 'w'), indent=2)
     Process('genomes', 'generate', '-v', 'variants.json').run()
     self.outputs.gdb = prefix + '_genomes.h5'
@@ -734,9 +737,6 @@ class Reads(define.Wrapper):
     variant_window = define.integer(default=100, min=0, description='Size of neighborhood in bp around variants to take reads from')
     gzipped_fasta = define.boolean(default=False, description='GZIP the fasta files')
 
-  def timestamped_prefix(self):
-    return self.params.prefix + '_' + now().strftime('%Y_%m_%d_%H_%M_%S')
-
   def create_parameter_file(self, prefix):
     """Hard coding interleaved to be True for now"""
     read_model_json_fragment = json.load(open(self.inputs.read_model, 'r'))
@@ -764,7 +764,7 @@ class Reads(define.Wrapper):
     }
 
   def execute(self):
-    prefix = self.timestamped_prefix()
+    prefix = timestamped_prefix(self.params.prefix)
     json.dump(self.create_parameter_file(prefix), open('reads.json', 'w'), indent=2)
     Process('reads', 'generate', '-v', 'reads.json').run()
     self.outputs.fq_p = (prefix + '_reads.fq.gz') if self.params.gzipped_fasta else (prefix + '_reads.fq')
@@ -915,16 +915,17 @@ class Perfectbam(define.Wrapper):
     x = define.boolean(default=False, description='Use extended CIGAR ("X"s and "="s) rather than traditional CIGAR (just "M"s)')
 
   def execute(self):
+    bad_bam, per_bam = change_ext(self.inputs.inbam, 'bad.bam'), change_ext(self.inputs.inbam, 'per.bam')
     Process('samtools', 'sort', '-@', 8, '-f', self.inputs.inbam, 'sorted.bam').run()
     Process('samtools', 'index', 'sorted.bam').run()
     argument_list = ['perfectbam', '-v', '--window', self.params.window] + \
                     (['--perfect-bam'] if self.params.perfect_bam else []) + \
                     (['--cigar-errors'] if self.params.cigar_errors else []) + \
                     (['-x'] if self.params.x else []) + \
-                    ['sorted.bam', '--per-bam', 'bad.bam', '--bad-bam', 'per.bam', '--no-index']
+                    ['sorted.bam', '--per-bam', per_bam, '--bad-bam', bad_bam, '--no-index']
     Process(*argument_list).run()
-    self.outputs.bad_bam = 'bad.bam'
-    self.outputs.per_bam = 'per.bam'
+    self.outputs.bad_bam = bad_bam
+    self.outputs.per_bam = per_bam
 
 
 def test_perfectbam():
@@ -958,14 +959,15 @@ class Alindel(define.Wrapper):
     sample_name = define.string(description='Sample name')
 
   def execute(self):
+    indel_json = change_ext(self.inputs.per_bam, 'indel.json')
     # First we have to sort and index the BAM
     Process('samtools', 'sort', '-@', 8, '-f', self.inputs.per_bam, 'sorted.bam').run()
     Process('samtools', 'index', 'sorted.bam').run()
     argument_list = ['alindel', '--indel-range', self.params.indel_range] + \
                     (['--sample-name', self.params.sample_name] if self.params.sample_name else []) + \
-                    ['sorted.bam', self.inputs.gdb, 'indel.json']
+                    ['sorted.bam', self.inputs.gdb, indel_json]
     Process(*argument_list).run()
-    self.outputs.out_json = 'indel.json'
+    self.outputs.out_json = indel_json
 
 
 def test_alindel():
@@ -1000,13 +1002,15 @@ class AlindelPlot(define.Wrapper):
 
   class Params(define.Params):
     #TODO: Smart labels?
+    prefix = define.string(default='mitty', description='Prefix to add to data file(s) (date/time stamp will be added automatically)')
     window = define.integer(default=5, min=0, description='Smoothing window to apply to plot')
     indel_range = define.integer(default=100, min=0, description='Indel range to show')
     plot_title = define.string(default='Alignment accuracy', description='Plot title')
     pdf_plot = define.boolean(default=True, description='Plot as pdf or png')
 
   def execute(self):
-    out_plot_name = 'indel_plot.pdf' if self.params.pdf_plot else 'indel_plot.png'
+    prefix = timestamped_prefix(self.params.prefix)
+    out_plot_name = prefix + '_indel_plot.pdf' if self.params.pdf_plot else prefix + '_indel_plot.png'
     argument_list = ['alindel_plot', '-o', out_plot_name, '--win', self.params.window,
                      '--indel-range', self.params.indel_range, '--title', self.params.plot_title]
     for fname in self.inputs.indel_json:
@@ -1050,12 +1054,15 @@ class MisalignmentPlot(define.Wrapper):
 
   def execute(self):
     # First we have to sort and index the BAM
+    name = os.path.basename(self.inputs.bad_bam)
+    base, old_ext = os.path.splitext(name)
+    ext = 'pdf' if self.params.pdf_plot else 'png'
+    circle_plot_name = base + '_circle.' + ext
+    matrix_plot_name = base + '_matrix.' + ext
+
+    # Sort and index input file
     Process('samtools', 'sort', '-@', 8, '-f', self.inputs.bad_bam, 'sorted.bam').run()
     Process('samtools', 'index', 'sorted.bam').run()
-
-    circle_plot_name = 'circle.pdf' if self.params.pdf_plot else 'circle.png'
-    matrix_plot_name = 'matrix.pdf' if self.params.pdf_plot else 'matrix.png'
-
     argument_list = ['misplot', '--circle', circle_plot_name, '--matrix', matrix_plot_name,
                      '--bin-size', self.params.bin_size, '--scaling-factor', self.params.scaling_factor,
                      'sorted.bam']
