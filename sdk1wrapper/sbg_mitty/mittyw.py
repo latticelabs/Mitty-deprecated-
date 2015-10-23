@@ -949,7 +949,7 @@ class Alindel(define.Wrapper):
   """Wraps BAM sort/index and alindel"""
   class Inputs(define.Inputs):
     per_bam = define.input(required=True, description='Perfect BAM file', name='PERBAM')
-    gdb = define.input(description='Genome HDF5 file', name='.h5')
+    gdb = define.input(description='Genome HDF5 file', name='GenomeDB')
 
   class Outputs(define.Outputs):
     out_json = define.output(description='.json file with indel accuracy analysis', name='IndelAnal')
