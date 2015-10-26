@@ -111,12 +111,19 @@ class Population:
     if sample_name not in self.fp.attrs.get('sample_names', []):
       self.fp.attrs['sample_names'] = list(self.fp.attrs.get('sample_names', [])) + [sample_name.encode('utf8')]
 
+  def get_variant_master_list_count(self, chrom):
+    return self.fp[self.get_ml_key(chrom)].size
+
   def get_variant_master_list(self, chrom):
     """Return the whole master variant list for this chromosome"""
     ml = VariantList()
     if self.get_ml_key(chrom) in self.fp:
       ml.variants = self.fp[self.get_ml_key(chrom)][:]
     return ml
+
+  def get_sample_variant_count(self, chrom, sample_name):
+    sample_key = self.get_sample_key(chrom) + '/' + sample_name
+    return self.fp[sample_key].size if sample_key in self.fp else 0
 
   def get_sample_variant_index_for_chromosome(self, chrom, sample_name):
     """Return the indexes pointing to the master list for given sample and chromosome"""
@@ -143,42 +150,31 @@ class Population:
   #TODO: make more detailed
   def __repr__(self):
     """Pretty print the genome file"""
+    return self.pretty_print_summary()
+
+  def pretty_print_summary(self, sample_name=None):
+    """Give us a nice printed representation of the population file"""
     rep_str = """
     ---------------------------------------
     Genome file. Mitty version {mv:s}
     ---------------------------------------
     {chrom_cnt:d} chromosomes
-    {sample_cnt:d} samples
+    {sample_cnt:d} samples\n
     """.format(mv=self.get_version(), chrom_cnt=len(self.get_chromosome_list()), sample_cnt=len(self.get_sample_names()))
-    return rep_str
+    pop_v_cnt = [self.get_variant_master_list_count(chrom=chrom) for chrom in self.get_chromosome_list()]
+    if sample_name is not None:
+      sample_v_cnt = [self.get_sample_variant_count(chrom=chrom, sample_name=sample_name) for chrom in self.get_chromosome_list()]
+    else:
+      sample_v_cnt = []
 
-  # chrom_list = pop.get_chromosome_list()
-  # populated_chrom_list = mdb.populated_chromosomes_in_db(conn)
-  # n_s = mdb.samples_in_db(conn)
-  # variant_stats = np.empty((len(populated_chrom_list), 3), dtype=float)
-  # sample_max = 100
-  # for i, c in enumerate(populated_chrom_list):
-  #   if n_s < sample_max:  # Take every sample
-  #     ss = range(n_s)
-  #   else:
-  #     ss = np.random.randint(0, n_s, sample_max)
-  #   s_len = np.empty(len(ss), dtype=float)
-  #   for j, s in enumerate(ss):
-  #     s_len[j] = len(mdb.load_sample(conn, 0, s, c[0]))
-  #   _, _, seq_len, _ = mdb.load_chromosome_metadata(conn, c[0])
-  #   variant_stats[i, :] = (s_len.mean(), s_len.std(), 1e6 * s_len.mean() / float(seq_len))
-  #
-  # print('{:s}'.format(dbfile))
-  # print('\tVariants in {:d} chromosomes (Genome has {:d})'.format(len(populated_chrom_list), len(chrom_list)))
-  # print('\t{:d} samples'.format(n_s))
-  # print('Unique variants in population')
-  # print('\tChrom\tVariants')
-  # for c in populated_chrom_list:
-  #   print('\t{:d}\t{:d}'.format(c[0], mdb.variants_in_master_list(conn, c[0])))
-  # print('Variants in samples')
-  # print('\tChrom\tAvg variants\tStd variants\tVariants/megabase')
-  # for i, c in enumerate(populated_chrom_list):
-  #   print('\t{:d}\t{:<9.2f}\t{:<9.2f}\t{:.1f}'.format(c[0], variant_stats[i, 0], variant_stats[i, 1], variant_stats[i, 2]))
+    # Now print it out nicely
+    rep_str += 'Variant counts' + (' (sample: {:s})\n'.format(sample_name) if sample_name is not None else '\n')
+    rep_str += '\tChrom\tPop' + ('\t\tSample\n' if sample_name is not None else '\n')
+    rep_str += '\t     \tCount' + ('\t\tCount\n' if sample_name is not None else '\n')
+    rep_str += '\t-----\t-----' + ('\t\t-----\n' if sample_name is not None else '\n')
+    for n, chrom in enumerate(self.get_chromosome_list()):
+      rep_str += '\t{:d}\t{:d}'.format(chrom, pop_v_cnt[n]) + ('\t\t{:d}\n'.format(sample_v_cnt[n]) if sample_name is not None else '\n')
+    return rep_str
 
 
 def l2ca(l):
