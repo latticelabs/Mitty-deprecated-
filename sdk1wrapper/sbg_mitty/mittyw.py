@@ -6,6 +6,7 @@ now = datetime.now
 from sbgsdk import define, Process, require
 from sbgsdk.schema.io_list import IOList
 from sbgsdk.file_utils import change_ext
+from sbgsdk.schema.io_value import IOValue
 
 SEED_MAX = (1 << 32) - 1  # Used for seeding rng
 
@@ -34,7 +35,7 @@ class DeletePlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for delete model', name='VarModel')
+    out = define.output(file_types=['mvarplugin'], description='JSON fragment for delete model', name='VarModel')
 
   class Params(define.Params):
     p = define.real(default=0.0001, min=0.0, max=1.0, description='Probability that the deletion will happen at any given base')
@@ -53,6 +54,7 @@ class DeletePlugin(define.Wrapper):
     }
     json.dump(json_fragment, open(out_file_name, 'w'))
     self.outputs.out = out_file_name
+    self.outputs.out.meta = {'file_type': 'mvarplugin'}
 
 
 def test_delete_model():
@@ -91,7 +93,7 @@ class InsertPlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for insert model', name='VarModel')
+    out = define.output(file_types=['mvarplugin'], description='JSON fragment for insert model', name='VarModel')
 
   class Params(define.Params):
     p = define.real(default=0.0001, min=0.0, max=1.0, description='Probability that the insertion will happen at any given base')
@@ -114,6 +116,7 @@ class InsertPlugin(define.Wrapper):
     }
     json.dump(json_fragment, open(out_file_name, 'w'))
     self.outputs.out = out_file_name
+    self.outputs.out.meta = {'file_type': 'mvarplugin'}
 
 
 def test_insert_model():
@@ -150,7 +153,7 @@ class SNPPlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for SNP model', name='VarModel')
+    out = define.output(file_types=['mvarplugin'], description='JSON fragment for SNP model', name='VarModel')
 
   class Params(define.Params):
     p = define.real(default=0.001, min=0.0, max=1.0, description='Probability that the SNP will happen at any given base')
@@ -169,6 +172,7 @@ class SNPPlugin(define.Wrapper):
     }
     json.dump(json_fragment, open(out_file_name, 'w'))
     self.outputs.out = out_file_name
+    self.outputs.out.meta = {'file_type': 'mvarplugin'}
 
 
 def test_snp_model():
@@ -200,7 +204,7 @@ class UniformDeletePlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for delete model', name='VarModel')
+    out = define.output(file_types=['mvarplugin'], description='JSON fragment for delete model', name='VarModel')
 
   class Params(define.Params):
     p = define.real(default=0.0001, min=0.0, max=1.0, description='Probability that the deletion will happen at any given base')
@@ -217,6 +221,7 @@ class UniformDeletePlugin(define.Wrapper):
     }
     json.dump(json_fragment, open(out_file_name, 'w'))
     self.outputs.out = out_file_name
+    self.outputs.out.meta = {'file_type': 'mvarplugin'}
 
 
 def test_uniform_delete_model():
@@ -254,7 +259,7 @@ class UniformInsertPlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for insert model', name='VarModel')
+    out = define.output(file_types=['mvarplugin'], description='JSON fragment for insert model', name='VarModel')
 
   class Params(define.Params):
     p = define.real(default=0.0001, min=0.0, max=1.0, description='Probability that the insertion will happen at any given base')
@@ -277,6 +282,7 @@ class UniformInsertPlugin(define.Wrapper):
     }
     json.dump(json_fragment, open(out_file_name, 'w'))
     self.outputs.out = out_file_name
+    self.outputs.out.meta = {'file_type': 'mvarplugin'}
 
 
 def test_uniform_insert_model():
@@ -324,7 +330,7 @@ class DoubleExpPlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for site model', name='SiteModel')
+    out = define.output(file_types=['msiteplugin'], description='JSON fragment for site model', name='SiteModel')
 
   class Params(define.Params):
     a1 = define.real(default=1.0, description='Amplitude of component 1')
@@ -349,6 +355,7 @@ class DoubleExpPlugin(define.Wrapper):
     }
     json.dump(json_fragment, open(out_file_name, 'w'))
     self.outputs.out = out_file_name
+    self.outputs.out.meta = {'file_type': 'msiteplugin'}
 
 
 def test_double_exp_model():
@@ -394,7 +401,7 @@ class StandardPopPlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for population model', name='PopModel')
+    out = define.output(file_types=['mpopplugin'], description='JSON fragment for population model', name='PopModel')
 
   class Params(define.Params):
     sample_size = define.integer(default=10, min=1, description='Size of sample')
@@ -420,6 +427,7 @@ class StandardPopPlugin(define.Wrapper):
 
     json.dump(json_fragment, open(out_file_name, 'w'))
     self.outputs.out = out_file_name
+    self.outputs.out.meta = {'file_type': 'mpopplugin'}
 
 
 def test_standard_pop_model():
@@ -472,7 +480,7 @@ class VnPopPlugin(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for population model', name='PopModel')
+    out = define.output(file_types=['mpopplugin'], description='JSON fragment for population model', name='PopModel')
 
   class Params(define.Params):
     p_vx = define.real(min=0.0, max=1.0, description='p_vx')
@@ -487,6 +495,7 @@ class VnPopPlugin(define.Wrapper):
     }
     json.dump(json_fragment, open(out_file_name, 'w'))
     self.outputs.out = out_file_name
+    self.outputs.out.meta = {'file_type': 'mpopplugin'}
 
 
 def test_vn_pop_model():
@@ -549,14 +558,14 @@ class Genomes(define.Wrapper):
 
   """
   class Inputs(define.Inputs):
-    fasta = define.input(description='Reference FASTA file', name='Ref', required=True)
-    population_model = define.input(description='Population model', name='PopModel', required=True)
-    site_model = define.input(description='Site model', name='SiteModel')
-    variant_models = define.input(description='Variant models', name='VarModels', list=True, required=True)
+    fasta = define.input(file_types=['fasta'], description='Reference FASTA file', name='Ref', required=True)
+    population_model = define.input(file_types=['mpopplugin'], description='Population model', name='PopModel', required=True)
+    site_model = define.input(file_types=['msiteplugin'], description='Site model', name='SiteModel')
+    variant_models = define.input(file_types=['mvarplugin'], description='Variant models', name='VarModels', list=True, required=True)
 
   class Outputs(define.Outputs):
-    gdb = define.output(description='Genome HDF5 file', name='GenomeDB')
-    vcf_files = define.output(description='Selected VCF files from database', name='VCFs', list=True)
+    gdb = define.output(file_types=['mgenomedb'], description='Genome HDF5 file', name='GenomeDB')
+    vcf_files = define.output(file_types=['vcf'], description='Selected VCF files from database', name='VCFs', list=True)
 
   class Params(define.Params):
     rng_master_seed = define.integer(description='Random number seed', min=1, max=SEED_MAX, required=True)
@@ -608,9 +617,15 @@ class Genomes(define.Wrapper):
     json.dump(self.create_parameter_file(prefix), open('variants.json', 'w'), indent=2)
     Process('genomes', 'generate', '-v', 'variants.json').run()
     self.outputs.gdb = prefix + '_genomes.h5'
-    for n, sample in enumerate(self.params.sample_names):
-      Process('genomes', 'genome-file', 'write-vcf', '--sample-name', sample, prefix + '_genomes.h5', prefix + '_{:d}.vcf'.format(n)).run()
-    self.outputs.vcf_files = [prefix + '_{:d}.vcf'.format(n) for n in range(len(self.params.sample_names))]
+    self.outputs.gdb.meta = {'file_type': 'mgenomedb'}
+
+
+    vcf_prefix = os.path.splitext(os.path.basename(self.outputs.gdb))[0]
+    vcf_names = [vcf_prefix + '_{:s}.vcf'.format(sample) for sample in self.params.sample_names]
+    for fname, sample in zip(vcf_names, self.params.sample_names):
+      Process('genomes', 'genome-file', 'write-vcf', '--sample-name', sample, self.outputs.gdb, fname).run()
+      out = self.outputs.vcf_files.add_file(fname)
+      out.meta = {'file_type': 'vcf'}
 
 
 def run_standard_pop_model():
@@ -684,6 +699,26 @@ def test_genomes():
   assert len(outputs.vcf_files) == 3
 
 
+class WriteVcf(define.Wrapper):
+  """Uses genomes genome-file to write out VCF files"""
+  class Inputs(define.Inputs):
+    gdb = define.input(file_types=['binary'], required=True, description='Genome HDF5 file', name='GenomeDB')
+
+  class Outputs(define.Outputs):
+    vcf_files = define.output(file_types=['vcf'], description='Selected VCF files from database', name='VCFs', list=True)
+
+  class Params(define.Params):
+    sample_names = define.string(description='Name of samples to write out VCFs for', list=True)
+
+  def execute(self):
+    prefix = os.path.splitext(os.path.basename(self.inputs.gdb))[0]
+    vcf_names = [prefix + '_{:s}.vcf'.format(sample) for sample in self.params.sample_names]
+    for fname, sample in zip(vcf_names, self.params.sample_names):
+      Process('genomes', 'genome-file', 'write-vcf', '--sample-name', sample, self.inputs.gdb, fname).run()
+      out = self.outputs.vcf_files.add_file(fname)
+      out.meta = {'file_type': 'vcf'}
+
+
 # -------------- Wrappers for Read generator and models ------------------------
 
 @require(mem_mb=8000, cpu=require.CPU_SINGLE)
@@ -718,13 +753,13 @@ class Reads(define.Wrapper):
   }
   """
   class Inputs(define.Inputs):
-    fasta = define.input(required=True, description='Reference FASTA file', name='Ref')
-    gdb = define.input(description='Genome HDF5 file', name='GenomeDB')
-    read_model = define.input(required=True, description='Read model', name='ReadModel')
+    fasta = define.input(file_types=['fasta'], required=True, description='Reference FASTA file', name='Ref')
+    gdb = define.input(file_types=['mgenomedb'], description='Genome HDF5 file', name='GenomeDB')
+    read_model = define.input(file_types=['mreadplugin'], required=True, description='Read model', name='ReadModel')
 
   class Outputs(define.Outputs):
-    fq_p = define.output(description='Output FASTQ file (perfect)', name='FASTQ (perfect)')
-    fq_c = define.output(description='Output FASTQ file (corrupted)', name='FASTQ (corrupted)')
+    fq_p = define.output(file_types=['fastq'], description='Output FASTQ file (perfect)', name='FASTQ (perfect)')
+    fq_c = define.output(file_types=['fastq'], description='Output FASTQ file (corrupted)', name='FASTQ (corrupted)')
 
   class Params(define.Params):
     sample_name = define.string(default="g0_s0", description='Name of sample to take read from', required=True)
@@ -768,7 +803,10 @@ class Reads(define.Wrapper):
     json.dump(self.create_parameter_file(prefix), open('reads.json', 'w'), indent=2)
     Process('reads', 'generate', '-v', 'reads.json').run()
     self.outputs.fq_p = (prefix + '_reads.fq.gz') if self.params.gzipped_fasta else (prefix + '_reads.fq')
-    self.outputs.fq_c = ((prefix + '_reads_c.fq.gz') if self.params.gzipped_fasta else (prefix + '_reads_c.fq')) if self.params.corrupt else None
+    self.outputs.fq_p.meta = {'file_type': 'fastq', 'sample': self.params.sample_name}
+    if self.params.corrupt:
+      self.outputs.fq_c = (prefix + '_reads_c.fq.gz') if self.params.gzipped_fasta else (prefix + '_reads_c.fq')
+      self.outputs.fq_c.meta = {'file_type': 'fastq', 'sample': self.params.sample_name}
 
 
 def test_reads():
@@ -842,7 +880,7 @@ class SimpleIllumina(define.Wrapper):
     dummy = define.input(description='Dummy', required=False)
 
   class Outputs(define.Outputs):
-    out = define.output(description='JSON fragment for read model', name='ReadModel')
+    out = define.output(file_types=['mreadplugin'], description='JSON fragment for read model', name='ReadModel')
 
   class Params(define.Params):
     read_len = define.integer(default=100, min=1, description='Length of read')
@@ -874,7 +912,7 @@ class SimpleIllumina(define.Wrapper):
 
     json.dump(json_fragment, open(out_file_name, 'w'))
     self.outputs.out = out_file_name
-    #self.outputs.out.meta = self.inputs.fastq.make_metadata()
+    self.outputs.out.meta = {'file_type': 'mreadplugin'}
 
 
 def test_simple_illumina_read_model():
@@ -902,11 +940,11 @@ def test_simple_illumina_read_model():
 # --------- Benchmarking tools wrappers ------------
 class Perfectbam(define.Wrapper):
   class Inputs(define.Inputs):
-    inbam = define.input(required=True, description='BAM file to analyze', name='BAM')
+    inbam = define.input(file_types=['bam'], required=True, description='BAM file to analyze', name='BAM')
 
   class Outputs(define.Outputs):
-    bad_bam = define.output(description='BAM with misaligned reads', name='BADBAM')
-    per_bam = define.output(description='BAM with all reads correctly aligned and alignment analysis results set', name='PERBAM')
+    bad_bam = define.output(file_types=['mbadbam'], description='BAM with misaligned reads', name='BADBAM')
+    per_bam = define.output(file_types=['mperbam'], description='BAM with all reads correctly aligned and alignment analysis results set', name='PERBAM')
 
   class Params(define.Params):
     window = define.integer(default=100, min=0, description='Size of tolerance window for marking alignments correct')
@@ -925,7 +963,9 @@ class Perfectbam(define.Wrapper):
                     ['sorted.bam', '--per-bam', per_bam, '--bad-bam', bad_bam, '--no-index']
     Process(*argument_list).run()
     self.outputs.bad_bam = bad_bam
+    self.outputs.bad_bam.meta = self.inputs.inbam.make_metadata(file_type='mbadbam')
     self.outputs.per_bam = per_bam
+    self.outputs.per_bam.meta = self.inputs.inbam.make_metadata(file_type='mperbam')
 
 
 def test_perfectbam():
@@ -948,11 +988,11 @@ def test_perfectbam():
 class Alindel(define.Wrapper):
   """Wraps BAM sort/index and alindel"""
   class Inputs(define.Inputs):
-    per_bam = define.input(required=True, description='Perfect BAM file', name='PERBAM')
-    gdb = define.input(description='Genome HDF5 file', name='GenomeDB')
+    per_bam = define.input(file_types=['mperbam'], required=True, description='Perfect BAM file', name='PERBAM')
+    gdb = define.input(file_types=['mgenomedb'], description='Genome HDF5 file', name='GenomeDB')
 
   class Outputs(define.Outputs):
-    out_json = define.output(description='.json file with indel accuracy analysis', name='IndelAnal')
+    out_json = define.output(file_types=['mindeljson'], description='.json file with indel accuracy analysis', name='IndelAnal')
 
   class Params(define.Params):
     indel_range = define.integer(default=100, min=0, description='Indel range to compute')
@@ -968,6 +1008,7 @@ class Alindel(define.Wrapper):
                     ['sorted.bam', self.inputs.gdb, indel_json]
     Process(*argument_list).run()
     self.outputs.out_json = indel_json
+    self.outputs.out_json.meta = {'file_type': 'mindeljson'}
 
 
 def test_alindel():
@@ -995,7 +1036,7 @@ class AlindelPlot(define.Wrapper):
   --title TEXT           Title
   --help                 Show this message and exit."""
   class Inputs(define.Inputs):
-    indel_json = define.input(required=True, list=True, description='List of indel.json files to plot', name='IndelAnal')
+    indel_json = define.input(file_types=['mindeljson'], required=True, list=True, description='List of indel.json files to plot', name='IndelAnal')
 
   class Outputs(define.Outputs):
     figure_file = define.output(description='Output figure', name='IndelPlot')
@@ -1041,7 +1082,7 @@ class MisalignmentPlot(define.Wrapper):
       --bin-size FLOAT        Bin size in Mb
       --scaling-factor FLOAT  Scale size of disks/lines in plot"""
   class Inputs(define.Inputs):
-    bad_bam = define.input(required=True, description='BAD BAM produced by perfectbam', name='BADBAM')
+    bad_bam = define.input(file_types=['mbadbam'], required=True, description='BAD BAM produced by perfectbam', name='BADBAM')
 
   class Outputs(define.Outputs):
     circle_figure_file = define.output(description='Circle figure plot', name='CirclePlot')
