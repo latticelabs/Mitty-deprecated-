@@ -52,7 +52,7 @@ Installation Commands::
   apt-get update
   pip install --upgrade pip
   # -> create the file ~/.pip/pip.conf
-  apt-get install gfortran wget cmake liblapack-dev python-pip python-dev libhdf5-serial-dev libncurses5-dev python-matplotlib python-scipy
+  apt-get install gfortran wget cmake liblapack-dev python-pip python-dev libhdf5-serial-dev libncurses5-dev python-matplotlib python-scipy python-tornado
   pip install numpy cython nose h5py pysam
   pip install -U mitty --pre
   # samtools
