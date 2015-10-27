@@ -25,10 +25,10 @@ ft = file_types = {
 def setup():
   """Write out the proper metadata for all the test files"""
   json.dump({'file_type': ft['read_plugin']}, open('/sbgenomics/test-data/read_model_fragment.json.meta', 'w'))
-  json.dump({'file_type': ft['genome_database']}, open('/sbgenomics/test-data/mock_genomes.h5.meta', 'w'))
-  json.dump({'file_type': ft['perbam']}, open('/sbgenomics/test-data/mock_per.bam.meta', 'w'))
-  json.dump({'file_type': ft['badbam']}, open('/sbgenomics/test-data/mock_bad.bam.meta', 'w'))
-  json.dump({'file_type': ft['indel_analysis']}, open('/sbgenomics/test-data/mock_indel.json.meta', 'w'))
+  json.dump({'file_type': ft['genome_database'], 'library': 'mitty-test'}, open('/sbgenomics/test-data/mock_genomes.h5.meta', 'w'))
+  json.dump({'file_type': ft['perbam'], 'sample': 'g0_s0'}, open('/sbgenomics/test-data/mock_per.bam.meta', 'w'))
+  json.dump({'file_type': ft['badbam'], 'sample': 'g0_s0'}, open('/sbgenomics/test-data/mock_bad.bam.meta', 'w'))
+  json.dump({'file_type': ft['indel_analysis'], 'sample': 'g0_s0'}, open('/sbgenomics/test-data/mock_indel.json.meta', 'w'))
 
 
 def timestamped_prefix(prefix):
@@ -637,14 +637,14 @@ class Genomes(define.Wrapper):
     json.dump(self.create_parameter_file(prefix), open('variants.json', 'w'), indent=2)
     Process('genomes', 'generate', '-v', 'variants.json').run()
     self.outputs.gdb = prefix + '_genomes.h5'
-    self.outputs.gdb.meta = {'file_type': ft['genome_database']}
+    self.outputs.gdb.meta = {'file_type': ft['genome_database'], 'library': prefix}
 
     vcf_prefix = os.path.splitext(os.path.basename(self.outputs.gdb))[0]
     vcf_names = [vcf_prefix + '_{:s}.vcf'.format(sample) for sample in self.params.sample_names]
     for fname, sample in zip(vcf_names, self.params.sample_names):
       Process('genomes', 'genome-file', 'write-vcf', '--sample-name', sample, self.outputs.gdb, fname).run()
       out = self.outputs.vcf_files.add_file(fname)
-      out.meta = {'file_type': 'vcf'}
+      out.meta = {'file_type': 'vcf', 'library': prefix, 'sample': sample}
 
 
 def run_standard_pop_model():
@@ -718,24 +718,29 @@ def test_genomes():
   assert len(outputs.vcf_files) == 3
 
 
-class WriteVcf(define.Wrapper):
-  """Uses genomes genome-file to write out VCF files"""
-  class Inputs(define.Inputs):
-    gdb = define.input(file_types=[ft['genome_database']], required=True, description='Genome HDF5 file', name='GenomeDB')
-
-  class Outputs(define.Outputs):
-    vcf_files = define.output(file_types=['vcf'], description='Selected VCF files from database', name='VCFs', list=True)
-
-  class Params(define.Params):
-    sample_names = define.string(description='Name of samples to write out VCFs for', list=True)
-
-  def execute(self):
-    prefix = os.path.splitext(os.path.basename(self.inputs.gdb))[0]
-    vcf_names = [prefix + '_{:s}.vcf'.format(sample) for sample in self.params.sample_names]
-    for fname, sample in zip(vcf_names, self.params.sample_names):
-      Process('genomes', 'genome-file', 'write-vcf', '--sample-name', sample, self.inputs.gdb, fname).run()
-      out = self.outputs.vcf_files.add_file(fname)
-      out.meta = {'file_type': 'vcf'}
+# class WriteSampleAndGraphVcf(define.Wrapper):
+#   """Uses genomes genome-file to write out VCF file for sample and graph"""
+#   class Inputs(define.Inputs):
+#     gdb = define.input(file_types=[ft['genome_database']], required=True, description='Genome HDF5 file', name='GenomeDB')
+#
+#   class Outputs(define.Outputs):
+#     graph_vcf = define.output(file_types=['vcf'], description='VCF representing graph', name='VCF')
+#     sample_vcf = define.output(file_types=['vcf'], description='VCF representing sample', name='VCF')
+#
+#   class Params(define.Params):
+#     graph_name = define.string(description='Name of graph')
+#     sample_name = define.string(description='Name of samples')
+#
+#   def execute(self):
+#     prefix = os.path.splitext(os.path.basename(self.inputs.gdb))[0]
+#
+#
+#
+#     vcf_names = [prefix + '_{:s}.vcf'.format(sample) for sample in self.params.sample_names]
+#     for fname, sample in zip(vcf_names, self.params.sample_names):
+#       Process('genomes', 'genome-file', 'write-vcf', '--sample-name', sample, self.inputs.gdb, fname).run()
+#       out = self.outputs.vcf_files.add_file(fname)
+#       out.meta = {'file_type': 'vcf'}
 
 
 # -------------- Wrappers for Read generator and models ------------------------
@@ -822,10 +827,12 @@ class Reads(define.Wrapper):
     json.dump(self.create_parameter_file(prefix), open('reads.json', 'w'), indent=2)
     Process('reads', 'generate', '-v', 'reads.json').run()
     self.outputs.fq_p = (prefix + '_reads.fq.gz') if self.params.gzipped_fasta else (prefix + '_reads.fq')
-    self.outputs.fq_p.meta = {'file_type': 'fastq', 'sample': self.params.sample_name}
+    self.outputs.fq_p.meta = self.inputs.gdb.make_metadata(file_type='fastq', sample=self.params.sample_name)# {'file_type': 'fastq', 'sample': self.params.sample_name}
     if self.params.corrupt:
       self.outputs.fq_c = (prefix + '_reads_c.fq.gz') if self.params.gzipped_fasta else (prefix + '_reads_c.fq')
-      self.outputs.fq_c.meta = {'file_type': 'fastq', 'sample': self.params.sample_name}
+      self.outputs.fq_c.meta = self.inputs.gdb.make_metadata(file_type='fastq', sample=self.params.sample_name)
+      # 'library' should contain the genome db identity
+      #{'file_type': 'fastq', 'sample': self.params.sample_name}
 
 
 def test_reads():
@@ -1011,19 +1018,21 @@ class Alindel(define.Wrapper):
 
   class Params(define.Params):
     indel_range = define.integer(default=100, min=0, description='Indel range to compute')
-    sample_name = define.string(description='Sample name')
+    sample_name = define.string(default=None, description='Sample name override (Default is to use sample name in BAM metadata)')
 
   def execute(self):
+    sample_name = self.params.sample_name or self.inputs.per_bam.meta['sample']
     indel_json = change_ext(self.inputs.per_bam, 'indel.json')
     # First we have to sort and index the BAM
     Process('samtools', 'sort', '-@', 8, '-f', self.inputs.per_bam, 'sorted.bam').run()
     Process('samtools', 'index', 'sorted.bam').run()
     argument_list = ['alindel', '--indel-range', self.params.indel_range] + \
-                    (['--sample-name', self.params.sample_name] if self.params.sample_name else []) + \
+                    ['--sample-name', sample_name] + \
                     ['sorted.bam', self.inputs.gdb, indel_json]
     Process(*argument_list).run()
     self.outputs.out_json = indel_json
-    self.outputs.out_json.meta = {'file_type': ft['indel_analysis']}
+    self.outputs.out_json.meta = self.inputs.per_bam.make_metadata(file_type=ft['indel_analysis'], sample=sample_name,
+                                                                   library=self.inputs.gdb.meta['library']) # {'file_type': ft['indel_analysis']}
 
 
 def test_alindel():
@@ -1066,13 +1075,15 @@ class AlindelPlot(define.Wrapper):
 
   def execute(self):
     prefix = timestamped_prefix(self.params.prefix)
-    out_plot_name = prefix + '_indel_plot.pdf' if self.params.pdf_plot else prefix + '_indel_plot.png'
+    ext = 'pdf' if self.params.pdf_plot else 'png'
+    out_plot_name = prefix + '_indel_plot.' + ext
     argument_list = ['alindel_plot', '-o', out_plot_name, '--win', self.params.window,
                      '--indel-range', self.params.indel_range, '--title', self.params.plot_title]
     for fname in self.inputs.indel_json:
       argument_list += ['-f', fname]
     Process(*argument_list).run()
     self.outputs.figure_file = out_plot_name
+    self.outputs.figure_file.meta = self.inputs.indel_json.make_metadata(file_type=ext)
 
 
 def test_alindel_plot():
@@ -1124,7 +1135,9 @@ class MisalignmentPlot(define.Wrapper):
                      'sorted.bam']
     Process(*argument_list).run()
     self.outputs.circle_figure_file = circle_plot_name
+    self.outputs.circle_figure_file.meta = self.inputs.bad_bam.make_metadata(file_type=ext)
     self.outputs.matrix_figure_file = matrix_plot_name
+    self.outputs.matrix_figure_file.meta = self.inputs.bad_bam.make_metadata(file_type=ext)
 
 
 def test_misalignment_plot():
