@@ -22,7 +22,7 @@ v 2.0.0 Dec 2015
     - meta analysis of quantified results
 
   - Haplotype block generator
-
+  - Better simulation management on platform via metadata(?)
 
 Planned changes
 ---------------
@@ -34,8 +34,9 @@ Planned changes
    - het/hom filtering in standard population model
    - range filter for variations (put as core spec - like for reads - rather than in population model?)
 
-* Combine multiple (or at least two) BADBAMs to perform intersection and difference analyses. Interactive tool?
 * alindel_plot should handle case where there are no indels (log scaling fails)
+* [Wrappers] Use metadata to keep track of files from different aligner versions
+* [Wrappers] Have perfectbam and alindel and alindel plot operate on lists (doing scatter gather possibly)
 
 Possible changes
 ----------------
@@ -46,6 +47,13 @@ Possible changes
 
 Changelog
 ---------
+
+**1.25.0.dev0**
+
+2015.10.26
+* Combine multiple (or at least two) BADBAMs to perform intersection and difference analyses. Interactive tool?
+
+
 2015.10.20
 * matrix plot should show light gray dots for grid points
 

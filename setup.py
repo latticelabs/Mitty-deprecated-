@@ -28,6 +28,7 @@ setup(
       'console_scripts': ['genomes = mitty.genomes:cli',
                           'reads = mitty.reads:cli',
                           'perfectbam = mitty.benchmarking.perfectbam:cli',
+                          'badbams = mitty.benchmarking.badbams:cli',
                           'alindel = mitty.benchmarking.indel_alignment_accuracy:cli',
                           'vcf2pop = mitty.lib.vcf2pop:cli',
                           'alindel_plot = mitty.benchmarking.indel_alignment_accuracy_plot:cli [plot]',
