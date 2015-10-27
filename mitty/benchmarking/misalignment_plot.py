@@ -121,7 +121,8 @@ def plot_genome_as_a_square(ax, bins, chrom_gap=1000, chrom_thick=5):
   return linear_stops
 
 
-def plot_read_mis_alignments_as_a_matrix(ax, chrom_lens, bins, bin_centers, matrices, linear_stops, scaling_factor=1.0):
+def plot_read_mis_alignments_as_a_matrix(ax, chrom_lens, bins, bin_centers, matrices, linear_stops,
+                                         scaling_factor=1.0, plot_grid=True):
   for i in range(len(bins)):
     for j in range(len(bins)):
       mat = matrices[i][j]
@@ -131,20 +132,25 @@ def plot_read_mis_alignments_as_a_matrix(ax, chrom_lens, bins, bin_centers, matr
       scale_x, scale_y = range_x / range_bp_x, range_y / range_bp_y
       cx, cy = offset_x + bin_centers[i] * scale_x, offset_y + bin_centers[j] * scale_y
       this_x, this_y = np.tile(cx, cy.shape[0]), np.repeat(cy, cx.shape[0])
-      ax.plot(this_x, this_y, '.', color=(0.8, 0.8, 0.8), ms=1, zorder=-1)
+      if plot_grid: ax.plot(this_x, this_y, '.', color=(0.8, 0.8, 0.8), ms=2, zorder=-1)
       mat_flat = mat.ravel()
       idx, = mat_flat.nonzero()
       if idx.size > 0:
         ax.scatter(this_x[idx], this_y[idx], mat_flat[idx] * scaling_factor, facecolors='none')
 
 
-def matrix_plot(chrom_lens, bins, bin_centers, matrices, scaling_factor):
+def matrix_plot(chrom_lens, bins, bin_centers, matrices, scaling_factor, plot_grid=True):
   """Plot the confusion matrix as a ... matrix."""
   fig = plt.figure()
   ax = fig.add_subplot(111)
   linear_stops = plot_genome_as_a_square(ax, bins, chrom_gap=max(chrom_lens) * 0.1)
-  plot_read_mis_alignments_as_a_matrix(ax, chrom_lens, bins, bin_centers, matrices, linear_stops, scaling_factor=scaling_factor)
+  plot_read_mis_alignments_as_a_matrix(ax, chrom_lens, bins, bin_centers, matrices, linear_stops,
+                                       scaling_factor=scaling_factor, plot_grid=plot_grid)
   plt.setp(ax, aspect=1, xlabel='Correct', ylabel='Aligned')
+
+
+def is_grid_too_dense(bins):
+  return sum([len(bb) for bb in bins]) > 100  # This is our threshold for too dense a grid to show
 
 
 @click.command()
@@ -161,7 +167,8 @@ def cli(badbam, circle, matrix, bin_size, scaling_factor):
     circle_plot(chrom_lens, bins, bin_centers, matrices, scaling_factor)
     plt.savefig(circle)
   if matrix is not None:
-    matrix_plot(chrom_lens, bins, bin_centers, matrices, scaling_factor)
+    matrix_plot(chrom_lens, bins, bin_centers, matrices, scaling_factor,
+                plot_grid=not is_grid_too_dense(bins))
     plt.savefig(matrix)
 
 if __name__ == '__main__':
