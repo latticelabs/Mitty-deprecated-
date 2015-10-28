@@ -1,6 +1,7 @@
 """Test cases for BADBAM intersection and difference. It is suffiicent to generate a test case for one chromosome
 as the badbams code operates on reads on a chromosome by chromosome basis"""
 import tempfile
+import os
 
 import pysam
 import numpy as np
@@ -130,8 +131,8 @@ def assert_bam_is_correct(bam, index):
 
 def test_badbam():
   """Test badbam operation"""
-  _, bam1 = tempfile.mkstemp(suffix='.bam')
-  _, bam2 = tempfile.mkstemp(suffix='.bam')
+  _, bam1 = tempfile.mkstemp(dir='./', suffix='.bam')
+  _, bam2 = tempfile.mkstemp(dir='./', suffix='.bam')
   chrom, cpy, ro, pos, idx_both_identical, idx_both_diff, idx_1, idx_2, hdr = create_two_badbams(bam1, bam2)
   intersect_bam_identical_errors, intersect_bam_diff_errors_1, intersect_bam_diff_errors_2, diff_bam1, diff_bam2 = analyse_two_badbams(bam1, bam2, hdr)
 
@@ -141,3 +142,7 @@ def test_badbam():
   assert_bam_is_correct(intersect_bam_diff_errors_2, idx_both_diff)
   assert_bam_is_correct(diff_bam1, idx_1)
   assert_bam_is_correct(diff_bam2, idx_2)
+
+  # Cleanup
+  os.remove(bam1)
+  os.remove(bam2)
