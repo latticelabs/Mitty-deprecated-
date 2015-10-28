@@ -145,4 +145,6 @@ def test_badbam():
 
   # Cleanup
   os.remove(bam1)
+  os.remove(bam1 + '.bai')
   os.remove(bam2)
+  os.remove(bam2 + '.bai')
