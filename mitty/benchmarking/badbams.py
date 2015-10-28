@@ -1,8 +1,11 @@
 """CLI and library for taking in a pair of BADBAM files and looking at intersect and difference. Saves summary as .json
-file and writes out intersect and difference files as BADBAMs and FASTQs. The FASTQs provide small datasets for
-investigating a problem and the subset BADBAMs are useful for analysing what kind of errors were made"""
+file [done] and writes out intersect and difference files as BADBAMs [done] and FASTQs [todo].
+
+The FASTQs provide small datasets for investigating a problem and the subset BADBAMs are useful for analysing what
+kind of errors were made"""
 import time
 import io
+import json
 
 import click
 import pysam
@@ -64,6 +67,7 @@ def intersect_and_diff_of_bams(bam_fp1, bam_fp2,
       else r1 is part of 1 -2, r2 is part of 2 -1
       advance both
   """
+  cnt_jnt_identical, cnt_jnt_diff, cnt_b1, cnt_b2 = 0, 0, 0, 0
   cntr = progress_update_interval
   for seq_id in [sn['SN'] for sn in bam_fp1.header['SQ']]:
     itr1, itr2 = bam_fp1.fetch(reference=seq_id), bam_fp2.fetch(reference=seq_id)
@@ -71,26 +75,32 @@ def intersect_and_diff_of_bams(bam_fp1, bam_fp2,
     while r1 is not None and r2 is not None:
       if r1.pos < r2.pos:
         diff_bam1.write(r1)
+        cnt_b1 += 1
         r1 = next(itr1, None)
       elif r2.pos < r1.pos:
         diff_bam2.write(r2)
         r2 = next(itr2, None)
+        cnt_b2 += 1
       elif r1.qname != r2.qname:
         diff_bam1.write(r1)
         diff_bam2.write(r2)
+        cnt_b1 += 1
+        cnt_b2 += 1
         r1, r2 = next(itr1, None), next(itr2, None)
       else:
         # If the correct positions are the same and the qnames are the same, they can not be mates so
         # we don't have to test for that
         if read_errors_are_identical(r1, r2):
           intersect_bam_identical_errors.write(r1)
+          cnt_jnt_identical += 1
         else:
           intersect_bam_diff_errors_1.write(r1)
           intersect_bam_diff_errors_2.write(r2)
+          cnt_jnt_diff += 1
         r1, r2 = next(itr1, None), next(itr2, None)
       cntr -= 1
       if cntr == 0:
-        yield progress_update_interval
+        yield {'joint_identical': cnt_jnt_identical, 'joint_different': cnt_jnt_diff, 'b1': cnt_b1, 'b2': cnt_b2}
         cntr = progress_update_interval
 
     # Pickup the slack
@@ -101,7 +111,7 @@ def intersect_and_diff_of_bams(bam_fp1, bam_fp2,
       r1 = next(itr1, None)
       cntr -= 1
       if cntr == 0:
-        yield progress_update_interval
+        yield {'joint_identical': cnt_jnt_identical, 'joint_different': cnt_jnt_diff, 'b1': cnt_b1, 'b2': cnt_b2}
         cntr = progress_update_interval
 
     cntr = progress_update_interval
@@ -110,10 +120,19 @@ def intersect_and_diff_of_bams(bam_fp1, bam_fp2,
       r2 = next(itr2, None)
       cntr -= 1
       if cntr == 0:
-        yield progress_update_interval
+        yield {'joint_identical': cnt_jnt_identical, 'joint_different': cnt_jnt_diff, 'b1': cnt_b1, 'b2': cnt_b2}
         cntr = progress_update_interval
 
-    yield progress_update_interval  # This is a white lie (To save time we aren't counting the actual number of reads)
+    yield {'joint_identical': cnt_jnt_identical, 'joint_different': cnt_jnt_diff, 'b1': cnt_b1, 'b2': cnt_b2}
+
+
+def print_summary_table(cnts):
+  print('Condition\t\tCount')
+  print('---------\t\t-----')
+  print('Joint identical\t\t{:d}'.format(cnts['joint_identical']))
+  print('Joint different\t\t{:d}'.format(cnts['joint_different']))
+  print('B1 - B2\t\t\t{:d}'.format(cnts['b1']))
+  print('B2 - B1\t\t\t{:d}'.format(cnts['b2']))
 
 
 @click.command()
@@ -125,13 +144,16 @@ def intersect_and_diff_of_bams(bam_fp1, bam_fp2,
 @click.option('--intersect_bam_diff_errors_2', type=click.Path(), help='same reads with diff errors - read from bam2 goes here')
 @click.option('--diff_bam1', type=click.Path(), help='reads only wrong in bam1')
 @click.option('--diff_bam2', type=click.Path(), help='reads only wrong in bam2')
+@click.option('--summary-file', type=click.Path(), help='Summary file')
 @click.option('-v', count=True, help='Verbosity level')
 @click.option('-p', is_flag=True, help='Show progress bar')
 def cli(inbam1, inbam2,
         intersect_bam_identical_errors,
         intersect_bam_diff_errors_1,
         intersect_bam_diff_errors_2,
-        diff_bam1, diff_bam2, v, p):
+        diff_bam1, diff_bam2,
+        summary_file,
+        v, p):
   """Take a pair of BADBAM files and look at intersect and difference"""
   level = logging.DEBUG if v > 0 else logging.WARNING
   logging.basicConfig(level=level)
@@ -161,14 +183,12 @@ def cli(inbam1, inbam2,
   diff_bam1_fp = pysam.AlignmentFile(diff_bam1 or 'diff_bam1.bam', 'wb', header=new_header)
   diff_bam2_fp = pysam.AlignmentFile(diff_bam2 or 'diff_bam2.bam', 'wb', header=new_header)
 
-  cnt = 0
   t0 = time.time()
   total_read_count = max(bam_fp1.mapped + bam_fp1.unmapped, bam_fp2.mapped + bam_fp2.unmapped)  # Sadly, this is only approximate
   progress_bar_update_interval = int(0.01 * total_read_count)
-  cnt = 0
   with click.progressbar(length=total_read_count, label='Processing BAMs',
                          file=None if p else io.BytesIO()) as bar:
-    for _ in intersect_and_diff_of_bams(
+    for ctr in intersect_and_diff_of_bams(
       bam_fp1=bam_fp1, bam_fp2=bam_fp2,
       intersect_bam_identical_errors=intersect_bam_identical_errors_fp,
       intersect_bam_diff_errors_1=intersect_bam_diff_errors_1_fp,
@@ -176,6 +196,8 @@ def cli(inbam1, inbam2,
       diff_bam1=diff_bam1_fp, diff_bam2=diff_bam2_fp,
       progress_update_interval=progress_bar_update_interval):
       bar.update(progress_bar_update_interval)
-      cnt += progress_bar_update_interval
+  cnt = ctr['joint_identical'] + ctr['joint_different'] + ctr['b1'] + ctr['b2']
   t1 = time.time()
-  logger.debug('Analyzed {:d} reads in BAM in {:2.2f}s'.format(cnt, t1 - t0))
+  logger.debug('Analyzed {:d} reads in {:2.2f}s'.format(cnt, t1 - t0))
+  json.dump(ctr, open(summary_file or 'summary.json', 'w'))
+  print_summary_table(ctr)
