@@ -77,8 +77,9 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
     read_is_misaligned = not (chrom_c and pos_c and (cigar_c or (not flag_cigar_errors_as_misalignments)))
     if read_is_misaligned or full_perfect_bam:  # Need all the read info, incl seq and quality
       new_read = read
-    else:  # Need only some tags and pos, chrom info
+    else:  # Need only qname, some tags and pos, chrom info
       new_read = pysam.AlignedSegment()
+      new_read.qname = read.qname
 
     # File size note
     #For a file with 202999 reads (per_bam, condensed - perfectbam -v -v -p reads.bam):
