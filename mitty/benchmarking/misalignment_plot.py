@@ -3,7 +3,6 @@
 import click
 import pysam
 import matplotlib
-orig_backend = matplotlib.get_backend()
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
@@ -12,7 +11,11 @@ from matplotlib.colors import LogNorm
 import numpy as np
 
 
-def compute_misalignment_matrix_from_bam(bam_fp, bin_size=1000):
+def we_have_too_many_bins(bins):
+  return sum([len(bb) for bb in bins]) > 5000  # This is our threshold for too many bins to compute
+
+
+def compute_misalignment_matrix_from_bam(bam_fp, bin_size=1000, i_know_what_i_am_doing=False):
   """Create a matrix of binned mis-alignments"""
   def binnify(_pos, _bins):
     for n in range(1, len(_bins)):
@@ -22,6 +25,11 @@ def compute_misalignment_matrix_from_bam(bam_fp, bin_size=1000):
 
   chrom_lens = [hdr['LN'] for hdr in bam_fp.header['SQ']]
   bins = [np.array(range(0, hdr['LN'], bin_size) + [hdr['LN']], dtype=int) for hdr in bam_fp.header['SQ']]
+  if not i_know_what_i_am_doing and we_have_too_many_bins(bins):
+    raise RuntimeWarning('The number of bins will be very large. '
+                         'If you are sure you want to do this, '
+                         'use the --i-know-what-i-am-doing flag.')
+
   bin_centers = [(bb[:-1] + bb[1:]) / 2.0 for bb in bins]
   # Rows = source (correct pos) Cols = destination (aligned pos)
   matrices = [[np.zeros(shape=(len(bins[j]) - 1, len(bins[i]) - 1), dtype='uint32') for i in range(len(bins))] for j in range(len(bins))]
@@ -157,12 +165,14 @@ def is_grid_too_dense(bins):
 @click.argument('badbam', type=click.Path(exists=True))
 @click.option('--circle', type=click.Path(), help='Name of figure file for circle plot')
 @click.option('--matrix', type=click.Path(), help='Name of figure file for matrix plot')
-@click.option('--bin-size', type=float, default=0.01, help='Bin size in Mb')
+@click.option('--bin-size', type=float, default=1.00, help='Bin size in Mb')
 @click.option('--scaling-factor', type=float, default=1.0, help='Scale size of disks/lines in plot')
-def cli(badbam, circle, matrix, bin_size, scaling_factor):
+@click.option('--i-know-what-i-am-doing', is_flag=True, help='Override bin density safety')
+def cli(badbam, circle, matrix, bin_size, scaling_factor, i_know_what_i_am_doing):
   """Prepare a binned matrix of mis-alignments and plot it in different ways"""
   chrom_lens, bins, bin_centers, matrices = \
-    compute_misalignment_matrix_from_bam(pysam.AlignmentFile(badbam, 'rb'), bin_size=int(bin_size * 1e6))
+    compute_misalignment_matrix_from_bam(pysam.AlignmentFile(badbam, 'rb'),
+                                         bin_size=int(bin_size * 1e6), i_know_what_i_am_doing=i_know_what_i_am_doing)
   if circle is not None:
     circle_plot(chrom_lens, bins, bin_centers, matrices, scaling_factor)
     plt.savefig(circle)
