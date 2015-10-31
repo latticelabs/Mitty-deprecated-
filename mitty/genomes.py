@@ -218,9 +218,17 @@ def write_vcf(dbfile, vcfgz, sample_name):
 
 @g_file.command('summary')
 @click.argument('dbfile', type=click.Path(exists=True))
-def summary(dbfile):
+@click.option('--sample-name', help='Name of sample (optional)', default=None)
+def summary(dbfile, sample_name):
   """Print some useful information about the database"""
-  print(vr.Population(dbfile))
+  print(vr.Population(fname=dbfile).pretty_print_summary(sample_name))
+
+
+@g_file.command('samples')
+@click.argument('dbfile', type=click.Path(exists=True))
+def list_samples(dbfile):
+  """Print list of samples in DB"""
+  print(vr.Population(fname=dbfile).get_sample_names())
 
 
 @g_file.command('sfs')
@@ -251,14 +259,6 @@ def indel_count(dbfile, chrom, sample_name, max_indel):
   print('  LEN | COUNT')
   for l, c in zip(np.arange(-max_indel, max_indel + 1), cnts):
     print('{:5d} | {:d}'.format(l, c))
-
-
-@g_file.command('vcount')
-@click.argument('dbfile', type=click.Path(exists=True))
-@click.argument('sample-name')
-def variant_count(dbfile, sample_name):
-  """Variant count of sample"""
-  print(vr.Population(fname=dbfile).pretty_print_summary(sample_name))
 
 
 @cli.group()

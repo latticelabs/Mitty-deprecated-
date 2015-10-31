@@ -174,6 +174,8 @@ class Population:
     rep_str += '\t-----\t-----' + ('\t\t-----\n' if sample_name is not None else '\n')
     for n, chrom in enumerate(self.get_chromosome_list()):
       rep_str += '\t{:d}\t{:d}'.format(chrom, pop_v_cnt[n]) + ('\t\t{:d}\n'.format(sample_v_cnt[n]) if sample_name is not None else '\n')
+    rep_str += '\t-----\t-----' + ('\t\t-----\n' if sample_name is not None else '\n')
+    rep_str += '\tTotal\t{:d}'.format(sum(pop_v_cnt)) + ('\t\t{:d}\n'.format(sum(sample_v_cnt)) if sample_name is not None else '\n')
     return rep_str
 
 
