@@ -26,6 +26,7 @@ v 2.0.0 Dec 2015
 
 Planned changes
 ---------------
+* move wrapper code into separate project
 * change CLIs to allow parameter files to be fed in from std in (piped as a file)
 * vcf-write should have option to remove unzipped .vcf file
 * variants only reads - need to properly handle end of variants
@@ -47,6 +48,13 @@ Possible changes
 
 Changelog
 ---------
+
+**1.26.0.dev0**
+
+2015.10.30
+* Variant count from indel analysis now only counts variants with at least one read covering them. This takes care of
+the counting problems when we take reads from only one chromosome, or only part of a chromosome etc.
+* Alindel plot now shows pairwise differences in additional panel
 
 **1.25.0.dev0**
 

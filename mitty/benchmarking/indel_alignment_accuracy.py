@@ -23,7 +23,7 @@ def prepare_features(pop, ch, sample_name=None):
     pop.get_sample_variant_list_for_chromosome(chrom=ch, sample_name=sample_name)
   return [
     {'footprint': {'start': svl['pos'], 'stop': svl['stop']},
-     'indel lengths': [len(a) - len(r) for a, r in izip(svl['alt'], svl['ref'])]}
+     'indel lengths': np.array([len(a) - len(r) for a, r in izip(svl['alt'], svl['ref'])])}
     for svl in sample_variant_list]
 
 
@@ -82,8 +82,9 @@ def categorize_data_from_one_chromosome(bam_fp, pop, ch, sample_name=None, cat_r
       cat_read_counts[k] = categorize_read_counts_by_indel_length(read_counts[k], f_v['indel lengths'],
                                                                   cat_read_counts=cat_read_counts[k],
                                                                   max_indel=max_indel)
-    cat_read_counts['indel_count'] = categorize_indels_by_length(f_v['indel lengths'], cat_read_counts['indel_count'],
-                                                                 max_indel=max_indel)
+    idx_for_variants_with_at_least_one_read = np.nonzero(read_counts['reads_within_feature'])[0]
+    cat_read_counts['indel_count'] = categorize_indels_by_length(f_v['indel lengths'][idx_for_variants_with_at_least_one_read],
+                                                                 cat_read_counts['indel_count'], max_indel=max_indel)
 
   return cat_read_counts
 
