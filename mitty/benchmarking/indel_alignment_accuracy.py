@@ -2,6 +2,7 @@
 parametrized by the sample indel lengths. Return information in a json file"""
 from itertools import izip
 import json
+import io
 
 import click
 import numpy as np
@@ -85,8 +86,9 @@ def categorize_data_from_one_chromosome(bam_fp, pop, ch, sample_name=None, cat_r
     idx_for_variants_with_at_least_one_read = np.nonzero(read_counts['reads_within_feature'])[0]
     cat_read_counts['indel_count'] = categorize_indels_by_length(f_v['indel lengths'][idx_for_variants_with_at_least_one_read],
                                                                  cat_read_counts['indel_count'], max_indel=max_indel)
-
-  return cat_read_counts
+    yield cat_read_counts
+  #yield cat_read_counts
+  #return cat_read_counts
 
 
 class NumpyJsonEncoder(json.JSONEncoder):
@@ -102,15 +104,20 @@ class NumpyJsonEncoder(json.JSONEncoder):
 @click.argument('out-json', type=click.Path())
 @click.option('--sample-name', help='Name of sample to compare against. Leave out to test against population')
 @click.option('--indel-range', help='Maximum base pair count of indels we process', type=int, default=50)
-def cli(perbam, out_json, vdb, sample_name, indel_range):
+@click.option('-p', is_flag=True, help='Show progress bar')
+def cli(perbam, out_json, vdb, sample_name, indel_range, p):
   """Compute alignment accuracy as a function of SNPs and indels in sample_name being covered by the reads in PERBAM.
   PERBAM should be from the perfectbam program. The result is stored as arrays in the OUT_JSON file"""
   bam_fp = pysam.AlignmentFile(perbam, 'rb')
   pop = vr.Population(vdb)
   cat_read_counts = None
-  for ch in pop.get_chromosome_list():
-    cat_read_counts = categorize_data_from_one_chromosome(
-      bam_fp, pop, ch, sample_name=sample_name, cat_read_counts=cat_read_counts, max_indel=indel_range)
+  with click.progressbar(length=2 * len(pop.get_chromosome_list()), label='Analyzing indels', file=None if p else io.BytesIO()) as bar:
+    for ch in pop.get_chromosome_list():
+      # cat_read_counts = categorize_data_from_one_chromosome(
+      #   bam_fp, pop, ch, sample_name=sample_name, cat_read_counts=cat_read_counts, max_indel=indel_range)
+      for cat_read_counts in categorize_data_from_one_chromosome(
+          bam_fp, pop, ch, sample_name=sample_name, cat_read_counts=cat_read_counts, max_indel=indel_range):
+        bar.update(1)
 
   json.dump(cat_read_counts, open(out_json, 'w'), cls=NumpyJsonEncoder)
 
