@@ -33,6 +33,10 @@ alindel_plot -f bwa_indel.json --indel-range 20 -o bwa_indel.png
 # Show aligner benchmarking: do another run with a 'crappier aligner'
 pybwa reddus_pentalgus.fa.gz reads_c.fq bwa_poor.bam -p -v -P -S  # No mate rescue or pairing
 
+# Confusion plots
+misplot bwa_bad.bam --matrix bwa_mat.png --circle bwa_cir.png
+misplot bwa_poor_bad.bam --matrix bwa_poor_mat.png --circle bwa_poor_cir.png
+
 # Analyse the alignments
 perfectbam --perfect-bam -v -v -p bwa_poor.bam
 alindel --sample-name g0_s0 --indel-range 20 bwa_poor_per.bam reddus_genomes.h5 bwa_poor_indel.json
@@ -45,5 +49,7 @@ alindel_plot -f bwa_indel.json -l 'BWA' -f bwa_poor_indel.json -l 'BWA/poor' -f 
 
 
 # For reads solely from neighborhoods of variants
+genomes generate variations_few_snps.json -v -p
+genomes genome-file write-vcf --sample-name g0_s0 reddus_genomes_few_snps.h5 g0_s0_few_snps.vcf
 reads generate reads_variants_only.json -v -p
 pybwa reddus_pentalgus.fa.gz reads_variants_only.fq reads_vo.bam -p -v

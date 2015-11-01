@@ -259,6 +259,20 @@ reads and display the information graphically (These require Matplotlib_ to be i
 
 .. _Matplotlib: http://matplotlib.org/index.html
 
+
+Comparing mis-alignments
+++++++++++++++++++++++++
+We can compare the two mis-alignment files we produced to extract which reads were misaligned in both instances, which
+reads were mis-aligned differently, and which reads were mis-aligned only in one or the other instance.
+
+.. command-output:: badbams --help
+
+.. command-output:: badbams bwa_bad.bam bwa_poor_bad.bam -v -p
+
+
+
+
+
 Taking reads just from regions around variants
 ----------------------------------------------
 By setting the ``variants_only`` flag to *True* in the parameters file we can selectively generate reads from regions bordering

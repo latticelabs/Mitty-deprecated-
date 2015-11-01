@@ -2,19 +2,19 @@
   "files": {
     "reference_file": "reddus_pentalgus.fa.gz",
     "output_prefix": "reads_variants_only",
-    "dbfile": "reddus_genomes.h5"
+    "dbfile": "reddus_genomes_few_snps.h5"
   },
   "sample_name" : "g0_s0",
   "rng": {
     "master_seed": 123456
   },
-  "chromosomes": [[1, 0.4, 0.5]],
+  "chromosomes": [1],
   "read_model": "simple_illumina",
-  "coverage": 200,
+  "coverage": 30,
   "coverage_per_block": 1,
   "corrupt": false,
   "variants_only": true,
-  "variant_window": 100,
+  "variant_window": 500,
   "model_params": {
     "read_len": 100,
     "template_len_mean": 250,
