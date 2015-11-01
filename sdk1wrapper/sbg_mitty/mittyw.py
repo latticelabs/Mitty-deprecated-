@@ -3,8 +3,8 @@ import os
 from datetime import datetime
 now = datetime.now
 
-from sbgsdk import define, Process, require
-from sbgsdk.schema.io_list import IOList
+from sbgsdk import define, Process, require, sgw
+from sbgsdk.schema.io_list import IOList, IOValue
 from sbgsdk.file_utils import change_ext
 
 SEED_MAX = (1 << 32) - 1  # Used for seeding rng
@@ -826,13 +826,13 @@ class Reads(define.Wrapper):
     prefix = timestamped_prefix(self.params.prefix)
     json.dump(self.create_parameter_file(prefix), open('reads.json', 'w'), indent=2)
     Process('reads', 'generate', '-v', 'reads.json').run()
+    meta_data = {'file_type': 'fastq', 'sample': self.params.sample_name, 'seq_tech': 'simulated'}
     self.outputs.fq_p = (prefix + '_reads.fq.gz') if self.params.gzipped_fasta else (prefix + '_reads.fq')
-    self.outputs.fq_p.meta = self.inputs.gdb.make_metadata(file_type='fastq', sample=self.params.sample_name)# {'file_type': 'fastq', 'sample': self.params.sample_name}
+    self.outputs.fq_p.meta = self.inputs.gdb.make_metadata(**meta_data)  # (file_type='fastq', sample=self.params.sample_name)# {'file_type': 'fastq', 'sample': self.params.sample_name}
     if self.params.corrupt:
       self.outputs.fq_c = (prefix + '_reads_c.fq.gz') if self.params.gzipped_fasta else (prefix + '_reads_c.fq')
-      self.outputs.fq_c.meta = self.inputs.gdb.make_metadata(file_type='fastq', sample=self.params.sample_name)
-      # 'library' should contain the genome db identity
-      #{'file_type': 'fastq', 'sample': self.params.sample_name}
+      self.outputs.fq_c.meta = self.inputs.gdb.make_metadata(**meta_data)  # (file_type='fastq', sample=self.params.sample_name)
+      # 'library' should contain the genome db identity and be in the gdb metadata
 
 
 def test_reads():
@@ -1153,3 +1153,103 @@ def test_misalignment_plot():
   outputs = MisalignmentPlot(inputs, params).test()
   assert os.path.exists(outputs.circle_figure_file)
   assert os.path.exists(outputs.matrix_figure_file)
+
+
+@require(cpu=require.CPU_ALL)
+class AlignmentAnalyze(sgw.ScatterGatherWrapper):
+  """Given a list of BAM files from aligners run on the same dataset, analyze them all and collect the files.
+  This is a parallel version of using perfectbam and alindel on each BAM. We use metadata to keep track of which file
+  came from what."""
+  class Inputs(define.Inputs):
+    bam = define.input(file_types=['bam'], required=True, description='BAM files to analyze', name='BAMs', list=True)
+    gdb = define.input(file_types=[ft['genome_database']], description='Genome HDF5 file', name='GenomeDB')
+
+  class Outputs(define.Outputs):
+    bad_bam = define.output(file_types=[ft['badbam']],
+                            description='BAM with misaligned reads', name='BADBAM', list=True)
+    per_bam = define.output(file_types=[ft['perbam']],
+                            description='BAM with all reads correctly aligned and alignment analysis results set',
+                            name='PERBAM', list=True)
+    out_json = define.output(file_types=[ft['indel_analysis']],
+                             description='.json file with indel accuracy analysis', name='IndelAnal', list=True)
+
+  class Params(define.Params):
+    """The sample is inferred from metadata"""
+    window = define.integer(default=100, min=0, description='Size of tolerance window for marking alignments correct')
+    cigar_errors = define.boolean(default=False, description='CIGAR errors result in reads being classified as misaligned')
+    x = define.boolean(default=False, description='Use extended CIGAR ("X"s and "="s) rather than traditional CIGAR (just "M"s)')
+
+  def split(self):
+    """Simply assign each BAM file to a separate job"""
+    # The metadata travels with the file (this is a IOObject)
+    return [{'serial': n, 'file': inbam} for n, inbam in enumerate(self.inputs.bam)]
+
+  def run_perfectbam(self, job):
+    inbam = job['file']
+    bad_bam, per_bam = change_ext(inbam, 'bad.bam'), change_ext(inbam, 'per.bam')
+    Process('samtools', 'sort', '-@', 8, '-f', inbam, 'sorted.bam').run()
+    Process('samtools', 'index', 'sorted.bam').run()
+    argument_list = ['perfectbam', '-v', '--window', self.params.window] + \
+                    (['--perfect-bam'] if self.params.perfect_bam else []) + \
+                    (['--cigar-errors'] if self.params.cigar_errors else []) + \
+                    (['-x'] if self.params.x else []) + \
+                    ['sorted.bam', '--per-bam', per_bam, '--bad-bam', bad_bam, '--no-index']
+    Process(*argument_list).run()
+    return {'badbam': os.path.abspath(bad_bam),
+            'badbam_meta': None,
+            'perbam': os.path.abspath(per_bam),
+            'perbam meta': None}
+
+    self.outputs.bad_bam = bad_bam
+    self.outputs.bad_bam.meta = self.inputs.inbam.make_metadata(file_type=ft['badbam'])
+    self.outputs.per_bam = per_bam
+    self.outputs.per_bam.meta = self.inputs.inbam.make_metadata(file_type=ft['perbam'])
+
+  def work(self, job):
+    input_bam = job['file']
+    arguments = [
+      'aligner', '-f', self.inputs.fasta, '-v', self.inputs.vcf, '-q', input_fastq, '-o', 'this.bam',
+      '--interleaved_FQ',
+      '--hash_block_size', self.params.hash_block_size,
+      '--hash_block_step', self.params.hash_block_step,
+      '--hash_table_size_log2', self.params.hash_table_size_log2,
+      '--hash_short_list', self.params.hash_short_list,
+      '--hash_long_list', self.params.hash_long_list,
+      '-m', self.params.mismatch,
+      '-l', self.params.template_length,
+      '-w', self.params.local_window
+    ] + \
+    (['--is_mitty_read'] if self.params.is_mitty_read else []) + \
+    (['--read_group_id', self.params.read_group_id] if self.params.read_group_id else []) + \
+    (['--read_group_sample', self.params.read_group_sample] if self.params.read_group_sample else [])
+    Process(*arguments).run()
+
+    out_file_name = 'f_{:010d}.bam'.format(job['serial'])
+    #Process('bamtools', 'sort', '-in', 'this.bam', '-out', out_file_name).run()
+    Process('samtools', 'sort', 'this.bam', out_file_name[:-4]).run()
+
+    return {'serial': job['serial'], 'file': os.path.abspath(out_file_name)}
+
+  def merge(self, job_results):
+    out_file_name = self.params.file_prefix + '_' + change_ext(self.inputs.fastq, 'bam')
+    # arguments = ['bamtools', 'merge'] + [x for bam in job_results for x in ['-in', bam['file']]] + ['-out', out_file_name]
+    if len(job_results) > 1:
+      arguments = ['samtools', 'merge', out_file_name] + [bam['file'] for bam in job_results]
+      Process(*arguments).run()
+    else:
+      Process('mv', job_results[0]['file'], out_file_name).run()
+    self.outputs.out = out_file_name
+    self.outputs.out.meta = self.inputs.fastq.make_metadata(file_type='bam')
+
+
+@require(cpu=require.CPU_ALL)
+class MetaAnalysis(sgw.ScatterGatherWrapper):
+  """Given sets of BAD BAMs and alindel analysis, do a meta analysis by running all way badbams and indel accuracy
+  comparisons on them. Save all result files and
+
+
+  to pass to AlignerBenchmarReport which will make a summary plot.
+
+  Included in the analysis are an all way BAM comparison run.
+  """
+  pass
