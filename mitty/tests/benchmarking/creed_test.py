@@ -32,6 +32,17 @@ def analyze_read_test():
   assert cigar == '24M2I74M', cigar
   assert chrom_c and pos_c and cigar_c == 1
 
+  read = MyRead(qname=qname, secondary=False, paired=True, read1=False, unmapped=False, reference_id=14, pos=744, cigarstring='24M2I74M')
+  read_serial, chrom, cpy, ro, pos, rl, cigar, ro_m, pos_m, rl_m, cigar_m, chrom_c, pos_c, cigar_c, unmapped = creed.analyze_read(read, window=0, extended=False)
+  assert read_serial == 31, read_serial
+  assert chrom == 15, chrom
+  assert cpy == 0, cpy
+  assert ro == 0, ro
+  assert pos == 744, pos
+  assert cigar == '24M2I74M', cigar
+  assert chrom_c and pos_c and cigar_c == 1
+
+
   read = MyRead(qname=qname, secondary=False, paired=True, read1=True, unmapped=False, reference_id=14, pos=898, cigarstring='24M2I74M')
   read_serial, chrom, cpy, ro, pos, rl, cigar, ro_m, pos_m, rl_m, cigar_m, chrom_c, pos_c, cigar_c, unmapped = creed.analyze_read(read, window=0, extended=False)
   assert read_serial == 30, read_serial
@@ -43,6 +54,30 @@ def analyze_read_test():
   assert chrom_c == 1
   assert pos_c == 1
   assert cigar_c == 0
+
+
+def analyze_read_test2():
+  """Read analysis for reads inside long deletions."""
+  qname = '3|15|1|1|700|100|200S|0|900|100|100M'
+  read = MyRead(qname=qname, secondary=False, paired=True, read1=True, unmapped=False, reference_id=14, pos=700, cigarstring='100I')
+  read_serial, chrom, cpy, ro, pos, rl, cigar, ro_m, pos_m, rl_m, cigar_m, chrom_c, pos_c, cigar_c, unmapped = creed.analyze_read(read, window=0, extended=False)
+  assert read_serial == 30, read_serial
+  assert chrom == 15, chrom
+  assert cpy == 1, cpy
+  assert ro == 1, ro
+  assert pos == 700, pos
+  assert cigar == '200S', cigar
+  assert chrom_c == 1
+  assert pos_c == 1
+  assert cigar_c == 0
+
+  read = MyRead(qname=qname, secondary=False, paired=True, read1=True, unmapped=False, reference_id=14, pos=705, cigarstring='100I')
+  read_serial, chrom, cpy, ro, pos, rl, cigar, ro_m, pos_m, rl_m, cigar_m, chrom_c, pos_c, cigar_c, unmapped = creed.analyze_read(read, window=0, extended=False)
+  assert chrom_c == 1
+  assert pos_c == 0
+  assert cigar_c == 0
+
+
 
   # # Test if we can do fuzzy matching if we soft clips and so on
   # qname = '3|15|0|0|100|1M1000D99M|1|200|100='

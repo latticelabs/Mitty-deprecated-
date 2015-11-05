@@ -23,6 +23,9 @@ def analyze_read(read, window=100, extended=False):
 
   read_serial = read_serial * 10 + 0 or 1 (for mate1 or mate2 of read) for paired reads
   read_serial = read_serial for un-paired reads
+  chrom, pos -> zero indexed
+  chrom_c, pos_c, cigar_c -> 1 if correct, 0 otherwise
+  unmapped -> 1 if true
   """
   early_exit_value = [None] * 15
 
@@ -84,6 +87,13 @@ def check_read(read_pos, read_cigar, correct_pos, correct_cigar, window):
   """
   cat = 0b111  # all wrong
   cigar_ops = cigar_parser.findall(correct_cigar)
+
+  # Corner case, our special cigar for indicating reads inside an insertion
+  if len(cigar_ops) == 1:
+    if cigar_ops[0][1] == 'S' or cigar_ops[0][1] == 'I':
+      if -window <= read_pos - correct_pos <= window:
+        return 0b000
+
   # Not comparing CIGARs right now. Will do for the future
   for cnt, op in cigar_ops:
     if op == '=' or op == 'M' or op == 'X':

@@ -26,7 +26,8 @@ v 2.0.0 Dec 2015
 
 Planned changes
 ---------------
-* move wrapper code into separate project
+* Reads parameter file should take explicit file names
+* Auto scale lines/circles in misalignment plots
 * change CLIs to allow parameter files to be fed in from std in (piped as a file)
 * vcf-write should have option to remove unzipped .vcf file
 * variants only reads - need to properly handle end of variants
@@ -36,8 +37,6 @@ Planned changes
    - range filter for variations (put as core spec - like for reads - rather than in population model?)
 
 * alindel_plot should handle case where there are no indels (log scaling fails)
-* [Wrappers] Use metadata to keep track of files from different aligner versions
-* [Wrappers] Have perfectbam and alindel and alindel plot operate on lists (doing scatter gather possibly)
 
 Possible changes
 ----------------
@@ -48,6 +47,17 @@ Possible changes
 
 Changelog
 ---------
+
+**1.26.1.dev0**
+
+2015.11.05
+* Bugfix: creed.read_analyze now properly handles position checking of reads with all I or all S
+
+2015.11.04
+* [Wrappers] Use metadata to keep track of files from different aligner versions
+* [Wrappers] Have perfectbam and alindel and alindel plot operate on lists (doing scatter gather possibly)
+* moved wrapper code into separate project
+
 
 **1.26.0.dev0**
 
