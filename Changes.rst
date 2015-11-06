@@ -27,7 +27,6 @@ v 2.0.0 Dec 2015
 Planned changes
 ---------------
 * Reads parameter file should take explicit file names
-* Auto scale lines/circles in misalignment plots
 * change CLIs to allow parameter files to be fed in from std in (piped as a file)
 * vcf-write should have option to remove unzipped .vcf file
 * variants only reads - need to properly handle end of variants
@@ -35,8 +34,6 @@ Planned changes
 
    - het/hom filtering in standard population model
    - range filter for variations (put as core spec - like for reads - rather than in population model?)
-
-* alindel_plot should handle case where there are no indels (log scaling fails)
 
 Possible changes
 ----------------
@@ -47,6 +44,14 @@ Possible changes
 
 Changelog
 ---------
+
+**1.27.0.dev0**
+
+2015.11.06
+* Alindel Plot can now infer indel range from data
+* Auto scale lines/circles in misalignment plots
+* alindel_plot should handle case where there are no indels (log scaling fails)
+
 
 **1.26.1.dev0**
 

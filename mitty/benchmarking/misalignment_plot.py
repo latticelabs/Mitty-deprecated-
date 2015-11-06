@@ -15,7 +15,11 @@ def we_have_too_many_bins(bins):
   return sum([len(bb) for bb in bins]) > 5000  # This is our threshold for too many bins to compute
 
 
-def compute_misalignment_matrix_from_bam(bam_fp, bin_size=1000, i_know_what_i_am_doing=False):
+def autoscale_bin_size(chrom_lens, bin_cnt=100.0):
+  return int(sum(chrom_lens) / bin_cnt)
+
+
+def compute_misalignment_matrix_from_bam(bam_fp, bin_size=None, i_know_what_i_am_doing=False):
   """Create a matrix of binned mis-alignments"""
   def binnify(_pos, _bins):
     for n in range(1, len(_bins)):
@@ -24,6 +28,7 @@ def compute_misalignment_matrix_from_bam(bam_fp, bin_size=1000, i_know_what_i_am
     return len(_bins) - 1 # Should not get here
 
   chrom_lens = [hdr['LN'] for hdr in bam_fp.header['SQ']]
+  bin_size = bin_size * 1e6 if bin_size is not None else autoscale_bin_size(chrom_lens)
   bins = [np.array(range(0, hdr['LN'], bin_size) + [hdr['LN']], dtype=int) for hdr in bam_fp.header['SQ']]
   if not i_know_what_i_am_doing and we_have_too_many_bins(bins):
     raise RuntimeWarning('The number of bins will be very large. '
@@ -161,18 +166,24 @@ def is_grid_too_dense(bins):
   return sum([len(bb) for bb in bins]) > 100  # This is our threshold for too dense a grid to show
 
 
+def auto_scale_scaling_factor(matrices, scale=1000.0):
+  return scale / max([matrices[i][j].max() for i in range(len(matrices)) for j in range(len(matrices[i]))])
+
+
 @click.command()
 @click.argument('badbam', type=click.Path(exists=True))
 @click.option('--circle', type=click.Path(), help='Name of figure file for circle plot')
 @click.option('--matrix', type=click.Path(), help='Name of figure file for matrix plot')
-@click.option('--bin-size', type=float, default=1.00, help='Bin size in Mb')
-@click.option('--scaling-factor', type=float, default=1.0, help='Scale size of disks/lines in plot')
+@click.option('--bin-size', type=float, default=None, help='Bin size in Mb. Omit to auto-scale')
+@click.option('--scaling-factor', type=float, default=None, help='Scale size of disks/lines in plot. Omit to auto-scale')
 @click.option('--i-know-what-i-am-doing', is_flag=True, help='Override bin density safety')
 def cli(badbam, circle, matrix, bin_size, scaling_factor, i_know_what_i_am_doing):
   """Prepare a binned matrix of mis-alignments and plot it in different ways"""
   chrom_lens, bins, bin_centers, matrices = \
     compute_misalignment_matrix_from_bam(pysam.AlignmentFile(badbam, 'rb'),
-                                         bin_size=int(bin_size * 1e6), i_know_what_i_am_doing=i_know_what_i_am_doing)
+                                         bin_size=bin_size, i_know_what_i_am_doing=i_know_what_i_am_doing)
+  scaling_factor = scaling_factor or auto_scale_scaling_factor(matrices)
+
   if circle is not None:
     circle_plot(chrom_lens, bins, bin_centers, matrices, scaling_factor)
     plt.savefig(circle)
