@@ -58,7 +58,7 @@ def decorate_axes(ax, axes_spec):
       y_tick_labels = axes_spec[k2].get('y-t-labels', y_ticks)
       ak = k2 + '-' + k1
       if k2 not in ['A', 'Ad']:
-        ax[ak].set_yscale('log', nonposy='clip', subsy=[])
+        ax[ak].set_yscale('symlog', nonposy='clip', subsy=[])
       plt.setp(ax[ak],
                xlim=x_lim[k1], xticks=x_ticks[k1], xticklabels=[] if k2 != 'C' else x_tick_labels[k1],
                ylim=y_lim,
