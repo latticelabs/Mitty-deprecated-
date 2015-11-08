@@ -118,11 +118,10 @@ class Model(ReadModel):
     p_template = 0.5 * coverage / float(self.read_len)  # Per base probability of a template
     if self.gc_bias is not None:
       p_template *= self.gc_bias['bias_height']
-    assert 0 < p_template < 0.1, 'p_template is {:f} and should be kept < 0.1 to prevent inaccuracy in coverage level. ' \
-                                 'Please lower coverage per block by {:f}'.format(p_template, 0.1/p_template)
+    template_cnt = int(p_template * (end_base - start_base))
 
     template_loc_rng, read_order_rng, template_len_rng, error_loc_rng, base_choice_rng, gc_bias_rng = mutil.initialize_rngs(seed, 6)
-    template_locs = mutil.place_poisson_seq(template_loc_rng, p_template, start_base, end_base, seq)
+    template_locs = template_loc_rng.randint(start_base, end_base + 1, size=template_cnt)
     template_lens = (template_len_rng.randn(template_locs.shape[0]) * self.template_len_sd + self.template_len_mean).astype('i4')
     idx = ((template_locs + template_lens < end_base) & (template_lens > self.read_len)).nonzero()[0]
     template_locs, template_lens = template_locs[idx], template_lens[idx]
