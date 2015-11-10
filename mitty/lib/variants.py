@@ -1,6 +1,10 @@
 import numpy as np
 import h5py
 
+import pyximport
+pyximport.install(setup_args={"include_dirs": np.get_include()})
+from variants_cy import *
+
 from mitty.version import __version__
 
 
@@ -308,7 +312,8 @@ class VariantList:
     return rep_str
 
 
-def avoid_collisions(pos, stop, idx):
+# This is the pure python version. The cythonized version is in variants_cy.pyx
+def py_avoid_collisions(pos, stop, idx):
   """Remove any overlapping variants from the sequence of variants indicated by idx
 
   :param pos:  array of start positions of master list variants
@@ -327,7 +332,8 @@ def avoid_collisions(pos, stop, idx):
   return z_idx
 
 
-def merge_homozygous(pos, z0, z1, filter_multi_allele=False):
+# This is the pure python version. The cythonized version is in variants_cy.pyx
+def py_merge_homozygous(pos, z0, z1, filter_multi_allele=False):
   """Create a chromosome out of a pair of variant lists.
 
   :param pos:  position array from master list

@@ -26,6 +26,7 @@ v 2.0.0 Dec 2015
 
 Planned changes
 ---------------
+* Alindel should be able to split indel accuracy by known vs novel and save those separately
 * Reads parameter file should take explicit file names
 * change CLIs to allow parameter files to be fed in from std in (piped as a file)
 * vcf-write should have option to remove unzipped .vcf file
@@ -42,8 +43,14 @@ Possible changes
   much like how it is done for variant models.
 * Heuristic for coverage per block?
 
-Changelog
----------
+Partial Changelog
+-----------------
+(Please see git commit log for detailed commentary)
+
+**1.29.0.dev0**
+
+2015.11.11
+* Cythonized bottlenecks in genome generation
 
 **1.27.0.dev0**
 
