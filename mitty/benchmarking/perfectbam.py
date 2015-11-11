@@ -71,7 +71,8 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
   """
   n0 = progress_bar_update_interval
   analyze_read = creed.analyze_read
-  for cnt, read in enumerate(bam_in_fp):
+  mis_read_cnt = 0
+  for tot_read_cnt, read in enumerate(bam_in_fp):
     read_serial, chrom, cpy, ro, pos, rl, cigar, ro_m, pos_m, rl_m, cigar_m, chrom_c, pos_c, cigar_c, unmapped = analyze_read(read, window, extended)
     if read_serial is None: continue  # Something wrong with this read.
     read_is_misaligned = not (chrom_c and pos_c and (cigar_c or (not flag_cigar_errors_as_misalignments)))
@@ -118,14 +119,15 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
 
     if read_is_misaligned:
       bad_bam_fp.write(new_read)
+      mis_read_cnt += 1
 
     per_bam_fp.write(new_read)
 
     n0 -= 1
     if n0 == 0:
-      yield cnt
+      yield tot_read_cnt, mis_read_cnt
       n0 = progress_bar_update_interval
-  yield cnt + 1  # cnt starts from 0 actually ...
+  yield tot_read_cnt + 1, mis_read_cnt  # tot_read_cnt starts from 0 actually ...
 
 
 def process_bams(in_bam_fname, bad_bam_fname, per_bam_fname, flag_cigar_errors, perfect_bam, window, x, p):
@@ -147,19 +149,19 @@ def process_bams(in_bam_fname, bad_bam_fname, per_bam_fname, flag_cigar_errors, 
   bad_bam_fp = pysam.AlignmentFile(bad_bam_fname, 'wb', header=new_header)
   per_bam_fp = pysam.AlignmentFile(per_bam_fname, 'wb', header=new_header)
 
-  cnt = 0
+  cnt, mis = 0, 0
   t0 = time.time()
   total_read_count = bam_in_fp.mapped + bam_in_fp.unmapped  # Sadly, this is only approximate
   progress_bar_update_interval = int(0.01 * total_read_count)
   with click.progressbar(length=total_read_count, label='Processing BAM',
                          file=None if p else io.BytesIO()) as bar:
-    for cnt in process_file(bam_in_fp=bam_in_fp, bad_bam_fp=bad_bam_fp, per_bam_fp=per_bam_fp,
-                            full_perfect_bam=perfect_bam, window=window,
-                            flag_cigar_errors_as_misalignments=flag_cigar_errors, extended=x,
-                            progress_bar_update_interval=progress_bar_update_interval):
+    for cnt, mis in process_file(bam_in_fp=bam_in_fp, bad_bam_fp=bad_bam_fp, per_bam_fp=per_bam_fp,
+                                 full_perfect_bam=perfect_bam, window=window,
+                                 flag_cigar_errors_as_misalignments=flag_cigar_errors, extended=x,
+                                 progress_bar_update_interval=progress_bar_update_interval):
       bar.update(progress_bar_update_interval)
   t1 = time.time()
-  logger.debug('Analyzed {:d} reads in BAM in {:2.2f}s'.format(cnt, t1 - t0))
+  logger.debug('Analyzed {:d} reads in {:2.2f}s. Found {:d} ({:2.2f}%) mis-aligned reads'.format(cnt, t1 - t0, mis, (100.0 * mis) / cnt))
 
 
 def sort_and_index_bams(bad_bam_fname, per_bam_fname):
