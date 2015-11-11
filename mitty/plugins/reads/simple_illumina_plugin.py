@@ -114,8 +114,8 @@ class Model(ReadModel):
     paired indicates if the reads are in pairs or not
     """
     end_base = end_base or len(seq)
-    #assert len(seq) > self.template_len_mean * 3, 'Template size should be less than 1/3rd sequence length'
     p_template = 0.5 * coverage / float(self.read_len)  # Per base probability of a template
+                                                        # 0.5 because each template has two reads
     if self.gc_bias is not None:
       p_template *= self.gc_bias['bias_height']
     template_cnt = int(p_template * (end_base - start_base))
