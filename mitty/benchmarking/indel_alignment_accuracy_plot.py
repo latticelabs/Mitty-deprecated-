@@ -233,6 +233,8 @@ def cli(f, o, l, win, indel_range, title):
   if len(f) == 0:
     return
 
+  win += (win + 1)% 2  # Ensure win is odd
+
   colors = ['k', 'r', 'b', 'g', 'y', 'c']
   #color_cycle = cycle(colors)
   plot_specs = [{'fname': fname, 'label': label or os.path.basename(fname), 'color_spec': color_spec}
