@@ -20,10 +20,12 @@ cpdef avoid_collisions(pos, stop, idx):
     np.ndarray[np.int64_t, ndim=1] _idx
     int n = 0, n2 = 0, n_max = len(idx), z_n = 0
 
+  # Convert to numpy arrays if some other type, like list
   _pos = np.array(pos, dtype=np.int32) if type(pos) is not np.ndarray else pos
   _stop = np.array(stop, dtype=np.int32) if type(stop) is not np.ndarray else stop
   _idx = np.array(idx, dtype=np.int64) if type(idx) is not np.ndarray else idx
 
+  # Copy an index over and then skip any succeeding indexes that collide
   while n < n_max:
     z_idx[z_n] = _idx[n]
     z_n += 1
@@ -39,18 +41,19 @@ cpdef avoid_collisions(pos, stop, idx):
 # 40090 ms for 5000 calls for pure Python version
 @cython.boundscheck(False)
 cpdef merge_homozygous(pos, z0, z1, bint filter_multi_allele=False):
-  """Create a chromosome out of a pair of variant lists.
+  """Create a chromosome out of a pair of variant lists, merging any that are homozygous
 
   :param pos:  position array from master list
   :param z0:   indexes making chrom copy 0
   :param z1:   indexes making chrom copy 1
   :param filter_multi_allele: If True discard any alleles that are both non-Ref (and not homozygous)
-  :return: a list of tuples (index, genotype)
+  :return: numpy recarray with fields "index" and "genotype"
   """
   cdef:
     np.ndarray[np.int32_t, ndim=1] _pos, _z0, _z1
     int n_max0 = len(z0), n_max1 = len(z1), n0 = 0, n1 = 0, chrom_n = 0
 
+  # Convert to numpy arrays if some other type, like list
   _pos = np.array(pos, dtype=np.int32) if type(pos) is not np.ndarray else pos
   _z0 = np.array(z0, dtype=np.int32) if type(z0) is not np.ndarray else z0
   _z1 = np.array(z1, dtype=np.int32) if type(z1) is not np.ndarray else z1
@@ -60,22 +63,22 @@ cpdef merge_homozygous(pos, z0, z1, bint filter_multi_allele=False):
     np.ndarray[np.int32_t, ndim=1] chrom_index = chrom['index']
     np.ndarray[np.int8_t, ndim=1] chrom_gt = chrom['gt']
 
-  #chrom = []
+  # Zip up the two chromosomes, a bit like merge sort.
   while n0 < n_max0 and n1 < n_max1:
-    if _pos[_z0[n0]] < _pos[_z1[n1]]:
+    if _pos[_z0[n0]] < _pos[_z1[n1]]:  # Variant on copy zero comes first
       #chrom += [(_z0[n0], 0)]
       chrom_index[chrom_n], chrom_gt[chrom_n] = _z0[n0], 0
       chrom_n += 1
       n0 += 1
       continue
-    if _pos[_z0[n0]] > _pos[_z1[n1]]:
+    if _pos[_z0[n0]] > _pos[_z1[n1]]:  # Variant on copy one comes first
       #chrom += [(_z1[n1], 1)]
       chrom_index[chrom_n], chrom_gt[chrom_n] = _z1[n1], 1
       chrom_n += 1
       n1 += 1
       continue
-    # When we get here, we are equal
-    if n0 < n_max0 and n1 < n_max1:  # We are equal. Are we homozygous, or just a one in a million het?
+    # If we get here, there are variants at the same pos on both copies
+    if n0 < n_max0 and n1 < n_max1:  # Are we homozygous variants, or different variants starting at the same pos?
       if _z0[n0] == _z1[n1]:  # Yes, a hom
         #chrom += [(_z0[n0], 2)]
         chrom_index[chrom_n], chrom_gt[chrom_n] = _z0[n0], 2
@@ -102,4 +105,4 @@ cpdef merge_homozygous(pos, z0, z1, bint filter_multi_allele=False):
     chrom_n += 1
     n1 += 1
 
-  return chrom[:chrom_n]  #np.array((chrom_index, chrom_gt), dtype=[('index', 'i4'), ('gt', 'i1')])
+  return chrom[:chrom_n]
