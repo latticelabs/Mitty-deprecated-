@@ -27,11 +27,14 @@ v 2.0.0 Dec 2015
 Planned changes
 ---------------
 * Alindel should be able to split indel accuracy by known vs novel and save those separately
+* Benchmarking: augment circle and matrix plot to plot sub-regions, with the possibility to add
+  positions of variants. This is needed for ad hoc questions related to whether there are sample variants
+  or graph variants at certain positions
 * Reads parameter file should take explicit file names
 * change CLIs to allow parameter files to be fed in from std in (piped as a file)
 * vcf-write should have option to remove unzipped .vcf file
 * variants only reads - need to properly handle end of variants
-* finish implementing ad hoc filtering for variants
+* finish implementing ad hoc filtering for variants (standard population plugin)
 
    - het/hom filtering in standard population model
    - range filter for variations (put as core spec - like for reads - rather than in population model?)

@@ -73,7 +73,8 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
   analyze_read = creed.analyze_read
   mis_read_cnt = 0
   for tot_read_cnt, read in enumerate(bam_in_fp):
-    read_serial, chrom, cpy, ro, pos, rl, cigar, ro_m, pos_m, rl_m, cigar_m, chrom_c, pos_c, cigar_c, unmapped = analyze_read(read, window, extended)
+    read_serial, chrom, cpy, ro, pos, rl, cigar, ro_m, pos_m, rl_m, cigar_m, chrom_c, pos_c, cigar_c, read_is_unmapped \
+      = analyze_read(read, window, extended)
     if read_serial is None: continue  # Something wrong with this read.
     read_is_misaligned = not (chrom_c and pos_c and (cigar_c or (not flag_cigar_errors_as_misalignments)))
     if read_is_misaligned or full_perfect_bam:  # Need all the read info, incl seq and quality
@@ -94,7 +95,7 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
     new_read.set_tags([('Zc', cpy, 'i'),
                        ('ZE', pos + rl, 'i'),
                        ('Ze', pos_m + rl_m, 'i'),
-                       ('Xf', 2 if unmapped else (chrom_c and pos_c), 'i'),
+                       ('Xf', 2 if read_is_unmapped else (chrom_c and pos_c), 'i'),
                        ('YR', chrom_c, 'i'),
                        ('YP', pos_c, 'i'),
                        ('YC', cigar_c, 'i'),
@@ -117,7 +118,7 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
     new_read.pos = pos
     new_read.cigarstring = cigar  # What if this is deep in an insert?
 
-    if read_is_misaligned:
+    if read_is_misaligned or read_is_unmapped:
       bad_bam_fp.write(new_read)
       mis_read_cnt += 1
 
