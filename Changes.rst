@@ -27,10 +27,14 @@ v 2.0.0 Dec 2015
 Planned changes
 ---------------
 * Alindel should be able to split indel accuracy by known vs novel and save those separately
+* Alindel should be able to split indel accuracy based on reads under graph variants but not bearing sample variants.
+* All plugins should provide commandline stubs that can generate parameter file fragments based on command line
+  inputs. This is for compatibility with CWL (?)
+* Brandi's use case: compare pipelines against each other.
 * Benchmarking: augment circle and matrix plot to plot sub-regions, with the possibility to add
   positions of variants. This is needed for ad hoc questions related to whether there are sample variants
   or graph variants at certain positions
-* Reads parameter file should take explicit file names
+* Reads parameter file should take explicit file names (?)
 * change CLIs to allow parameter files to be fed in from std in (piped as a file)
 * vcf-write should have option to remove unzipped .vcf file
 * variants only reads - need to properly handle end of variants
@@ -49,6 +53,10 @@ Possible changes
 Partial Changelog
 -----------------
 (Please see git commit log for detailed commentary)
+
+**1.30.0.dev0**
+* genomes and reads modifed so that I/O files can be overridden from the command line.
+
 
 **1.29.0.dev0**
 

@@ -60,21 +60,23 @@ logger = logging.getLogger(__name__)
 
 class PopulationSimulator:
   """A convenience class that wraps the parameters and settings for a population simulation"""
-  def __init__(self, base_dir, params):
+  def __init__(self, base_dir, params, ref_file=None, db_file=None):
     """Create a genome simulation object
 
     :param base_dir: the directory with respect to which relative file paths will be resolved
     :param params: dict loaded from json file
+    :param ref_file: Override for ref file
+    :param db_file: Override for db file
     """
-    pop_db_name = mitty.lib.rpath(base_dir, params['files']['dbfile'])
+    pop_db_name = db_file or mitty.lib.rpath(base_dir, params['files']['dbfile'])
     if os.path.exists(pop_db_name):
       logger.warning('Removed old simulation file')
       os.remove(pop_db_name)
-    if not os.path.exists(os.path.dirname(pop_db_name)):
+    if not os.path.exists(os.path.abspath(os.path.dirname(pop_db_name))):
       logger.warning('Creating output directory {:s}'.format(pop_db_name))
       os.makedirs(os.path.dirname(pop_db_name))
 
-    self.ref = mio.Fasta(multi_fasta=mitty.lib.rpath(base_dir, params['files'].get('reference_file', None)),
+    self.ref = mio.Fasta(multi_fasta=ref_file or mitty.lib.rpath(base_dir, params['files'].get('reference_file', None)),
                     multi_dir=mitty.lib.rpath(base_dir, params['files'].get('reference_dir', None)))  # TODO: Ability to switch off persistence flag
     master_seed = int(params['rng']['master_seed'])
     assert 0 < master_seed < mitty.lib.SEED_MAX
@@ -150,10 +152,12 @@ def cli():
 
 @cli.command()
 @click.argument('param_fname', type=click.Path(exists=True))
+@click.option('--ref', type=click.Path(exists=True), help="Use this path for reference file. Over-rides entry in parameter file")
+@click.option('--db', type=click.Path(), help="Use this path for output file. Over-rides entry in parameter file")
 @click.option('--dry-run', is_flag=True, help="Print useful information about simulation, but don't run")
 @click.option('-v', count=True, help='Verbosity level')
 @click.option('-p', is_flag=True, help='Show progress bar')
-def generate(param_fname, dry_run, v, p):
+def generate(param_fname, ref, db, dry_run, v, p):
   """Generate population of genomes"""
   level = logging.DEBUG if v > 1 else logging.WARNING
   logging.basicConfig(level=level)
@@ -167,7 +171,7 @@ def generate(param_fname, dry_run, v, p):
     do_dry_run(params)
     return
 
-  simulation = PopulationSimulator(base_dir, params)
+  simulation = PopulationSimulator(base_dir, params, ref_file=ref, db_file=db)
   t0 = time.time()
   with click.progressbar(length=simulation.get_total_blocks_to_do(), label='Generating genomes', file=None if p else io.BytesIO()) as bar:
     for chrom in simulation.get_chromosome_list():
