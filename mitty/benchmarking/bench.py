@@ -5,7 +5,7 @@ An example benchmarking setup and run script is (also found in examples/benchmar
 metadata = {
   "bench_run": "R1",
   "bench_name": "B1",
-  "inputs": {  -> ordered dictionary.
+  "bench_inputs": {  -> ordered dictionary of inputs that vary to create benchmark runs
     <input_name1>: <file_info>,
     <input_name2>: <file_info>,
     <input_name3>: <file_info>
@@ -57,49 +57,70 @@ def create_filename_prefix_from_metadata(meta, use_hash=True):
 
   <bench_run>.<bench_name>.<input_name1>-<file_tag>. (repeated as needed) .<tool>.<ext>
   """
-  # human_readable_string = '.'.join([meta.get(k, '') for k in ['benchmark_instance', 'benchmark_name']] +
-  #                                  [k + '-' + v.keys()[0] for k, v in meta['inputs'].iteritems()] +
-  #                                  [meta.get(k, '') for k in ['tool', 'analysis', 'meta-analysis']])
   def flatten_input_meta(k, v):
-    return [_k + '-' + _v['tag'] for _k, _v in v.items()] if k == 'inputs' else [v]
+    return [_k + '-' + _v['tag'] for _k, _v in v.items()] if k == 'bench_inputs' else [v]
 
   human_readable_string = '.'.join([x for k1, v1 in meta.items() for x in flatten_input_meta(k1, v1)])
   return hashlib.md5(human_readable_string).hexdigest() if use_hash else human_readable_string
 
 
-def create_bench_spec(name, description, input_files, other_files, tool_output_suffix, analysis, meta_analysis):
-  """Given components, create a bench spec from them. Principally, we do this to ensure that the dicts are
-  ordered dicts. It is important to keep the ordering consistent in order for the metadata -> filename mapping
+def create_bench_spec(name, description,
+                      file_list,
+                      bench_combinations,
+                      benchmark_tools,
+                      tool_output_suffix):
+  """Given some descriptions, place them into a package we call a benchmark spec
+
+  :param name:
+  :param description:
+  :param file_list:
+  :param bench_combinations:
+  :param bench_mark_tools:
+  :param tool_output_suffix:
+  :return: a dict
+
+  Principally, we do this to ensure that the "combinations" dict is an ordered dicts.
+  It is important to keep the ordering consistent in order for the metadata -> filename mapping
   to work consistently."""
   return {
-    "name": "b4",
-    "description": "Benchmark 4",
-    "input_files": OrderedDict([(k, OrderedDict(v)) for k, v in input_files]),
-    "other_files": other_files,
-    "tool-output-suffix": tool_output_suffix,
-    "analysis": analysis,
-    "meta-analysis": meta_analysis
-  }
-
-
-def create_bench_run(name, description, bench_spec, tool_descriptions, previous_bench_run=[]):
-  """Given some inputs, create a bench spec from them. Principally, we do this to ensure that the dicts are
-  ordered dicts. It is important to keep the ordering consistent in order for the metadata -> filename mapping
-  to work consistently."""
-  return {
-    "name": name,
-    "bench_spec": bench_spec,
+    "bench_name": name,
     "description": description,
-    "tools": OrderedDict(tool_descriptions),
-    "previous_benchmark_run_list": previous_bench_run  # TODO: Implement this
+    "file_list": {k: dict(v.items() + [('tag', k)]) for k, v in file_list.items()},
+    "combinations": bench_combinations,
+    "benchmark_tools": benchmark_tools,
+    "tool_output_suffix": tool_output_suffix,
   }
 
 
-def convert_bench_spec_to_spec_list(bench_spec_input_files):
-  """Given a bench_spec take the input_files field and flatten it into a list of tuples
-  [(key, [list of values]), ....]
+def create_bench_run(name, description, bench_spec,
+                     tool_descriptions, previous_bench_run=[]):
+  """Add tool descriptions to a bench spec and create all the run combinations required. The information
+  should be sufficient to allow a task manager to create tasks for these.
+
+  :param name:
+  :param description:
+  :param bench_spec:
+  :param tool_descriptions:
+  :param previous_bench_run:
+  :return:
   """
-  return [(k, v.keys()) for k, v in bench_spec_input_files.iteritems()]
+  bench_run_spec = deepcopy(bench_spec)
+  bench_run_spec['bench_run_name'] = name
+  bench_run_spec['description'] = description
+  bench_run_spec['tool_descriptions'] = OrderedDict([(k, dict(v.items() + [('tag', k)]))
+                                                     for k, v in tool_descriptions])
+  bench_run_spec['previous_run'] = previous_bench_run  # TODO: Implement this
+
+  return {k: compute_task_runs_for_tool(bench_run_spec, td) for k, td in bench_run_spec['tool_descriptions'].items()}
+
+
+def compute_task_runs_for_tool(bench_run_spec, tool_description):
+  """Given a bench_spec and a tool description, construct the tool and tool_analysis task descriptions"""
+  # First go through the bench combinations and decide which entries are needed, then create tasks based on
+  # only those
+  return [{'metadata': metadata_dict_for_task(bench_run_spec, td, tool_description)}
+          for td in compute_all_combinations([(k, v) for k, v in bench_run_spec['combinations']
+                                              if k in tool_description['input_mapping']])]
 
 
 def compute_all_combinations(spec_list, this_run=OrderedDict()):
@@ -122,6 +143,23 @@ def compute_all_combinations(spec_list, this_run=OrderedDict()):
   for val in spec_list[0][1]:
     l += compute_all_combinations(spec_list[1:], next_combination(spec_list[0][0], val, this_run))
   return l
+
+
+def metadata_dict_for_task(bench_run_spec, task_dict, tool_desc):
+  """Given a task dictionary and tool desc, create the metadata entry
+
+  :param bench_run_spec:
+  :param task_dict:
+  :param tool_desc:
+  :return:
+  """
+  return OrderedDict([
+    ("bench_run", bench_run_spec['bench_run_name']),
+    ("bench_name", bench_run_spec['bench_name']),
+    ("bench_inputs", OrderedDict([(k, bench_run_spec['file_list'][v]) for k, v in task_dict.items()])),
+    ("tool", tool_desc['tag'])
+  ])
+
 
 
 # Future expansion - exclude list
