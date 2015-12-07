@@ -332,6 +332,33 @@ def bnext(bench_run_state, runner):
   return bench_run_state['switch_board']['global_state'][bench_run_state['global_state']](bench_run_state, runner)
 
 
+def get_offline_state(bench_run_state):
+  """Pretty print the state.
+
+  :param bench_run_state:
+  :return:
+  """
+  lines = [
+    "Bench run name: {bench_run_spec[bench_run_name]:s}",
+    "Bench spec name: {bench_run_spec[bench_name]:s}",
+    "Status: {global_state:s}",
+    "-----------------------------------------------",
+    "Tool runs: (Future versions will have short names for each run)",
+    "----------------"
+  ]
+  lines += ["\tJob {job_id:s}: {state:s}".format(**task) for task in bench_run_state['task_states']['tool']]
+
+  lines += [
+    "Analysis runs:",
+    "----------------"
+  ]
+  lines += ["\tJob {job_id:s}: {state:s}".format(**task) for task in bench_run_state['task_states']['analysis']]
+
+  lines += ["Meta-analysis run: {task_states[meta-analysis][job_id]:s}: {task_states[meta-analysis][state]:s}"]
+
+  return '\n'.join(lines).format(**bench_run_state)
+
+
 def get_state(bench_run_state, runner):
   runner.get_state(bench_run_state)
 
@@ -340,15 +367,12 @@ def start_bench_tasks(bench_run_state, runner):
   bs = bench_run_state['bench_run_spec']
   tal = bs['tool_and_analysis_task_list']
   new_bench_run_state = deepcopy(bench_run_state)
-  #new_bench_run_state['task_states'].update({'tool': [start_bench_task(runner, t) for tk, tl in tal.items() for t in tl]})
-  for tk, tl in tal.items():
-    for t in tl:
-      print t
-      print ('---------')
+  new_bench_run_state['task_states'].update({'tool': [start_bench_task(runner, t) for t in tal]})
+  if len(filter(lambda x: x['state'] == 'running', new_bench_run_state['task_states']['tool'])):
+    new_bench_run_state['global_state'] = 'tool_tasks_running'
+
   return new_bench_run_state
 
 
 def start_bench_task(runner, task):
-  print(task.keys())
-  #print(json.dumps(task, indent=2))
-  print('---------')
+  return {'job_id': str(22), 'state': 'running'}
