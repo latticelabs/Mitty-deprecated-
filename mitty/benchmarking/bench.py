@@ -112,9 +112,13 @@ def create_bench_run(name, description, bench_spec,
                                                      for k, v in tool_descriptions])
   bench_run_spec['previous_run'] = previous_bench_run  # TODO: Implement this
 
+  # bench_run_spec['tool_and_analysis_task_list'] = OrderedDict(
+  #   [(k, tool_and_analysis_task_list(bench_run_spec, td, use_hash_for_filenames))
+  #    for k, td in bench_run_spec['tool_descriptions'].items()])
+
   bench_run_spec['tool_and_analysis_task_list'] = \
-    {k: tool_and_analysis_task_list(bench_run_spec, td, use_hash_for_filenames)
-     for k, td in bench_run_spec['tool_descriptions'].items()}
+    [task for k, td in bench_run_spec['tool_descriptions'].items()
+     for task in tool_and_analysis_task_list(bench_run_spec, td, use_hash_for_filenames)]
 
   bench_run_spec['meta_analysis_task'] = compute_meta_analysis_task(bench_run_spec, use_hash_for_filenames)
 
@@ -207,9 +211,14 @@ def compute_meta_analysis_task(bench_run_spec, use_hash):
   mal_inputs = bench_run_spec['benchmark_tools']['meta_analysis']['inputs']
   mal_outputs = bench_run_spec['benchmark_tools']['meta_analysis']['outputs']
 
+  # input_files = {k: tv['tool_task']['output_files'].get(k, tv['anal_task']['output_files'].get(k, fl.get(k, None)))
+  #                for k in mal_inputs for tool, tool_tasks in tal.items() for tv in tool_tasks}
   input_files = {k: tv['tool_task']['output_files'].get(k, tv['anal_task']['output_files'].get(k, fl.get(k, None)))
-                 for k in mal_inputs for tool, tool_tasks in tal.items() for tv in tool_tasks}
-  metadata = deepcopy(next(tal.itervalues())[0]['tool_task']['metadata'])
+                 for k in mal_inputs for tv in tal}
+
+  #metadata = deepcopy(next(tal.itervalues())[0]['tool_task']['metadata'])
+  metadata = deepcopy(tal[0]['tool_task']['metadata'])
+
   # This will fail if we have no tasks ...
   metadata['bench_inputs'] = {'many': {'tag': 'inputs'}}
   metadata['tool'] = 'many-tools'
@@ -220,3 +229,126 @@ def compute_meta_analysis_task(bench_run_spec, use_hash):
     'metadata': metadata,
     'output_files': output_files
   }
+
+
+class DummyRunner:
+  """This is a dummy class which can be inherited to implement the function calls and state required by and
+    actual runner. The default implementation simulates generating dummy files and can be used to test the
+    framework."""
+  def __init__(self):
+    pass
+
+  def nop(self):
+    pass
+
+  def start_bench_tasks(self):
+    pass
+
+  def advance_tool_tasks(self):
+    pass
+
+  def start_tool_task(self):
+    pass
+
+  def advance_tool_task(self):
+    pass
+
+  def start_analysis_task(self):
+    pass
+
+  def advance_analysis_task(self):
+    pass
+
+  def start_meta_analysis_task(self):
+    pass
+
+  def advance_meta_analysis_task(self):
+    pass
+
+  def show_final_status(self):
+    pass
+
+  def __repr__(self):
+    return json.dumps(self.__dict__)
+
+
+def prepare_benchmark_run_state(bench_run_spec=None, old_bench_run_state=None, runner=DummyRunner):
+  """Given a bench run spec, setup a state file that can be used to keep track of progress
+  through the analysis
+
+  :param bench_run_spec: The benchmark run spec file. If ommited, old_bench_run_state can not be None
+  :param old_bench_run_state: If this is passed it uses this (as current state) instead of creating a new
+                              state file (which starts from the default initial state)
+  :param runner:  The runner class
+  :return: The benchmark run state file
+  """
+  if old_bench_run_state is None:  # Create a fresh new state
+    tal = bench_run_spec['tool_and_analysis_task_list']
+    bench_run_state = {
+      'bench_run_spec': bench_run_spec,
+      'global_state': 'waiting',
+      'task_states': {k: {'job_id': None, 'state': 'waiting'} if k == 'meta-analysis'
+                          else [{'job_id': None, 'state': 'waiting'} for _ in tal]
+                      for k in ['tool', 'analysis', 'meta-analysis']}
+    }
+  else:
+    bench_run_state = deepcopy(old_bench_run_state)
+
+  bench_run_state.update({
+    'switch_board': {
+      'global_state': {
+        'waiting': start_bench_tasks,
+        'tool_tasks_running': runner.advance_tool_tasks,
+        'meta_analysis_task_running': runner.advance_meta_analysis_task,
+        'done': runner.nop,
+        'error': runner.nop
+      },
+      'tool_task_state': {
+        'waiting': runner.start_tool_task,
+        'running': runner.advance_tool_task,
+        'finished': runner.nop,
+        'error': runner.nop
+      },
+      'analysis_task_state': {
+        'waiting': runner.start_analysis_task,
+        'running': runner.advance_analysis_task,
+        'finished': runner.nop,
+        'error': runner.nop
+      },
+      'meta_analysis_task_state': {
+        'waiting': runner.start_meta_analysis_task,
+        'running': runner.advance_meta_analysis_task,
+        'finished': runner.nop,
+        'error': runner.nop
+      }
+    }
+  })
+
+  return bench_run_state
+
+
+def bnext(bench_run_state, runner):
+  """Given a state file, advance us to the next state"""
+  return bench_run_state['switch_board']['global_state'][bench_run_state['global_state']](bench_run_state, runner)
+
+
+def get_state(bench_run_state, runner):
+  runner.get_state(bench_run_state)
+
+
+def start_bench_tasks(bench_run_state, runner):
+  bs = bench_run_state['bench_run_spec']
+  tal = bs['tool_and_analysis_task_list']
+  new_bench_run_state = deepcopy(bench_run_state)
+  #new_bench_run_state['task_states'].update({'tool': [start_bench_task(runner, t) for tk, tl in tal.items() for t in tl]})
+  for tk, tl in tal.items():
+    for t in tl:
+      print t
+      print ('---------')
+  return new_bench_run_state
+
+
+def start_bench_task(runner, task):
+  print(task.keys())
+  #print(json.dumps(task, indent=2))
+  print('---------')
