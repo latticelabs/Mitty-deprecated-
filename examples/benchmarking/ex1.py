@@ -9,7 +9,7 @@ import mitty.benchmarking.bench as bench
 # A dict of all input files relevant to this benchmark. Keys are tags (a short way to refer to the files)
 # and the values are the file_name and any metadata that come in useful
 file_list = {
-  "red": {
+  "ref": {
      "file_name": "reddus_pentalgus.fa.gz",
      "description": "First 5 chromosomes of red alga"
   },
@@ -20,16 +20,16 @@ file_list = {
    "description": "Perfect reads from sample g0_s0 across whole genome"
   },
   "s0-r2": {
-   "file_name": "reads_c.fq.gz",
+   "file_name": "reads_c.fq",
    "sample": "v0",
    "read_type": "read-corrupt",
    "description": "Corrupt reads from sample g0_s0 across whole genome"
   },
   "s0-r3": {
-   "file_name": "reads.fq.gz",
-   "db": "s0",
+   "file_name": "reads1.fq",
+   "sample": "g0_s1",
    "read_type": "read-perfect",
-   "description": "Perfect reads from sample g0_s0 from chrom 1 only"
+   "description": "Perfect reads from sample g0_s1 from chrom 1 only"
   },
   "g0": {
    "file_name": "s0.vcf.gz",
@@ -136,8 +136,9 @@ tool_descriptions = [
 ]
 
 
-task_list = bench.create_bench_run(name='R1', description='Run1 with bench spec B1',
-                                   bench_spec=bench_spec, tool_descriptions=tool_descriptions)
+bench_run = bench.create_bench_run(name='R1', description='Run1 with bench spec B1',
+                                   bench_spec=bench_spec, tool_descriptions=tool_descriptions,
+                                   use_hash_for_filenames=False)
 
 
 
@@ -154,4 +155,4 @@ task_list = bench.create_bench_run(name='R1', description='Run1 with bench spec 
 #
 #
 # run_list = bench.create_run_list(bench_run)
-# tool_task_list, meta_analysis_task = bench.create_benchmarking_tasks(bench_run, run_list, use_hash=False)
+# tool_and_analysis_task_list, meta_analysis_task = bench.create_benchmarking_tasks(bench_run, run_list, use_hash=False)

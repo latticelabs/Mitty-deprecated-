@@ -93,7 +93,8 @@ def create_bench_spec(name, description,
 
 
 def create_bench_run(name, description, bench_spec,
-                     tool_descriptions, previous_bench_run=[]):
+                     tool_descriptions, previous_bench_run=[],
+                     use_hash_for_filenames=True):
   """Add tool descriptions to a bench spec and create all the run combinations required. The information
   should be sufficient to allow a task manager to create tasks for these.
 
@@ -111,14 +112,17 @@ def create_bench_run(name, description, bench_spec,
                                                      for k, v in tool_descriptions])
   bench_run_spec['previous_run'] = previous_bench_run  # TODO: Implement this
 
-  return {k: compute_task_runs_for_tool(bench_run_spec, td) for k, td in bench_run_spec['tool_descriptions'].items()}
+  bench_run_spec['tool_and_analysis_task_list'] = \
+    {k: tool_and_analysis_task_list(bench_run_spec, td, use_hash_for_filenames)
+     for k, td in bench_run_spec['tool_descriptions'].items()}
+  return bench_run_spec
 
 
-def compute_task_runs_for_tool(bench_run_spec, tool_description):
+def tool_and_analysis_task_list(bench_run_spec, tool_description, use_hash):
   """Given a bench_spec and a tool description, construct the tool and tool_analysis task descriptions"""
   # First go through the bench combinations and decide which entries are needed, then create tasks based on
   # only those
-  return [{'metadata': metadata_dict_for_task(bench_run_spec, td, tool_description)}
+  return [compute_tool_and_analysis_task(bench_run_spec, td, tool_description, use_hash)
           for td in compute_all_combinations([(k, v) for k, v in bench_run_spec['combinations']
                                               if k in tool_description['input_mapping']])]
 
@@ -145,20 +149,55 @@ def compute_all_combinations(spec_list, this_run=OrderedDict()):
   return l
 
 
-def metadata_dict_for_task(bench_run_spec, task_dict, tool_desc):
-  """Given a task dictionary and tool desc, create the metadata entry
+def compute_tool_and_analysis_task(bench_run_spec, task_dict, tool_desc, use_hash):
+  tool_task = compute_tool_task(bench_run_spec, task_dict, tool_desc, use_hash)
+  anal_task = compute_analysis_task(bench_run_spec, tool_desc, tool_task, use_hash)
+  return {
+    'tool_task': tool_task,
+    'anal_task': anal_task
+  }
 
-  :param bench_run_spec:
-  :param task_dict:
-  :param tool_desc:
-  :return:
-  """
-  return OrderedDict([
+
+def compute_tool_task(bench_run_spec, task_dict, tool_desc, use_hash):
+  _files = {k: bench_run_spec['file_list'][v] for k, v in task_dict.items()}  # Inputs described in task_dict
+  _files.update({k: bench_run_spec['file_list'][k] for k, _ in tool_desc['input_mapping'].items()
+                 if k not in _files})  # Fixed inputs not part of the bench combinations
+  input_files = {tool_desc['input_mapping'][k]: v for k, v in _files.items()}
+  metadata = OrderedDict([
     ("bench_run", bench_run_spec['bench_run_name']),
     ("bench_name", bench_run_spec['bench_name']),
     ("bench_inputs", OrderedDict([(k, bench_run_spec['file_list'][v]) for k, v in task_dict.items()])),
     ("tool", tool_desc['tag'])
   ])
+  output_files = {v: {create_filename_prefix_from_metadata(metadata, use_hash) + '.' +
+                      bench_run_spec['tool_output_suffix'][k]}
+                  for k, v in tool_desc['output_mapping'].items()}
+  return {
+    'input_files': input_files,
+    'metadata': metadata,
+    'output_files': output_files
+  }
+
+
+def compute_analysis_task(bench_run_spec, tool_description, tool_task, use_hash):
+  """Inputs are picked from tool task outputs and input files"""
+  fl = bench_run_spec['file_list']
+  tom = tool_description['output_mapping']  # tool_output_mapping
+  anal_inputs = bench_run_spec['benchmark_tools']['tool_analysis']['inputs']
+  anal_outputs = bench_run_spec['benchmark_tools']['tool_analysis']['outputs']
+
+  input_files = {k: tool_task['output_files'].get(tom.get(k, 'not a tool output'), fl.get(k, None))
+                 for k in anal_inputs}
+  metadata = deepcopy(tool_task['metadata'])
+  output_files = {k: {create_filename_prefix_from_metadata(metadata, use_hash) + '.' + v}
+                  for k, v in anal_outputs.items()}
+  return {
+    'input_files': input_files,
+    'metadata': metadata,
+    'output_files': output_files
+  }
+
+
 
 
 
