@@ -115,6 +115,9 @@ def create_bench_run(name, description, bench_spec,
   bench_run_spec['tool_and_analysis_task_list'] = \
     {k: tool_and_analysis_task_list(bench_run_spec, td, use_hash_for_filenames)
      for k, td in bench_run_spec['tool_descriptions'].items()}
+
+  bench_run_spec['meta_analysis_task'] = compute_meta_analysis_task(bench_run_spec, use_hash_for_filenames)
+
   return bench_run_spec
 
 
@@ -169,8 +172,8 @@ def compute_tool_task(bench_run_spec, task_dict, tool_desc, use_hash):
     ("bench_inputs", OrderedDict([(k, bench_run_spec['file_list'][v]) for k, v in task_dict.items()])),
     ("tool", tool_desc['tag'])
   ])
-  output_files = {v: {create_filename_prefix_from_metadata(metadata, use_hash) + '.' +
-                      bench_run_spec['tool_output_suffix'][k]}
+  output_files = {v: create_filename_prefix_from_metadata(metadata, use_hash) + '.' +
+                     bench_run_spec['tool_output_suffix'][k]
                   for k, v in tool_desc['output_mapping'].items()}
   return {
     'input_files': input_files,
@@ -189,7 +192,7 @@ def compute_analysis_task(bench_run_spec, tool_description, tool_task, use_hash)
   input_files = {k: tool_task['output_files'].get(tom.get(k, 'not a tool output'), fl.get(k, None))
                  for k in anal_inputs}
   metadata = deepcopy(tool_task['metadata'])
-  output_files = {k: {create_filename_prefix_from_metadata(metadata, use_hash) + '.' + v}
+  output_files = {k: create_filename_prefix_from_metadata(metadata, use_hash) + '.' + v
                   for k, v in anal_outputs.items()}
   return {
     'input_files': input_files,
@@ -198,6 +201,25 @@ def compute_analysis_task(bench_run_spec, tool_description, tool_task, use_hash)
   }
 
 
+def compute_meta_analysis_task(bench_run_spec, use_hash):
+  fl = bench_run_spec['file_list']
+  tal = bench_run_spec['tool_and_analysis_task_list']
+  mal_inputs = bench_run_spec['benchmark_tools']['meta_analysis']['inputs']
+  mal_outputs = bench_run_spec['benchmark_tools']['meta_analysis']['outputs']
+
+  input_files = {k: tv['tool_task']['output_files'].get(k, tv['anal_task']['output_files'].get(k, fl.get(k, None)))
+                 for k in mal_inputs for tool, tool_tasks in tal.items() for tv in tool_tasks}
+  metadata = deepcopy(next(tal.itervalues())[0]['tool_task']['metadata'])
+  # This will fail if we have no tasks ...
+  metadata['bench_inputs'] = {'many': {'tag': 'inputs'}}
+  metadata['tool'] = 'many-tools'
+  output_files = {k: create_filename_prefix_from_metadata(metadata, use_hash) + '.' + v
+                  for k, v in mal_outputs.items()}
+  return {
+    'input_files': input_files,
+    'metadata': metadata,
+    'output_files': output_files
+  }
 
 
 
