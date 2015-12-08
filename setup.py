@@ -48,7 +48,7 @@ setup(
       'pysam>=0.8.1',
       'h5py>=2.5.0'
     ],
-    extras_require = {
-      'plot': ['matplotlib>=1.3.0', 'scipy']
+    extras_require={
+      'bench': ['matplotlib>=1.3.0', 'scipy'],
     }
 )
