@@ -111,6 +111,7 @@ def create_bench_run(name, description, bench_spec,
   bench_run_spec = deepcopy(bench_spec)
   bench_run_spec['bench_run_name'] = name
   bench_run_spec['description'] = description
+  bench_run_spec['use_hash_for_filenames'] = use_hash_for_filenames
   bench_run_spec['tool_descriptions'] = OrderedDict([(k, dict(v.items() + [('tag', k)]))
                                                      for k, v in tool_descriptions])
   bench_run_spec['previous_run'] = previous_bench_run  # TODO: Implement this
