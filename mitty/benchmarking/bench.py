@@ -84,10 +84,7 @@ def create_bench_spec(name, description,
   :param bench_mark_tools:
   :param tool_output_suffix:
   :return: a dict
-
-  Principally, we do this to ensure that the "combinations" dict is an ordered dicts.
-  It is important to keep the ordering consistent in order for the metadata -> filename mapping
-  to work consistently."""
+  """
   return {
     "bench_name": name,
     "description": description,
@@ -204,8 +201,11 @@ def compute_analysis_task(bench_run_spec, tool_description, tool_task, use_hash)
   anal_inputs = bench_run_spec['benchmark_tools']['tool_analysis']['inputs']
   anal_outputs = bench_run_spec['benchmark_tools']['tool_analysis']['outputs']
 
-  input_files = {k: tool_task['output_files'].get(tom.get(k, 'not a tool output'), fl.get(k, None))
+  # input_files = {k: tool_task['output_files'].get(tom.get(k, 'not a tool output'), fl.get(k, None))
+  #                for k in anal_inputs}
+  input_files = {k: tool_task['output_files'].get(k, fl.get(k, {'file_name': None})['file_name'])
                  for k in anal_inputs}
+
   metadata = deepcopy(tool_task['metadata'])
   output_files = {k: create_filename_prefix_from_metadata(metadata, use_hash) + '.' + v
                   for k, v in anal_outputs.items()}
@@ -359,9 +359,9 @@ def advance_tool_tasks(bench_run_state, runner):
     if at['job_id'] is not None:
       at['state'] = runner.job_status(at['job_id'])
     if tt['state'] == 'finished' and at['state'] == 'waiting':
-      at['job_id'] = runner.start_job(td['tool_task']['app'],
-                                      td['tool_task']['input_files'],
-                                      td['tool_task']['output_files'])
+      at['job_id'] = runner.start_job(td['anal_task']['app'],
+                                      td['anal_task']['input_files'],
+                                      td['anal_task']['output_files'])
       at['state'] = 'running'
 
   # If all the analysis tasks are done, it's time to move on to meta-analysis
