@@ -175,14 +175,18 @@ def compute_tool_task(bench_run_spec, task_dict, tool_desc, use_hash):
   _files = {k: bench_run_spec['file_list'][v] for k, v in task_dict.items()}  # Inputs described in task_dict
   _files.update({k: bench_run_spec['file_list'][k] for k, _ in tool_desc['input_mapping'].items()
                  if k not in _files})  # Fixed inputs not part of the bench combinations
-  input_files = {tool_desc['input_mapping'][k]: v for k, v in _files.items()}
+  #input_files = {tool_desc['input_mapping'][k]: v['file_name'] for k, v in _files.items()}
+  input_files = {k: v['file_name'] for k, v in _files.items()}
   metadata = OrderedDict([
     ("bench_run", bench_run_spec['bench_run_name']),
     ("bench_name", bench_run_spec['bench_name']),
     ("bench_inputs", OrderedDict([(k, bench_run_spec['file_list'][v]) for k, v in task_dict.items()])),
     ("tool", tool_desc['tag'])
   ])
-  output_files = {v: create_filename_prefix_from_metadata(metadata, use_hash) + '.' +
+  # output_files = {v: create_filename_prefix_from_metadata(metadata, use_hash) + '.' +
+  #                    bench_run_spec['tool_output_suffix'][k]
+  #                 for k, v in tool_desc['output_mapping'].items()}
+  output_files = {k: create_filename_prefix_from_metadata(metadata, use_hash) + '.' +
                      bench_run_spec['tool_output_suffix'][k]
                   for k, v in tool_desc['output_mapping'].items()}
   return {
@@ -219,8 +223,6 @@ def compute_meta_analysis_task(bench_run_spec, use_hash):
   mal_inputs = bench_run_spec['benchmark_tools']['meta_analysis']['inputs']
   mal_outputs = bench_run_spec['benchmark_tools']['meta_analysis']['outputs']
 
-  # input_files = {k: tv['tool_task']['output_files'].get(k, tv['anal_task']['output_files'].get(k, fl.get(k, None)))
-  #                for k in mal_inputs for tool, tool_tasks in tal.items() for tv in tool_tasks}
   input_files = {k: tv['tool_task']['output_files'].get(k, tv['anal_task']['output_files'].get(k, fl.get(k, None)))
                  for k in mal_inputs for tv in tal}
 
@@ -413,6 +415,7 @@ class BaseExecutor:
     """Our fake tasks will take between sleep_min and sleep_max sec to run"""
     self.sleep_min, self.sleep_max = sleep_min, sleep_max
     self.job_id = {}  # Dict of processes indexed by PID
+    self.job_files = {}  # Dict of I/O files indexed by PID
 
   def start_job(self, app, input_files, output_files):
     """This is where the
@@ -422,10 +425,19 @@ class BaseExecutor:
     :param output_files:
     :return:
     """
-    p = Process(target=time.sleep, args=(random.randint(self.sleep_min, self.sleep_max),))
+    for k, v in input_files.items():
+      if not os.path.exists(v):
+        logger.error('Input file {:s} does not exist'.format(v))
+
+    p = Process(target=self.test_process, args=(app, random.uniform(self.sleep_min, self.sleep_max), output_files))
     p.start()
     pid = str(p.pid)
     self.job_id[pid] = p
+    self.job_files[pid] = {
+      'app': app,
+      'input_files': input_files,
+      'output_files': output_files
+    }
     return pid
 
   def job_status(self, job_id):
@@ -438,6 +450,14 @@ class BaseExecutor:
       return 'running'
     else:
       return 'finished'
+
+  @staticmethod
+  def test_process(app, duration, output_files):
+    time.sleep(duration)
+    for k, v in output_files.items():
+      _k = app.get('output_mapping', {}).get(k, None) or k
+      open(v, 'w').write('File from {:s} to be named {:s}'.format(_k, v))
+
 
 if __name__ == '__main__':
   # Run a dummy task
