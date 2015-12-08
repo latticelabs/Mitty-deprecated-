@@ -26,6 +26,7 @@ v 2.0.0 Dec 2015
 
 Planned changes
 ---------------
+* setup.py: figure out how to make "extras_require" work.
 * Alindel should be able to split indel accuracy by known vs novel and save those separately
 * Alindel should be able to split indel accuracy based on reads under graph variants but not bearing sample variants.
 * All plugins should provide commandline stubs that can generate parameter file fragments based on command line
@@ -42,6 +43,14 @@ Planned changes
 
    - het/hom filtering in standard population model
    - range filter for variations (put as core spec - like for reads - rather than in population model?)
+
+Efficiency changes
+------------------
+* Load chroms one at a time
+* Drop reference base(s) from variant list, store SNPs separately (will HDF5 optimize for this?)
+
+
+
 
 Possible changes
 ----------------
