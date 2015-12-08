@@ -1,4 +1,6 @@
 """This sets up a benchmark and a benchmark run using some data files."""
+import time
+
 import mitty.benchmarking.bench as bench
 
 # Let's set up our benchmark
@@ -107,6 +109,7 @@ bench_spec = bench.create_bench_spec(name='B1', description='Example benchmark',
 tool_descriptions = [
   ("bwa", {
     "app_name": "bwa-mem",
+    "tag": "bwa",
     "input_mapping": {
       "ref": "fasta",  # ref is the benchmarking term, fasta is the pin name of the tool input
       "reads": "fastq"
@@ -121,6 +124,7 @@ tool_descriptions = [
   }),
   ("poor-bwa", {
     "app_name": "bwa-db",  # This is a bogus BWA pretending to take a VCF also as an input
+    "tag": "poor-bwa",
     "input_mapping": {
       "ref": "fasta",
       "reads": "fastq",
@@ -140,7 +144,13 @@ bench_run = bench.create_bench_run(name='R1', description='Run1 with bench spec 
                                    bench_spec=bench_spec, tool_descriptions=tool_descriptions,
                                    use_hash_for_filenames=False)
 
+b = bench.prepare_benchmark_run_state(bench_run)
+exe = bench.BaseExecutor(5, 10)
 
+while b['global_state'] not in ['done', 'error']:
+  b = bench.bnext(b, exe)
+  print(b)
+  time.sleep(2)
 
 # bench_spec = bench.create_bench_spec(name='b1', description='Benchmark 1',
 #                                      input_files=input_files, other_files=other_files,

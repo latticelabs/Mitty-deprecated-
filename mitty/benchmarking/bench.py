@@ -28,6 +28,12 @@ from collections import OrderedDict
 from copy import deepcopy
 import hashlib
 
+# These are for the BaseExecutor
+import random
+import time
+from multiprocessing import Process
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -180,6 +186,7 @@ def compute_tool_task(bench_run_spec, task_dict, tool_desc, use_hash):
                      bench_run_spec['tool_output_suffix'][k]
                   for k, v in tool_desc['output_mapping'].items()}
   return {
+    'app': tool_desc,
     'input_files': input_files,
     'metadata': metadata,
     'output_files': output_files
@@ -199,6 +206,7 @@ def compute_analysis_task(bench_run_spec, tool_description, tool_task, use_hash)
   output_files = {k: create_filename_prefix_from_metadata(metadata, use_hash) + '.' + v
                   for k, v in anal_outputs.items()}
   return {
+    'app': bench_run_spec['benchmark_tools']['tool_analysis'],
     'input_files': input_files,
     'metadata': metadata,
     'output_files': output_files
@@ -225,114 +233,35 @@ def compute_meta_analysis_task(bench_run_spec, use_hash):
   output_files = {k: create_filename_prefix_from_metadata(metadata, use_hash) + '.' + v
                   for k, v in mal_outputs.items()}
   return {
+    'app': bench_run_spec['benchmark_tools']['meta_analysis'],
     'input_files': input_files,
     'metadata': metadata,
     'output_files': output_files
   }
 
 
-class DummyRunner:
-  """This is a dummy class which can be inherited to implement the function calls and state required by and
-    actual runner. The default implementation simulates generating dummy files and can be used to test the
-    framework."""
-  def __init__(self):
-    pass
+# Benchmark controller -------------------------------------------------------------------------------------
 
-  def nop(self):
-    pass
+def create_switch_board():
+  """The dictionary that implements the state machine for the benchmark controller"""
+  return {
+    'global_state': {
+      'waiting': start_tool_tasks,
+      'tool_tasks': advance_tool_tasks,
+      'meta_analysis_task': advance_meta_analysis_task,
+      'done': nop,
+      'error': nop
+    }
+  }
 
-  def start_bench_tasks(self):
-    pass
 
-  def advance_tool_tasks(self):
-    pass
-
-  def start_tool_task(self):
-    pass
-
-  def advance_tool_task(self):
-    pass
-
-  def start_analysis_task(self):
-    pass
-
-  def advance_analysis_task(self):
-    pass
-
-  def start_meta_analysis_task(self):
-    pass
-
-  def advance_meta_analysis_task(self):
-    pass
-
-  def show_final_status(self):
-    pass
-
+class BenchRunState(dict):
+  """The only reason we do this is so that we can override the __repr__ method to print the state nicely"""
   def __repr__(self):
-    return json.dumps(self.__dict__)
+    return pprint_state(self)
 
 
-def prepare_benchmark_run_state(bench_run_spec=None, old_bench_run_state=None, runner=DummyRunner):
-  """Given a bench run spec, setup a state file that can be used to keep track of progress
-  through the analysis
-
-  :param bench_run_spec: The benchmark run spec file. If ommited, old_bench_run_state can not be None
-  :param old_bench_run_state: If this is passed it uses this (as current state) instead of creating a new
-                              state file (which starts from the default initial state)
-  :param runner:  The runner class
-  :return: The benchmark run state file
-  """
-  if old_bench_run_state is None:  # Create a fresh new state
-    tal = bench_run_spec['tool_and_analysis_task_list']
-    bench_run_state = {
-      'bench_run_spec': bench_run_spec,
-      'global_state': 'waiting',
-      'task_states': {k: {'job_id': None, 'state': 'waiting'} if k == 'meta-analysis'
-                          else [{'job_id': None, 'state': 'waiting'} for _ in tal]
-                      for k in ['tool', 'analysis', 'meta-analysis']}
-    }
-  else:
-    bench_run_state = deepcopy(old_bench_run_state)
-
-  bench_run_state.update({
-    'switch_board': {
-      'global_state': {
-        'waiting': start_bench_tasks,
-        'tool_tasks_running': runner.advance_tool_tasks,
-        'meta_analysis_task_running': runner.advance_meta_analysis_task,
-        'done': runner.nop,
-        'error': runner.nop
-      },
-      'tool_task_state': {
-        'waiting': runner.start_tool_task,
-        'running': runner.advance_tool_task,
-        'finished': runner.nop,
-        'error': runner.nop
-      },
-      'analysis_task_state': {
-        'waiting': runner.start_analysis_task,
-        'running': runner.advance_analysis_task,
-        'finished': runner.nop,
-        'error': runner.nop
-      },
-      'meta_analysis_task_state': {
-        'waiting': runner.start_meta_analysis_task,
-        'running': runner.advance_meta_analysis_task,
-        'finished': runner.nop,
-        'error': runner.nop
-      }
-    }
-  })
-
-  return bench_run_state
-
-
-def bnext(bench_run_state, runner):
-  """Given a state file, advance us to the next state"""
-  return bench_run_state['switch_board']['global_state'][bench_run_state['global_state']](bench_run_state, runner)
-
-
-def get_offline_state(bench_run_state):
+def pprint_state(bench_run_state):
   """Pretty print the state.
 
   :param bench_run_state:
@@ -359,20 +288,157 @@ def get_offline_state(bench_run_state):
   return '\n'.join(lines).format(**bench_run_state)
 
 
-def get_state(bench_run_state, runner):
-  runner.get_state(bench_run_state)
+def prepare_benchmark_run_state(bench_run_spec=None, old_bench_run_state=None):
+  """Given a bench run spec, setup a state file that can be used to keep track of progress
+  through the analysis
+
+  :param bench_run_spec: The benchmark run spec file. If omitted, old_bench_run_state can not be None
+  :param old_bench_run_state: If this is passed it uses this (as current state) instead of creating a new
+                              state file (which starts from the default initial state)
+                              Use this if loading a state from file
+  :return: The benchmark run state
+  """
+  if old_bench_run_state is None:  # Create a fresh new state
+    tal = bench_run_spec['tool_and_analysis_task_list']
+    bench_run_state = {
+      'bench_run_spec': bench_run_spec,
+      'global_state': 'waiting',
+      'task_states': {k: {'job_id': None, 'state': 'waiting'} if k == 'meta-analysis'
+                          else [{'job_id': None, 'state': 'waiting'} for _ in tal]
+                      for k in ['tool', 'analysis', 'meta-analysis']}
+    }
+  else:
+    bench_run_state = deepcopy(old_bench_run_state)
+
+  return BenchRunState(bench_run_state)
 
 
-def start_bench_tasks(bench_run_state, runner):
+def bnext(bench_run_state, executor):
+  """Given a state file, advance us to the next state. This is the only function we have to call
+
+  :param bench_run_state: the state dictionary
+  :param executor: the executor class that is called to run the tasks
+  :return: the new state
+  """
+  switch_board = create_switch_board()
+  return switch_board['global_state'][bench_run_state['global_state']](bench_run_state, executor)
+
+
+def start_tool_tasks(bench_run_state, runner):
   bs = bench_run_state['bench_run_spec']
   tal = bs['tool_and_analysis_task_list']
   new_bench_run_state = deepcopy(bench_run_state)
-  new_bench_run_state['task_states'].update({'tool': [start_bench_task(runner, t) for t in tal]})
-  if len(filter(lambda x: x['state'] == 'running', new_bench_run_state['task_states']['tool'])):
-    new_bench_run_state['global_state'] = 'tool_tasks_running'
+  new_bench_run_state['task_states'].update({
+    'tool': [{'job_id': runner.start_job(t['tool_task']['app'],
+                                         t['tool_task']['input_files'],
+                                         t['tool_task']['output_files']),
+              'state': 'running'} for t in tal]})
+  new_bench_run_state['global_state'] = 'tool_tasks'
+  return new_bench_run_state
+
+
+def advance_tool_tasks(bench_run_state, runner):
+  """Given that some tool tasks are running, check on their status and if they are done, start the corresponding
+  analysis tasks
+
+  :param bench_run_state:
+  :param runner:
+  :return:
+  """
+  new_bench_run_state = deepcopy(bench_run_state)
+  bs = new_bench_run_state['bench_run_spec']
+  tt_list = new_bench_run_state['task_states']['tool']
+  at_list = new_bench_run_state['task_states']['analysis']
+  tal = bs['tool_and_analysis_task_list']
+
+  #TODO: what to do with failed tasks?
+  for tt, at, td in zip(tt_list, at_list, tal):
+    tt['state'] = runner.job_status(tt['job_id'])
+    if at['job_id'] is not None:
+      at['state'] = runner.job_status(at['job_id'])
+    if tt['state'] == 'finished' and at['state'] == 'waiting':
+      at['job_id'] = runner.start_job(td['tool_task']['app'],
+                                      td['tool_task']['input_files'],
+                                      td['tool_task']['output_files'])
+      at['state'] = 'running'
+
+  # If all the analysis tasks are done, it's time to move on to meta-analysis
+  if len(filter(lambda x: x['state'] in ['waiting', 'running'], at_list)) == 0:
+    new_bench_run_state['global_state'] = 'meta_analysis_task'
 
   return new_bench_run_state
 
 
-def start_bench_task(runner, task):
-  return {'job_id': str(22), 'state': 'running'}
+def advance_meta_analysis_task(bench_run_state, runner):
+  """Given that all tool and analysis tasks have finished, start the meta-analysis task
+
+  :param bench_run_state:
+  :param runner:
+  :return:
+  """
+  new_bench_run_state = deepcopy(bench_run_state)
+  bs = new_bench_run_state['bench_run_spec']
+  mat_stat = new_bench_run_state['task_states']['meta-analysis']
+  mat = bs['meta_analysis_task']
+  if mat_stat['state'] == 'waiting':
+    mat_stat['job_id'] = runner.start_job(mat['app'],
+                                          mat['input_files'],
+                                          mat['output_files'])
+    mat_stat['state'] = 'running'
+  else:
+    mat_stat['state'] = runner.job_status(mat_stat['job_id'])
+
+  if mat_stat['state'] == 'finished':
+    new_bench_run_state['global_state'] = 'done'
+
+  return new_bench_run_state
+
+
+def nop(bench_run_state, runner):
+  """Do nothing, don't change state
+
+  :param bench_run_state:
+  :param runner:
+  :return:
+  """
+  return bench_run_state
+
+
+class BaseExecutor:
+  """This is a dummy class which can be inherited to implement the function calls and state required by an
+    actual runner. The default implementation simulates generating dummy files and can be used to test the
+    framework."""
+
+  def __init__(self, sleep_min=5, sleep_max=10):
+    """Our fake tasks will take between sleep_min and sleep_max sec to run"""
+    self.sleep_min, self.sleep_max = sleep_min, sleep_max
+    self.job_id = {}  # Dict of processes indexed by PID
+
+  def start_job(self, app, input_files, output_files):
+    """This is where the
+
+    :param app:
+    :param input_files:
+    :param output_files:
+    :return:
+    """
+    p = Process(target=time.sleep, args=(random.randint(self.sleep_min, self.sleep_max),))
+    p.start()
+    pid = str(p.pid)
+    self.job_id[pid] = p
+    return pid
+
+  def job_status(self, job_id):
+    """
+
+    :param job_id:
+    :return: 'running', 'finished' or 'error'
+    """
+    if self.job_id[job_id].is_alive():
+      return 'running'
+    else:
+      return 'finished'
+
+if __name__ == '__main__':
+  # Run a dummy task
+  pass
