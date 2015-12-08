@@ -406,6 +406,34 @@ def nop(bench_run_state, runner):
   return bench_run_state
 
 
+def execute_benchmark(bench_run, exe, file_name=None, poll_interval=1):
+  """Fire and forget benchmark manager. If you shut it down, you can pickup where you
+  left off using the saved state file
+
+  :param bench_run:
+  :param exe: executor
+  :param file_name:
+  :param poll_interval:
+  :return:
+  """
+  def cls():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+  if file_name is not None and os.path.exists(file_name):  # Load state from file
+    b = json.load(open(file_name, 'r'))
+  else:
+    b = prepare_benchmark_run_state(bench_run)
+
+  #exe = bench.BaseExecutor(0.5, 1)
+
+  while b['global_state'] not in ['done', 'error']:
+    b = bnext(b, exe)
+    json.dump(b, open(file_name, 'w'), indent=2)
+    cls()
+    print(b)
+    time.sleep(poll_interval)
+
+
 class BaseExecutor:
   """This is a dummy class which can be inherited to implement the function calls and state required by an
     actual runner. The default implementation simulates generating dummy files and can be used to test the
