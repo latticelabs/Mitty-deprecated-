@@ -7,6 +7,7 @@ import json
 import time
 from collections import OrderedDict
 import logging
+import warnings
 
 import requests
 
@@ -43,7 +44,6 @@ def api(path='/', method='GET', query=None, data=None, auth_token=None):
   :param auth_token:
   :return:
   """
-
   data = json.dumps(data) if isinstance(data, dict) else None
   base_url = __base_url__
 
@@ -58,6 +58,7 @@ def api(path='/', method='GET', query=None, data=None, auth_token=None):
   response_dict = json.loads(response.content) if response.content else {}
   t1 = time.time()
   logger.debug('Request took {:f}s'.format(t1 - t0))
+  logger.debug('Path: {:s}\nQuery: {:s}\nData: {:s}\nResponse: {:s}'.format(path, str(query), str(data), str(response_dict)))
 
   if response.status_code / 100 != 2:
     print(response_dict)
@@ -179,6 +180,56 @@ def get_all_apps_in_project(project, auth_token=None):
   return api('/apps/{id:s}'.format(**project)).get('items', [])  # Get all apps in the project
 
 
+def create_new_task(project, app, app_list, input_files, output_files, file_list, task_dict, run=True, auth_token=None):
+  """
+
+  :param project:
+  :param app:
+  :param app_list:
+  :param input_files:
+  :param output_files:
+  :param file_list:
+  :param task_dict:
+  :param run:
+  :param auth_token:
+  :return:
+  """
+  def _resolve_input_pin(_k, _app):
+    # If it exists, use the input mapping to transform k, otherwise, leave unchanged
+    return _app.get('input_mapping', {_k: _k})[_k]
+
+  def _get_file_dict(_input_file, _file_list):
+    plat_file = filter(lambda x: x['name'] == _input_file, _file_list)
+    if len(plat_file) == 0:
+      logger.error('File {:s} missing on platform project'.format(_input_file))
+      raise RuntimeError('File {:s} missing on platform project'.format(_input_file))
+    plat_file = plat_file[0]
+    return {"class": "File", "path": plat_file['id'], "name": plat_file["name"]}
+
+  plat_app = filter(lambda x: x['name'] == app['app_name'], app_list)[0]
+  # This should not fail as we have checked that the app exists
+
+  data = {
+    "description": "A benchmarking task",
+    "name": bench.create_filename_prefix_from_metadata(task_dict['metadata'], use_hash=False),
+    "app_id": plat_app['id'],
+    "project": project['id'],
+    "inputs": {_resolve_input_pin(k, app): _get_file_dict(i_file, file_list) for k, i_file in input_files.items()}
+  }
+
+  return api('/tasks', data=data, query={'action': 'run'} if run else None, auth_token=auth_token)
+
+
+def check_task_status(task_id, auth_token=None):
+  status_mapping = {
+    'Completed': 'finished',
+    'Active': 'running',
+    'Aborted': 'error'
+  }
+  status = api('/tasks/{:s}'.format(task_id))
+  return status_mapping[status['status']]
+
+
 class SBGSDK2Executor(bench.BaseExecutor):
   """Execute benchmarking tasks on an SDK2 enabled platform"""
 
@@ -190,21 +241,23 @@ class SBGSDK2Executor(bench.BaseExecutor):
     :param auth_token: Platform authentication token
     :return:
     """
-    self.auth_token, self.bench_run, self.project = auth_token, bench_run, get_existing_project(project_name, auth_token)
+    self.auth_token, self.bench_run, self.project, self.project_name = \
+      auth_token, bench_run, get_existing_project(project_name, auth_token), project_name
     self._check_project()
 
     self.apps = get_all_apps_in_project(self.project, self.auth_token)
     self.files_in_project = get_all_files_in_project(self.project, self.auth_token)
 
-    # Perform a few sanity checks
+    # Check to see all resources are available
     run_name_ok, files_ok, apps_ok = self._check_run_name(), self._check_initial_files(), self._check_apps()
-    # if not (run_name_ok and files_ok and apps_ok):
-    #   raise RuntimeError('Error setting up benchmark. Please see log file')
+    if not (run_name_ok and files_ok and apps_ok):
+      warnings.warn('There were some problems setting up the benchmark. Please see log')
 
   def _check_project(self):
     """Make sure project exists"""
     if self.project is None:
-      raise RuntimeError('No project named {name:s} found on platform'.format(**self.project))
+      logger.error('No project named {:s} found on platform'.format(self.project_name))
+      raise RuntimeError('No project named {:s} found on platform'.format(self.project_name))
 
   def _check_run_name(self):
     """Make sure bench run name does not clash"""
@@ -238,38 +291,21 @@ class SBGSDK2Executor(bench.BaseExecutor):
       return False
     return True
 
-  def start_job(self, app, input_files, output_files):
+  def start_job(self, app, input_files, output_files, task_dict):
     """Find the app on the platform and start a new task with the given input files.
 
     :param app:
     :param input_files:
     :param output_files:
+    :param task_dict:
     :return:
     """
     # Refresh the file list
     self.files_in_project = get_all_files_in_project(self.project, self.auth_token)
-    if not self._check_job_input_files(input_files):
-      raise RuntimeError('Files required for {app_name:s} are missing'.format(**app))
-
-    data = {
-      "description": "Test",
-      "name": "testsenad",
-      "app_id": "Rfranklin/my-project/new-app/2",
-      "project": "RFranklin/my-project",
-      "inputs": {
-        "my-input-node": {
-          "class": "File",
-          "path": "562785e6e4b00a1d67a8b1aa",
-          "name": "example_human_known_indels.vcf"
-        }
-      }
-    }
-
-    app = find_app_in_project
-
-    p = Process(target=self.test_process, args=(app, random.uniform(self.sleep_min, self.sleep_max), output_files))
-    p.start()
-    pid = str(p.pid)
+    p = create_new_task(self.project, app, self.apps,
+                        input_files, output_files, self.files_in_project,
+                        task_dict, auth_token=self.auth_token)
+    pid = p['id']
     self.job_id[pid] = p
     self.job_files[pid] = {
       'app': app,
@@ -278,35 +314,10 @@ class SBGSDK2Executor(bench.BaseExecutor):
     }
     return pid
 
-  def _check_job_input_files(self, input_files):
-    _file_names = [x['name'] for x in self.files_in_project]
-    missing_files = filter(lambda x: x not in _file_names, input_files.values())
-    if len(missing_files):
-      for f in missing_files:
-        logger.error('File {:s} missing on platform project'.format(f['file_name']))
-      return False
-    return True
-
-
-
-
-
   def job_status(self, job_id):
     """
 
     :param job_id:
     :return: 'running', 'finished' or 'error'
     """
-    if self.job_id[job_id].is_alive():
-      return 'running'
-    else:
-      return 'finished'
-
-  @staticmethod
-  def test_process(app, duration, output_files):
-    time.sleep(duration)
-    for k, v in output_files.items():
-      _k = app.get('output_mapping', {}).get(k, None) or k
-      open(v, 'w').write('File from {:s} to be named {:s}'.format(_k, v))
-
-
+    return check_task_status(job_id, auth_token=self.auth_token)
