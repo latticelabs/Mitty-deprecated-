@@ -128,7 +128,7 @@ def delete_project(project, auth_token=None):
 
 def get_all_files_in_project(project, auth_token=None):
   """Returns the rich file info obtained from the platform, including id and metadata."""
-  return api('projects/{id:s}/files'.format(**project), method='GET', auth_token=auth_token)['items']
+  return api('projects/{id:s}/files'.format(**project), method='GET', auth_token=auth_token).get('items', [])
 
 
 def get_file_by_name(f_info_l, file_name):
@@ -176,14 +176,14 @@ def get_all_apps_in_project(project, auth_token=None):
   :param auth_token:
   :return:
   """
-  return api('/apps/{id:s}'.format(**project))['items']  # Get all apps in the project
+  return api('/apps/{id:s}'.format(**project)).get('items', [])  # Get all apps in the project
 
 
 class SBGSDK2Executor(bench.BaseExecutor):
   """Execute benchmarking tasks on an SDK2 enabled platform"""
 
   def __init__(self, bench_run, project_name, auth_token=None):
-    """Setup communication with the platform. REFACTOR THIS
+    """Setup communication with the platform.
 
     :param bench_run:
     :param project_name:
@@ -197,9 +197,9 @@ class SBGSDK2Executor(bench.BaseExecutor):
     self.files_in_project = get_all_files_in_project(self.project, self.auth_token)
 
     # Perform a few sanity checks
-    run_name_ok, files_ok, apps_ok = self._check_run_name(), self._check_files(), self._check_apps()
-    if not (run_name_ok and files_ok and apps_ok):
-      raise RuntimeError('Error setting up benchmark. Please see log file')
+    run_name_ok, files_ok, apps_ok = self._check_run_name(), self._check_initial_files(), self._check_apps()
+    # if not (run_name_ok and files_ok and apps_ok):
+    #   raise RuntimeError('Error setting up benchmark. Please see log file')
 
   def _check_project(self):
     """Make sure project exists"""
@@ -219,7 +219,7 @@ class SBGSDK2Executor(bench.BaseExecutor):
       return False
     return True
 
-  def _check_files(self):
+  def _check_initial_files(self):
     _file_names = [x['name'] for x in self.files_in_project]
     missing_files = filter(lambda x: x['file_name'] not in _file_names, self.bench_run['file_list'].itervalues())
     if len(missing_files):
@@ -238,7 +238,6 @@ class SBGSDK2Executor(bench.BaseExecutor):
       return False
     return True
 
-
   def start_job(self, app, input_files, output_files):
     """Find the app on the platform and start a new task with the given input files.
 
@@ -247,10 +246,24 @@ class SBGSDK2Executor(bench.BaseExecutor):
     :param output_files:
     :return:
     """
-    files_in_project = [f['file_name'] for f in get_all_files_in_project(self.project, auth_token=self.auth_token)]
-    for k, v in input_files.items():
-      if v not in files_in_project:
-        raise RuntimeError('Required file {:s} not found in project'.format(v))
+    # Refresh the file list
+    self.files_in_project = get_all_files_in_project(self.project, self.auth_token)
+    if not self._check_job_input_files(input_files):
+      raise RuntimeError('Files required for {app_name:s} are missing'.format(**app))
+
+    data = {
+      "description": "Test",
+      "name": "testsenad",
+      "app_id": "Rfranklin/my-project/new-app/2",
+      "project": "RFranklin/my-project",
+      "inputs": {
+        "my-input-node": {
+          "class": "File",
+          "path": "562785e6e4b00a1d67a8b1aa",
+          "name": "example_human_known_indels.vcf"
+        }
+      }
+    }
 
     app = find_app_in_project
 
@@ -264,6 +277,19 @@ class SBGSDK2Executor(bench.BaseExecutor):
       'output_files': output_files
     }
     return pid
+
+  def _check_job_input_files(self, input_files):
+    _file_names = [x['name'] for x in self.files_in_project]
+    missing_files = filter(lambda x: x not in _file_names, input_files.values())
+    if len(missing_files):
+      for f in missing_files:
+        logger.error('File {:s} missing on platform project'.format(f['file_name']))
+      return False
+    return True
+
+
+
+
 
   def job_status(self, job_id):
     """
