@@ -61,7 +61,7 @@ def create_filename_prefix_from_metadata(meta, use_hash=True):
   :param meta: benchmark metadata dictionary.
   :param use_hash: If True, instead of using a long filename, we will use the md5 hash of the filename instead
 
-  <bench_run>.<bench_name>.<input_name1>-<file_tag>. (repeated as needed) .<tool>.<ext>
+  <bench_run>.<bench_name>.<input_name1>-<file_tag>. (repeated as needed) .<tool>
   """
   def flatten_input_meta(k, v):
     return [_k + '-' + _v['tag'] for _k, _v in v.items()] if k == 'bench_inputs' else [v]
