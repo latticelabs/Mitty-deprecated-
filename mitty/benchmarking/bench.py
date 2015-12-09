@@ -334,7 +334,8 @@ def start_tool_tasks(bench_run_state, runner):
   new_bench_run_state['task_states'].update({
     'tool': [{'job_id': runner.start_job(t['tool_task']['app'],
                                          t['tool_task']['input_files'],
-                                         t['tool_task']['output_files']),
+                                         t['tool_task']['output_files'],
+                                         t['tool_task']),
               'state': 'running'} for t in tal]})
   new_bench_run_state['global_state'] = 'tool_tasks'
   return new_bench_run_state
@@ -362,7 +363,8 @@ def advance_tool_tasks(bench_run_state, runner):
     if tt['state'] == 'finished' and at['state'] == 'waiting':
       at['job_id'] = runner.start_job(td['anal_task']['app'],
                                       td['anal_task']['input_files'],
-                                      td['anal_task']['output_files'])
+                                      td['anal_task']['output_files'],
+                                      td['anal_task'])
       at['state'] = 'running'
 
   # If all the analysis tasks are done, it's time to move on to meta-analysis
@@ -386,7 +388,8 @@ def advance_meta_analysis_task(bench_run_state, runner):
   if mat_stat['state'] == 'waiting':
     mat_stat['job_id'] = runner.start_job(mat['app'],
                                           mat['input_files'],
-                                          mat['output_files'])
+                                          mat['output_files'],
+                                          mat)
     mat_stat['state'] = 'running'
   else:
     mat_stat['state'] = runner.job_status(mat_stat['job_id'])
@@ -446,12 +449,13 @@ class BaseExecutor:
     self.job_id = {}  # Dict of processes indexed by PID
     self.job_files = {}  # Dict of I/O files indexed by PID
 
-  def start_job(self, app, input_files, output_files):
+  def start_job(self, app, input_files, output_files, task_dict):
     """This is where the
 
     :param app:
     :param input_files:
     :param output_files:
+    :param task_dict: This is the whole run dictionary which we can use if we need it
     :return:
     """
     for k, v in input_files.items():
