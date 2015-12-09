@@ -1,69 +1,46 @@
-"""This sets up a benchmark and a benchmark run using some completely fake data files and the default
-dummy runner. It generates a bunch of one line text files, so it's nice to run it in it's own directory
-which removes the possibility it overwrites an actual data file!"""
-import time
-
+"""This uses the 'Benchmarking-demo' project which has some dummy apps to help test the API interface."""
 import mitty.benchmarking.bench as bench
 
-# Let's set up our benchmark
-
-# Describe the files we will have in the benchmark set. The format is a list of tuples which later get converted to
-# an ordered dict. The keys used should match the names we use for the benchmarking
-
-"""
-A dict of all input files relevant to this benchmark. Each entry is of the form
-
-tag: {
-  "file_name": ... ,
-  "description": ...,
-  m1: ...,
-  m2: ...,
-  ...
-}
-
-tag (which serves as the key) is a short way to refer to the files and is referred to in the "inputs" section of
-tool descriptions if the input should get this file directly.
-
-description is a string meant for human consumption
-
-m1, m2 are string keys whose values indicate metadata we need for the benchmarking
-"""
 file_list = {
-  "ref": {
-     "file_name": "ref.fa.gz",
-     "description": "Dummy reference file"
+  "i0": {
+     "file_name": "input0.txt",
+     "description": "Common file used by all tools"
   },
-  "s0-r1": {
-   "file_name": "reads.fq",
-   "sample": "g0_s0",
-   "read_type": "read-perfect",
-   "description": "Perfect reads from sample g0_s0 across whole genome"
+  "i1": {
+   "file_name": "input1.txt",
+   "meta1": "m11",
+   "meta2": "m21",
+   "description": "Input file with some metadata filled out"
   },
-  "s0-r2": {
-   "file_name": "reads_c.fq",
-   "sample": "v0",
-   "read_type": "read-corrupt",
-   "description": "Corrupt reads from sample g0_s0 across whole genome"
+  "i2": {
+   "file_name": "input2.txt",
+   "meta1": "m12",
+   "meta2": "m22",
+   "description": "Input file with some metadata filled out"
   },
-  "s0-r3": {
-   "file_name": "reads1.fq",
-   "sample": "g0_s1",
-   "read_type": "read-perfect",
-   "description": "Perfect reads from sample g0_s1 from chrom 1 only"
+  "i3": {
+   "file_name": "input3.txt",
+   "metaA": "mA3",
+   "metaB": "mA3",
+   "description": "Input file with different metadata filled out"
   },
-  "g0": {
-   "file_name": "s0.vcf.gz",
-   "db": "g0_s0",
-   "description": "Sample g0_s0 variants"
+  "i4": {
+   "file_name": "input4.txt",
+   "metaA": "mA4",
+   "metaB": "mA4",
+   "description": "Input file with different metadata filled out"
   },
-  "g1": {
-   "file_name": "s1.vcf.gz",
-   "graph": "g0_s1",
-   "description": "Sample g0_s1 variants"
+  "i5": {
+   "file_name": "input5.txt",
+   "description": "Input file only used by one tool"
   },
-  "genomedb": {  # Not used by the tools, but used by the analysis
-    "file_name": "reddus_genomes.h5",
-    "description": "Simulated population"
+  "i6": {
+   "file_name": "input6.txt",
+   "description": "Input file only used by analysis"
+  },
+  "i7": {
+   "file_name": "input7.txt",
+   "description": "Input file only used by meta-analysis"
   }
 }
 
@@ -78,41 +55,34 @@ tag1,tag2,..  - list of file tags. Each tag MUST be found in file_list. For each
 
 
 bench_combinations = [
-  ("reads", ["s0-r1", "s0-r2", "s0-r3"]),
-  ("db", ["g0", "g1"])
-  # "db" is not used by bwa but used by bwa-db
-  # It is an example of how we can
-  # a) add more dimensions to the combinations
-  # b) skip a dimension for certain tools
+  ("iset1", ["i1", "i2"]),
+  ("iset2", ["i3", "i4"])
 ]
 
 benchmark_tools = {
   "tool_analysis": {
     # Description of the tool used to analyze each run. Leave out to indicate no per-tool analysis is done
     # (e.g. for comparative benchmarks where there is no truth set, we go directly to meta-analysis).
-    "app_name": "aligner-analysis",
-    "tag": "al-anal",
-    "inputs": ["bam", "genomedb"],
+    "app_name": "analysis-tool",
+    "tag": "anal-tool",
+    "inputs": ["tool-out1", "tool-out2", "i6"],
     # "inputs" will be searched for in outputs of tools and in file_list
     # The name (e.g "bam") must be present in the "output_mapping" field of the tool description
     "outputs": {  # In general, we need to know the suffix for each file we produce.
-      "badbam": "bad.bam",
-      "perbam": "per.bam",
-      "indel-json": "indel.json",
-      "mis-plot-circle": "mis.circle.pdf",
-      "indel-plot": "indel.pdf"
+      "anal-out1": "anal.out1.txt",
+      "anal-out2": "anal.out2.txt"
     }
   },
   "meta_analysis": {
     # Description of the tool used to analyze all runs combined.
     # Leave out to skip this step
-    "app_name": "aligner-meta-analysis",
-    "tag": "al-meta-anal",
-    "inputs": ["indel-json", "mis-plot-circle", "indel-plot", "tool-time"],
+    "app_name": "meta-analysis-tool",
+    "tag": "meta-anal-tool",
+    "inputs": ["anal-out1", "anal-out2", "tool-out1", "i7"],
     # "inputs" will be searched for in outputs of tools, outputs of tool_analysis and in file_list
     # The name (e.g "tool-time") must be present in the "output_mapping" field of the tool description
     "outputs": {  # In general, we need to know the suffix for each file we produce.
-      "result": "zip"
+      "meta-anal-out": "meta-out.txt"
     }
   }
 }
@@ -123,11 +93,11 @@ benchmark_tools = {
 # It would be tedious to place this in the output description of each tool
 # These are the outputs required and used by the benchmark tools
 tool_output_suffix = {
-  "bam": "bam",
-  "tool-time": "time.txt"
+  "tool-out1": "tool-out1.txt",
+  "tool-out2": "tool-out2.txt"
 }
 
-bench_spec = bench.create_bench_spec(name='B1', description='Example benchmark',
+bench_spec = bench.create_bench_spec(name='B1', description='Example SDK2 benchmark',
                                      file_list=file_list, bench_combinations=bench_combinations,
                                      benchmark_tools=benchmark_tools,
                                      tool_output_suffix=tool_output_suffix)
@@ -135,36 +105,34 @@ bench_spec = bench.create_bench_spec(name='B1', description='Example benchmark',
 
 #TODO: How to handle additional files, like indexes, naturally. Ask Boysha
 tool_descriptions = [
-  ("bwa", {
-    "app_name": "bwa-mem",
-    "tag": "bwa",
-    "inputs": ["ref", "reads"],
+  ("tool1", {
+    "app_name": "tool1",
+    "tag": "t1",
     "input_mapping": {
-      "ref": "fasta",  # ref is the benchmarking term, fasta is the pin name of the tool input
-      "reads": "fastq"
+      "i0": "tool1-input1",
+      "iset1": "tool1-input2",
+      "iset2": "tool1-input3"
     },
     "output_mapping": {
-      "bam": "bwa-bam",  # -> what about index files etc.
-      # <benchmarking pin name>: <tool pin name>
-      "tool-time": "bwa-time"
+      "tool-out1": "tool1-output1",
+      "tool-out2": "tool1-output2",
     },
-    "parameters": {'-p': ''},  # Leave blank to leave defaults
-    "description": "Normal BWA"
+    "parameters": {'-p1': 'p1'},  # Leave blank to leave defaults
+    "description": "Tool 1"
   }),
-  ("poor-bwa", {
-    "app_name": "bwa-db",  # This is a bogus BWA pretending to take a VCF also as an input
-    "tag": "poor-bwa",
+  ("tool2", {
+    "app_name": "tool2",
+    "tag": "t2",
     "input_mapping": {
-      "ref": "fasta",
-      "reads": "fastq",
-      "db": "vcf"
+      "i0": "tool2-input1",
+      "iset2": "tool2-input2"
     },
     "output_mapping": {
-      "bam": "bwa-db-bam",
-      "tool-time": "bwa-db-time"
+      "tool-out1": "tool2-output1",
+      "tool-out2": "tool2-output2",
     },
-    "parameters": {'-p': '', '-P': ''},  # Leave blank to leave defaults
-    "description": "BWA with no paired end info, pretending to take VCF as input"
+    "parameters": {'-p1': 'p1'},  # Leave blank to leave defaults
+    "description": "Tool 2"
   })
 ]
 
@@ -184,6 +152,7 @@ bench_run = bench.create_bench_run(name='R1', description='Run1 with bench spec 
                                    use_hash_for_filenames=False)
 
 json.dump(bench_run, open('bench_run.json', 'w'), indent=2)
-exe = api.SBGSDK2Executor(bench_run, 'Benchmarking')
 
-#bench.execute_benchmark(bench_run, exe, file_name='bench_state.json', poll_interval=0.1)
+exe = api.SBGSDK2Executor(bench_run, 'Bench Test')
+#exe = bench.BaseExecutor(sleep_min=0.5, sleep_max=1)
+bench.execute_benchmark(bench_run, exe, file_name='bench_state.json', poll_interval=0.1)
