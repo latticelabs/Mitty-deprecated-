@@ -224,7 +224,7 @@ def compute_meta_analysis_task(bench_run_spec, use_hash):
   mal_inputs = bench_run_spec['benchmark_tools']['meta_analysis']['inputs']
   mal_outputs = bench_run_spec['benchmark_tools']['meta_analysis']['outputs']
 
-  input_files = {k: tv['tool_task']['output_files'].get(k, tv['anal_task']['output_files'].get(k, fl.get(k, None)))
+  input_files = {k: tv['tool_task']['output_files'].get(k, tv['anal_task']['output_files'].get(k, fl.get(k, {'file_name': None})['file_name']))
                  for k in mal_inputs for tv in tal}
 
   #metadata = deepcopy(next(tal.itervalues())[0]['tool_task']['metadata'])
