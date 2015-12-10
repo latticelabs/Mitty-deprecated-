@@ -20,12 +20,18 @@ def autoscale_bin_size(chrom_lens, bin_cnt=100.0):
 
 
 def compute_misalignment_matrix_from_bam(bam_fp, bin_size=None, i_know_what_i_am_doing=False):
-  """Create a matrix of binned mis-alignments"""
+  """Create a matrix of binned mis-alignments
+
+  :param bam_fp: input BAM
+  :param bin_size: size of bin in mega bases
+  :param i_know_what_i_am_doing: Set this to override the runtime warning of too many bins
+
+  """
   def binnify(_pos, _bins):
     for n in range(1, len(_bins)):
       if _pos < _bins[n]:
         return n - 1
-    return len(_bins) - 1 # Should not get here
+    return len(_bins) - 1  # Should not get here
 
   chrom_lens = [hdr['LN'] for hdr in bam_fp.header['SQ']]
   bin_size = bin_size * 1e6 if bin_size is not None else autoscale_bin_size(chrom_lens)
