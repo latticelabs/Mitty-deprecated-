@@ -18,8 +18,6 @@ def cli(analysis_list, out):
   """Given a list of analyses as a CSV file load the files and metadata and create a summary page
 
   indel_anal, time, mis_plot, indel_plot, tool, graph, sample, read_set"""
-
-
   data = [row for row in csv.reader(open(analysis_list, 'r'), skipinitialspace = True)]
   header = data[0]
   assert header == ['indel_anal', 'time', 'mis_plot', 'indel_plot', 'tool', 'graph', 'sample', 'read_set']
