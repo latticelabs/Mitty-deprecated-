@@ -82,15 +82,15 @@ logger = logging.getLogger(__name__)
 
 class ReadSimulator:
   """A convenience class that wraps the parameters and settings for a read simulation"""
-  def __init__(self, base_dir, params, ref_file=None, db_file=None):
+  def __init__(self, base_dir, params, ref_file=None, db_file=None, out_prefix=None):
     """Create a read simulator object
 
     :param base_dir: the directory with respect to which relative file paths will be resolved
     :param params: dict loaded from json file
     """
 
-    fname_prefix = mitty.lib.rpath(base_dir, params['files']['output_prefix'])
-    if not os.path.exists(os.path.dirname(fname_prefix)):
+    fname_prefix = out_prefix or mitty.lib.rpath(base_dir, params['files']['output_prefix'])
+    if not os.path.exists(os.path.abspath(os.path.dirname(fname_prefix))):
       os.makedirs(os.path.dirname(fname_prefix))
 
     self.ref = mio.Fasta(multi_fasta=ref_file or mitty.lib.rpath(base_dir, params['files'].get('reference_file', None)),
@@ -311,10 +311,11 @@ def cli():
 @cli.command()
 @click.argument('param_fname', type=click.Path(exists=True))
 @click.option('--ref', type=click.Path(exists=True), help="Use this path for reference file. Over-rides entry in parameter file")
-@click.option('--db', type=click.Path(), help="Use this path for output file. Over-rides entry in parameter file")
+@click.option('--db', type=click.Path(exists=True), help="Use this path for genome DB file. Over-rides entry in parameter file")
+@click.option('--out-prefix', type=click.Path(), help="Use this path for output file prefix. Over-rides entry in parameter file")
 @click.option('-v', count=True, help='Verbosity level')
 @click.option('-p', is_flag=True, help='Show progress bar')
-def generate(param_fname, ref, db, v, p):
+def generate(param_fname, ref, db, out_prefix, v, p):
   """Generate reads (fastq) given a parameter file"""
   level = logging.DEBUG if v > 1 else logging.WARNING
   logging.basicConfig(level=level)
@@ -324,7 +325,7 @@ def generate(param_fname, ref, db, v, p):
   base_dir = os.path.dirname(param_fname)     # Other files will be with respect to this
   params = json.load(open(param_fname, 'r'))
 
-  simulation = ReadSimulator(base_dir, params, ref_file=ref, db_file=db)
+  simulation = ReadSimulator(base_dir, params, ref_file=ref, db_file=db, out_prefix=out_prefix)
 
   t0 = time.time()
   with click.progressbar(length=simulation.get_total_blocks_to_do(), label='Generating reads', file=None if p else io.BytesIO()) as bar:
