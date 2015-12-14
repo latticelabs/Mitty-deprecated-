@@ -116,7 +116,7 @@ class Population:
       self.fp.attrs['sample_names'] = list(self.fp.attrs.get('sample_names', [])) + [sample_name.encode('utf8')]
 
   def get_variant_master_list_count(self, chrom):
-    return self.fp[self.get_ml_key(chrom)].size
+    return self.fp[self.get_ml_key(chrom)].size if self.get_ml_key(chrom) in self.fp else 0
 
   def get_variant_master_list(self, chrom):
     """Return the whole master variant list for this chromosome"""
