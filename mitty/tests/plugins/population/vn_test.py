@@ -1,13 +1,14 @@
 """Run genomes generate and then analyze the resultant genomes file to make sure it satisfies the conditions we
 set it"""
 import tempfile
+import os
 import json
 
 from click.testing import CliRunner
 
 import mitty.lib.variants as vr
 import mitty.genomes as genomes
-from mitty.tests import *  # To get definitions from the setup script
+import mitty.tests
 
 
 def vn_test():
@@ -16,7 +17,7 @@ def vn_test():
   _, db_file = tempfile.mkstemp(suffix='.hdf5')
   test_params = {
     "files": {
-      "reference_file": test_fasta_genome_file,
+      "reference_file": mitty.tests.test_fasta_genome_file,
       "dbfile": db_file
     },
     "rng": {
@@ -44,7 +45,7 @@ def vn_test():
   assert result.exit_code == 0, result
   assert os.path.exists(db_file)
 
-  pop = vr.Population(fname=db_file)
+  pop = vr.Population(fname=db_file, mode='r', in_memory=False)
   # ml = pop.get_variant_master_list(chrom=4)
 
   chrom_idx_vx = pop.get_sample_variant_index_for_chromosome(1, 'vx')

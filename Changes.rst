@@ -44,10 +44,22 @@ Planned changes
    - het/hom filtering in standard population model
    - range filter for variations (put as core spec - like for reads - rather than in population model?)
 
+Correctness
+-----------
+* Need to generate reads more randomly. Can perhaps parallelize generation?
+
+   - For every block, generate reads from all chroms and then, when writing them out, pick each read randomly from
+     a chrom
+   - Run several such processes in parallel, generating separate fastq files. In the end, concatenate them together
+     Works for both gzipped and unzipped the same!
+
+
+
 Efficiency changes
 ------------------
 * Load chroms one at a time
 * Drop reference base(s) from variant list, store SNPs separately (will HDF5 optimize for this?)
+* Parallelize all operations by Chrom - will HDF5 allow parallel writes to separate data sets?
 
 
 

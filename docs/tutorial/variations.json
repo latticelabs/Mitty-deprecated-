@@ -22,7 +22,7 @@
       "bin_cnt": 30
     }
   },
-  "chromosomes": [1, 2, 3, 4, 5],
+  "chromosomes": [1, 3, 4, 5],
   "variant_models": [          
     {
       "snp": {

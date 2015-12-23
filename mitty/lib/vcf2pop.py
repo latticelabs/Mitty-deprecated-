@@ -73,11 +73,11 @@ def parse_vcf(fname):
   return master_lists, chroms, seq_metadata
 
 
-def vcf_to_pop(vcf_fname, pop_fname=None, sample_name='s1'):
+def vcf_to_pop(vcf_fname, pop_fname, sample_name='s1', in_memory=False):
   """Read a VCF file and store it as a Population structure
   This assumes a single sample VCF with only a GT field"""
   mls, chroms, genome_metadata = parse_vcf(vcf_fname)
-  pop = vr.Population(fname=pop_fname, genome_metadata=genome_metadata)
+  pop = vr.Population(fname=pop_fname, mode='w', genome_metadata=genome_metadata, in_memory=in_memory)
   for n, ml in enumerate(mls):
     pop.set_master_list(n + 1, ml)
     pop.add_sample_chromosome(n + 1, sample_name, np.array(chroms[n], dtype=[('index', 'i4'), ('gt', 'i1')]))

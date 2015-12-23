@@ -82,7 +82,8 @@ class PopulationSimulator:
     assert 0 < master_seed < mitty.lib.SEED_MAX
 
     self.seed_rng = np.random.RandomState(seed=master_seed)
-    self.pop = vr.Population(fname=pop_db_name, genome_metadata=self.ref.get_seq_metadata())
+    self.pop = vr.Population(fname=pop_db_name, mode='w', in_memory=False,
+                             genome_metadata=self.ref.get_seq_metadata())
 
     self.chromosomes = params['chromosomes']
     self.sfs_model = load_site_frequency_model(params.get('site_model', None))

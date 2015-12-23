@@ -1,6 +1,7 @@
 """Automatically find variant plugins and perform integration tests on them. For a plugin to avail of this test
 the plugin needs a _example_params() function that returns a complete parameter file"""
 import tempfile
+import os
 import json
 from inspect import getmembers, isfunction
 
@@ -11,12 +12,9 @@ from nose.tools import nottest
 import mitty.lib.variants as vr
 import mitty.lib.io as mio
 import mitty.genomes as genomes
-from mitty.plugins.site_frequency import double_exp
+import mitty.tests
 
-from mitty.tests import *
-
-
-ref = mio.Fasta(multi_dir=test_fasta_genome_dir)
+ref = mio.Fasta(multi_dir=mitty.tests.test_fasta_genome_dir)
 
 
 def check_plugin_integration(args):
@@ -26,11 +24,11 @@ def check_plugin_integration(args):
     raise SkipTest('{:s} has no _example_params method. Can not test automatically'.format(name))
   var_model_params = [{name: model._example_params}]
 
-  _, param_file = tempfile.mkstemp(suffix='.json')
-  _, db_file = tempfile.mkstemp(suffix='.hdf5')
+  _, param_file = tempfile.mkstemp(dir=mitty.tests.data_dir, suffix='.json')
+  _, db_file = tempfile.mkstemp(dir=mitty.tests.data_dir, suffix='.hdf5')
   test_params = {
     "files": {
-      "reference_dir": example_data_dir,
+      "reference_dir": mitty.tests.example_data_dir,
       "dbfile": db_file
     },
     "rng": {
@@ -47,7 +45,7 @@ def check_plugin_integration(args):
   assert result.exit_code == 0, result
   assert os.path.exists(db_file)
 
-  pop = vr.Population(fname=db_file)
+  pop = vr.Population(fname=db_file, mode='r', in_memory=False)
   ml = pop.get_variant_master_list(chrom=1)
 
   os.remove(param_file)
