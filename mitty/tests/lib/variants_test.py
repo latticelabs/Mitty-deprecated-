@@ -191,9 +191,10 @@ def master_list_roundtrip_test():
   p = [0.1, 0.5, 0.9]
   ml = vr.VariantList(pos, stop, ref, alt, p)
 
-  assert_raises(RuntimeError, vr.Population)  # We should complain about not having metadata since this is a new file
+  assert_raises(RuntimeError, vr.Population,
+                mode='w', in_memory=True)  # We should complain about not having metadata since this is a new file
 
-  pl = vr.Population(genome_metadata=genome_metadata)
+  pl = vr.Population(genome_metadata=genome_metadata, mode='w', in_memory=True)
   assert_raises(AssertionError, pl.set_master_list, 1, ml)  # We gotta sort this first
 
   ml.sort()
@@ -202,7 +203,8 @@ def master_list_roundtrip_test():
   ml2 = pl.get_variant_master_list(1)
   assert_array_equal(ml.variants, ml2.variants)
 
-  pl = vr.Population(genome_metadata=genome_metadata)
+  del pl
+  pl = vr.Population(genome_metadata=genome_metadata, mode='w', in_memory=True)
   pl.set_master_list(1, ml)
   assert_array_equal(ml.variants, pl.get_variant_master_list(1).variants)
 
@@ -214,7 +216,10 @@ def sample_roundtrip_test():
   """Sample round-trip (save and load)"""
   genome_metadata = [{'seq_id': 'chr1', 'seq_len': 10, 'seq_md5': '10'}]
   chrom = np.array([(1, 0), (2, 1), (3, 2), (1073741823, 2)], dtype=[('index', 'i4'), ('gt', 'i1')])
-  pl = vr.Population(genome_metadata=genome_metadata)
+  pl = vr.Population(fname='round_trip.h5', mode='w', genome_metadata=genome_metadata, in_memory=True)
+  ml = vr.VariantList()
+  ml.sort()
+  pl.set_master_list(chrom=1, master_list=ml)
   pl.add_sample_chromosome(chrom=1, sample_name='my_sample', indexes=chrom)
   c2 = pl.get_sample_variant_index_for_chromosome(chrom=1, sample_name='my_sample')
   assert_array_equal(chrom, c2)
@@ -227,7 +232,7 @@ def chrom_metadata_roundtrip_test():
     {'seq_id': 'Five little monkeys jumping on the bed', 'seq_len': 200, 'seq_md5': '99'},
   ]
 
-  pl = vr.Population(genome_metadata=genome_metadata)
+  pl = vr.Population(genome_metadata=genome_metadata, mode='w', in_memory=True)
   assert_sequence_equal(genome_metadata, pl.get_genome_metadata())
 
 
@@ -241,7 +246,7 @@ def sample_variant_test():
   alt = ['AA', 'CAT', 'G']
   p = [0.1, 0.5, 0.9]
   ml = vr.VariantList(pos, stop, ref, alt, p)
-  pl = vr.Population(genome_metadata=genome_metadata)
+  pl = vr.Population(mode='w', genome_metadata=genome_metadata, in_memory=True)
   ml.sort()
   pl.set_master_list(1, ml)
   chrom = np.array([(1, 0), (2, 2)], dtype=[('index', 'i4'), ('gt', 'i1')])

@@ -100,7 +100,7 @@ class ReadSimulator:
     self.sample_name = params.get('sample_name', None)
     if 'dbfile' in params['files'] or db_file is not None:
       pop_db_name = db_file or mitty.lib.rpath(base_dir, params['files']['dbfile'])
-      self.pop = vr.Population(fname=pop_db_name)
+      self.pop = vr.Population(fname=pop_db_name, mode='r', in_memory=False)
     else:
       self.pop = None
       logger.debug('Taking reads from reference')

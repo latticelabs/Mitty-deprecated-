@@ -3,8 +3,7 @@ import numpy as np
 import mitty.lib.vcf2pop as vcf2pop
 import mitty.lib.io as mio
 import mitty.lib.variants as vr
-
-from numpy.testing import assert_array_equal
+import mitty.tests
 
 import os
 import tempfile
@@ -32,17 +31,19 @@ def round_trip_test():
   master_lists = {n + 1: vr.VariantList(vd['pos'], vd['stop'], vd['ref'], vd['alt'], vd['p']) for n, vd in enumerate(variant_data)}
   for k, v in master_lists.iteritems(): v.sort()
 
-  pop = vr.Population(genome_metadata=genome_metadata)
+  pop = vr.Population(mode='w', genome_metadata=genome_metadata, in_memory=True)
   for k, v in master_lists.iteritems():
     pop.set_master_list(chrom=k, master_list=v)
 
   for n in [0, 1]:
     pop.add_sample_chromosome(n + 1, 'brown_fox', np.array(genotype_data[n], dtype=[('index', 'i4'), ('gt', 'i1')]))
 
-  _, temp_name = tempfile.mkstemp(suffix='.vcf.gz')
-  mio.write_single_sample_to_vcf(pop, out_fname=temp_name, sample_name='brown_fox')
+  _, vcf_temp = tempfile.mkstemp(dir=mitty.tests.data_dir, suffix='.vcf.gz')
+  _, h5_temp = tempfile.mkstemp(dir=mitty.tests.data_dir, suffix='.h5')
 
-  pop2 = vcf2pop.vcf_to_pop(temp_name, sample_name='brown_fox')
+  mio.write_single_sample_to_vcf(pop, out_fname=vcf_temp, sample_name='brown_fox')
+
+  pop2 = vcf2pop.vcf_to_pop(vcf_temp, h5_temp, sample_name='brown_fox')
 
   # for k, v in master_lists.iteritems():
   #   assert_array_equal(pop.get_sample_variant_index_for_chromosome(k, 'brown_fox'), pop2.get_sample_variant_index_for_chromosome(k, 'brown_fox'))
@@ -53,4 +54,4 @@ def round_trip_test():
       for k in ['pos', 'stop', 'ref', 'alt']:
         assert pop2.get_variant_master_list(n + 1).variants[v1[0]][k] == master_lists[n + 1].variants[v2[0]][k]  # Variant data match
 
-  os.remove(temp_name)
+  os.remove(vcf_temp)

@@ -14,7 +14,7 @@
   "coverage_per_block": 1,
   "corrupt": false,
   "variants_only": true,
-  "variant_window": 500,
+  "variant_window": 250,
   "model_params": {
     "read_len": 100,
     "template_len_mean": 250,

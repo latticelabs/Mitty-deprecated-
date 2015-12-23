@@ -1,5 +1,25 @@
 """This serves as the "meta-analysis" tool for aligner benchmarking, to collate the individual benchmarking
-results and produce a summary html page."""
+results and produce a summary html page.
+
+CREATE FILE javascript for CWL:
+
+{
+  function
+
+  header = ['indel_anal', 'time', 'mis_plot', 'indel_plot', 'tool', 'graph', 'sample', 'read_set'];
+  for(n=0; n < $job.inputs.indel_anal.length; n++) {
+    line = [];
+    line += $job.inputs.indel_anal[n].path;
+    line += $job.inputs.time[n].path;
+    line += $job.inputs.mis_plot[n].path;
+    line += $job.inputs.indel_plot[n].path;
+  }
+  $job.inputs.indel
+}
+
+
+
+"""
 import csv
 import json
 from collections import OrderedDict

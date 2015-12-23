@@ -1,60 +1,62 @@
 import numpy as np
 import h5py
 
+from mitty.version import __version__
+
 import pyximport
 pyximport.install(setup_args={"include_dirs": np.get_include()})
 from variants_cy import *
 
-from mitty.version import __version__
 
-
-#TODO: Redesign how data is stored in hdf5 so that organization is easier to follow
-# Make list of chromosomes more explicit
-# Make list of samples more explicit
 class Population:
-  """This class abstracts the storage and retrieval of the master list and samples of a population
+  """The data is stored as follows:
 
-  genome_metadata = [
-    {'seq_id': 'chr1', 'seq_len': 100, 'seq_md5': 'deadbeef'},
-    {'seq_id': 'chr2', 'seq_len': 200, 'seq_md5': '1337'},
-  ]
-  pop = Population(genome_metadata)
+  /ref_genome_meta  -> an array carrying genome metadata info from the original Fasta file
+  /master_list
+              /1
+              /2
+              ...
+  /samples
+          /s1
+             /1
+             /2
+             ...
+          /s2
+             /1
+             /2
+             ...
 
-  The master list and samples for each chromosome are added separately. This
+
   """
-  def __init__(self, fname=None, genome_metadata=None):
+  str_dt = h5py.special_dtype(vlen=bytes)
+
+  def __init__(self, fname='test.h5', mode='r', genome_metadata=None, in_memory=False):
     """Load a population from file, or create a new file. Over write or store the passed master list and/or samples
 
-    :param fname: name of the file to store/load data from. If None an in-memory file is created
+    :param fname:           name of the file to store/load data from.
+                            If None an in-memory file is created
+    :param mode:            'r'/'w' same as h5py.File modes
     :param genome_metadata: [{seq_id, seq_len, seq_md5} ...] in same order as seen in fa.gz file
                              same format as returned by Fasta.get_seq_metadata
-
-    The behavior is as follows:
-    1. If fname is None, create a HDf5 file in memory
-    2. If fname exists, open the file and load the master list
-    3. If a master list is given, overwrite the existing master list if any and erase the samples
+    :param in_memory:       If True, make a file purely in memory. Mostly for testing
     """
-    if fname is None:
-      self.fp = h5py.File(name=hex(id(self)), driver='core', backing_store=False)  # Create it in memory
-    else:
-      self.fp = h5py.File(name=fname)
-    if len(self.get_genome_metadata()) == 0:  # This is an indication that we are creating a new file
+    assert mode in ['r', 'w'], "File modes should be 'r' or 'w'"
+    self.fp = h5py.File(name=fname, mode=mode,
+                        driver='core' if in_memory else None, backing_store=False if in_memory else True)
+    if mode not in ['r', 'r+']:  # This is an indication that we are creating a new file
       if genome_metadata is None:
         raise RuntimeError('Creating a new Population object requires genome metadata')
       self.set_genome_metadata(genome_metadata)
       self.fp.attrs['Mitty version'] = __version__
 
   @staticmethod
-  def get_chrom_key(chrom):
-    return '/chrom_{:d}'.format(chrom)
+  def _ml_path(chrom):
+    return '/master_list/{}'.format(chrom)
 
   @staticmethod
-  def get_ml_key(chrom):
-    return '/chrom_{:d}/master_list'.format(chrom)
-
-  @staticmethod
-  def get_sample_key(chrom):
-    return '/chrom_{:d}/samples/'.format(chrom)
+  def _s_path(sample_name=None, chrom=None):
+    return '/samples/' + ((sample_name + ('/{}'.format(chrom) if chrom is not None else ''))
+                          if sample_name is not None else '')
 
   def set_genome_metadata(self, genome_metadata):
     """Save chromosome sequence metadata
@@ -62,77 +64,73 @@ class Population:
     :param genome_metadata: [{seq_id, seq_len, seq_md5} ...] in same order as seen in fa.gz file
                            same format as returned by Fasta.get_seq_metadata
     """
-    for n, meta in enumerate(genome_metadata):
-      chrom = n + 1  # By convention we number chromosomes 1, 2, 3 ... in the same order as in the fa.gz file
-      chrom_key = self.get_chrom_key(chrom)
-      chrom_grp = self.fp[chrom_key] if chrom_key in self.fp else self.fp.create_group(chrom_key)
-      for k, v in meta.iteritems():
-        chrom_grp.attrs[k] = v
+    dtype = [('seq_id', Population.str_dt), ('seq_len', 'i4'), ('seq_md5', Population.str_dt)]
+    meta = [[gm[k] for gm in genome_metadata] for k in ['seq_id', 'seq_len', 'seq_md5']]
+    self.fp.create_dataset('/ref_genome_meta', shape=(len(genome_metadata),), dtype=dtype,
+                           data=np.core.records.fromarrays(meta, dtype))
 
   def get_genome_metadata(self):
     """Get chromosome metadata
 
     :returns [{seq_id, seq_len, seq_md5} ...] same format as returned by Fasta.get_seq_metadata
     """
-    return [dict(self.fp[self.get_chrom_key(n)].attrs) for n in self.get_chromosome_list()]
+    return [{k: x[k] for k in ['seq_id', 'seq_len', 'seq_md5']} for x in self.fp['/ref_genome_meta'][:]]
 
   def get_chromosome_metadata(self, chrom):
-    return dict(self.fp[self.get_chrom_key(chrom)].attrs)
+    return self.get_genome_metadata()[chrom - 1]
 
   def get_chromosome_list(self):
-    return sorted([int(ch[6:]) for ch in self.fp.keys() if ch.startswith('chrom_')])  # Needs to be sorted
+    return range(1, self.fp['/ref_genome_meta'][:].size + 1)  # Needs to be in order
 
   def set_master_list(self, chrom, master_list):
-    """Replace any existing master list with this one. Erase any existing samples
+    """Create a new master list. Error if it already exists
 
+    :param chrom:
     :param master_list:
     """
     assert master_list.sorted, 'Master list has not been sorted. Please check your program'
     assert len(master_list) <= 1073741823, 'Master list has more than 2^30-1 variants.'  # I want whoever gets here to mail me: kaushik.ghose@sbgenomics.com
 
-    key = self.get_ml_key(chrom)
-    if key in self.fp:
-      del self.fp[key]
-    sample_key = self.get_sample_key(chrom)
-    if sample_key in self.fp:
-      del self.fp[sample_key]
-    dt = h5py.special_dtype(vlen=bytes)
-    self.fp.create_dataset(self.get_ml_key(chrom), shape=master_list.variants.shape,
-                           dtype=[('pos', 'i4'), ('stop', 'i4'), ('ref', dt), ('alt', dt), ('p', 'f2')],
-                           data=master_list.variants, chunks=True, compression='gzip')
+    path = self._ml_path(chrom)
+    assert path not in self.fp, "The master list exists"
+
+    dtype = [('pos', 'i4'), ('stop', 'i4'), ('ref', Population.str_dt), ('alt', Population.str_dt), ('p', 'f2')]
+    self.fp.create_dataset(name=path, shape=master_list.variants.shape,
+                           dtype=dtype, data=master_list.variants, chunks=True, compression='gzip')
 
   def add_sample_chromosome(self, chrom, sample_name, indexes):
-    """Add sample. Overwrite if name matches existing sample. No check is done to ensure list is sorted
+    """Add sample. Error if already exists
 
     :param chrom:  chrom number [1, 2, 3, ...]
     :param sample_name:
     :param indexes: [(chrom, gt) ...]
     """
-    key = self.get_sample_key(chrom) + '/' + sample_name
-    if key in self.fp:
-      del self.fp[key]
-    self.fp.create_dataset(name=key, shape=indexes.shape, dtype=[('index', 'i4'), ('gt', 'i1')], data=indexes, chunks=True, compression='gzip')
-    if sample_name not in self.fp.attrs.get('sample_names', []):
-      self.fp.attrs['sample_names'] = list(self.fp.attrs.get('sample_names', [])) + [sample_name.encode('utf8')]
+    path = self._s_path(sample_name, chrom)
+    assert path not in self.fp, "This sample/chrom exists"
+    assert self._ml_path(chrom) in self.fp, "This chromosome is absent in the master list"
+
+    self.fp.create_dataset(name=path, shape=indexes.shape, dtype=[('index', 'i4'), ('gt', 'i1')],
+                           data=indexes, chunks=True, compression='gzip')
 
   def get_variant_master_list_count(self, chrom):
-    return self.fp[self.get_ml_key(chrom)].size if self.get_ml_key(chrom) in self.fp else 0
+    path = self._ml_path(chrom)
+    return self.fp[path].size if path in self.fp else 0
 
   def get_variant_master_list(self, chrom):
     """Return the whole master variant list for this chromosome"""
     ml = VariantList()
-    if self.get_ml_key(chrom) in self.fp:
-      ml.variants = self.fp[self.get_ml_key(chrom)][:]
+    if self._ml_path(chrom) in self.fp:
+      ml.variants = self.fp[self._ml_path(chrom)][:]
     return ml
 
   def get_sample_variant_count(self, chrom, sample_name):
-    sample_key = self.get_sample_key(chrom) + '/' + sample_name
-    return self.fp[sample_key].size if sample_key in self.fp else 0
+    path = self._s_path(sample_name, chrom)
+    return self.fp[path].size if path in self.fp else 0
 
   def get_sample_variant_index_for_chromosome(self, chrom, sample_name):
     """Return the indexes pointing to the master list for given sample and chromosome"""
-    sample_key = self.get_sample_key(chrom) + '/' + sample_name
-    return self.fp[sample_key][:] if sample_key in self.fp else np.array([], dtype=[('index', 'i4'), ('gt', 'i1')])
+    path = self._s_path(sample_name, chrom)
+    return self.fp[path][:] if path in self.fp else np.array([], dtype=[('index', 'i4'), ('gt', 'i1')])
 
   def get_sample_variant_list_for_chromosome(self, chrom, sample_name, ignore_zygosity=False):
     """Return variant list for this sample and chromosome."""
@@ -146,7 +144,7 @@ class Population:
 
   def get_sample_names(self):
     """Return a list of sample names"""
-    return self.fp.attrs['sample_names']
+    return self.fp[self._s_path()].keys()
 
   def get_version(self):
     return self.fp.attrs['Mitty version']
