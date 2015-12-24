@@ -30,6 +30,7 @@ setup(
                           'perfectbam = mitty.benchmarking.perfectbam:cli',
                           'badbams = mitty.benchmarking.badbams:cli',
                           'alindel = mitty.benchmarking.indel_alignment_accuracy:cli',
+                          'benchsummary = mitty.benchmarking.benchmark_summary:cli',
                           'vcf2pop = mitty.lib.vcf2pop:cli',
                           'alindel_plot = mitty.benchmarking.indel_alignment_accuracy_plot:cli [plot]',
                           'misplot = mitty.benchmarking.misalignment_plot:cli [plot]',
@@ -48,7 +49,7 @@ setup(
       'pysam>=0.8.1',
       'h5py>=2.5.0'
     ],
-    extras_require = {
-      'plot': ['matplotlib>=1.3.0', 'scipy']
+    extras_require={
+      'bench': ['matplotlib>=1.3.0', 'scipy'],
     }
 )

@@ -1,20 +1,21 @@
 import tempfile
+import os
 import json
 
 from click.testing import CliRunner
 
 import mitty.lib.variants as vr
 import mitty.genomes as genomes
-from mitty.tests import *  # To get definitions from the setup script
+import mitty.tests
 
 
 def integration_test():
   """'genomes' command line program"""
-  _, param_file = tempfile.mkstemp(suffix='.json')
-  _, db_file = tempfile.mkstemp(suffix='.hdf5')
+  _, param_file = tempfile.mkstemp(dir=mitty.tests.data_dir, suffix='.json')
+  _, db_file = tempfile.mkstemp(dir=mitty.tests.data_dir, suffix='.hdf5')
   test_params = {
     "files": {
-      "reference_dir": example_data_dir,
+      "reference_dir": mitty.tests.example_data_dir,
       "dbfile": db_file
     },
     "rng": {
@@ -47,7 +48,7 @@ def integration_test():
   assert result.exit_code == 0, result
   assert os.path.exists(db_file)
 
-  pop = vr.Population(fname=db_file)
+  pop = vr.Population(fname=db_file, mode='r', in_memory=False)
   ml = pop.get_variant_master_list(chrom=1)
 
   os.remove(param_file)

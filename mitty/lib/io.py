@@ -4,6 +4,7 @@ from os.path import splitext
 import os
 import glob
 import gzip
+import string
 from contextlib import contextmanager
 import hashlib  # We decided to include md5 hashes of the sequences too
 from itertools import izip
@@ -144,12 +145,13 @@ def load_generic_multi_fasta(fa_fname):
   Pure Python 2min 9s to load hg38
   Cythonized 2min 6s - since we are mostly in Python native functions, we are at speed limit
   """
+  tr = string.maketrans('actgURYSWKMBDHV',
+                        'ACTGTNNNNNNNNNN')
   ref_seq = {}
   chr_no = 1
   with gzip.open(fa_fname, 'r') if fa_fname.endswith('gz') else open(fa_fname, 'r') as fp:
     seq_strings = fp.read().split('>')
-  for n in range(len(seq_strings)):
-    seq_string = seq_strings[n]
+  for seq_string in seq_strings:
     if seq_string == '':
       continue
     idx = seq_string.find('\n')
@@ -157,9 +159,9 @@ def load_generic_multi_fasta(fa_fname):
       raise RuntimeError('Something wrong with the fasta file {:s}'.format(fa_fname))
     if idx == 0:
       continue  # Empty line, ignore
-    ref_seq[chr_no] = (seq_string[idx:].replace('\n', '').upper(), seq_string[:idx])
+    ref_seq[chr_no] = (seq_string[idx:].replace('\n', '').translate(tr), seq_string[:idx])
     chr_no += 1
-    seq_strings[n] = None
+    del seq_string
   return ref_seq
 
 

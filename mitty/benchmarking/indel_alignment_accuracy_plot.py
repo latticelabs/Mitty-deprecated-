@@ -58,7 +58,7 @@ def decorate_axes(ax, axes_spec):
       y_tick_labels = axes_spec[k2].get('y-t-labels', y_ticks)
       ak = k2 + '-' + k1
       if k2 not in ['A', 'Ad']:
-        ax[ak].set_yscale('log', nonposy='clip', subsy=[])
+        ax[ak].set_yscale('symlog', nonposy='clip', subsy=[])
       plt.setp(ax[ak],
                xlim=x_lim[k1], xticks=x_ticks[k1], xticklabels=[] if k2 != 'C' else x_tick_labels[k1],
                ylim=y_lim,
@@ -197,8 +197,10 @@ def process_pairwise_data(all_data, i, j):
 
 def build_axes_specs(all_data, pairwise_data, indel_range, title):
   dta = all_data[0]
-  max_read_cnt, min_read_cnt = max(dta['ref_read_total'], dta['indel_read_total'].max()), min(dta['ref_read_total'], dta['indel_read_total'].min())
-  max_indel_cnt, min_indel_cnt = dta['indel_count'].max(), dta['indel_count'].min()
+  max_read_cnt, min_read_cnt = max(2, dta['ref_read_total'], dta['indel_read_total'].max()), min(1, dta['ref_read_total'], dta['indel_read_total'].min())
+  max_indel_cnt, min_indel_cnt = max(2, dta['indel_count'].max()), min(1, dta['indel_count'].min())
+  if indel_range is None:
+    indel_range = max([abs(n) for n in dta['indel_size']])
   axes_specs = {
     'title': title,
     'x-lim': [-indel_range, indel_range],
@@ -225,11 +227,13 @@ def build_axes_specs(all_data, pairwise_data, indel_range, title):
 @click.option('-o', default='indel_plot.pdf', type=click.Path(), help='Output file name')
 @click.option('-l', multiple=True, help='Label to go with each file')
 @click.option('--win', default=0, help='Size of median filter window to smooth plots')
-@click.option('--indel-range', default=50, help='Maximum indel length to plot')
+@click.option('--indel-range', type=int, default=None, help='Maximum indel length to plot')
 @click.option('--title', help='Title', default='Aligner accuracy')
 def cli(f, o, l, win, indel_range, title):
   if len(f) == 0:
     return
+
+  win += (win + 1)% 2  # Ensure win is odd
 
   colors = ['k', 'r', 'b', 'g', 'y', 'c']
   #color_cycle = cycle(colors)

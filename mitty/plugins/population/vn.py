@@ -19,7 +19,7 @@ import numpy as np
 
 __example_param_text = """
 {
-  "standard": {
+  "vn": {
     "p_vx": 0.2,
     "p_vn": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
   }

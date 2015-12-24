@@ -1,1 +1,0 @@
-{"template_len_mean": 250, "max_p_error": 0.01, "k": 20, "read_len": 100, "read_model_name_for_sbg_wrappers": "simple_illumina", "template_len_sd": 30, "gc_bias": {"bias_height": 1.5, "bias_center": 0.5, "bias_spread": 0.3}}

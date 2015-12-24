@@ -26,17 +26,43 @@ v 2.0.0 Dec 2015
 
 Planned changes
 ---------------
-* Reads parameter file should take explicit file names
-* Auto scale lines/circles in misalignment plots
+* setup.py: figure out how to make "extras_require" work.
+* Alindel should be able to split indel accuracy by known vs novel and save those separately
+* Alindel should be able to split indel accuracy based on reads under graph variants but not bearing sample variants.
+* All plugins should provide commandline stubs that can generate parameter file fragments based on command line
+  inputs. This is for compatibility with CWL (?)
+* Brandi's use case: compare pipelines against each other.
+* Benchmarking: augment circle and matrix plot to plot sub-regions, with the possibility to add
+  positions of variants. This is needed for ad hoc questions related to whether there are sample variants
+  or graph variants at certain positions
+* Reads parameter file should take explicit file names (?)
 * change CLIs to allow parameter files to be fed in from std in (piped as a file)
 * vcf-write should have option to remove unzipped .vcf file
 * variants only reads - need to properly handle end of variants
-* finish implementing ad hoc filtering for variants
+* finish implementing ad hoc filtering for variants (standard population plugin)
 
    - het/hom filtering in standard population model
    - range filter for variations (put as core spec - like for reads - rather than in population model?)
 
-* alindel_plot should handle case where there are no indels (log scaling fails)
+Correctness
+-----------
+* Need to generate reads more randomly. Can perhaps parallelize generation?
+
+   - For every block, generate reads from all chroms and then, when writing them out, pick each read randomly from
+     a chrom
+   - Run several such processes in parallel, generating separate fastq files. In the end, concatenate them together
+     Works for both gzipped and unzipped the same!
+
+
+
+Efficiency changes
+------------------
+* Load chroms one at a time
+* Drop reference base(s) from variant list, store SNPs separately (will HDF5 optimize for this?)
+* Parallelize all operations by Chrom - will HDF5 allow parallel writes to separate data sets?
+
+
+
 
 Possible changes
 ----------------
@@ -45,8 +71,26 @@ Possible changes
   much like how it is done for variant models.
 * Heuristic for coverage per block?
 
-Changelog
----------
+Partial Changelog
+-----------------
+(Please see git commit log for detailed commentary)
+
+**1.30.0.dev0**
+* genomes and reads modifed so that I/O files can be overridden from the command line.
+
+
+**1.29.0.dev0**
+
+2015.11.11
+* Cythonized bottlenecks in genome generation
+
+**1.27.0.dev0**
+
+2015.11.06
+* Alindel Plot can now infer indel range from data
+* Auto scale lines/circles in misalignment plots
+* alindel_plot should handle case where there are no indels (log scaling fails)
+
 
 **1.26.1.dev0**
 
