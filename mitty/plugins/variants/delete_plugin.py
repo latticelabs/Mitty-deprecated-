@@ -60,16 +60,13 @@ class Model:
     del_locs = mutil.place_poisson_seq(base_loc_rng, p_eff, 0, len(ref), ref)
     del_lens = del_len_rng.geometric(p=self.p_end, size=del_locs.shape[0])
     np.clip(del_lens, a_min=self.del_len_min, a_max=self.del_len_max, out=del_lens)  # Make sure our deletions are clipped at the level we want
-    idx = ((del_locs + del_lens) < len(ref)).nonzero()[0]   # Get rid of any deletions that go past the sequence end
-    del_locs = del_locs[idx]
-    del_lens = del_lens[idx]
+
+    del_locs, del_ends, refs, alts = mutil.discard_deletions_in_illegal_regions(ref, del_locs,
+                                                                                (del_locs + del_lens + 1).astype('i4'))
     if len(del_locs):
-      # http://stackoverflow.com/questions/8081545/convert-list-of-tuples-to-multiple-lists-in-python
-      idx, refs, alts = map(list, itertools.izip(*((n, ref[del_loc:del_loc + del_len + 1], ref[del_loc]) for n, (del_loc, del_len) in enumerate(np.nditer([del_locs, del_lens])) if ref[del_loc + del_len - 1] in ['A', 'C', 'T', 'G'])))
-      # This gets rid of any deletions that stretch into the 'N' regions of a sequence
-      del_locs, del_ends, p = del_locs[idx], del_locs[idx] + del_lens[idx] + 1, 1.0 - del_lens[idx] / float(del_lens[idx].max())
-    else:
-      del_ends, refs, alts, p = [], [], [], []
+      del_lens = del_ends - del_locs - 1
+      p = 1.0 - del_lens / float(del_lens.max())
+
     return del_locs, del_ends, refs, alts, p
 
 
@@ -79,6 +76,19 @@ def test0():
   m = Model(p=0.00001)
   pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=10)
   assert len(pos) == 0  # This should just run and not crash
+
+
+def test1():
+  """Do we discard 'N's?"""
+  ref_seq = 'ACTGACTGACTGACTGACTGACTGACTGACTGACTG'
+  m = Model(p=0.1)
+  pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=15)
+  assert 6 in pos
+
+  ref_seq = 'ACTGACTGACNGACTGACTGACTGACTGACTGACTG'
+  m = Model(p=0.1)
+  pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=15)
+  assert 6 not in pos
 
 
 if __name__ == "__main__":

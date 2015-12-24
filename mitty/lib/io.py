@@ -145,6 +145,8 @@ def load_generic_multi_fasta(fa_fname):
   Pure Python 2min 9s to load hg38
   Cythonized 2min 6s - since we are mostly in Python native functions, we are at speed limit
   """
+  # This removes any IUPAC codes in the FASTA. The variant placement functions depend on there only being ACTG and N
+  # in the reference sequence. Variants in N regions are discarded
   tr = string.maketrans('actgURYSWKMBDHV',
                         'ACTGTNNNNNNNNNN')
   ref_seq = {}
