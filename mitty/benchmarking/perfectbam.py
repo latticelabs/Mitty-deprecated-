@@ -131,7 +131,22 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
   yield tot_read_cnt + 1, mis_read_cnt  # tot_read_cnt starts from 0 actually ...
 
 
-def process_bams(in_bam_fname, bad_bam_fname, per_bam_fname, flag_cigar_errors, perfect_bam, window, x, p):
+def process_bams(
+    in_bam_fname, bad_bam_fname, per_bam_fname, flag_cigar_errors, detailed_perfect_bam, tol_window, x, p):
+  """
+
+  :param in_bam_fname:   BAM file from aligner
+  :param bad_bam_fname:  Analysis BAM file with only the mis-aligned reads
+  :param per_bam_fname:  Analysis BAM file with all reads.
+  :param flag_cigar_errors: Should errors in the CIGARs be counted as read alignment errors?
+  :param detailed_perfect_bam:    If set to True, perfect BAM will have full read information.
+                         Otherwise the BAM will only have minimal information for correct reads.
+                         Just enough to analyse the BAM
+  :param tol_window:     Size of tolerance window over which reads are judged to have been correctly aligned
+  :param x:              If True write out new style CIGARs (With '=' and 'X')
+  :param p:              Display progress bar
+  :return:
+  """
   bam_in_fp = pysam.AlignmentFile(in_bam_fname, 'rb')
 
   def true2str(v): return 'true' if v else 'false'
@@ -144,7 +159,7 @@ def process_bams(in_bam_fname, bad_bam_fname, per_bam_fname, flag_cigar_errors, 
     'VN': __version__,
     'PP': new_header['PG'][-1]['ID'],
     'DS': 'window={:d}, cigar errors result in misalignments={:s}, extended_cigar={:s}'.
-      format(window, true2str(flag_cigar_errors), true2str(x))
+      format(tol_window, true2str(flag_cigar_errors), true2str(x))
   })
 
   bad_bam_fp = pysam.AlignmentFile(bad_bam_fname, 'wb', header=new_header)
@@ -157,7 +172,7 @@ def process_bams(in_bam_fname, bad_bam_fname, per_bam_fname, flag_cigar_errors, 
   with click.progressbar(length=total_read_count, label='Processing BAM',
                          file=None if p else io.BytesIO()) as bar:
     for cnt, mis in process_file(bam_in_fp=bam_in_fp, bad_bam_fp=bad_bam_fp, per_bam_fp=per_bam_fp,
-                                 full_perfect_bam=perfect_bam, window=window,
+                                 full_perfect_bam=detailed_perfect_bam, window=tol_window,
                                  flag_cigar_errors_as_misalignments=flag_cigar_errors, extended=x,
                                  progress_bar_update_interval=progress_bar_update_interval):
       bar.update(progress_bar_update_interval)
