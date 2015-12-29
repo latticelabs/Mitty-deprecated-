@@ -22,7 +22,7 @@ import click
 
 from mitty.version import __version__
 import mitty.benchmarking.creed as creed
-import mitty.lib.io as mio  # For the bam sort and index function
+import mitty.lib.mio as mio  # For the bam sort and index function
 from mitty.lib import DNA_complement
 from string import translate
 
