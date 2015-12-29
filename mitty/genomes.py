@@ -1,4 +1,22 @@
 #!python
+import json
+import os
+import time
+import io
+from itertools import izip
+
+import click
+import numpy as np
+
+import mitty.lib
+import mitty.lib.util as mutil
+import mitty.lib.mio as mio
+import mitty.lib.variants as vr
+
+import logging
+logger = logging.getLogger(__name__)
+
+
 __param__ = """Parameter file example::
 
   {
@@ -39,23 +57,6 @@ __param__ = """Parameter file example::
       }
     ]
   }"""
-
-import json
-import os
-import time
-import io
-from itertools import izip
-
-import click
-import numpy as np
-
-import mitty.lib
-import mitty.lib.util as mutil
-import mitty.lib.mio as mio
-import mitty.lib.variants as vr
-
-import logging
-logger = logging.getLogger(__name__)
 
 
 class PopulationSimulator:

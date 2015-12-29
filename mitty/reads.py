@@ -1,4 +1,22 @@
 #!python
+import json
+import os
+import time
+import io
+import gzip
+
+import numpy as np
+import click
+
+import mitty.lib
+import mitty.lib.reads as lib_reads
+import mitty.lib.mio as mio
+import mitty.lib.variants as vr
+
+import logging
+logger = logging.getLogger(__name__)
+
+
 __param__ = """Parameter file example::
 
   {
@@ -61,23 +79,6 @@ rlen        = length of read                                            |
 cigar       = correct CIGAR string                                      |
                                                repeated for each mate --@
 """
-
-import json
-import os
-import time
-import io
-import gzip
-
-import numpy as np
-import click
-
-import mitty.lib
-import mitty.lib.reads as lib_reads
-import mitty.lib.mio as mio
-import mitty.lib.variants as vr
-
-import logging
-logger = logging.getLogger(__name__)
 
 
 class ReadSimulator:
