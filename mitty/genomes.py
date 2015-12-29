@@ -51,7 +51,7 @@ import numpy as np
 
 import mitty.lib
 import mitty.lib.util as mutil
-import mitty.lib.io as mio
+import mitty.lib.mio as mio
 import mitty.lib.variants as vr
 
 import logging

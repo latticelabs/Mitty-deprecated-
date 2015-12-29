@@ -7,7 +7,8 @@ import pysam
 import numpy as np
 
 from mitty.benchmarking.badbams import intersect_and_diff_of_bams
-from mitty.lib.io import sort_and_index_bam
+from mitty.lib.mio import sort_and_index_bam
+
 
 def write_badbam(bam_fp, chrom, cpy_array, ro_array, pos_array, pos_off=1, index=[], rl=100, tl=250):
   """Given a list of pos values, write this out to a BADBAM file. All errors are chrom + pos

@@ -5,7 +5,7 @@ import gzip
 import numpy as np
 from nose.tools import assert_raises
 
-import mitty.lib.io as mio
+import mitty.lib.mio as mio
 import mitty.lib.variants as vr
 import mitty.tests
 

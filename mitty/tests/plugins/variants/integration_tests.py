@@ -10,7 +10,7 @@ from nose.plugins.skip import SkipTest
 from nose.tools import nottest
 
 import mitty.lib.variants as vr
-import mitty.lib.io as mio
+import mitty.lib.mio as mio
 import mitty.genomes as genomes
 import mitty.tests
 

@@ -73,7 +73,7 @@ import click
 
 import mitty.lib
 import mitty.lib.reads as lib_reads
-import mitty.lib.io as mio
+import mitty.lib.mio as mio
 import mitty.lib.variants as vr
 
 import logging
