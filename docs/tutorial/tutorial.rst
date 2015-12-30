@@ -270,7 +270,13 @@ reads were mis-aligned differently, and which reads were mis-aligned only in one
 .. command-output:: badbams bwa_bad.bam bwa_poor_bad.bam -v -p
 
 
+One stop shop for alignment analysis
+++++++++++++++++++++++++++++++++++++
+If you dislike entering so many commands in one by one try `acubam`
 
+.. command-output:: acubam --help
+
+.. command-output:: acubam bwa.bam reddus_genomes.h5 --sample-name "g0_s0" -p
 
 
 Taking reads just from regions around variants
