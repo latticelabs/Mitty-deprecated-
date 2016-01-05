@@ -1,4 +1,5 @@
 """Some utilities related to loading/saving different file formats, compressing and indexing."""
+import io
 import tempfile
 from os.path import splitext
 import os
@@ -17,6 +18,43 @@ logger = logging.getLogger(__name__)
 
 MULTI_FASTA = 0
 MULTI_DIR = 1
+
+
+def iter_fasta(fa_fname):
+  """
+  :param fa_fname: fasta or fa.gz file with one or more fasta sequences
+  :returns iterator for (seq, seq_id) in the order they are found in the file
+
+  for seq_id, seq in iter_fasta('my_fasta.fa.gz'):
+    print(seq_id, len(seq)
+
+  """
+  # This removes any IUPAC codes in the FASTA. The variant placement functions depend on there only being ACTG and N
+  # in the reference sequence. Variants in N regions are discarded
+  tr = string.maketrans('actgURYSWKMBDHV',
+                        'ACTGTNNNNNNNNNN')
+  with io.BufferedReader(gzip.open(fa_fname, 'r')) if fa_fname.endswith('gz') else open(fa_fname, 'r') as fp:
+    seq_id, seq = '', []
+    for ln in fp:
+      if ln[0] == '>':  # Start of a sequence
+        if len(seq):
+          yield seq_id, (''.join(seq)).translate(tr)
+        seq_id, seq = ln[1:-1], []
+      else:
+        seq.append(ln.strip())
+    if len(seq):
+      yield seq_id, (''.join(seq)).translate(tr)
+
+
+def whole_fasta(fa_fname, chrom_list=[], compute_md5=True):
+  def _proc_seq(_n, _sid, _seq):
+    chr = _n + 1
+    data = {'id': _sid}
+    if compute_md5: data['md5'] = hashlib.md5(_seq).hexdigest()
+    if chrom_list == [] or chrom_list is None or chr in chrom_list: data['seq'] = _seq
+    return data
+
+  return {n + 1: _proc_seq(n, sid, seq) for n, (sid, seq) in enumerate(iter_fasta(fa_fname))}
 
 
 class Fasta:
