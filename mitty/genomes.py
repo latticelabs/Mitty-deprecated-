@@ -77,8 +77,12 @@ class PopulationSimulator:
       logger.warning('Creating output directory {:s}'.format(pop_db_name))
       os.makedirs(os.path.dirname(pop_db_name))
 
-    self.ref = mio.Fasta(multi_fasta=ref_file or mitty.lib.rpath(base_dir, params['files'].get('reference_file', None)),
-                    multi_dir=mitty.lib.rpath(base_dir, params['files'].get('reference_dir', None)))  # TODO: Ability to switch off persistence flag
+    self.chromosomes = params['chromosomes']
+    self.ref = mio.Fasta(
+      multi_fasta=ref_file or mitty.lib.rpath(base_dir, params['files'].get('reference_file', None)),
+      multi_dir=mitty.lib.rpath(base_dir, params['files'].get('reference_dir', None)),
+      chrom_list=self.chromosomes
+    )
     master_seed = int(params['rng']['master_seed'])
     assert 0 < master_seed < mitty.lib.SEED_MAX
 
@@ -86,7 +90,6 @@ class PopulationSimulator:
     self.pop = vr.Population(fname=pop_db_name, mode='w', in_memory=False,
                              genome_metadata=self.ref.get_seq_metadata())
 
-    self.chromosomes = params['chromosomes']
     self.sfs_model = load_site_frequency_model(params.get('site_model', None))
     self.sfs_p, self.sfs_f = self.sfs_model.get_spectrum() if self.sfs_model is not None else (None, None)
     self.variant_models = load_variant_models(self.ref, params['variant_models'])

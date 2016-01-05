@@ -49,7 +49,7 @@ def iter_fasta(fa_fname):
 def whole_fasta(fa_fname, chrom_list=[], compute_md5=True):
   def _proc_seq(_n, _sid, _seq):
     chr = _n + 1
-    data = {'id': _sid}
+    data = {'id': _sid, 'seq_len': len(_seq)}
     if compute_md5: data['md5'] = hashlib.md5(_seq).hexdigest()
     if chrom_list == [] or chrom_list is None or chr in chrom_list: data['seq'] = _seq
     return data
@@ -66,16 +66,18 @@ class Fasta:
                or are prototyping and don't want to wait for ever to have the entire file to load.
                See the 'splitta' utility
   """
-  def __init__(self, multi_fasta=None, multi_dir=None, persistent=True):
+  def __init__(self, multi_fasta=None, multi_dir=None, chrom_list=[], persistent=True):
     """
     :param multi_fasta: fill out if input file is a single file
     :param multi_dir: fill out if input is in the form of multiple files in a directory numbered chr1.fa, chr2.fa etc.
+    :param chrom_list:
     :param persistent: if True will keep sequences in memory after loading
     """
     assert not (multi_fasta is None and multi_dir is None), 'Need to specify either directory or file for reference. Check parameter file.'
     self.format = MULTI_DIR if multi_fasta is None else MULTI_FASTA
     self.multi_fasta = multi_fasta
     self.multi_dir = multi_dir
+    self.chrom_list = chrom_list
 
     self.sequences = {}  # This is a dict of dict of (seq, id, md5)
     self.persist = persistent
@@ -86,7 +88,7 @@ class Fasta:
     else:
       self._load_sequence_from_file = self.get_multi_fasta
       _ = self[1]  # Just to load the sequences
-      self.seq_index = [{'seq_id': self.sequences[n]['id'], 'seq_len': len(self.sequences[n]['seq']), 'seq_md5': self.sequences[n]['md5']}
+      self.seq_index = [{'seq_id': self.sequences[n]['id'], 'seq_len': self.sequences[n]['seq_len'], 'seq_md5': self.sequences[n]['md5']}
                         for n in range(1, len(self.sequences) + 1)]
       if not self.persist:
         logger.warning('Persistence set to false for fa.gz file. Ignoring')
@@ -124,10 +126,8 @@ class Fasta:
 
   def get_multi_fasta(self, item):
     """We get here because we don't have the sequence in memory"""
-    ref_seqs = load_generic_multi_fasta(self.multi_fasta)
-    ret_val = {k: {'seq': v[0], 'id': v[1], 'md5': hashlib.md5(v[0]).hexdigest()} for k, v in ref_seqs.iteritems()}
-    self.sequences = ret_val
-    return ret_val[item]
+    self.sequences = whole_fasta(self.multi_fasta, chrom_list=self.chrom_list, compute_md5=True)
+    return self.sequences[item]
 
   def __len__(self):
     return len(self.seq_index)
@@ -167,42 +167,11 @@ class Fasta:
 
 def load_single_line_unzipped_fasta(fa_fname):
   """Expects a fasta file with only one sequence and only upper case letters - will read other files but the result
-  is not sanitized in any way - newlines and repeat masks are left in.
-  if as_numpy is set we will get the result as a numpy char array"""
+  is not sanitized in any way - newlines and repeat masks are left in"""
   with open(fa_fname, 'r') as fasta_fp:
     seq_id = fasta_fp.readline()[1:-1]
     seq = fasta_fp.read()
   return seq, seq_id
-
-
-def load_generic_multi_fasta(fa_fname):
-  """Given a gzipped multi fa.gz file load it into a dictionary
-  :param fa_fname: fasta.gz file with one or more fasta sequences
-  :returns ref_seq: a dict of tuples of the form (seq, seq_id) with keys in the order they are found in the file
-
-  Pure Python 2min 9s to load hg38
-  Cythonized 2min 6s - since we are mostly in Python native functions, we are at speed limit
-  """
-  # This removes any IUPAC codes in the FASTA. The variant placement functions depend on there only being ACTG and N
-  # in the reference sequence. Variants in N regions are discarded
-  tr = string.maketrans('actgURYSWKMBDHV',
-                        'ACTGTNNNNNNNNNN')
-  ref_seq = {}
-  chr_no = 1
-  with gzip.open(fa_fname, 'r') if fa_fname.endswith('gz') else open(fa_fname, 'r') as fp:
-    seq_strings = fp.read().split('>')
-  for seq_string in seq_strings:
-    if seq_string == '':
-      continue
-    idx = seq_string.find('\n')
-    if idx == -1:
-      raise RuntimeError('Something wrong with the fasta file {:s}'.format(fa_fname))
-    if idx == 0:
-      continue  # Empty line, ignore
-    ref_seq[chr_no] = (seq_string[idx:].replace('\n', '').translate(tr), seq_string[:idx])
-    chr_no += 1
-    del seq_string
-  return ref_seq
 
 
 # For now we concentrate on saving individual VCF files. Next version will have multi-vcf
