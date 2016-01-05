@@ -1,11 +1,9 @@
-import tempfile
 import os
 import json
-import shutil
 
 from click.testing import CliRunner
 
-import mitty.lib.io as mio
+import mitty.lib.mio as mio
 import mitty.lib.variants as vr
 import mitty.reads as reads
 import mitty.tests

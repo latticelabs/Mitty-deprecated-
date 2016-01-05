@@ -4,6 +4,7 @@ from itertools import izip
 import cython
 import numpy as np
 cimport numpy as np
+cimport cython
 
 from mitty.lib import SEED_MAX
 
@@ -19,7 +20,7 @@ def initialize_rngs(unsigned long master_seed, int n_rngs=4):
 
 def place_poisson_seq(rng, float p, unsigned long start_x, unsigned long end_x, bytes seq):
   """Given a random number generator, a probability and an end point, generate poisson distributed events. Skip bases
-  that don't belong  For short end_p this may, by chance, generate fewer locations that normal"""
+  that are 'N'.  For short end_p this may, by chance, generate fewer locations that normal"""
   if p == 0.0:
     return np.array([])
 
@@ -29,7 +30,49 @@ def place_poisson_seq(rng, float p, unsigned long start_x, unsigned long end_x, 
     unsigned long idx
 
   these_locs = rng.geometric(p=p, size=est_block_size).cumsum()
-  return np.array([idx for idx in these_locs[np.searchsorted(these_locs, start_x):np.searchsorted(these_locs, end_x)] if s[idx] in ['A', 'C', 'T', 'G']], dtype='i4')
+  return np.array([idx for idx in these_locs[np.searchsorted(these_locs, start_x):np.searchsorted(these_locs, end_x)] if s[idx] != 'N'], dtype='i4')
+
+
+def discard_deletions_in_illegal_regions(
+    bytes ref, np.ndarray[np.int32_t, ndim=1] start_loc, np.ndarray[np.int32_t, ndim=1] stop_loc):
+  """Return lists of del_locs, del_ends, refs, alts for deletes that ensure
+     1. The deletions don't go past the end of ref
+     2. There are no 'N's anywhere. The FASTA reader converts all IUPAC codes to 'N's"""
+  cdef:
+    char *s = ref
+    np.ndarray[np.int32_t, ndim=1] idx = np.empty(start_loc.size, dtype=np.int32)
+    int n = 0, n_idx = 0, n_max = start_loc.size, ref_len = len(ref)
+
+  while n < n_max:
+    if legal_del(s, start_loc[n], stop_loc[n], ref_len):
+      idx[n_idx] = n
+      n_idx += 1
+    n += 1
+
+  if n_idx > 0:
+    _start, _stop = start_loc[idx[:n_idx]], stop_loc[idx[:n_idx]]
+    refs, alts = map(list, izip(*((ref[st:nd], ref[st]) for (st, nd) in np.nditer([_start, _stop]))))
+  else:
+    _start, _stop, refs, alts = np.array([], dtype='i4'), np.array([], dtype='i4'), [], []
+
+  return _start, _stop, refs, alts
+
+
+cdef int legal_del(char *s, int start, int stop, int s_len):
+  """Must be within length of s, can't contain an 'N'"""
+  cdef:
+    int n = start
+  if stop > s_len:
+    return 0
+
+  while n < stop:
+    if s[n] == 'N':
+      return 0
+    n += 1
+
+  return 1
+
+
 
 
 cdef unsigned char sub_base(unsigned char orig_base, unsigned char sub_mat[85][3], float ct_mat[85][3], float r):

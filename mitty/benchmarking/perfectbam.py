@@ -22,7 +22,7 @@ import click
 
 from mitty.version import __version__
 import mitty.benchmarking.creed as creed
-import mitty.lib.io as mio  # For the bam sort and index function
+import mitty.lib.mio as mio  # For the bam sort and index function
 from mitty.lib import DNA_complement
 from string import translate
 
@@ -131,40 +131,6 @@ def process_file(bam_in_fp, bad_bam_fp=None, per_bam_fp=None, full_perfect_bam=F
   yield tot_read_cnt + 1, mis_read_cnt  # tot_read_cnt starts from 0 actually ...
 
 
-def process_bams(in_bam_fname, bad_bam_fname, per_bam_fname, flag_cigar_errors, perfect_bam, window, x, p):
-  bam_in_fp = pysam.AlignmentFile(in_bam_fname, 'rb')
-
-  def true2str(v): return 'true' if v else 'false'
-
-  new_header = bam_in_fp.header
-  new_header['PG'].append({
-    'CL': 'perfectbam ....',
-    'ID': 'mitty-perfectbam',
-    'PN': 'perfectbam',
-    'VN': __version__,
-    'PP': new_header['PG'][-1]['ID'],
-    'DS': 'window={:d}, cigar errors result in misalignments={:s}, extended_cigar={:s}'.
-      format(window, true2str(flag_cigar_errors), true2str(x))
-  })
-
-  bad_bam_fp = pysam.AlignmentFile(bad_bam_fname, 'wb', header=new_header)
-  per_bam_fp = pysam.AlignmentFile(per_bam_fname, 'wb', header=new_header)
-
-  cnt, mis = 0, 0
-  t0 = time.time()
-  total_read_count = bam_in_fp.mapped + bam_in_fp.unmapped  # Sadly, this is only approximate
-  progress_bar_update_interval = int(0.01 * total_read_count)
-  with click.progressbar(length=total_read_count, label='Processing BAM',
-                         file=None if p else io.BytesIO()) as bar:
-    for cnt, mis in process_file(bam_in_fp=bam_in_fp, bad_bam_fp=bad_bam_fp, per_bam_fp=per_bam_fp,
-                                 full_perfect_bam=perfect_bam, window=window,
-                                 flag_cigar_errors_as_misalignments=flag_cigar_errors, extended=x,
-                                 progress_bar_update_interval=progress_bar_update_interval):
-      bar.update(progress_bar_update_interval)
-  t1 = time.time()
-  logger.debug('Analyzed {:d} reads in {:2.2f}s. Found {:d} ({:2.2f}%) mis-aligned reads'.format(cnt, t1 - t0, mis, (100.0 * mis) / cnt))
-
-
 def sort_and_index_bams(bad_bam_fname, per_bam_fname):
   t0 = time.time()
   mio.sort_and_index_bam(bad_bam_fname)
@@ -196,9 +162,14 @@ def cli(inbam, bad_bam, per_bam, cigar_errors, perfect_bam, window, x, no_index,
   alignment information is written in the extended tags (use --tags for documentation)
 
   \b
-    <INBAM>_bad.bam - contains just the misaligned reads
-    <INBAM>_per.bam - contains all reads. If --perfect-bam flag is set, full read information
-                      is written, otherwise only the POS and CIGAR values are filled out
+    bad.bam - contains just the misaligned reads.
+              The CHROM, POS and CIGAR are the correct values
+              Alignment errors are stored as extended tags.
+    per.bam - contains all reads.
+              The CHROM, POS and CIGAR are the correct values
+              Alignment errors are stored as extended tags.
+              If the --perfect-bam flag is set, full read information
+              is written, otherwise only the POS and CIGAR values are filled out
 
   The <INBAM>_bad.bam file can be used for analyzing misalignments whereas the <INBAM>_per.bam file is
   important for analyzing true positive alignment rates.
@@ -209,7 +180,41 @@ def cli(inbam, bad_bam, per_bam, cigar_errors, perfect_bam, window, x, no_index,
   bad_bam_fname = bad_bam or (os.path.splitext(inbam)[0] + '_bad.bam')
   per_bam_fname = per_bam or (os.path.splitext(inbam)[0] + '_per.bam')
 
-  process_bams(inbam, bad_bam_fname, per_bam_fname, cigar_errors, perfect_bam, window, x, p)
+  #process_bams(inbam, bad_bam_fname, per_bam_fname, cigar_errors, perfect_bam, window, x, p)
+
+  bam_in_fp = pysam.AlignmentFile(inbam, 'rb')
+
+  def true2str(v):
+    return 'true' if v else 'false'
+
+  new_header = bam_in_fp.header
+  new_header['PG'].append({
+    'CL': 'perfectbam ....',
+    'ID': 'mitty-perfectbam',
+    'PN': 'perfectbam',
+    'VN': __version__,
+    'PP': new_header['PG'][-1]['ID'],
+    'DS': 'window={:d}, cigar errors result in misalignments={:s}, extended_cigar={:s}'.
+      format(window, true2str(cigar_errors), true2str(x))
+  })
+
+  bad_bam_fp = pysam.AlignmentFile(bad_bam_fname, 'wb', header=new_header)
+  per_bam_fp = pysam.AlignmentFile(per_bam_fname, 'wb', header=new_header)
+
+  cnt, mis = 0, 0
+  t0 = time.time()
+  total_read_count = bam_in_fp.mapped + bam_in_fp.unmapped  # Sadly, this is only approximate
+  progress_bar_update_interval = int(0.01 * total_read_count)
+  with click.progressbar(length=total_read_count, label='Processing BAM',
+                         file=None if p else io.BytesIO()) as bar:
+    for cnt, mis in process_file(bam_in_fp=bam_in_fp, bad_bam_fp=bad_bam_fp, per_bam_fp=per_bam_fp,
+                                 full_perfect_bam=perfect_bam, window=window,
+                                 flag_cigar_errors_as_misalignments=cigar_errors, extended=x,
+                                 progress_bar_update_interval=progress_bar_update_interval):
+      bar.update(progress_bar_update_interval)
+  t1 = time.time()
+  logger.debug('Analyzed {:d} reads in {:2.2f}s. Found {:d} ({:2.2f}%) mis-aligned reads'.format(cnt, t1 - t0, mis, (100.0 * mis) / cnt))
+
   if not no_index: sort_and_index_bams(bad_bam_fname, per_bam_fname)
 
 

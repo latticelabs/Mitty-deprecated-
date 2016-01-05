@@ -1,7 +1,7 @@
 import numpy as np
 
 import mitty.lib.vcf2pop as vcf2pop
-import mitty.lib.io as mio
+import mitty.lib.mio as mio
 import mitty.lib.variants as vr
 import mitty.tests
 

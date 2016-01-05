@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 __example_param_text = """
 {
-  "p": 0.0001,        # Per-base probability of having an insertion
+  "p": 0.01,        # Per-base probability of having an insertion
   "t_mat": [[ 0.32654629,  0.17292732,  0.24524503,  0.25528135],  # Base transition matrix
             [ 0.3489394,   0.25942695,  0.04942584,  0.3422078],
             [ 0.28778188,  0.21087004,  0.25963262,  0.24171546],
@@ -79,13 +79,26 @@ def test0():
   assert len(pos) == 0  # This should just run and not crash
 
 
-def test():
+def test1():
   """Basic test"""
   ref_seq = 'ACTGACTGACTGACTGACTGACTGACTGACTGACTG'
   m = Model(p=0.1)
   pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=10)
   for p, r in zip(pos, alt):
     assert r[0] == ref_seq[p]
+
+
+def test2():
+  """Do we discard 'N's?"""
+  ref_seq = 'ACTGACTGACTGACTGACTGACTGACTGACTGACTG'
+  m = Model(p=0.1)
+  pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=10)
+  assert 20 in pos, pos
+
+  ref_seq = 'ACTGACTGACTGACTGACTGNCTGACTGACTGACTG'
+  m = Model(p=0.1)
+  pos, stop, ref, alt, p = m.get_variants(ref_seq, seed=10)
+  assert 20 not in pos
 
 
 if __name__ == "__main__":
