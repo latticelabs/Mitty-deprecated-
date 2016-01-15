@@ -150,20 +150,22 @@ def iter_vcf(
       if any(imp in alt for imp in imprecise): continue
       if any(imp in ref for imp in imprecise): continue
 
-      if not master_is_sample:
+      gt_match = False
+      if n + 1 == h[1]:
+        gt = 2 if n + 1 == h[0] else 1
+        gt_match = True
+      elif n + 1 == h[0]:
+        gt = 0
+        gt_match = True
+
+      if not master_is_sample or gt_match:
         l_pos += [pos]
         l_stop += [pos + len(alt)]  # Check this
         l_ref += [ref]
         l_alt += [alt]
 
-      if n + 1 == h[1]:
-        gt = 2 if n + 1 == h[0] else 1
-      elif n + 1 == h[0]:
-        gt = 0
-      else:
-        continue
-
-      l_svi += [(len(l_pos) - 1, gt)]
+      if gt_match:
+        l_svi += [(len(l_pos) - 1, gt)]
 
   if l_pos:
     ml = vr.VariantList(l_pos, l_stop, l_ref, l_alt, np.ones(len(l_pos), dtype='f2'))
