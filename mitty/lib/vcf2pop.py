@@ -45,7 +45,7 @@ def vcf_to_pop(vcf_fname, pop_fname, sample_name=None, master_is_sample=False,
       callback_interval=callback_interval
     ):
       pop.set_master_list(chrom, ml)
-      pop.add_sample_chromosome(chrom, sample_name, svi)
+      pop.add_sample_chromosome(chrom, sample_name or 'sample', svi)
   return pop
 
 
@@ -151,7 +151,7 @@ def iter_vcf(
     if gt_info_present:  # Sample_column is guaranteed to have a valid value
       h = [int(_h) for _h in (cols[-1].split('|') if '|' in cols[-1] else cols[-1].split('/'))]
     else:
-      h = [0, 0]
+      h = [1, 1]
 
     # Expand multi-allelic entries to bi-allelic ones and process
     for n, alt in enumerate(_alts.split(',')):
