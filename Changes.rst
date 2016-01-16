@@ -26,6 +26,7 @@ v 2.0.0 Dec 2015
 
 Planned changes
 ---------------
+* in perfectbam, use the mismatch count field to produce a summary of #mismatches in a read vs number of reads
 * setup.py: figure out how to make "extras_require" work.
 * Alindel should be able to split indel accuracy by known vs novel and save those separately
 * Alindel should be able to split indel accuracy based on reads under graph variants but not bearing sample variants.
@@ -59,7 +60,8 @@ Efficiency changes
 ------------------
 * Load chroms one at a time
 * Drop reference base(s) from variant list, store SNPs separately (will HDF5 optimize for this?)
-* Parallelize all operations by Chrom - will HDF5 allow parallel writes to separate data sets?
+* Parallelize all operations by Chrom - will HDF5 allow parallel writes to separate data sets?. May be switch to having
+  spearate files for each chrom.
 
 
 

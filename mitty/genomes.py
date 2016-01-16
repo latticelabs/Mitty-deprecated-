@@ -12,6 +12,7 @@ import mitty.lib
 import mitty.lib.util as mutil
 import mitty.lib.mio as mio
 import mitty.lib.variants as vr
+import mitty.lib.vcf2pop as vp
 
 import logging
 logger = logging.getLogger(__name__)
@@ -185,6 +186,24 @@ def generate(param_fname, ref, db, dry_run, v, p):
   t1 = time.time()
   logger.debug('Took {:f}s'.format(t1 - t0))
   logger.debug('{:d} unique variants, {:d} variants in samples'.format(simulation.unique_variant_count, simulation.total_variant_count))
+
+
+@cli.command('from-vcf')
+@click.argument('vcf', type=click.Path(exists=True))
+@click.argument('db', type=click.Path())
+@click.option('--sample-name', help='Sample name')
+@click.option('-v', count=True, help='Verbosity level')
+@click.option('-p', is_flag=True, help='Show progress bar')
+def from_vcf(vcf, db, sample_name, v, p):
+  """Convert a VCF file into a GenomeDB file."""
+  level = logging.DEBUG if v > 1 else logging.WARNING
+  logging.basicConfig(level=level)
+  if v == 1:
+    logger.setLevel(logging.DEBUG)
+
+  with click.progressbar(length=os.path.getsize(vcf), label='Converting VCF', file=None if p else io.BytesIO()) as bar:
+    vp.vcf_to_pop(vcf_fname=vcf, pop_fname=db, sample_name=sample_name,
+                  progress_callback=bar.update, callback_interval=100)
 
 
 def do_dry_run(params):
