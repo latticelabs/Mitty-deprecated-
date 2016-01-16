@@ -4,13 +4,13 @@ import gzip
 import re
 import io
 
-#import docopt
 import numpy as np
 
 import mitty.lib.variants as vr
 
 
-def vcf_to_pop(vcf_fname, pop_fname, sample_name=None, master_is_sample=False):
+def vcf_to_pop(vcf_fname, pop_fname, sample_name=None, master_is_sample=False,
+               progress_callback=None, callback_interval=None):
   """This parses a VCF file into a Population object. Depending on how large your VCF is, you'll need a lot of memory.
 
   :param vcf_fname:
@@ -18,6 +18,8 @@ def vcf_to_pop(vcf_fname, pop_fname, sample_name=None, master_is_sample=False):
   :param sample_name: If None, the first sample will be taken. If not found, a runtime error is raised
   :param master_is_sample: If True we ignore any entires not part of the sample, resulting in a master list
                            that is identical and truncated to the sample
+  :param progress_callback: A function that will be called with the number of bytes read since the last call
+  :param callback_interval: Lines to read before triggering callback
   :return: a Population object with a master list and one sample
 
   master list = all entries, unless sample_is_master = True
@@ -27,15 +29,21 @@ def vcf_to_pop(vcf_fname, pop_fname, sample_name=None, master_is_sample=False):
   1. No samples (no GT column). Sample is same as master
   2. No sample name given. First sample in list is taken. If no samples, do what 1. requires
   """
+  if progress_callback is not None:
+    assert callback_interval is not None, "Callback interval must be set if progress callback function is set"
+
   with io.BufferedReader(gzip.open(vcf_fname, 'r')) if vcf_fname.endswith('gz') else open(vcf_fname, 'r') as fp:
     genome_metadata, gt_info_present, sample_column = parse_header(fp, sample_name=sample_name)
     pop = vr.Population(fname=pop_fname, mode='w', genome_metadata=genome_metadata)
     for chrom, ml, svi in iter_vcf(
-        fp,
-        genome_metadata=genome_metadata,
-        gt_info_present=gt_info_present,
-        sample_column=sample_column,
-        master_is_sample=master_is_sample):
+      fp,
+      genome_metadata=genome_metadata,
+      gt_info_present=gt_info_present,
+      sample_column=sample_column,
+      master_is_sample=master_is_sample,
+      progress_callback=progress_callback,
+      callback_interval=callback_interval
+    ):
       pop.set_master_list(chrom, ml)
       pop.add_sample_chromosome(chrom, sample_name, svi)
   return pop
@@ -97,7 +105,9 @@ def iter_vcf(
   genome_metadata=[],
   gt_info_present=False,
   sample_column=None,
-  master_is_sample=False):
+  master_is_sample=False,
+  progress_callback=None,
+  callback_interval=None):
   """
 
   :param fp: pointer to VCF file
@@ -105,6 +115,8 @@ def iter_vcf(
   :param gt_info_present: If this is False, we set ignore_genotype and sample_is_master (and ignore sample_column)
   :param sample_column: Which column of the VCF to get our sample GT from, if None, sample is same as master
   :param master_is_sample: If true, we only load the variants from the sample
+  :param progress_callback: A function that will be called with the number of bytes read since the last call
+  :param callback_interval: Lines to read before triggering callback
   :return: An iterator over chrom, ml, svi.
 
   Special cases:
@@ -117,7 +129,14 @@ def iter_vcf(
   imprecise = ['<', '>', ':', '[', ']']
 
   l_chrom, l_pos, l_stop, l_ref, l_alt, l_svi = -1, [], [], [], [], []
+  if progress_callback: st_ln, f_pos = callback_interval, fp.tell()
   for line in fp:
+    if progress_callback:
+      st_ln -= 1
+      if st_ln == 0:
+        progress_callback(fp.tell() - f_pos)
+        st_ln, f_pos = callback_interval, fp.tell()
+
     cols = line.split(None, sample_column)
     this_chrom, pos, ref, _alts = n2id[cols[0]], int(cols[1]) - 1, cols[3], cols[4]
 
