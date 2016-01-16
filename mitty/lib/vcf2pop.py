@@ -129,7 +129,7 @@ def iter_vcf(
   imprecise = ['<', '>', ':', '[', ']']
 
   l_chrom, l_pos, l_stop, l_ref, l_alt, l_svi = -1, [], [], [], [], []
-  if progress_callback: st_ln, f_pos = callback_interval, fp.tell()
+  if progress_callback: st_ln, f_pos = callback_interval, 0
   for line in fp:
     if progress_callback:
       st_ln -= 1
@@ -176,7 +176,10 @@ def iter_vcf(
       if gt_match:
         l_svi += [(len(l_pos) - 1, gt)]
 
+  if progress_callback: progress_callback(fp.tell() - f_pos)
   if l_pos:
     ml = vr.VariantList(l_pos, l_stop, l_ref, l_alt, np.ones(len(l_pos), dtype='f2'))
     ml.sorted = True
     yield l_chrom, ml, vr.l2ca(l_svi)
+
+
