@@ -77,14 +77,20 @@ Partial Changelog
 -----------------
 (Please see git commit log for detailed commentary)
 
+**1.38.1.dev0**
+
+* New sub command for genomes to convert VCF into genome DB
 
 **1.35.0.dev0**
+
 * Using an efficient filter to discard deletions that contain 'N's anywhere
 
 **1.34.0.dev0**
+
 * Overhauled genome DB data set organization
 
 **1.30.0.dev0**
+
 * genomes and reads modifed so that I/O files can be overridden from the command line.
 
 
