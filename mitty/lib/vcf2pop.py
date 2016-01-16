@@ -33,6 +33,10 @@ def vcf_to_pop(vcf_fname, pop_fname, sample_name=None, master_is_sample=False,
     assert callback_interval is not None, "Callback interval must be set if progress callback function is set"
 
   with io.BufferedReader(gzip.open(vcf_fname, 'r')) if vcf_fname.endswith('gz') else open(vcf_fname, 'r') as fp:
+    ftell = fp.raw.fileobj.tell if vcf_fname.endswith('gz') else fp.tell
+    # Long story short, to get a reasonable indication of progress on a zipped file we need to know our actual
+    # position in the compressed file, not uncompressed data stream. fp.tell() gets us the uncompressed position.
+    # Since we handle both compressed and uncompressed files our ftell needs to be tailored to that
     genome_metadata, gt_info_present, sample_column = parse_header(fp, sample_name=sample_name)
     pop = vr.Population(fname=pop_fname, mode='w', genome_metadata=genome_metadata)
     for chrom, ml, svi in iter_vcf(
@@ -42,7 +46,8 @@ def vcf_to_pop(vcf_fname, pop_fname, sample_name=None, master_is_sample=False,
       sample_column=sample_column,
       master_is_sample=master_is_sample,
       progress_callback=progress_callback,
-      callback_interval=callback_interval
+      callback_interval=callback_interval,
+      ftell=ftell
     ):
       pop.set_master_list(chrom, ml)
       pop.add_sample_chromosome(chrom, sample_name or 'sample', svi)
@@ -107,7 +112,8 @@ def iter_vcf(
   sample_column=None,
   master_is_sample=False,
   progress_callback=None,
-  callback_interval=None):
+  callback_interval=None,
+  ftell=None):
   """
 
   :param fp: pointer to VCF file
@@ -117,6 +123,7 @@ def iter_vcf(
   :param master_is_sample: If true, we only load the variants from the sample
   :param progress_callback: A function that will be called with the number of bytes read since the last call
   :param callback_interval: Lines to read before triggering callback
+  :param ftell: function that returns actual position in file
   :return: An iterator over chrom, ml, svi.
 
   Special cases:
@@ -127,6 +134,7 @@ def iter_vcf(
   """
   n2id = {v['seq_id']: i + 1 for i, v in enumerate(genome_metadata)}
   imprecise = ['<', '>', ':', '[', ']']
+  sc = sample_column
 
   l_chrom, l_pos, l_stop, l_ref, l_alt, l_svi = -1, [], [], [], [], []
   if progress_callback: st_ln, f_pos = callback_interval, 0
@@ -134,10 +142,10 @@ def iter_vcf(
     if progress_callback:
       st_ln -= 1
       if st_ln == 0:
-        progress_callback(fp.tell() - f_pos)
-        st_ln, f_pos = callback_interval, fp.tell()
+        progress_callback(ftell() - f_pos)
+        st_ln, f_pos = callback_interval, ftell()
 
-    cols = line.split(None, sample_column)
+    cols = line.split(None, sc + 1)
     this_chrom, pos, ref, _alts = n2id[cols[0]], int(cols[1]) - 1, cols[3], cols[4]
 
     if this_chrom != l_chrom:  # Time to flush!
@@ -149,7 +157,7 @@ def iter_vcf(
       l_chrom, l_pos, l_stop, l_ref, l_alt, l_svi = this_chrom, [], [], [], [], []
 
     if gt_info_present:  # Sample_column is guaranteed to have a valid value
-      h = [int(_h) for _h in (cols[-1].split('|') if '|' in cols[-1] else cols[-1].split('/'))]
+      h = [int(_h) for _h in (cols[sc].split('|') if '|' in cols[sc] else cols[sc].split('/'))]
     else:
       h = [1, 1]
 
@@ -176,10 +184,8 @@ def iter_vcf(
       if gt_match:
         l_svi += [(len(l_pos) - 1, gt)]
 
-  if progress_callback: progress_callback(fp.tell() - f_pos)
+  if progress_callback: progress_callback(ftell() - f_pos)
   if l_pos:
     ml = vr.VariantList(l_pos, l_stop, l_ref, l_alt, np.ones(len(l_pos), dtype='f2'))
     ml.sorted = True
     yield l_chrom, ml, vr.l2ca(l_svi)
-
-
