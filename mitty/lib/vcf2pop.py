@@ -43,7 +43,7 @@ def vcf_to_pop(vcf_fname, pop_fname, sample_name=None, master_is_sample=False,
     # Long story short, to get a reasonable indication of progress on a zipped file we need to know our actual
     # position in the compressed file, not uncompressed data stream. fp.tell() gets us the uncompressed position.
     # Since we handle both compressed and uncompressed files our ftell needs to be tailored to that
-    _genome_metadata, gt_info_present, sample_column, sn = parse_header(fp, sample_name=sample_name)
+    _genome_metadata, gt_info_present, sample_column, actual_sample_name = parse_header(fp, sample_name=sample_name)
     if genome_metadata is None: genome_metadata = _genome_metadata
     pop = vr.Population(fname=pop_fname, mode='w', genome_metadata=genome_metadata)
     for chrom, ml, svi in iter_vcf(
@@ -57,7 +57,7 @@ def vcf_to_pop(vcf_fname, pop_fname, sample_name=None, master_is_sample=False,
       ftell=ftell
     ):
       pop.set_master_list(chrom, ml)
-      pop.add_sample_chromosome(chrom, sample_name or 'anon', svi)
+      pop.add_sample_chromosome(chrom, actual_sample_name, svi)
   return pop
 
 
