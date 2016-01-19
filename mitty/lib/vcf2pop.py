@@ -3,13 +3,18 @@ rest of the system and to save the VCF as a genome db. It is used by `reads` to 
 import gzip
 import re
 import io
+import logging
 
 import numpy as np
 
 import mitty.lib.variants as vr
 
 
+logger = logging.getLogger(__name__)
+
+
 def vcf_to_pop(vcf_fname, pop_fname, sample_name=None, master_is_sample=False,
+               genome_metadata=None,
                progress_callback=None, callback_interval=None):
   """This parses a VCF file into a Population object. Depending on how large your VCF is, you'll need a lot of memory.
 
@@ -18,6 +23,7 @@ def vcf_to_pop(vcf_fname, pop_fname, sample_name=None, master_is_sample=False,
   :param sample_name: If None, the first sample will be taken. If not found, a runtime error is raised
   :param master_is_sample: If True we ignore any entires not part of the sample, resulting in a master list
                            that is identical and truncated to the sample
+  :param genome_metadata: Pass this to override metadata in the VCF (or if it does not exist in the VCF)
   :param progress_callback: A function that will be called with the number of bytes read since the last call
   :param callback_interval: Lines to read before triggering callback
   :return: a Population object with a master list and one sample
@@ -81,16 +87,13 @@ def parse_header(fp, sample_name=None):
 
     cols = _line.split('\t')
     _gt_info_present = len(cols) > 8
+    _sample_column = 9
     if _gt_info_present:
       if _sample_name is not None:
         s_c = [c for c, n in enumerate(cols) if n == _sample_name]
         if len(s_c) == 0:
           raise RuntimeError("No sample named {}".format(_sample_name))
         _sample_column = s_c[0]
-      else:
-        _sample_column = 9
-    else:
-      _sample_column = None
     return _gt_info_present, _sample_column
 
   contig_re = re.compile(r"##contig=<(.*)>")
@@ -101,7 +104,7 @@ def parse_header(fp, sample_name=None):
     if line[:2] != '##':  # Done with the initial part of the header
       gt_info_present, sample_column = parse_column_header(line.strip(), sample_name)
       break
-
+  logger.debug('{} sequences found in VCF head ##contig information'.format(len(genome_metadata)))
   return genome_metadata, gt_info_present, sample_column
 
 
