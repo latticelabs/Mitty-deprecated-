@@ -77,7 +77,7 @@ Partial Changelog
 -----------------
 (Please see git commit log for detailed commentary)
 
-**1.38.1.dev0**
+**1.38.2.dev0**
 
 * New sub command for genomes to convert VCF into genome DB
 
