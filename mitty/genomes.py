@@ -153,7 +153,7 @@ def load_population_model(pop_model_json, params={}):
 @click.version_option()
 def cli():
   """Mitty genomes simulator"""
-  logging.basicConfig(level=logging.INFO)
+  pass
 
 
 @cli.command()
