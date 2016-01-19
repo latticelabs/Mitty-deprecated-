@@ -163,14 +163,15 @@ def iter_vcf(
       l_chrom, l_pos, l_stop, l_ref, l_alt, l_svi = this_chrom, [], [], [], [], []
 
     if gt_info_present:  # Sample_column is guaranteed to have a valid value
-      if '.' in cols[sc]:  # No call
+      gt_col = cols[sc].split(':', 1)[0]
+      if '.' in gt_col:  # No call
         h = [0, 0]
-      elif '|' in cols[sc]:
-        h = [int(_h) for _h in cols[sc].split('|')]
+      elif '|' in gt_col:
+        h = [int(_h) for _h in gt_col.split('|')]
       elif '/' in cols[sc]:
-        h = [int(_h) for _h in cols[sc].split('/')]
+        h = [int(_h) for _h in gt_col.split('/')]
       else:
-        h = [int(cols[sc]), int(cols[sc])]  # These are calls on Y or male X Mitty treats them as homozygous for that chrom
+        h = [int(gt_col), int(gt_col)]  # These are calls on Y or male X Mitty treats them as homozygous for that chrom
     else:
       h = [1, 1]
 
