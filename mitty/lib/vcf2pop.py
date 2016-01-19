@@ -88,15 +88,17 @@ def parse_header(fp, sample_name=None):
 
     cols = _line.split('\t')
     _gt_info_present = len(cols) > 8
-    _sample_column = 9
-    sn = 'anon'
+    _sample_column, _sn = 8, 'anon'
     if _gt_info_present:
       if _sample_name is not None:
         s_c = [c for c, n in enumerate(cols) if n == _sample_name]
         if len(s_c) == 0:
           raise RuntimeError("No sample named {}".format(_sample_name))
-        _sample_column, sn = s_c[0], _sample_name
-    return _gt_info_present, _sample_column, sn
+        _sample_column, _sn = s_c[0], _sample_name
+      else:
+        _sample_column = 9
+        _sn = cols[_sample_column]
+    return _gt_info_present, _sample_column, _sn
 
   contig_re = re.compile(r"##contig=<(.*)>")
   genome_metadata, gt_info_present, sample_column, sn = [], False, -1, 'anon'
@@ -107,7 +109,7 @@ def parse_header(fp, sample_name=None):
       gt_info_present, sample_column, sn = parse_column_header(line.strip(), sample_name)
       break
   logger.debug('{} sequences found in VCF head ##contig information'.format(len(genome_metadata)))
-  logger.debug('Sample name is "{}", column {}'.format(sn, sample_column))
+  logger.debug('Sample name is "{}" ({})'.format(sn, ('col {}'.format(sample_column + 1) if sample_column > 8 else 'Inferred HOM')))
   return genome_metadata, gt_info_present, sample_column, sn
 
 
