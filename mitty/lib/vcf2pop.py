@@ -43,7 +43,8 @@ def vcf_to_pop(vcf_fname, pop_fname, sample_name=None, master_is_sample=False,
     # Long story short, to get a reasonable indication of progress on a zipped file we need to know our actual
     # position in the compressed file, not uncompressed data stream. fp.tell() gets us the uncompressed position.
     # Since we handle both compressed and uncompressed files our ftell needs to be tailored to that
-    genome_metadata, gt_info_present, sample_column = parse_header(fp, sample_name=sample_name)
+    _genome_metadata, gt_info_present, sample_column, sn = parse_header(fp, sample_name=sample_name)
+    if genome_metadata is None: genome_metadata = _genome_metadata
     pop = vr.Population(fname=pop_fname, mode='w', genome_metadata=genome_metadata)
     for chrom, ml, svi in iter_vcf(
       fp,
@@ -56,7 +57,7 @@ def vcf_to_pop(vcf_fname, pop_fname, sample_name=None, master_is_sample=False,
       ftell=ftell
     ):
       pop.set_master_list(chrom, ml)
-      pop.add_sample_chromosome(chrom, sample_name or 'sample', svi)
+      pop.add_sample_chromosome(chrom, sample_name or 'anon', svi)
   return pop
 
 
@@ -88,24 +89,26 @@ def parse_header(fp, sample_name=None):
     cols = _line.split('\t')
     _gt_info_present = len(cols) > 8
     _sample_column = 9
+    sn = 'anon'
     if _gt_info_present:
       if _sample_name is not None:
         s_c = [c for c, n in enumerate(cols) if n == _sample_name]
         if len(s_c) == 0:
           raise RuntimeError("No sample named {}".format(_sample_name))
         _sample_column = s_c[0]
-    return _gt_info_present, _sample_column
+    return _gt_info_present, _sample_column, sn
 
   contig_re = re.compile(r"##contig=<(.*)>")
-  genome_metadata, gt_info_present, sample_column = [], False, -1
+  genome_metadata, gt_info_present, sample_column, sn = [], False, -1, 'anon'
   for line in fp:
     if line[:8] == '##contig':
       genome_metadata.append(parse_genome_information(line.strip()))
     if line[:2] != '##':  # Done with the initial part of the header
-      gt_info_present, sample_column = parse_column_header(line.strip(), sample_name)
+      gt_info_present, sample_column, sn = parse_column_header(line.strip(), sample_name)
       break
   logger.debug('{} sequences found in VCF head ##contig information'.format(len(genome_metadata)))
-  return genome_metadata, gt_info_present, sample_column
+  logger.debug('Sample name is "{}"'.format(sn))
+  return genome_metadata, gt_info_present, sample_column, sn
 
 
 def iter_vcf(

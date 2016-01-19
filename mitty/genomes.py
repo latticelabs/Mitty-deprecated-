@@ -192,9 +192,10 @@ def generate(param_fname, ref, db, dry_run, v, p):
 @click.argument('vcf', type=click.Path(exists=True))
 @click.argument('db', type=click.Path())
 @click.option('--sample-name', help='Sample name')
+@click.option('--ref', type=click.Path(exists=True), help="Reference file (For header info, if absent in VCF)")
 @click.option('-v', count=True, help='Verbosity level')
 @click.option('-p', is_flag=True, help='Show progress bar')
-def from_vcf(vcf, db, sample_name, v, p):
+def from_vcf(vcf, db, sample_name, ref, v, p):
   """Convert a VCF file into a GenomeDB file."""
   level = logging.DEBUG if v > 1 else logging.WARNING
   logging.basicConfig(level=level)
@@ -203,6 +204,7 @@ def from_vcf(vcf, db, sample_name, v, p):
 
   with click.progressbar(length=os.path.getsize(vcf), label='Converting VCF', file=None if p else io.BytesIO()) as bar:
     vp.vcf_to_pop(vcf_fname=vcf, pop_fname=db, sample_name=sample_name,
+                  genome_metadata=mio.Fasta(multi_fasta=ref).get_seq_metadata() if ref else None,
                   progress_callback=bar.update, callback_interval=100)
 
 
