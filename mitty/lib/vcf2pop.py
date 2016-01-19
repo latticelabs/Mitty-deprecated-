@@ -193,7 +193,7 @@ def iter_vcf(
 
       if not master_is_sample or gt_match:
         l_pos += [pos]
-        l_stop += [pos + len(alt)]
+        l_stop += [pos + len(ref)]
         l_ref += [ref]
         l_alt += [alt]
 
