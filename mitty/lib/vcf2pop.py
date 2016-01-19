@@ -107,7 +107,7 @@ def parse_header(fp, sample_name=None):
       gt_info_present, sample_column, sn = parse_column_header(line.strip(), sample_name)
       break
   logger.debug('{} sequences found in VCF head ##contig information'.format(len(genome_metadata)))
-  logger.debug('Sample name is "{}"'.format(sn))
+  logger.debug('Sample name is "{}", column {}'.format(sn, sample_column))
   return genome_metadata, gt_info_present, sample_column, sn
 
 
