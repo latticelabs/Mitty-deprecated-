@@ -95,7 +95,7 @@ def parse_header(fp, sample_name=None):
         s_c = [c for c, n in enumerate(cols) if n == _sample_name]
         if len(s_c) == 0:
           raise RuntimeError("No sample named {}".format(_sample_name))
-        _sample_column = s_c[0]
+        _sample_column, sn = s_c[0], _sample_name
     return _gt_info_present, _sample_column, sn
 
   contig_re = re.compile(r"##contig=<(.*)>")
