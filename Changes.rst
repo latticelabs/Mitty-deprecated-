@@ -77,70 +77,70 @@ Partial Changelog
 -----------------
 (Please see git commit log for detailed commentary)
 
-**1.38.2.dev0**
+**1.39.0.dev0**
+  * `genome-file` summary command now can give variant counts of multiple samples in a table
 
-* New sub command for genomes to convert VCF into genome DB
+**1.38.2.dev0**
+  * New sub command for genomes to convert VCF into genome DB
 
 **1.35.0.dev0**
-
-* Using an efficient filter to discard deletions that contain 'N's anywhere
+  * Using an efficient filter to discard deletions that contain 'N's anywhere
 
 **1.34.0.dev0**
-
-* Overhauled genome DB data set organization
+  * Overhauled genome DB data set organization
+    (HDF5 file org is now different and breaks compatibility with earlier versions)
 
 **1.30.0.dev0**
-
-* genomes and reads modifed so that I/O files can be overridden from the command line.
+  * genomes and reads modifed so that I/O files can be overridden from the command line.
 
 
 **1.29.0.dev0**
 
 2015.11.11
-* Cythonized bottlenecks in genome generation
+  * Cythonized bottlenecks in genome generation
 
 **1.27.0.dev0**
 
 2015.11.06
-* Alindel Plot can now infer indel range from data
-* Auto scale lines/circles in misalignment plots
-* alindel_plot should handle case where there are no indels (log scaling fails)
+  * Alindel Plot can now infer indel range from data
+  * Auto scale lines/circles in misalignment plots
+  * alindel_plot should handle case where there are no indels (log scaling fails)
 
 
 **1.26.1.dev0**
 
 2015.11.05
-* Bugfix: creed.read_analyze now properly handles position checking of reads with all I or all S
+  * Bugfix: creed.read_analyze now properly handles position checking of reads with all I or all S
 
 2015.11.04
-* [Wrappers] Use metadata to keep track of files from different aligner versions
-* [Wrappers] Have perfectbam and alindel and alindel plot operate on lists (doing scatter gather possibly)
-* moved wrapper code into separate project
+  * [Wrappers] Use metadata to keep track of files from different aligner versions
+  * [Wrappers] Have perfectbam and alindel and alindel plot operate on lists (doing scatter gather possibly)
+  * moved wrapper code into separate project
 
 
 **1.26.0.dev0**
 
 2015.10.30
-* Variant count from indel analysis now only counts variants with at least one read covering them. This takes care of
+  * Variant count from indel analysis now only counts variants with at least one read covering them. This takes care of
 the counting problems when we take reads from only one chromosome, or only part of a chromosome etc.
-* Alindel plot now shows pairwise differences in additional panel
+  * Alindel plot now shows pairwise differences in additional panel
 
 **1.25.0.dev0**
 
 2015.10.26
-* Combine multiple (or at least two) BADBAMs to perform intersection and difference analyses. Interactive tool?
+  * Combine multiple (or at least two) BADBAMs to perform intersection and difference analyses. Interactive tool?
 
 
 2015.10.20
-* matrix plot should show light gray dots for grid points
+  * matrix plot should show light gray dots for grid points
 
 
 2015.10.19
-* Implemented option to filter multiple allele loci.
+  * Implemented option to filter multiple allele loci.
 
 
 2015.10.14
-* Update plot_align (diff ways to plot mis-alignments) to work with BAM+tags way of saving misalignments
+  * Update plot_align (diff ways to plot mis-alignments) to work with BAM+tags way of saving misalignments
 
 2015.10.11
   * Improved documentation

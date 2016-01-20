@@ -248,7 +248,7 @@ def write_vcf(dbfile, vcfgz, sample_name):
 
 @g_file.command('summary')
 @click.argument('dbfile', type=click.Path(exists=True))
-@click.option('--sample-name', help='Name of sample (optional)', default=None)
+@click.option('--sample-name', help='Name of sample (optional)', default=None, multiple=True)
 def summary(dbfile, sample_name):
   """Print some useful information about the database"""
   print(vr.Population(fname=dbfile).pretty_print_summary(sample_name))
