@@ -78,7 +78,7 @@ Mitty installation
 ------------------
 On Linux, you may first need to pull some dependencies (as needed) such as ::
 
-    sudo apt-get install python-pip git python-numpy python-dev cython zlib1g-dev libhdf5-serial-dev
+    sudo apt-get install python-pip git python-numpy python-dev cython zlib1g-dev libhdf5-serial-dev python-matplotlib
 
 You will also need setuptools 11.0.0 or more recent ::
 
