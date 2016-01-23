@@ -26,10 +26,22 @@ v 2.0.0 Dec 2015
 
 Planned changes
 ---------------
-* in perfectbam, use the mismatch count field to produce a summary of #mismatches in a read vs number of reads
+perfectbam
+  * Use the mismatch count field to produce a summary of #mismatches in a read vs number of reads
+
+alindel
+  * Alindel should be able to split indel accuracy by known vs novel and save those separately
+  * Alindel should be able to split indel accuracy based on reads under graph variants but not bearing sample variants.
+  * Alindel should be able to estimate sample indel accuracy for shorter indels based on correct CIGAR strings. Reads
+    that are ambiguous (i.e. insertion + anchor) should be placed in their own pile
+
+plots
+  * dump summary data that can be used for ploting mapping quality vs read accuracy
+
+
+* plot of mapping
+* for misalignment plots also save the matrix and other processed data, so we can recreate the plot
 * setup.py: figure out how to make "extras_require" work.
-* Alindel should be able to split indel accuracy by known vs novel and save those separately
-* Alindel should be able to split indel accuracy based on reads under graph variants but not bearing sample variants.
 * All plugins should provide commandline stubs that can generate parameter file fragments based on command line
   inputs. This is for compatibility with CWL (?)
 * Brandi's use case: compare pipelines against each other.
@@ -76,6 +88,11 @@ Possible changes
 Partial Changelog
 -----------------
 (Please see git commit log for detailed commentary)
+
+**1.40.0.dev0**
+  * New program `bam2tfq` generates a truth FASTQ file from a BAM, treating the alignments as correct and using the
+    alignment information to fill out the qname field. Unmapped reads, reads whose mates are in different contigs and
+    reads whose mapping quality is below as supplied threshold are skipped
 
 **1.39.0.dev0**
   * `genome-file` summary command now can give variant counts of multiple samples in a table
