@@ -32,6 +32,7 @@ setup(
                           'alindel = mitty.benchmarking.indel_alignment_accuracy:cli',
                           'benchsummary = mitty.benchmarking.benchmark_summary:cli',
                           'vcf2pop = mitty.lib.vcf2pop:cli',
+                          'bam2tfq = mitty.benchmarking.convert_bam_to_truth_fastq:cli',
                           'alindel_plot = mitty.benchmarking.indel_alignment_accuracy_plot:cli [bench]',
                           'misplot = mitty.benchmarking.misalignment_plot:cli [bench]',
                           'plot_gc_bias = mitty.util.plot_gc_bias:cli [bench]',

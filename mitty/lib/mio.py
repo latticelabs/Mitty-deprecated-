@@ -48,10 +48,11 @@ def iter_fasta(fa_fname):
 
 def whole_fasta(fa_fname, chrom_list=[], compute_md5=True):
   def _proc_seq(_n, _sid, _seq):
-    chr = _n + 1
+    ch = _n + 1
     data = {'id': _sid, 'seq_len': len(_seq)}
     if compute_md5: data['md5'] = hashlib.md5(_seq).hexdigest()
-    if chrom_list == [] or chrom_list is None or chr in chrom_list: data['seq'] = _seq
+    if chrom_list == [] or chrom_list is None or ch in chrom_list: data['seq'] = _seq
+    logger.debug('Loaded {} ({} bp)'.format(_sid, len(_seq)))
     return data
 
   return {n + 1: _proc_seq(n, sid, seq) for n, (sid, seq) in enumerate(iter_fasta(fa_fname))}

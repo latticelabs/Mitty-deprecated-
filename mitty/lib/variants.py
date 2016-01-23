@@ -154,8 +154,23 @@ class Population:
     """Pretty print the genome file"""
     return self.pretty_print_summary()
 
-  def pretty_print_summary(self, sample_name=None):
-    """Give us a nice printed representation of the population file"""
+  def pretty_print_summary(self, sample_names=None, max_samples=10):
+    """Give us a nice printed representation of the population file
+
+    :param sample_names: If a single value, summarize that sample stats for us.
+                        If None, give us summaries for the first max_samples data
+    :param max_samples: Maximum number of samples to show if sample_names is None
+    :return:
+    """
+    sample_names = (list(sample_names) or self.get_sample_names()[:max_samples])
+    all_cnts = [
+      [self.get_variant_master_list_count(chrom=chrom)] +
+      [self.get_sample_variant_count(chrom=chrom, sample_name=sample_name) for sample_name in sample_names]
+      for chrom in self.get_chromosome_list()
+    ]
+
+    # Now print it out nicely
+
     rep_str = """
     ---------------------------------------
     Genome file. Mitty version {mv:s}
@@ -163,21 +178,18 @@ class Population:
     {chrom_cnt:d} chromosomes
     {sample_cnt:d} samples\n
     """.format(mv=self.get_version(), chrom_cnt=len(self.get_chromosome_list()), sample_cnt=len(self.get_sample_names()))
-    pop_v_cnt = [self.get_variant_master_list_count(chrom=chrom) for chrom in self.get_chromosome_list()]
-    if sample_name is not None:
-      sample_v_cnt = [self.get_sample_variant_count(chrom=chrom, sample_name=sample_name) for chrom in self.get_chromosome_list()]
-    else:
-      sample_v_cnt = []
 
-    # Now print it out nicely
-    rep_str += 'Variant counts' + (' (sample: {:s})\n'.format(sample_name) if sample_name is not None else '\n')
-    rep_str += '\tChrom\tPop' + ('\t\tSample\n' if sample_name is not None else '\n')
-    rep_str += '\t     \tCount' + ('\t\tCount\n' if sample_name is not None else '\n')
-    rep_str += '\t-----\t-----' + ('\t\t-----\n' if sample_name is not None else '\n')
+    rep_str += 'Variant counts\n\n'
+
+    row_format = "    " + "{:>10} " * (len(sample_names) + 2)
+    sep = "    " + "-" * 12 * (len(sample_names) + 2) + '\n'
+    rep_str += row_format.format(*(['Chrom', 'Pop'] + sample_names)) + '\n'
+    rep_str += sep
     for n, chrom in enumerate(self.get_chromosome_list()):
-      rep_str += '\t{:d}\t{:d}'.format(chrom, pop_v_cnt[n]) + ('\t\t{:d}\n'.format(sample_v_cnt[n]) if sample_name is not None else '\n')
-    rep_str += '\t-----\t-----' + ('\t\t-----\n' if sample_name is not None else '\n')
-    rep_str += '\tTotal\t{:d}'.format(sum(pop_v_cnt)) + ('\t\t{:d}\n'.format(sum(sample_v_cnt)) if sample_name is not None else '\n')
+      rep_str += row_format.format(chrom, *all_cnts[n]) + '\n'
+    rep_str += sep
+    rep_str += row_format.format("Total", *[sum([cnts[n] for cnts in all_cnts]) for n in range(len(sample_names) + 1)]) + '\n'
+
     return rep_str
 
 

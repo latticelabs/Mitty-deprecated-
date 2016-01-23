@@ -12,6 +12,7 @@ import mitty.lib
 import mitty.lib.util as mutil
 import mitty.lib.mio as mio
 import mitty.lib.variants as vr
+import mitty.lib.vcf2pop as vp
 
 import logging
 logger = logging.getLogger(__name__)
@@ -152,7 +153,7 @@ def load_population_model(pop_model_json, params={}):
 @click.version_option()
 def cli():
   """Mitty genomes simulator"""
-  logging.basicConfig(level=logging.INFO)
+  pass
 
 
 @cli.command()
@@ -185,6 +186,26 @@ def generate(param_fname, ref, db, dry_run, v, p):
   t1 = time.time()
   logger.debug('Took {:f}s'.format(t1 - t0))
   logger.debug('{:d} unique variants, {:d} variants in samples'.format(simulation.unique_variant_count, simulation.total_variant_count))
+
+
+@cli.command('from-vcf')
+@click.argument('vcf', type=click.Path(exists=True))
+@click.argument('db', type=click.Path())
+@click.option('--sample-name', help='Sample name')
+@click.option('--ref', type=click.Path(exists=True), help="Reference file (For header info, if absent in VCF)")
+@click.option('-v', count=True, help='Verbosity level')
+@click.option('-p', is_flag=True, help='Show progress bar')
+def from_vcf(vcf, db, sample_name, ref, v, p):
+  """Convert a VCF file into a GenomeDB file."""
+  level = logging.DEBUG if v > 1 else logging.WARNING
+  logging.basicConfig(level=level)
+  if v == 1:
+    logger.setLevel(logging.DEBUG)
+
+  with click.progressbar(length=os.path.getsize(vcf), label='Converting VCF', file=None if p else io.BytesIO()) as bar:
+    vp.vcf_to_pop(vcf_fname=vcf, pop_fname=db, sample_name=sample_name,
+                  genome_metadata=mio.Fasta(multi_fasta=ref).get_seq_metadata() if ref else None,
+                  progress_callback=bar.update, callback_interval=100)
 
 
 def do_dry_run(params):
@@ -227,7 +248,7 @@ def write_vcf(dbfile, vcfgz, sample_name):
 
 @g_file.command('summary')
 @click.argument('dbfile', type=click.Path(exists=True))
-@click.option('--sample-name', help='Name of sample (optional)', default=None)
+@click.option('--sample-name', help='Name of sample (optional)', default=None, multiple=True)
 def summary(dbfile, sample_name):
   """Print some useful information about the database"""
   print(vr.Population(fname=dbfile).pretty_print_summary(sample_name))

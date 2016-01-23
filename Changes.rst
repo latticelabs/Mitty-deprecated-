@@ -26,9 +26,22 @@ v 2.0.0 Dec 2015
 
 Planned changes
 ---------------
+perfectbam
+  * Use the mismatch count field to produce a summary of #mismatches in a read vs number of reads
+
+alindel
+  * Alindel should be able to split indel accuracy by known vs novel and save those separately
+  * Alindel should be able to split indel accuracy based on reads under graph variants but not bearing sample variants.
+  * Alindel should be able to estimate sample indel accuracy for shorter indels based on correct CIGAR strings. Reads
+    that are ambiguous (i.e. insertion + anchor) should be placed in their own pile
+
+plots
+  * dump summary data that can be used for ploting mapping quality vs read accuracy
+
+
+* plot of mapping
+* for misalignment plots also save the matrix and other processed data, so we can recreate the plot
 * setup.py: figure out how to make "extras_require" work.
-* Alindel should be able to split indel accuracy by known vs novel and save those separately
-* Alindel should be able to split indel accuracy based on reads under graph variants but not bearing sample variants.
 * All plugins should provide commandline stubs that can generate parameter file fragments based on command line
   inputs. This is for compatibility with CWL (?)
 * Brandi's use case: compare pipelines against each other.
@@ -59,7 +72,8 @@ Efficiency changes
 ------------------
 * Load chroms one at a time
 * Drop reference base(s) from variant list, store SNPs separately (will HDF5 optimize for this?)
-* Parallelize all operations by Chrom - will HDF5 allow parallel writes to separate data sets?
+* Parallelize all operations by Chrom - will HDF5 allow parallel writes to separate data sets?. May be switch to having
+  spearate files for each chrom.
 
 
 
@@ -75,64 +89,75 @@ Partial Changelog
 -----------------
 (Please see git commit log for detailed commentary)
 
+**1.40.0.dev0**
+  * New program `bam2tfq` generates a truth FASTQ file from a BAM, treating the alignments as correct and using the
+    alignment information to fill out the qname field. Unmapped reads, reads whose mates are in different contigs and
+    reads whose mapping quality is below as supplied threshold are skipped
+
+**1.39.0.dev0**
+  * `genome-file` summary command now can give variant counts of multiple samples in a table
+
+**1.38.2.dev0**
+  * New sub command for genomes to convert VCF into genome DB
 
 **1.35.0.dev0**
-* Using an efficient filter to discard deletions that contain 'N's anywhere
+  * Using an efficient filter to discard deletions that contain 'N's anywhere
 
 **1.34.0.dev0**
-* Overhauled genome DB data set organization
+  * Overhauled genome DB data set organization
+    (HDF5 file org is now different and breaks compatibility with earlier versions)
 
 **1.30.0.dev0**
-* genomes and reads modifed so that I/O files can be overridden from the command line.
+  * genomes and reads modifed so that I/O files can be overridden from the command line.
 
 
 **1.29.0.dev0**
 
 2015.11.11
-* Cythonized bottlenecks in genome generation
+  * Cythonized bottlenecks in genome generation
 
 **1.27.0.dev0**
 
 2015.11.06
-* Alindel Plot can now infer indel range from data
-* Auto scale lines/circles in misalignment plots
-* alindel_plot should handle case where there are no indels (log scaling fails)
+  * Alindel Plot can now infer indel range from data
+  * Auto scale lines/circles in misalignment plots
+  * alindel_plot should handle case where there are no indels (log scaling fails)
 
 
 **1.26.1.dev0**
 
 2015.11.05
-* Bugfix: creed.read_analyze now properly handles position checking of reads with all I or all S
+  * Bugfix: creed.read_analyze now properly handles position checking of reads with all I or all S
 
 2015.11.04
-* [Wrappers] Use metadata to keep track of files from different aligner versions
-* [Wrappers] Have perfectbam and alindel and alindel plot operate on lists (doing scatter gather possibly)
-* moved wrapper code into separate project
+  * [Wrappers] Use metadata to keep track of files from different aligner versions
+  * [Wrappers] Have perfectbam and alindel and alindel plot operate on lists (doing scatter gather possibly)
+  * moved wrapper code into separate project
 
 
 **1.26.0.dev0**
 
 2015.10.30
-* Variant count from indel analysis now only counts variants with at least one read covering them. This takes care of
+  * Variant count from indel analysis now only counts variants with at least one read covering them. This takes care of
 the counting problems when we take reads from only one chromosome, or only part of a chromosome etc.
-* Alindel plot now shows pairwise differences in additional panel
+  * Alindel plot now shows pairwise differences in additional panel
 
 **1.25.0.dev0**
 
 2015.10.26
-* Combine multiple (or at least two) BADBAMs to perform intersection and difference analyses. Interactive tool?
+  * Combine multiple (or at least two) BADBAMs to perform intersection and difference analyses. Interactive tool?
 
 
 2015.10.20
-* matrix plot should show light gray dots for grid points
+  * matrix plot should show light gray dots for grid points
 
 
 2015.10.19
-* Implemented option to filter multiple allele loci.
+  * Implemented option to filter multiple allele loci.
 
 
 2015.10.14
-* Update plot_align (diff ways to plot mis-alignments) to work with BAM+tags way of saving misalignments
+  * Update plot_align (diff ways to plot mis-alignments) to work with BAM+tags way of saving misalignments
 
 2015.10.11
   * Improved documentation
