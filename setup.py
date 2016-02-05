@@ -35,8 +35,9 @@ setup(
                           'bam2tfq = mitty.benchmarking.convert_bam_to_truth_fastq:cli',
                           'alindel_plot = mitty.benchmarking.indel_alignment_accuracy_plot:cli [bench]',
                           'misplot = mitty.benchmarking.misalignment_plot:cli [bench]',
-                          'plot_gc_bias = mitty.util.plot_gc_bias:cli [bench]',
                           'acubam = mitty.benchmarking.bam_accuracy:cli',
+                          'migratedb = mitty.util.db_migrate:cli',
+                          'plot_gc_bias = mitty.util.plot_gc_bias:cli [bench]',
                           'splitta = mitty.util.splitta:cli',
                           'kmers = mitty.util.kmers:cli',
                           'pybwa = mitty.util.pybwa:cli']
