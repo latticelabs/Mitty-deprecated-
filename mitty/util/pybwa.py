@@ -41,7 +41,7 @@ def cli():
       format(t=int(args['-t']), p='-p' if args['-p'] else '', S='-S' if args['-S'] else '', P='-P' if args['-P'] else '',
              ref=args['<ref>'], fastq=args['<fastq>'], sam=sam_file),
     'samtools view -Sb {:s} > {:s}'.format(sam_file, temp_bam_file),
-    'samtools sort {:s} {:s}'.format(temp_bam_file, os.path.splitext(args['<bam>'])[0]),
+    'samtools sort {:s} -o {:s}'.format(temp_bam_file, args['<bam>']),
     'samtools index {:s}'.format(args['<bam>']),
   ]
   for cmd in commands:
