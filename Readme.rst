@@ -127,7 +127,7 @@ Run the tests
 
 
 Developing
-----------
+==========
 
 To develop on Mitty, simply clone the repository, and from the project root run ::
 
@@ -139,6 +139,18 @@ or, for the optional, plotting dependencies
 
   pip install -e .[mplot]
 
+To compile the documentation
+----------------------------
+You will need ``sphinx`` and the ``programoutput`` extension for sphinx::
+
+    pip install sphinx
+    pip install sphinxcontrib-programoutput
+    pip install sphinxcontrib-napoleon
+
+Go into ``/docs`` and type ``make html`` or ``make latexpdf`` etc. (use ``make`` to get a list of options)
+
+
+
 Creating wheels
 ...............
 ::
@@ -147,6 +159,4 @@ Creating wheels
     pip wheel .
 
 
-Tutorial
-========
 Please see the documentation for a comprehensive, step-by-step tutorial.

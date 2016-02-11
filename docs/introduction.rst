@@ -1,6 +1,8 @@
 Overview
 ++++++++
 
+.. image:: images/data-generation.png
+
 .. include:: ../Readme.rst
 
 
