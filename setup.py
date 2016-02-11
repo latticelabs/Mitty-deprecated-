@@ -33,10 +33,11 @@ setup(
                           'benchsummary = mitty.benchmarking.benchmark_summary:cli',
                           'vcf2pop = mitty.lib.vcf2pop:cli',
                           'bam2tfq = mitty.benchmarking.convert_bam_to_truth_fastq:cli',
-                          'alindel_plot = mitty.benchmarking.indel_alignment_accuracy_plot:cli [bench]',
-                          'misplot = mitty.benchmarking.misalignment_plot:cli [bench]',
-                          'plot_gc_bias = mitty.util.plot_gc_bias:cli [bench]',
+                          'alindel_plot = mitty.benchmarking.indel_alignment_accuracy_plot:cli',
+                          'misplot = mitty.benchmarking.misalignment_plot:cli',
                           'acubam = mitty.benchmarking.bam_accuracy:cli',
+                          'migratedb = mitty.util.db_migrate:cli',
+                          'plot_gc_bias = mitty.util.plot_gc_bias:cli',
                           'splitta = mitty.util.splitta:cli',
                           'kmers = mitty.util.kmers:cli',
                           'pybwa = mitty.util.pybwa:cli']
@@ -48,9 +49,8 @@ setup(
       'docopt>=0.6.2',
       'click>=3.3',
       'pysam>=0.8.1',
-      'h5py>=2.5.0'
+      'h5py>=2.5.0',
+      'matplotlib>=1.3.0',
+      'scipy'
     ],
-    extras_require={
-      'bench': ['matplotlib>=1.3.0', 'scipy'],
-    }
 )

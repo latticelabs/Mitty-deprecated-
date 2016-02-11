@@ -13,17 +13,10 @@ Our plan is as follows:
 * Use `bwa` to align the reads back to the reference genome
 * Assess how well `bwa` aligned the reads
 
-
 .. _record: http://www.ncbi.nlm.nih.gov/assembly/GCF_000091205.1/#/def
 .. _ftp: ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF_000091205.1_ASM9120v1
 
---------------
-
-For the impatient, the commands we'll be using for this experiment are:
-
-.. literalinclude:: tutorial.sh
-
-(This file is included in the source distribution under ``docs/tutorial/tutorial.sh``)
+**To follow along on this tutorial, in addition to Mitty, you should have bwa and samtools installed**
 
 --------------
 
@@ -58,6 +51,7 @@ For greater detail please see [theory and algorithms].
 The genomes program performs several tasks. Typing ``genomes`` on the command line will produce a list of sub-commands.
 
 .. command-output::  genomes
+.. command-output::  genomes --version
 
 For the task at hand we need the ``genomes generate`` tool. We need to construct a parameter file which contains,
 among other things, specifications for variant models, spectrum models and population models.
@@ -177,11 +171,18 @@ Benchmarking alignment accuracy
 -------------------------------
 First, use BWA-MEM to create an alignment :
 
+.. program-output:: bwa index reddus_pentalgus.fa.gz
+    :cwd: .
+
 .. program-output:: pybwa reddus_pentalgus.fa.gz reads_c.fq bwa.bam -p -v
     :cwd: .
 
-.. command-output:: samtools tview -d T -p "NC_010142.1:4400" bwa.bam reddus_pentalgus.fa.gz
+(I got tired of typing out the commands needed to invoke BWA and then convert the SAM files)
+
+.. command-output:: samtools tview -d T -p "NC_010142.1:50" bwa.bam reddus_pentalgus.fa
     :cwd: .
+
+You can see the heterozygous SNP at base 72 and some read errors.
 
 As part of a comparison we are going to do later on, we will run a crippled version of BWA that does not take into
 account paired end information.
@@ -198,7 +199,7 @@ We use the ``perfectbam`` tool to analyze the alignment of the reads.
 .. command-output:: perfectbam --help
 .. command-output:: perfectbam --tags
 
-.. command-output::  perfectbam --perfect-bam -v -v bwa.bam
+.. command-output::  perfectbam -v -v bwa.bam
     :cwd: .
 
 .. command-output::  perfectbam bwa_poor.bam
@@ -266,8 +267,10 @@ We can compare the two mis-alignment files we produced to extract which reads we
 reads were mis-aligned differently, and which reads were mis-aligned only in one or the other instance.
 
 .. command-output:: badbams --help
+    :cwd: .
 
 .. command-output:: badbams bwa_bad.bam bwa_poor_bad.bam -v -p
+    :cwd: .
 
 
 One stop shop for alignment analysis
@@ -276,7 +279,8 @@ If you dislike entering so many commands in one by one try `acubam`
 
 .. command-output:: acubam --help
 
-.. command-output:: acubam bwa.bam reddus_genomes.h5 --sample-name "g0_s0" -p
+.. #  command-output:: acubam bwa.bam reddus_genomes.h5 --sample-name "g0_s0" -p
+.. #  :cwd: .
 
 
 Taking reads just from regions around variants
@@ -292,6 +296,21 @@ a variation.
     :lineno-match:
     :lines: 13-17
 
+Taking reads from a VCF
+-----------------------
+It is possible to use an existing VCF as a starting point for a simulation. First, load the VCF into a genome DB format
+which is used by the rest of the simulation
+
+.. command-output:: genomes from-vcf --help
+.. command-output:: genomes from-vcf g0_s0.vcf.gz converted.h5 --sample-name g0_s0 -v
+    :cwd: .
+
+.. command-output:: genomes genome-file summary converted.h5
+    :cwd: .
+
+Then we can proceed as usual, generating reads and analysing the alignments.
+
 Analysing variant callers
 -------------------------
-TODO
+Currently, variant callers can be analyzed by passing the truth VCF from Mitty and a called VCF to a variant comparator
+to analyze the quality of calls and generate metrics such as Precision-Recall curves.

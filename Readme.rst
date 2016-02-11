@@ -78,17 +78,28 @@ Mitty installation
 ------------------
 On Linux, you may first need to pull some dependencies (as needed) such as ::
 
-    sudo apt-get install python-pip git python-numpy python-dev cython zlib1g-dev libhdf5-serial-dev python-matplotlib
+    sudo apt-get install python-pip git python-numpy python-scipy python-dev cython zlib1g-dev libhdf5-serial-dev python-matplotlib
 
 You will also need setuptools 11.0.0 or more recent ::
 
     pip install -U setuptools
 
-The SBG dev pi server contains wheels for most of the packages, including the latest builds of Mitty. You can use the
-devpi server (cuts down on compilation time in many cases) by adding the following lines to your ~/.pip/pip.conf file
-(you may need to create the file first):
+Installing from the public repo
++++++++++++++++++++++++++++++++
+You can install Mitty by::
 
-::
+    pip install git+https://github.com/latticelabs/Mitty.git
+
+If you want a specific branch or tag you can do things like
+
+    pip install git+https://github.com/latticelabs/Mitty.git@develop
+
+
+Installing from the internal SBG repos
+++++++++++++++++++++++++++++++++++++++
+If you are internal to SBG and have access to the VPN, the SBG dev pi server contains wheels for most of the packages,
+including the latest builds of Mitty. You can use the devpi server (cuts down on compilation time in many cases) by
+adding the following lines to your ~/.pip/pip.conf file (you may need to create the file first)::
 
     [global]
     extra-index-url = https://pip.sbgenomics.com/packages
@@ -107,15 +118,6 @@ To get the code directly from gitlab (e.g. because you want a specific commit/ta
 
 On mac os x this will pull all packages as needed, including numpy. 
 
-
-Installing optional dependencies
-................................
-The analysis report generators, like `plot_align` may require additional packages, like matplotlib, to run. To install
-these too you should add the tag `[mplot]` to the install command::
-
-    pip install git+https://gitlab.sbgenomics.com:9443/graphgenome/mitty.git@develop#egg=mitty[mplot]
-
-
 Run the tests
 -------------
 ::
@@ -125,7 +127,7 @@ Run the tests
 
 
 Developing
-----------
+==========
 
 To develop on Mitty, simply clone the repository, and from the project root run ::
 
@@ -137,9 +139,24 @@ or, for the optional, plotting dependencies
 
   pip install -e .[mplot]
 
+To compile the documentation
+----------------------------
+You will need ``sphinx`` and the ``programoutput`` extension for sphinx::
+
+    pip install sphinx
+    pip install sphinxcontrib-programoutput
+    pip install sphinxcontrib-napoleon
+
+Go into ``/docs`` and type ``make html`` or ``make latexpdf`` etc. (use ``make`` to get a list of options)
+
+
+
 Creating wheels
 ...............
 ::
 
     pip install wheel  # If needed
     pip wheel .
+
+
+Please see the documentation for a comprehensive, step-by-step tutorial.
