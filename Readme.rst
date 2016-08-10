@@ -1,3 +1,14 @@
+* Mitty has moved to a more formal home along with the rest of the Seven Bridges Projects *
+
+The latest version of Mitty can be found at https://github.com/sbg/Mitty
+Mitty is released under the Apache 2.0 license
+
+
+--------------
+
+
+
+
 Mitty is a collection of programs to generate simulated datasets to benchmark aligners and variant callers.
 
 Mitty generates simulated data by starting from a reference genome and then adding controlled mutations to it to create
